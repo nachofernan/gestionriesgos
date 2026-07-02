@@ -1,0 +1,58 @@
+CRONOGRAMA DE IMPLEMENTACIÓN - MÓDULO DE GESTIÓN DE RIESGO
+Presentación Inicial - Modelo SCRUM (Fases Fluidas)
+================================================================================
+
+FASE 1: ESTRUCTURA DE DATOS Y CRUDs BÁSICOS
+
+  • Definición de Tablas
+  • Relaciones de Modelos
+  • Interfaz de Carga
+
+  Objetivo: Cargar un riesgo, control, plan de acción y tareas
+
+
+FASE 2: LÓGICA DE NEGOCIO
+
+  • Cálculo de Riesgo
+  • Lógica de Control
+  • Semáforo y primeros indicadores
+
+  Objetivo: Cargar múltiples riesgos, controles, planes y tareas,
+            asociarlos entre ellos y ver recálculos de criticidad
+
+
+FASE 3: GESTIÓN DE PLANES Y TAREAS
+
+  • Evolución de Planes
+  • Avance de Tareas
+  • Historial auditable y carga de documentación
+
+  Objetivo: Ver progreso porcentual en planes y tareas con indicadores
+
+
+FASE 4: ASOCIACIÓN DE USUARIOS, ÁREAS Y GERENCIAS
+
+  • Relaciones de usuarios y sectores
+  • Administración de accesos
+  • Modelar y sectorizar elementos
+
+  Objetivo: Estructurar el proyecto basándose en la estructura real de la empresa
+
+
+FASE 5: SALIDA DE INFORMACIÓN
+
+  • Creación de reportes
+  • Vistas de Logs
+
+  Objetivo: Revisión de información descargable y visualizable con controladores
+
+
+FASE 6: INTEGRACIÓN CON EL SISTEMA MODULAR DE PLATAFORMA
+
+  • Modularizar el proyecto y unificarlo con el sistema interno
+  • Crear roles y permisos reales
+  • Testeos finales
+
+  Objetivo: Que ande y no se rompa el resto
+
+================================================================================

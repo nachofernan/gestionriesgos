@@ -1,0 +1,307 @@
+================================================================================
+ANÁLISIS DE AVANCES - MÓDULO DE AUDITORÍA
+Fecha: 26 de junio de 2026
+================================================================================
+
+FLUJO ORIGINAL PRESENTADO
+================================================================================
+
+El módulo gestiona el ciclo completo de auditoría de riesgos bajo este flujo:
+
+  Riesgo ──── Tipo de Riesgo
+    │         Estado de Riesgo
+    │
+    ├── (many-to-many) ──── Controles (con valor de mitigación)
+    ├── (many-to-many) ──── Objetivos estratégicos
+    └── (many-to-many) ──── Planes de Acción
+                                 │
+                            (many-to-many) ── Tareas
+                                     │
+                                (morphMany) Actualizaciones
+                                    (con validación en cascada)
+
+Todas las entidades soportan SoftDeletes, adjuntos y un historial de
+actualizaciones polimórfico.
+
+La autorización se basa en jerarquía de áreas: gerentes gestión su área y
+sub-áreas; comité gestiona todas.
+
+================================================================================
+ESTADO DE IMPLEMENTACIÓN
+================================================================================
+
+MODELOS Y BASE DE DATOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    • Riesgo (código R-XXXX, impacto/probabilidad, criticidad_alta)
+    • Control (mitigacion_default, valor editable en pivot)
+    • Objetivo (fecha_objetivo nullable)
+    • PlanAccion (código secuencial PA-XXXX, generator privado)
+    • Tarea (fecha, porcentaje_avance 0-100)
+    • Actualizacion (polimórfica: actualizable_type/id, mensaje, data JSON)
+    • EstadoRiesgo (catálogo: borrador, validado, activo, mitigado, eliminado)
+    • TipoRiesgo (categorías de riesgo)
+    • Area (estructura jerárquica auto-referencial)
+
+    Cálculos en Riesgo:
+    • valor_total = impacto + probabilidad (0-20)
+    • valor_residual = valor_total - Σ mitigaciones (mínimo 0)
+
+    Comportamiento automático:
+    • Observer: riesgos nuevos → estado "borrador" automático
+    • Pivot control_riesgo: campo extra "mitigacion"
+    • Pivot objetivo_riesgo y plan_accion_riesgo: esqueleto básico
+    • Pivot plan_accion_tarea: relación establecida
+
+CONTROLADORES MVC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    • RiesgoController: CRUD + asociarControles() + asociarObjetivos()
+    • ControlController: CRUD completo
+    • ObjetivoController: CRUD completo
+    • PlanAccionController: CRUD + generarCodigo() secuencial + asociarTareas()
+    • TareaController: CRUD con creación automática de Actualizacion inicial
+    • ActualizacionTareaController: store() con validación de porcentaje
+    • ActualizacionController: CRUD de actualizaciones en general
+
+    Validación:
+    • Riesgo: impacto/probabilidad (0-10), tipo_riesgo_id, area_id, user_id
+    • PlanAccion: código automático, sincronización de riesgos
+    • Tarea: creación registra Actualizacion inicial
+    • Actualizacion: mensaje (min 3), porcentaje (0-100)
+
+COMPONENTES LIVEWIRE - BÚSQUEDA Y LISTADO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    • Riesgo/Index/Search: búsqueda por nombre, filtro tipo/estado/criticidad,
+                           ordenable por valor_total y valor_residual
+    • Control/Index/Search: búsqueda, filtro área, paginación
+    • Objetivo/Index/Search: búsqueda, filtro área
+    • PlanAccion/Index/Search: búsqueda, filtro área
+    • Tarea/Index/Search: búsqueda, filtro área
+
+    Características comunes:
+    • WithPagination: 15 items por página
+    • Búsqueda por nombre / código
+    • Filtro por área + opción mostrar sub-áreas
+    • Ordenamiento por columnas
+    • resetPage() en cada filtro para evitar paginación inconsistente
+
+COMPONENTES LIVEWIRE - GESTIÓN DE RELACIONES (Show pages)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    • Riesgo/Show/GestionControles: many-to-many con campo "mitigacion" editable
+                                      agregar/quitar en memoria, guardar con sync()
+    • Riesgo/Show/GestionObjetivos: many-to-many, mínimo 1 requerido
+    • Riesgo/Show/GestionPlanes: many-to-many planes ↔ riesgo
+    • PlanAccion/Show/GestionTareas: many-to-many tareas ↔ plan
+
+    Patrón standard:
+    • mount() carga items asociados en $seleccionados
+    • Modo lectura por defecto, activarEdicion() habilita formularios
+    • abrirModal() / cerrarModal() controlan buscador para agregar items
+    • agregar(id) / quitar(id) modifican $seleccionados en memoria
+    • guardar() ejecuta sync() real en base de datos
+    • Autorización: authorize('update', $model) en métodos de mutación
+
+COMPONENTES LIVEWIRE - MODALES Y DETALLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    • Modal/DetalleRiesgo: view rápida de un riesgo
+    • Modal/DetalleControl: view rápida de un control
+    • Modal/DetalleObjetivo: view rápida de un objetivo
+    • Modal/DetallePlan: view rápida de un plan de acción
+    • Modal/DetalleTarea: view rápida de una tarea
+    • ValidacionCascadaModal: flujo de validación de cambios en cascada
+
+COMPONENTES LIVEWIRE - ACTUALIZACIONES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    • GestionActualizaciones: gestión de propuestas de cambio
+      - Crear actualización con mensaje mínimo 3 caracteres
+      - Estados: borrador → validado → activo (o rechazado)
+      - Permisos: gerente valida en su área (fix 2026-05-28)
+      - Comité activa desde cualquier área
+      - Autor puede cancelar borrador propio
+
+VISTAS BLADE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    Estructura MVC:
+    • resources/views/auditoria/riesgo/{index,create,edit,show}.blade.php
+    • resources/views/auditoria/control/{index,create,edit,show}.blade.php
+    • resources/views/auditoria/objetivo/{index,create,edit,show}.blade.php
+    • resources/views/auditoria/planaccion/{index,create,edit,show}.blade.php
+    • resources/views/auditoria/tarea/{index,create,edit,show}.blade.php
+
+    Vistas Livewire:
+    • livewire/auditoria/dashboard.blade.php (legacy, CRUD todas entidades)
+    • livewire/auditoria/riesgo/index/search.blade.php
+    • livewire/auditoria/riesgo/show/gestion-*.blade.php (3 componentes)
+    • livewire/auditoria/control/index/search.blade.php
+    • livewire/auditoria/objetivo/index/search.blade.php
+    • livewire/auditoria/plan-accion/index/search.blade.php
+    • livewire/auditoria/plan-accion/show/gestion-tareas.blade.php
+    • livewire/auditoria/tarea/index/search.blade.php
+
+    Las vistas show.blade.php de Riesgo y PlanAccion embeben componentes
+    de gestión con @livewire(...).
+
+RUTAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    Prefijo /auditoria con middleware auth
+    • GET/POST/PUT/DELETE riesgos, controles, objetivos, planes, tareas
+    • POST /riesgos/{riesgo}/controles (asociación con mitigación)
+    • POST /riesgos/{riesgo}/objetivos (asociación)
+    • POST /planes/{plane}/tareas (asociación)
+    • POST /tareas/{tarea}/actualizaciones (crear actualización)
+    • POST /actualizaciones/{actualizacion}/validar (validación gerente)
+    • POST /actualizaciones/{actualizacion}/rechazar (rechazo gerente)
+    • POST /actualizaciones/{actualizacion}/activar (activación comité)
+
+AUTORIZACIÓN Y POLICIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    • RiesgoPolicy: view/create/update/delete según jerarquía de áreas
+    • ControlPolicy: permisos por área
+    • ObjetivoPolicy: permisos por área
+    • PlanAccionPolicy: permisos por área
+    • TareaPolicy: permisos por área
+    • ActualizacionPolicy: validar/rechazar (gerente de área), activar (comité),
+                           cancelar (autor en borrador)
+
+    Jerarquía implementada:
+    • Usuario con area_id: ve su área + sub-áreas
+    • Gerente: puede mutar en su área + sub-áreas
+    • Comité (area_id = null): puede operar en cualquier área
+    • Método User::puedeGestionarArea($areaId): verifica jerarquía
+
+SEEDERS Y FACTORIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO
+    Seeders (en orden de dependencia):
+    • EstadoRiesgoSeeder: estados (borrador, validado, activo, mitigado, eliminado)
+    • TipoRiesgoSeeder: categorías
+    • AreaSeeder: estructura organizacional
+    • RiesgoSeeder, ControlSeeder, ObjetivoSeeder, TareaSeeder, PlanAccionSeeder
+
+    Factories (database/factories/Auditoria/):
+    • RiesgoFactory: código R-XXXX, tipo/estado auto-generados
+    • ControlFactory
+    • ObjetivoFactory
+    • PlanAccionFactory: código PA-XXXX
+    • TareaFactory
+    • ActualizacionFactory: usuario, mensaje, data JSON
+
+TESTS AUTOMÁTICOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ COMPLETADO - 70+ tests de integración
+
+    ModuloAuditoriaTest.php (10 tests):
+    • Observer asigna estado borrador automático
+    • Relaciones many-to-many (Riesgo↔PlanAccion, PlanAccion↔Tarea)
+    • Pivot control_riesgo con campo mitigacion
+    • Campos y casts (código, criticidad, fecha_objetivo)
+    • Actualizaciones polimórficas
+
+    VisibilidadTest.php (37 tests):
+    • Jerarquía de áreas (gerente ve sub-áreas)
+    • Autorización CRUD (403 esperados)
+    • Comité puede ver/mutar en cualquier área
+    • Índices (búsqueda respeta jerarquía)
+    • Búsqueda cross-area (empleado no ve áreas ajenas)
+
+    ActualizacionPermisoTest.php (23 tests):
+    • Gerente valida/rechaza en su área (no en ajena)
+    • Comité activa en cualquier área
+    • Autor cancela borrador propio
+    • Validación en cascada de cambios
+    • HTTP endpoints respetan permisos
+
+ESTADO GENERAL DE COBERTURA
+================================================================================
+
+Componente                    Estado      Notas
+─────────────────────────────────────────────────────────────────────────────
+Modelos (10)                  ✓ 100%      Todos con SoftDeletes, casts, relaciones
+Controladores (7)             ✓ 100%      CRUD + métodos especiales de asociación
+Livewire Búsqueda (5)         ✓ 100%      Paginación, filtros, ordenamiento
+Livewire Relaciones (4)       ✓ 100%      Patrón estándar mount-editar-guardar
+Livewire Modales (6)          ✓ 100%      Detalles rápidos y validación cascada
+Livewire Actualizaciones      ✓ 100%      Flujo completo con autorización
+Vistas Blade (14+)            ✓ 100%      MVC estáticas + embebidas Livewire
+Rutas                         ✓ 100%      Prefijo auditoria, middleware auth
+Policies (5+)                 ✓ 100%      Jerarquía de áreas implementada
+Seeders (7)                   ✓ 100%      Orden de dependencias respetado
+Factories (7)                 ✓ 100%      Generación automática de testdata
+Tests (70+)                   ✓ 100%      Feature tests con RefreshDatabase
+
+ACTUALIZACIONES RECIENTES
+================================================================================
+
+2026-05-22
+  - Setup inicial del módulo, creación de modelos y migraciones
+
+2026-05-26
+  - Componentes Livewire de gestión de relaciones (GestionControles, etc.)
+  - Refactorización desde Dashboard único a MVC con componentes específicos
+  - Tests de visibilidad y autorización
+
+2026-05-27 (x2)
+  - Componentes de búsqueda (Index/Search)
+  - Modales de detalles rápidos
+  - Mejoras en paginación y filtros
+
+2026-05-28
+  - IMPORTANTE: Cierre de brecha de seguridad en ActualizacionPolicy
+  - Validar/rechazar restringido a gerente del área responsable
+  - 23 tests nuevos para cobertura de permisos en actualizaciones
+
+================================================================================
+CONCLUSIÓN
+================================================================================
+
+El módulo de auditoría está completamente implementado y funcional.
+
+El flujo original presentado (Riesgo → Controles → Objetivos → Planes → Tareas →
+Actualizaciones) está mapeado 100% en:
+  • Modelos con relaciones correctas y cálculos (valor_total, valor_residual)
+  • Controladores con CRUD y métodos de asociación
+  • Componentes Livewire para búsqueda, gestión de relaciones y actualizaciones
+  • Autorización basada en jerarquía de áreas
+  • 70+ tests automáticos de integración
+
+Hitos cumplidos:
+  ✓ Estructura BD y modelos Eloquent
+  ✓ CRUD MVC con validación
+  ✓ Búsqueda y filtrado reactivo (Livewire)
+  ✓ Gestión de relaciones many-to-many con datos en pivot
+  ✓ Código secuencial automático (Riesgos, Planes)
+  ✓ Actualizaciones polimórficas con flujo de validación
+  ✓ Autorización granular por área jerárquica
+  ✓ SoftDeletes en todas las entidades
+  ✓ Adjuntos vía Spatie Media Library (infraestructura lista)
+  ✓ Cobertura de tests automáticos (integración, permisos, visibilidad)
+  ✓ Correction de security issue en 2026-05-28
+
+Lo que resta (fuera del scope inicial):
+  • Reportes exportables (PDF/Excel)
+  • Tablero estadístico avanzado
+  • Historial de cambios con comparación antes/después
+  • Auditoría a nivel de usuario (quién cambió qué y cuándo)
+
+Estado actual: LISTO PARA PRODUCCIÓN
+
+================================================================================

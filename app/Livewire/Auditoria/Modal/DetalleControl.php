@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Livewire\Auditoria\Modal;
+
+use Livewire\Component;
+use Livewire\Attributes\On;
+use App\Models\Auditoria\Control;
+
+/**
+ * Modal de resumen rápido de un Control, abierto vía el evento global 'ver-control'
+ * (ej. desde una fila de listado o un modal de otra entidad relacionada).
+ */
+class DetalleControl extends Component
+{
+    public bool $abierto = false;
+    public ?Control $control = null;
+    public ?int $mitigacion = null;
+
+    #[On('ver-control')]
+    public function abrir(int $id, ?int $mitigacion = null): void
+    {
+        $this->control = Control::with(['estado', 'area', 'user', 'riesgos.estado', 'riesgos.tipoRiesgo'])->find($id);
+        $this->mitigacion = $mitigacion;
+        $this->abierto = (bool) $this->control;
+    }
+
+    public function cerrar(): void
+    {
+        $this->abierto = false;
+        $this->control = null;
+        $this->mitigacion = null;
+    }
+
+    public function render()
+    {
+        return view('livewire.auditoria.modal.detalle-control');
+    }
+}

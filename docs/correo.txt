@@ -1,0 +1,36 @@
+Buenos días, dejo en consideración el siguiente cronograma secuencial basado en fases fluidas (modelo SCRUM) para la construcción del módulo de Gestión de Riesgo para la Plataforma Interna solicitado por el área de Auditoria Interna:
+
+Fase 1: Estructura de Datos y CRUDs Básicos:
+•	Definición de Tablas
+•	Relaciones de Modelos
+•	Interfaz de Carga
+o	Objetivo: Cargar un riesgo, control, plan de acción y tareas
+
+Fase 2: Lógica de Negocio
+•	Cálculo de Riesgo
+•	Lógica de Control
+•	Semáforo y primeros indicadores
+o	Objetivo: Cargar múltiples riesgos, controles, planes y tareas, asociarlos entre ellos y ver recálculos de criticidad
+
+Fase 3: Gestión de Planes y Tareas
+•	Evolución de Planes
+•	Avance de Tareas
+•	Historial auditable y carga de documentación
+o	Objetivo: Ver progreso porcentual en planes y tareas con indicadores
+
+Fase 4: Asociación de usuarios, áreas y gerencias 
+•	Relaciones de usuarios y sectores
+•	Administración de accesos
+•	Modelar y sectorizar elementos
+o	Objetivo: Estructurar el proyecto basándose en la estructura real de la empresa
+
+Fase 5: Salida de Información
+•	Creación de reportes
+•	Vistas de Logs
+o	Objetivo: Revisión de información descargable y visualizable con controladores
+
+Fase 6: Integración con el sistema modular de Plataforma
+•	Modularizar el proyecto y unificarlo con el sistema interno.
+•	Crear roles y permisos reales.
+•	Testeos finales
+o	Objetivo: que ande y no se rompa el resto.

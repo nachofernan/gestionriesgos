@@ -1,0 +1,291 @@
+================================================================================
+ANÁLISIS REALISTA DE AVANCES - MÓDULO DE GESTIÓN DE RIESGO
+26 de junio de 2026
+================================================================================
+
+CRONOGRAMA ORIGINAL - OBJETIVOS POR FASE
+================================================================================
+
+Fase 1: Estructura de Datos y CRUDs Básicos
+  Objetivo: Cargar un riesgo, control, plan de acción y tareas
+
+Fase 2: Lógica de Negocio
+  Objetivo: Cargar múltiples riesgos, controles, planes y tareas,
+            asociarlos entre ellos y ver recálculos de criticidad
+
+Fase 3: Gestión de Planes y Tareas
+  Objetivo: Ver progreso porcentual en planes y tareas con indicadores
+
+Fase 4: Asociación de usuarios, áreas y gerencias
+  Objetivo: Estructurar el proyecto basándose en la estructura real
+            de la empresa
+
+Fase 5: Salida de Información
+  Objetivo: Revisión de información descargable y visualizable
+
+Fase 6: Integración con el sistema modular
+  Objetivo: Unificar con el sistema interno, roles y permisos reales
+
+================================================================================
+ESTADO POR FASE - ANÁLISIS DETALLADO
+================================================================================
+
+FASE 1: ESTRUCTURA DE DATOS Y CRUDs BÁSICOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Estimado: 60% Completado
+
+✓ HECHO:
+  • Base de datos: 9 tablas (riesgos, controles, objetivos, planes_accion,
+    tareas, usuarios, áreas, estados, actualizaciones)
+  • Modelos Eloquent: 10 modelos con relaciones many-to-many
+  • CRUD básico: Crear, leer, editar, eliminar para cada entidad
+  • Validación: Reglas básicas en controladores (impacto 0-10, probabilidad, etc)
+  • Rutas: Todas las rutas CRUD implementadas
+
+⊘ FALTA:
+  • Carga de archivos / adjuntos: Tabla media existe pero NO hay interfaz
+    para cargar documentos en los formularios (Fase 3 lo requiere)
+  • Validaciones complejas: Muchas reglas de negocio requieren validación
+    cruzada (ej: mínimo 1 objetivo por riesgo)
+  • Algunas definiciones de campos: Campos como "descripción" en algunos
+    modelos están incompletos
+
+
+FASE 2: LÓGICA DE NEGOCIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Estimado: 70% Completado
+
+✓ HECHO:
+  • Cálculo de riesgo: valor_total = impacto + probabilidad (funciona)
+  • Cálculo de mitigación: valor_residual = valor_total - Σ mitigaciones
+  • Asociaciones múltiples: Riesgo ↔ Controles ↔ Objetivos ↔ Planes
+  • Recálculo automático: valor_residual se recalcula al cambiar controles
+  • Estados de riesgo: Borrador → Validado → Activo (flujo básico)
+
+⊘ FALTA:
+  • Semáforo visual: No hay indicadores rojo/amarillo/verde en listados
+  • Indicadores avanzados: Falta "tasa de cobertura" y otros KPIs
+  • Definiciones de criticidad: Reglas de qué es alto/medio/bajo sin documentar
+  • Lógica de validación en cascada: Cambios en controles deberían validar
+    en toda la cadena (se testeó pero no está completamente implementado)
+
+
+FASE 3: GESTIÓN DE PLANES Y TAREAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Estimado: 50% Completado
+
+✓ HECHO:
+  • Código secuencial: Planes con código PA-0001, PA-0002 (auto-generado)
+  • Estado de planes: Borrador, Validado, Activo
+  • Avance de tareas: Campo porcentaje_avance (0-100) en tareas
+  • Historial básico: Tabla actualizaciones con mensaje y usuario
+  • Asociación planes-tareas: Relación many-to-many implementada
+
+⊘ FALTA:
+  • Carga de documentación: NO hay interfaz para cargar adjuntos en planes/tareas
+  • Historial detallado: No hay registro de "qué cambió específicamente"
+    (solo hay mensaje genérico, no diferencial antes/después)
+  • Indicadores de progreso: No hay vistas consolidadas de progreso por plan
+  • Fechas de cumplimiento: Existe campo fecha en tareas pero sin validación
+    de vencimiento ni alertas
+  • Validación de estados: Falta lógica de transiciones de estado válidas
+
+
+FASE 4: ASOCIACIÓN DE USUARIOS, ÁREAS Y GERENCIAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Estimado: 40% Completado
+
+✓ HECHO:
+  • Estructura jerárquica de áreas: area_padre_id (auto-referencial)
+  • Roles básicos: String 'rol' en users (empleado, gerente, comite)
+  • Asociación usuario-área: Cada usuario tiene area_id
+  • Restricciones por jerarquía: Gerente ve su área + sub-áreas
+  • Policies por autorización: 6 policies implementadas
+  • Tests de visibilidad: 37 tests verifican restricciones por área
+
+⊘ FALTA:
+  • Sistema de permisos granular: Solo hay roles de string, sin tabla de
+    permisos específicos (ej: no hay "permiso para validar" separado de "rol gerente")
+  • Gestión de roles: No hay interfaz para asignar/cambiar roles de usuarios
+  • Permisos por elemento: No hay "este usuario solo puede editar riesgos
+    de cierto tipo"
+  • Auditoría de accesos: No se registra quién vio qué información
+  • Delegación de responsabilidades: No hay forma de delegar una tarea
+    a otro usuario
+
+
+FASE 5: SALIDA DE INFORMACIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Estimado: 5% Completado
+
+✗ CASI NADA:
+  • Reportes descargables: NO existen (PDF/Excel/CSV)
+  • Reportes por gerencia: NO existen
+  • Reportes consolidados: NO existen
+  • Gráficos: NO hay dashboards visuales
+  • Vistas de logs: NO hay forma de ver "quién hizo qué"
+  • Logs descargables: NO existen
+  • Filtros de reportes: NO implementado
+
+Lo único que existe:
+  ✓ Listados básicos HTML (sin exportación)
+  ✓ Búsqueda y paginación
+  ✓ Tabla de actualizaciones con mensaje (no es un reporte)
+
+
+FASE 6: INTEGRACIÓN CON EL SISTEMA MODULAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Estimado: 20% Completado
+
+⊘ CASI NADA:
+  • Integración con dashboard general: El módulo es standalone, no se
+    integra con un dashboard general de la plataforma
+  • Testing en producción: Solo tests unitarios, sin tests de carga
+  • Documentación de API: No hay documentación de endpoints
+  • Consistencia de estilos: Usa su propio layout, no el general
+  • Single Sign-On: Usa auth de Laravel, no integrado con plataforma
+  • Logs centralizados: Cada cambio se guarda local, no en sistema central
+
+Lo único que existe:
+  ✓ Rutas bajo prefijo /auditoria
+  ✓ 70+ tests automatizados (feature tests)
+  ✓ Middleware auth básico
+
+================================================================================
+RESUMEN DE COBERTURA REAL
+================================================================================
+
+ESTIMACIÓN DE COMPLETITUD POR FASE:
+
+Fase 1 - Estructura de Datos y CRUDs          60% (falta carga de archivos)
+Fase 2 - Lógica de Negocio                    70% (faltan indicadores visuales)
+Fase 3 - Gestión de Planes y Tareas           50% (falta documentación y alertas)
+Fase 4 - Usuarios, Áreas y Gerencias          40% (faltan permisos granulares)
+Fase 5 - Salida de Información                 5% (casi TODO falta)
+Fase 6 - Integración Modular                  20% (casi TODO falta)
+
+PROMEDIO GENERAL: 41% DEL CRONOGRAMA ORIGINAL
+
+================================================================================
+FUNCIONALIDADES CRÍTICAS QUE FALTAN
+================================================================================
+
+1. CARGA DE DOCUMENTACIÓN/ARCHIVOS
+   - Requerido por: Fase 3 (planes y tareas)
+   - Impacto: SIN ESTO no se pueden adjuntar evidencias o documentación
+   - Estimado: 1-2 semanas
+
+2. REPORTES Y EXPORTACIÓN
+   - Requerido por: Fase 5 (salida de información)
+   - Impacto: SIN ESTO no hay forma de generar reportes para directivos
+   - Estimado: 3-4 semanas (incluye diseño de reportes)
+
+3. SISTEMA DE PERMISOS GRANULAR
+   - Requerido por: Fase 4 (accesos y roles)
+   - Impacto: SIN ESTO los permisos son muy simples y no se pueden
+     customizar por usuario/tipo de riesgo
+   - Estimado: 2-3 semanas
+
+4. HISTORIAL DETALLADO CON DIFF
+   - Requerido por: Fase 5 (logs) y auditoría
+   - Impacto: SIN ESTO no se sabe exactamente qué cambió (solo quién)
+   - Estimado: 1-2 semanas
+
+5. INDICADORES Y SEMÁFOROS
+   - Requerido por: Fase 2 (lógica de negocio)
+   - Impacto: SIN ESTO no hay forma de ver "a primera vista" la salud
+     del riesgo
+   - Estimado: 1 semana
+
+6. ALERTAS Y NOTIFICACIONES
+   - Requerido por: Fase 3 (planes y tareas)
+   - Impacto: SIN ESTO nadie es notificado de cambios/vencimientos
+   - Estimado: 1-2 semanas
+
+7. DASHBOARD CONSOLIDADO
+   - Requerido por: Fase 6 (integración)
+   - Impacto: SIN ESTO no se integra con el resto de la plataforma
+   - Estimado: 2-3 semanas
+
+================================================================================
+¿QUÉ PUEDEN HACER LOS USUARIOS AHORA?
+================================================================================
+
+GERENTES DE ÁREAS:
+  ✓ Crear y ver riesgos de su área
+  ✓ Definir controles y asociarlos
+  ✓ Crear planes de acción con tareas
+  ✓ Cambiar porcentaje de avance de tareas (0-100%)
+  ✓ Proponer cambios a riesgos/planes
+
+  ✗ NO PUEDEN:
+    • Cargar documentación/evidencias
+    • Ver reportes
+    • Generar exportaciones
+    • Delegar tareas a otros usuarios
+    • Establecer alertas
+
+COMITÉ DE AUDITORÍA:
+  ✓ Ver riesgos de TODAS las gerencias
+  ✓ Validar/rechazar cambios propuestos
+  ✓ Activar planes de acción
+  ✓ Ver historial de cambios
+
+  ✗ NO PUEDEN:
+    • Generar reportes consolidados
+    • Exportar datos
+    • Crear alertas automáticas
+    • Ver análisis estadísticos
+
+================================================================================
+PRÓXIMAS PRIORIDADES
+================================================================================
+
+Para que el módulo sea FUNCIONAL para usuarios finales, se necesita:
+
+URGENTE (Bloqueantes):
+  1. Carga de archivos en planes/tareas      (1-2 semanas)
+  2. Reportes básicos PDF                    (2-3 semanas)
+  3. Sistema de permisos granular            (2-3 semanas)
+
+IMPORTANTE (Valor agregado):
+  4. Indicadores visuales (semáforos)        (1 semana)
+  5. Historial con diff (antes/después)      (1-2 semanas)
+  6. Notificaciones de cambios               (1-2 semanas)
+
+DESEABLE (Futuro):
+  7. Dashboard consolidado
+  8. Gráficos estadísticos
+  9. Auditoría detallada por usuario
+
+================================================================================
+CONCLUSIÓN
+================================================================================
+
+El módulo tiene la ESTRUCTURA básica completada, pero le falta gran parte
+de la FUNCIONALIDAD requerida por el cronograma original.
+
+Estado actual:
+  • 41% del cronograma implementado
+  • Infraestructura de modelos y CRUD: OK
+  • Lógica de cálculos: OK
+  • Gestión de planes y tareas: Parcial
+  • Roles y permisos: BÁSICO, muy simple
+  • Reportes: NO EXISTE
+  • Integración: NO EXISTE
+
+RECOMENDACIÓN:
+No es aún para producción. Requiere implementar:
+  • Carga de archivos (crítico)
+  • Reportes (crítico)
+  • Permisos granulares (importante)
+
+Estimado para funcionalidad completa de cronograma: 4-5 meses más de desarrollo.
+
+================================================================================
