@@ -27,7 +27,7 @@ class PlanAccionController extends Controller
             ->visiblePara(Auth::user())
             ->latest()->paginate(20);
 
-        return view('auditoria.planaccion.index', compact('planes'));
+        return view('auditoria.planaccion.index', compact('planAccions'));
     }
 
     public function create()
@@ -81,7 +81,7 @@ class PlanAccionController extends Controller
         $this->authorize('view', $planAccion);
         $planAccion->load(['riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'tareas', 'user', 'area']);
 
-        return view('auditoria.planaccion.show', compact('plane'));
+        return view('auditoria.planaccion.show', compact('planAccion'));
     }
 
     public function edit(PlanAccion $planAccion)
@@ -98,7 +98,7 @@ class PlanAccionController extends Controller
         $areas    = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 
-        return view('auditoria.planaccion.edit', compact('plane', 'riesgos', 'areas', 'usuarios'));
+        return view('auditoria.planaccion.edit', compact('planAccion', 'riesgos', 'areas', 'usuarios'));
     }
 
     public function update(Request $request, PlanAccion $planAccion)
