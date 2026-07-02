@@ -60,6 +60,20 @@
                 @error('tipo_riesgo_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
             </div>
 
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Respuesta</label>
+                <select name="respuesta"
+                    class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('respuesta') border-red-300 @enderror">
+                    <option value="">— Seleccionar respuesta —</option>
+                    @foreach (\App\Enums\Auditoria\RespuestaRiesgo::cases() as $opcion)
+                        <option value="{{ $opcion->value }}" {{ old('respuesta', $riesgo->respuesta?->value) === $opcion->value ? 'selected' : '' }}>
+                            {{ $opcion->label() }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('respuesta') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+            </div>
+
             <x-auditoria.criticidad-checkbox
                 :impacto="old('impacto', $riesgo->impacto)"
                 :probabilidad="old('probabilidad', $riesgo->probabilidad)"

@@ -9,6 +9,7 @@ use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\User;
+use App\Enums\Auditoria\RespuestaRiesgo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,7 @@ class RiesgoController extends Controller
             'impacto'         => 'required|integer|min:0|max:10',
             'probabilidad'    => 'required|integer|min:0|max:10',
             'mayor_criticidad' => 'boolean',
+            'respuesta'        => ['nullable', Rule::enum(RespuestaRiesgo::class)],
             'tipo_riesgo_id'   => 'required|exists:tipos_riesgo,id',
             'area_id'          => 'nullable|exists:areas,id',
             'user_id'          => 'nullable|exists:users,id',
@@ -122,6 +124,7 @@ class RiesgoController extends Controller
             'impacto'         => 'required|integer|min:0|max:10',
             'probabilidad'    => 'required|integer|min:0|max:10',
             'mayor_criticidad' => 'boolean',
+            'respuesta'        => ['nullable', Rule::enum(RespuestaRiesgo::class)],
             'tipo_riesgo_id'   => 'required|exists:tipos_riesgo,id',
             'area_id'          => 'nullable|exists:areas,id',
             'user_id'          => 'nullable|exists:users,id',
@@ -135,8 +138,13 @@ class RiesgoController extends Controller
 
         $diff = [];
         foreach ($data as $campo => $nuevo) {
-            if (array_key_exists($campo, $original) && $original[$campo] != $nuevo) {
-                $diff[$campo] = ['antes' => $original[$campo], 'despues' => $nuevo];
+            // Los campos con cast a enum (respuesta) llegan de $original como instancia;
+            // se desenvuelven a su value para poder compararlos contra el string crudo de $data.
+            $antes = $original[$campo] ?? null;
+            $antes = $antes instanceof \BackedEnum ? $antes->value : $antes;
+
+            if (array_key_exists($campo, $original) && $antes != $nuevo) {
+                $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
             }
         }
         if (!empty($diff)) {

@@ -104,6 +104,12 @@
                             @endif
                         </dd>
                     </div>
+                    @if($riesgo->respuesta)
+                        <div class="flex justify-between">
+                            <dt class="text-gray-400 font-medium">Respuesta</dt>
+                            <dd class="font-bold text-gray-800">{{ $riesgo->respuesta->label() }}</dd>
+                        </div>
+                    @endif
                     <div class="flex justify-between items-center">
                         <dt class="text-gray-400 font-medium">Estado</dt>
                         <dd><x-auditoria.estado-badge :estado="$riesgo->estado" /></dd>

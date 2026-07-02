@@ -14,13 +14,15 @@ use App\Models\User;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Concerns\HasVisibilityScope;
+use App\Enums\Auditoria\RespuestaRiesgo;
 
 /**
  * Riesgo con código correlativo auto-generado. `valor_total` = impacto +
  * probabilidad; `valor_residual` descuenta la mitigación de los controles
  * asociados; `clasificacion_total`/`clasificacion_residual` traducen esos
- * valores a bajo/moderado/mayor criticidad (ver clasificacion()). Ciclo de vida
- * de estado borrador → validado → activo/borrado.
+ * valores a bajo/moderado/mayor criticidad (ver clasificacion()). `respuesta`
+ * es la estrategia frente al riesgo (mitigar/evitar/compartir/aceptar, ver
+ * RespuestaRiesgo). Ciclo de vida de estado borrador → validado → activo/borrado.
  */
 class Riesgo extends Model implements HasMedia
 {
@@ -35,10 +37,15 @@ class Riesgo extends Model implements HasMedia
         'impacto',
         'probabilidad',
         'mayor_criticidad',
+        'respuesta',
         'tipo_riesgo_id',
         'estado_id',
         'user_id',
         'area_id',
+    ];
+
+    protected $casts = [
+        'respuesta' => RespuestaRiesgo::class,
     ];
 
     protected $appends = ['valor_total', 'valor_residual', 'clasificacion_total', 'clasificacion_residual'];
