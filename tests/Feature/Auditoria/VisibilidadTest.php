@@ -25,8 +25,7 @@ use Database\Seeders\EstadoRiesgoSeeder;
  *       └── sectC   ← nocetti (empleado)
  *
  * Reglas:
- *   activo   → todos lo ven
- *   validado → comité=todos, gerente=su subtree, empleado=su gerencia completa
+ *   aprobado/validado → todos lo ven
  *   borrador → comité=nadie, gerente=su subtree, empleado=solo su área propia
  */
 class VisibilidadTest extends TestCase
@@ -205,10 +204,10 @@ class VisibilidadTest extends TestCase
     }
 
     /** @test */
-    public function gerente_no_ve_validado_de_otra_gerencia(): void
+    public function gerente_ve_validado_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectC);
-        $this->assertNotContains($r->id, $this->idsVisibles($this->canela));
+        $this->assertContains($r->id, $this->idsVisibles($this->canela));
     }
 
     /** @test */
@@ -245,10 +244,10 @@ class VisibilidadTest extends TestCase
     }
 
     /** @test */
-    public function empleado_no_ve_validado_de_otra_gerencia(): void
+    public function empleado_ve_validado_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectC);
-        $this->assertNotContains($r->id, $this->idsVisibles($this->nacho));
+        $this->assertContains($r->id, $this->idsVisibles($this->nacho));
     }
 
     /** @test */
@@ -373,10 +372,10 @@ class VisibilidadTest extends TestCase
     }
 
     /** @test */
-    public function policy_view_validado_bloqueado_para_empleado_de_otra_gerencia(): void
+    public function policy_view_validado_accesible_para_empleado_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectC);
-        $this->assertFalse($this->policy()->view($this->nacho, $r));
+        $this->assertTrue($this->policy()->view($this->nacho, $r));
     }
 
     // -------------------------------------------------------
@@ -434,12 +433,12 @@ class VisibilidadTest extends TestCase
     }
 
     /** @test */
-    public function show_validado_otra_gerencia_retorna_403_para_empleado(): void
+    public function show_validado_otra_gerencia_devuelve_200_para_empleado(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectC);
 
         $this->actingAs($this->nacho)
              ->get(route('auditoria.riesgos.show', $r))
-             ->assertForbidden();
+             ->assertOk();
     }
 }

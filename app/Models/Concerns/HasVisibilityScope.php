@@ -12,30 +12,18 @@ trait HasVisibilityScope
     {
         if (!$user->area_id) return $query;
 
-        $aprobadoId = Estado::aprobado()?->id;
-        $validadoId = Estado::validado()?->id;
+        $publicoIds = array_filter([Estado::aprobado()?->id, Estado::validado()?->id]);
 
         if ($user->esComite()) {
-            return $query->whereIn('estado_id', array_filter([$aprobadoId, $validadoId]));
+            return $query->whereIn('estado_id', $publicoIds);
         }
 
         $propiaIds = $user->area->obtenerIdsSubarbol();
 
-        if ($user->esGerente()) {
-            return $query->where(fn($q) =>
-                $q->where('estado_id', $aprobadoId)
-                  ->orWhereIn('area_id', $propiaIds)
-            );
-        }
-
-        // Empleado: aprobado=todos, validado=gerencia, borrador/borrado=área propia
-        $gerencia    = $user->areaGerencia();
-        $gerenciaIds = $gerencia ? $gerencia->obtenerIdsSubarbol() : $propiaIds;
-
+        // Aprobado y validado son públicos para cualquiera; borrador/borrado sólo área propia.
         return $query->where(fn($q) =>
-            $q->where('estado_id', $aprobadoId)
-              ->orWhere(fn($q2) => $q2->where('estado_id', $validadoId)->whereIn('area_id', $gerenciaIds))
-              ->orWhere(fn($q2) => $q2->whereNotIn('estado_id', array_filter([$aprobadoId, $validadoId]))->whereIn('area_id', $propiaIds))
+            $q->whereIn('estado_id', $publicoIds)
+              ->orWhereIn('area_id', $propiaIds)
         );
     }
 }

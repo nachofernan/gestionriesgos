@@ -82,14 +82,6 @@ class User extends Authenticatable
         return $area;
     }
 
-    // El empleado puede ver elementos validados en toda su gerencia.
-    public function puedeVerEnGerencia(mixed $areaId): bool
-    {
-        if (!$this->area_id || !$areaId) return true;
-        $gerencia = $this->areaGerencia();
-        return $gerencia?->esAncestroOIgual((int) $areaId) ?? false;
-    }
-
     // El usuario puede gestionar una entidad del área dada.
     // Sin área propia = superusuario (acceso total).
     // Entidad sin área = cualquiera puede gestionarla.

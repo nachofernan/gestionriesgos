@@ -12,19 +12,18 @@ use App\Models\User;
 class ControlPolicy
 {
     /**
-     * Visibilidad: aprobado es público; sin área asignada se ve todo; comité sólo
-     * ve validado+ (no borradores ajenos); gerente ve todo lo de su área/sub-áreas
-     * sin importar el estado; fuera del área propia, sólo lo ya validado
-     * (puedeVerEnGerencia); cualquier otro caso cae al chequeo de gestión de área.
+     * Visibilidad: aprobado y validado son públicos; sin área asignada se ve
+     * todo; comité no ve borrador/borrado ajenos (su área es la raíz del árbol,
+     * así que puedeGestionarArea() la trataría como ancestro de cualquier otra —
+     * hay que cortar antes de llegar ahí); cualquier otro caso requiere
+     * gestionar el área de la entidad.
      */
     public function view(User $user, Control $control): bool
     {
         $estado = $control->estado?->nombre;
-        if ($estado === 'aprobado') return true;
+        if (in_array($estado, ['aprobado', 'validado'])) return true;
         if (!$user->area_id) return true;
-        if ($user->esComite()) return $estado === 'validado';
-        if ($user->esGerente()) return $user->puedeGestionarArea($control->area_id);
-        if ($estado === 'validado') return $user->puedeVerEnGerencia($control->area_id);
+        if ($user->esComite()) return false;
         return $user->puedeGestionarArea($control->area_id);
     }
 
