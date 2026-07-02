@@ -12,7 +12,7 @@ use App\Models\User;
 class ControlPolicy
 {
     /**
-     * Visibilidad: activo es público; sin área asignada se ve todo; comité sólo
+     * Visibilidad: aprobado es público; sin área asignada se ve todo; comité sólo
      * ve validado+ (no borradores ajenos); gerente ve todo lo de su área/sub-áreas
      * sin importar el estado; fuera del área propia, sólo lo ya validado
      * (puedeVerEnGerencia); cualquier otro caso cae al chequeo de gestión de área.
@@ -20,7 +20,7 @@ class ControlPolicy
     public function view(User $user, Control $control): bool
     {
         $estado = $control->estado?->nombre;
-        if ($estado === 'activo') return true;
+        if ($estado === 'aprobado') return true;
         if (!$user->area_id) return true;
         if ($user->esComite()) return $estado === 'validado';
         if ($user->esGerente()) return $user->puedeGestionarArea($control->area_id);
@@ -50,7 +50,7 @@ class ControlPolicy
             && $control->estado?->nombre === 'borrador';
     }
 
-    public function activar(User $user, Control $control): bool
+    public function aprobar(User $user, Control $control): bool
     {
         return $user->esComite()
             && $user->puedeGestionarArea($control->area_id)

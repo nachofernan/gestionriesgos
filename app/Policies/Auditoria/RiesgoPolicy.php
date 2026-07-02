@@ -12,7 +12,7 @@ use App\Models\User;
 class RiesgoPolicy
 {
     /**
-     * Visibilidad: activo es público; sin área asignada se ve todo; comité sólo
+     * Visibilidad: aprobado es público; sin área asignada se ve todo; comité sólo
      * ve validado+ (no borradores ajenos); gerente ve todo lo de su área/sub-áreas
      * sin importar el estado; fuera del área propia, sólo lo ya validado
      * (puedeVerEnGerencia); cualquier otro caso cae al chequeo de gestión de área.
@@ -20,7 +20,7 @@ class RiesgoPolicy
     public function view(User $user, Riesgo $riesgo): bool
     {
         $estado = $riesgo->estado?->nombre;
-        if ($estado === 'activo') return true;
+        if ($estado === 'aprobado') return true;
         if (!$user->area_id) return true;
         if ($user->esComite()) return $estado === 'validado';
         if ($user->esGerente()) return $user->puedeGestionarArea($riesgo->area_id);
@@ -50,7 +50,7 @@ class RiesgoPolicy
             && $riesgo->estado?->nombre === 'borrador';
     }
 
-    public function activar(User $user, Riesgo $riesgo): bool
+    public function aprobar(User $user, Riesgo $riesgo): bool
     {
         return $user->esComite()
             && $user->puedeGestionarArea($riesgo->area_id)

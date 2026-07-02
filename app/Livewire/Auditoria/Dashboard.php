@@ -15,7 +15,7 @@ use App\Models\User;
  * Panel único con tabs para listar y hacer CRUD/asociaciones rápidas de las 5
  * entidades del módulo (riesgo/control/objetivo/plan/tarea) mediante un modal
  * genérico. A diferencia del resto del módulo, este componente escribe directo
- * (sin pasar por el flujo de estados borrador/validado/activo ni por
+ * (sin pasar por el flujo de estados borrador/validado/aprobado ni por
  * Actualizaciones) y sus guardarX()/actualizarX() no llaman a $this->authorize()
  * ni usan Auth::id() (usan `user_id => 1` fijo) — revisar antes de dejarlo
  * expuesto a usuarios reales.

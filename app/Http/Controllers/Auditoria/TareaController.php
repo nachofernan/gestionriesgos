@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
- * CRUD de Tarea más su ciclo de vida de estados: borrador → validado → activo,
+ * CRUD de Tarea más su ciclo de vida de estados: borrador → validado → aprobado,
  * o borrador/validado → borrado (rechazo). Una tarea validada ya no se edita acá;
  * los cambios posteriores pasan por el sistema de Actualizaciones (ver también
  * ActualizacionTareaController para el registro rápido de avance).
@@ -143,7 +143,7 @@ class TareaController extends Controller
 
     /**
      * Valida la tarea y arrastra a "validado" todas sus actualizaciones que
-     * seguían en borrador, para que queden listas para activar() junto a la tarea.
+     * seguían en borrador, para que queden listas para aprobar() junto a la tarea.
      */
     public function validar(Tarea $tarea)
     {
@@ -166,12 +166,12 @@ class TareaController extends Controller
     }
 
     /**
-     * Activa la tarea y aplica los cambios de todas sus actualizaciones ya
+     * Aprueba la tarea y aplica los cambios de todas sus actualizaciones ya
      * validadas (creación y ediciones acumuladas) en una sola transacción.
      */
-    public function activar(Tarea $tarea)
+    public function aprobar(Tarea $tarea)
     {
-        $this->authorize('activar', $tarea);
+        $this->authorize('aprobar', $tarea);
 
         DB::transaction(function () use ($tarea) {
             $pendientes = $tarea->actualizaciones()
@@ -180,14 +180,14 @@ class TareaController extends Controller
 
             foreach ($pendientes as $act) {
                 $this->aplicarCambiosActualizacion($act, $tarea);
-                $act->update(['estado_id' => Estado::activo()->id]);
+                $act->update(['estado_id' => Estado::aprobado()->id]);
             }
 
-            $tarea->update(['estado_id' => Estado::activo()->id]);
-            $this->logActivo($tarea, 'Activado por ' . Auth::user()->name);
+            $tarea->update(['estado_id' => Estado::aprobado()->id]);
+            $this->logAprobado($tarea, 'Aprobado por ' . Auth::user()->name);
         });
 
-        return back()->with('ok', 'Tarea activada correctamente.');
+        return back()->with('ok', 'Tarea aprobada correctamente.');
     }
 
     public function rechazar(Tarea $tarea)
@@ -195,22 +195,22 @@ class TareaController extends Controller
         $this->authorize('rechazar', $tarea);
 
         $tarea->update(['estado_id' => Estado::borrado()->id]);
-        $this->logActivo($tarea, 'Rechazado por ' . Auth::user()->name);
+        $this->logAprobado($tarea, 'Rechazado por ' . Auth::user()->name);
 
         return back()->with('ok', 'Tarea rechazada.');
     }
 
     /**
-     * Deja constancia en `actualizaciones` de una transición de estado (activar
+     * Deja constancia en `actualizaciones` de una transición de estado (aprobar
      * o rechazar) con el mensaje dado; no crea una actualización pendiente de
      * aprobación, es sólo el registro de auditoría de la transición.
      */
-    private function logActivo($model, string $mensaje, array $campos = []): void
+    private function logAprobado($model, string $mensaje, array $campos = []): void
     {
         $model->actualizaciones()->create([
             'user_id'   => Auth::id(),
             'mensaje'   => $mensaje,
-            'estado_id' => Estado::activo()->id,
+            'estado_id' => Estado::aprobado()->id,
             'data'      => empty($campos) ? null : ['campos' => $campos],
         ]);
     }

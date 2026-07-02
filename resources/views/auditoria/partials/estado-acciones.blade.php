@@ -34,19 +34,19 @@
         @endif
     @endcan
 
-    @can('activar', $item)
+    @can('aprobar', $item)
         @if($modelTipo)
             <button type="button"
-                    onclick="Livewire.dispatch('abrir-validacion-cascada', { tipo: '{{ $modelTipo }}', id: {{ $item->id }}, accion: 'activar' })"
+                    onclick="Livewire.dispatch('abrir-validacion-cascada', { tipo: '{{ $modelTipo }}', id: {{ $item->id }}, accion: 'aprobar' })"
                     class="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-lg hover:bg-green-100 transition-colors">
-                Activar
+                Aprobar
             </button>
         @else
-            <form action="{{ route('auditoria.' . $routePrefix . '.activar', $item) }}" method="POST" class="inline">
+            <form action="{{ route('auditoria.' . $routePrefix . '.aprobar', $item) }}" method="POST" class="inline">
                 @csrf
                 <button type="submit"
                         class="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-lg hover:bg-green-100 transition-colors">
-                    Activar
+                    Aprobar
                 </button>
             </form>
         @endif

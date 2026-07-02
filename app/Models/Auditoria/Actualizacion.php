@@ -14,7 +14,7 @@ use App\Models\User;
 /**
  * Registro polimórfico (actualizable: Riesgo, Control, Objetivo, PlanAccion o
  * Tarea) de un mensaje o propuesta de cambio, con su propio ciclo de vida
- * borrador → validado → activo/borrado. `data` guarda los campos/relaciones
+ * borrador → validado → aprobado/borrado. `data` guarda los campos/relaciones
  * propuestos (ver los distintos aplicarCambios() en los controladores/Livewire
  * que consumen este modelo).
  */

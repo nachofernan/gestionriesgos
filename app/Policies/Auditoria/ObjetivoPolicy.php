@@ -12,7 +12,7 @@ use App\Models\User;
 class ObjetivoPolicy
 {
     /**
-     * Visibilidad: activo es público; sin área asignada se ve todo; comité sólo
+     * Visibilidad: aprobado es público; sin área asignada se ve todo; comité sólo
      * ve validado+ (no borradores ajenos); gerente ve todo lo de su área/sub-áreas
      * sin importar el estado; fuera del área propia, sólo lo ya validado
      * (puedeVerEnGerencia); cualquier otro caso cae al chequeo de gestión de área.
@@ -20,7 +20,7 @@ class ObjetivoPolicy
     public function view(User $user, Objetivo $objetivo): bool
     {
         $estado = $objetivo->estado?->nombre;
-        if ($estado === 'activo') return true;
+        if ($estado === 'aprobado') return true;
         if (!$user->area_id) return true;
         if ($user->esComite()) return $estado === 'validado';
         if ($user->esGerente()) return $user->puedeGestionarArea($objetivo->area_id);
@@ -50,7 +50,7 @@ class ObjetivoPolicy
             && $objetivo->estado?->nombre === 'borrador';
     }
 
-    public function activar(User $user, Objetivo $objetivo): bool
+    public function aprobar(User $user, Objetivo $objetivo): bool
     {
         return $user->esComite()
             && $user->puedeGestionarArea($objetivo->area_id)

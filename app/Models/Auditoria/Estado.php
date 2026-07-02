@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Estado de ciclo de vida compartido por Riesgo, Control, Objetivo, PlanAccion,
- * Tarea y Actualizacion: borrador → validado → activo, o borrador/validado →
+ * Tarea y Actualizacion: borrador → validado → aprobado, o borrador/validado →
  * borrado. Los helpers estáticos (borrador(), validado(), etc.) son la forma
  * estándar de resolver el ID de un estado por nombre en todo el módulo.
  */
@@ -61,9 +61,9 @@ class Estado extends Model
         return static::where('nombre', 'validado')->first();
     }
 
-    public static function activo(): ?self
+    public static function aprobado(): ?self
     {
-        return static::where('nombre', 'activo')->first();
+        return static::where('nombre', 'aprobado')->first();
     }
 
     public static function borrado(): ?self

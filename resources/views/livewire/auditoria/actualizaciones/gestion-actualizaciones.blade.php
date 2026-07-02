@@ -20,10 +20,10 @@
                 $skipData = in_array($tipo, ['validacion', 'activacion', 'rechazo']);
                 $tieneContenido = !empty($data['campos']) || !empty($data['relaciones']) || !empty($data['diff'])
                     || ($tipo === 'legacy' && collect($data)->except(['tipo', 'activated_by'])->filter(fn($v) => !is_array($v))->isNotEmpty());
-                $estaActivo  = $actualizacion->estado?->nombre === 'activo';
+                $estaAprobado = $actualizacion->estado?->nombre === 'aprobado';
                 $activadoPor = $data['activated_by'] ?? null;
 
-                if ($estaActivo) {
+                if ($estaAprobado) {
                     $dataBg     = 'bg-green-50';
                     $dataBorder = 'border-green-200';
                     $dataTxt    = 'text-green-800';
@@ -60,7 +60,7 @@
                                 <div class="flex items-center justify-between mb-1.5">
                                     <p class="text-[10px] font-bold {{ $dataTxt }} uppercase">{{ $dataLabel }}</p>
                                     @if($activadoPor)
-                                        <span class="text-[10px] {{ $dataTxt }} opacity-70">Activado por: {{ $activadoPor }}</span>
+                                        <span class="text-[10px] {{ $dataTxt }} opacity-70">Aprobado por: {{ $activadoPor }}</span>
                                     @endif
                                 </div>
 
@@ -149,13 +149,13 @@
                             @endcan
                         @endif
 
-                        {{-- Activar individualmente: solo en elemento activo (en validado, la activación es del elemento completo) --}}
-                        @if($estadoModelo === 'activo')
-                            @can('activar', $actualizacion)
-                                <button wire:click="activarActualizacion({{ $actualizacion->id }})"
-                                        wire:confirm="¿Activar esta actualización? Los cambios propuestos se aplicarán al registro."
+                        {{-- Aprobar individualmente: solo en elemento aprobado (en validado, la aprobación es del elemento completo) --}}
+                        @if($estadoModelo === 'aprobado')
+                            @can('aprobar', $actualizacion)
+                                <button wire:click="aprobarActualizacion({{ $actualizacion->id }})"
+                                        wire:confirm="¿Aprobar esta actualización? Los cambios propuestos se aplicarán al registro."
                                         class="px-2.5 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-lg hover:bg-green-100 transition-colors">
-                                    Activar
+                                    Aprobar
                                 </button>
                             @endcan
                         @endif

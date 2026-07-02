@@ -44,7 +44,7 @@ class ActualizacionPermisoTest extends TestCase
 
     private int $borradorId;
     private int $validadoId;
-    private int $activoId;
+    private int $aprobadoId;
 
     // -------------------------------------------------------
     // Setup
@@ -72,7 +72,7 @@ class ActualizacionPermisoTest extends TestCase
 
         $this->borradorId = Estado::borrador()->id;
         $this->validadoId = Estado::validado()->id;
-        $this->activoId   = Estado::activo()->id;
+        $this->aprobadoId = Estado::aprobado()->id;
     }
 
     // -------------------------------------------------------
@@ -83,7 +83,7 @@ class ActualizacionPermisoTest extends TestCase
     {
         return Objetivo::create([
             'nombre'   => 'Objetivo test',
-            'estado_id' => $estadoId ?? $this->activoId,
+            'estado_id' => $estadoId ?? $this->aprobadoId,
             'area_id'  => $area->id,
             'user_id'  => $this->nacho->id,
         ]);
@@ -194,11 +194,11 @@ class ActualizacionPermisoTest extends TestCase
     }
 
     // -------------------------------------------------------
-    // Policy: activar (comité)
+    // Policy: aprobar (comité)
     // -------------------------------------------------------
 
     /** @test */
-    public function comite_puede_activar_actualizacion_de_cualquier_gerencia(): void
+    public function comite_puede_aprobar_actualizacion_de_cualquier_gerencia(): void
     {
         $objAdmin      = $this->objetivo($this->sectA);
         $actualizAdmin = $this->actualizacion($objAdmin, $this->validadoId);
@@ -206,17 +206,17 @@ class ActualizacionPermisoTest extends TestCase
         $objProd      = $this->objetivo($this->sectC);
         $actualizProd = $this->actualizacion($objProd, $this->validadoId);
 
-        $this->assertTrue($this->policy()->activar($this->lucia, $actualizAdmin));
-        $this->assertTrue($this->policy()->activar($this->lucia, $actualizProd));
+        $this->assertTrue($this->policy()->aprobar($this->lucia, $actualizAdmin));
+        $this->assertTrue($this->policy()->aprobar($this->lucia, $actualizProd));
     }
 
     /** @test */
-    public function comite_no_puede_activar_actualizacion_en_borrador(): void
+    public function comite_no_puede_aprobar_actualizacion_en_borrador(): void
     {
         $objetivo      = $this->objetivo($this->sectA);
         $actualizacion = $this->actualizacion($objetivo, $this->borradorId);
 
-        $this->assertFalse($this->policy()->activar($this->lucia, $actualizacion));
+        $this->assertFalse($this->policy()->aprobar($this->lucia, $actualizacion));
     }
 
     // -------------------------------------------------------

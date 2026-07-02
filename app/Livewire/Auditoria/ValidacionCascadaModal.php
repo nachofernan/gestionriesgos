@@ -14,7 +14,7 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Modal de validación/activación en cascada: antes de validar o activar una
+ * Modal de validación/aprobación en cascada: antes de validar o aprobar una
  * entidad, calcula (vía ValidacionMasivaService) qué entidades relacionadas son
  * prerequisitos bloqueantes u opcionales, deja elegir cuáles incluir, y ejecuta
  * la operación masiva sobre todo lo seleccionado.
@@ -103,7 +103,7 @@ class ValidacionCascadaModal extends Component
     }
 
     /**
-     * Ejecuta la validación/activación en cascada (vía ValidacionMasivaService)
+     * Ejecuta la validación/aprobación en cascada (vía ValidacionMasivaService)
      * sobre la entidad principal más los bloqueantes/opcionales seleccionados.
      * Los fallidos por falta de permiso no frenan la operación: se reportan
      * aparte en el mensaje final.
@@ -148,7 +148,7 @@ class ValidacionCascadaModal extends Component
 
         if (isset($resultado['ok'])) {
             $this->abierto = false;
-            $mensajeAccion = $this->accion === 'validar' ? 'validado' : 'activado';
+            $mensajeAccion = $this->accion === 'validar' ? 'validado' : 'aprobado';
             $total = count($resultado['exitosos'] ?? []);
             $ok = $total > 1
                 ? "{$total} elementos {$mensajeAccion}s correctamente."

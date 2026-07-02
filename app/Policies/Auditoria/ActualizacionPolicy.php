@@ -20,8 +20,8 @@ class ActualizacionPolicy
             && $actualizacion->estado?->nombre === 'borrador';
     }
 
-    /** Comité, sin restricción de área (activar es potestad del comité a nivel global). */
-    public function activar(User $user, Actualizacion $actualizacion): bool
+    /** Comité, sin restricción de área (aprobar es potestad del comité a nivel global). */
+    public function aprobar(User $user, Actualizacion $actualizacion): bool
     {
         return $user->esComite()
             && $actualizacion->estado?->nombre === 'validado';

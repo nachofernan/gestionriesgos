@@ -15,11 +15,11 @@ class RiesgoSeeder extends Seeder
         $tipos  = TipoRiesgo::pluck('id')->toArray();
         $users  = User::where('id', '>', 1)->whereNotNull('area_id')->get();
 
-        // 15 riesgos: 2 borrado, 2 borrador, 6 activo, 5 validado
+        // 15 riesgos: 2 borrado, 2 borrador, 6 aprobado, 5 validado
         $estadoDistribucion = [
             'borrado'  => 2,
             'borrador' => 2,
-            'activo'   => 6,
+            'aprobado' => 6,
             'validado' => 5,
         ];
 

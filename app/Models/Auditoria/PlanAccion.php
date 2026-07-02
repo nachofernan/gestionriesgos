@@ -18,7 +18,7 @@ use App\Models\Concerns\HasVisibilityScope;
 /**
  * Plan de Acción con código correlativo (ver PlanAccionController::generarCodigo()),
  * asociado a uno o más Riesgo y a las Tarea que lo ejecutan (ambas many-to-many).
- * Ciclo de vida de estado borrador → validado → activo/borrado.
+ * Ciclo de vida de estado borrador → validado → aprobado/borrado.
  */
 class PlanAccion extends Model implements HasMedia
 {

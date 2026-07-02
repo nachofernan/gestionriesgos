@@ -27,9 +27,9 @@ class RiesgoFactory extends Factory
         ];
     }
 
-    public function activo(): static
+    public function aprobado(): static
     {
-        return $this->state(['estado_id' => Estado::firstOrCreate(['nombre' => 'activo'], ['color' => 'green'])->id]);
+        return $this->state(['estado_id' => Estado::firstOrCreate(['nombre' => 'aprobado'], ['color' => 'green'])->id]);
     }
 
     public function validado(): static

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
- * CRUD de Objetivo más su ciclo de vida de estados: borrador → validado → activo,
+ * CRUD de Objetivo más su ciclo de vida de estados: borrador → validado → aprobado,
  * o borrador/validado → borrado (rechazo). Un objetivo validado ya no se edita acá;
  * los cambios posteriores pasan por el sistema de Actualizaciones.
  */
@@ -150,7 +150,7 @@ class ObjetivoController extends Controller
 
     /**
      * Valida el objetivo y arrastra a "validado" todas sus actualizaciones que
-     * seguían en borrador, para que queden listas para activar() junto al objetivo.
+     * seguían en borrador, para que queden listas para aprobar() junto al objetivo.
      */
     public function validar(Objetivo $objetivo)
     {
@@ -173,12 +173,12 @@ class ObjetivoController extends Controller
     }
 
     /**
-     * Activa el objetivo y aplica los cambios de todas sus actualizaciones ya
+     * Aprueba el objetivo y aplica los cambios de todas sus actualizaciones ya
      * validadas (creación y ediciones acumuladas) en una sola transacción.
      */
-    public function activar(Objetivo $objetivo)
+    public function aprobar(Objetivo $objetivo)
     {
-        $this->authorize('activar', $objetivo);
+        $this->authorize('aprobar', $objetivo);
 
         DB::transaction(function () use ($objetivo) {
             $pendientes = $objetivo->actualizaciones()
@@ -187,14 +187,14 @@ class ObjetivoController extends Controller
 
             foreach ($pendientes as $act) {
                 $this->aplicarCambiosActualizacion($act, $objetivo);
-                $act->update(['estado_id' => Estado::activo()->id]);
+                $act->update(['estado_id' => Estado::aprobado()->id]);
             }
 
-            $objetivo->update(['estado_id' => Estado::activo()->id]);
-            $this->logActivo($objetivo, 'Activado por ' . Auth::user()->name);
+            $objetivo->update(['estado_id' => Estado::aprobado()->id]);
+            $this->logAprobado($objetivo, 'Aprobado por ' . Auth::user()->name);
         });
 
-        return back()->with('ok', 'Objetivo activado correctamente.');
+        return back()->with('ok', 'Objetivo aprobado correctamente.');
     }
 
     public function rechazar(Objetivo $objetivo)
@@ -202,22 +202,22 @@ class ObjetivoController extends Controller
         $this->authorize('rechazar', $objetivo);
 
         $objetivo->update(['estado_id' => Estado::borrado()->id]);
-        $this->logActivo($objetivo, 'Rechazado por ' . Auth::user()->name);
+        $this->logAprobado($objetivo, 'Rechazado por ' . Auth::user()->name);
 
         return back()->with('ok', 'Objetivo rechazado.');
     }
 
     /**
-     * Deja constancia en `actualizaciones` de una transición de estado (activar
+     * Deja constancia en `actualizaciones` de una transición de estado (aprobar
      * o rechazar) con el mensaje dado; no crea una actualización pendiente de
      * aprobación, es sólo el registro de auditoría de la transición.
      */
-    private function logActivo($model, string $mensaje, array $campos = []): void
+    private function logAprobado($model, string $mensaje, array $campos = []): void
     {
         $model->actualizaciones()->create([
             'user_id'   => Auth::id(),
             'mensaje'   => $mensaje,
-            'estado_id' => Estado::activo()->id,
+            'estado_id' => Estado::aprobado()->id,
             'data'      => empty($campos) ? null : ['campos' => $campos],
         ]);
     }

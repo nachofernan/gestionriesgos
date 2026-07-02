@@ -87,7 +87,7 @@ class GestionTareas extends Component
     }
 
     /**
-     * Crea una tarea nueva ya en estado activo (no pasa por borrador) y la agrega
+     * Crea una tarea nueva ya en estado aprobado (no pasa por borrador) y la agrega
      * directo a $seleccionados, para asociarla al plan en el guardar() posterior.
      */
     public function guardarNuevaTarea(): void
@@ -109,7 +109,7 @@ class GestionTareas extends Component
         $tarea->actualizaciones()->create([
             'user_id'   => Auth::id(),
             'mensaje'   => 'Tarea creada',
-            'estado_id' => Estado::activo()->id,
+            'estado_id' => Estado::aprobado()->id,
             'data'      => ['campos' => ['nombre' => $tarea->nombre, 'porcentaje_avance' => $tarea->porcentaje_avance]],
         ]);
 
@@ -195,7 +195,7 @@ class GestionTareas extends Component
             $data = ['tipo' => 'cambio', 'relaciones' => ['tareas' => ['sync' => $ids]]];
             if (!empty($diffRel)) $data['diff'] = ['relaciones' => ['tareas' => $diffRel]];
 
-            $aplicarAhora = $estadoId === Estado::activo()->id
+            $aplicarAhora = $estadoId === Estado::aprobado()->id
                 || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
 
             if ($aplicarAhora) {
@@ -222,15 +222,15 @@ class GestionTareas extends Component
     }
 
     /**
-     * Regla de negocio: el comité editando un plan ya activo genera la
-     * actualización directamente en activo; gerente o comité en cualquier otro
+     * Regla de negocio: el comité editando un plan ya aprobado genera la
+     * actualización directamente en aprobado; gerente o comité en cualquier otro
      * caso saltean el borrador y van a validado; el resto arranca en borrador.
      */
     private function estadoParaActualizacion(): int
     {
         $user = Auth::user();
-        if ($this->estadoModelo === 'activo' && $user->esComite()) {
-            return Estado::activo()->id;
+        if ($this->estadoModelo === 'aprobado' && $user->esComite()) {
+            return Estado::aprobado()->id;
         }
         if ($user->esGerente() || $user->esComite()) {
             return Estado::validado()->id;

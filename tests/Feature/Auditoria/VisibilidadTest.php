@@ -49,7 +49,7 @@ class VisibilidadTest extends TestCase
 
     private int $borradorId;
     private int $validadoId;
-    private int $activoId;
+    private int $aprobadoId;
     private int $borradoId;
     private TipoRiesgo $tipo;
 
@@ -79,7 +79,7 @@ class VisibilidadTest extends TestCase
 
         $this->borradorId = Estado::borrador()->id;
         $this->validadoId = Estado::validado()->id;
-        $this->activoId   = Estado::activo()->id;
+        $this->aprobadoId = Estado::aprobado()->id;
         $this->borradoId  = Estado::borrado()->id;
 
         $this->tipo = TipoRiesgo::factory()->create();
@@ -152,9 +152,9 @@ class VisibilidadTest extends TestCase
     // -------------------------------------------------------
 
     /** @test */
-    public function comite_ve_activo_de_cualquier_gerencia(): void
+    public function comite_ve_aprobado_de_cualquier_gerencia(): void
     {
-        $r = $this->riesgo($this->activoId, $this->sectC);
+        $r = $this->riesgo($this->aprobadoId, $this->sectC);
         $this->assertContains($r->id, $this->idsVisibles($this->lucia));
     }
 
@@ -184,9 +184,9 @@ class VisibilidadTest extends TestCase
     // -------------------------------------------------------
 
     /** @test */
-    public function gerente_ve_activo_de_otra_gerencia(): void
+    public function gerente_ve_aprobado_de_otra_gerencia(): void
     {
-        $r = $this->riesgo($this->activoId, $this->sectC); // gerProd
+        $r = $this->riesgo($this->aprobadoId, $this->sectC); // gerProd
         $this->assertContains($r->id, $this->idsVisibles($this->canela));
     }
 
@@ -223,9 +223,9 @@ class VisibilidadTest extends TestCase
     // -------------------------------------------------------
 
     /** @test */
-    public function empleado_ve_activo_de_otra_gerencia(): void
+    public function empleado_ve_aprobado_de_otra_gerencia(): void
     {
-        $r = $this->riesgo($this->activoId, $this->sectC);
+        $r = $this->riesgo($this->aprobadoId, $this->sectC);
         $this->assertContains($r->id, $this->idsVisibles($this->nacho));
     }
 
@@ -292,7 +292,7 @@ class VisibilidadTest extends TestCase
     /** @test */
     public function scope_funciona_en_control_igual_que_en_riesgo(): void
     {
-        $visible   = $this->control($this->activoId,   $this->sectC);
+        $visible   = $this->control($this->aprobadoId,   $this->sectC);
         $invisible = $this->control($this->borradorId, $this->sectB); // hermano de nacho
 
         $ids = Control::visiblePara($this->nacho)->pluck('id')->toArray();
@@ -303,9 +303,9 @@ class VisibilidadTest extends TestCase
     /** @test */
     public function scope_combina_correctamente_con_filtros_adicionales(): void
     {
-        $r1 = $this->riesgo($this->activoId,   $this->sectA);
+        $r1 = $this->riesgo($this->aprobadoId,   $this->sectA);
         $r2 = $this->riesgo($this->borradorId, $this->sectA);
-        $r3 = $this->riesgo($this->activoId,   $this->sectC);
+        $r3 = $this->riesgo($this->aprobadoId,   $this->sectC);
 
         // Nacho filtra además por su propia área
         $ids = Riesgo::visiblePara($this->nacho)
@@ -322,9 +322,9 @@ class VisibilidadTest extends TestCase
     // -------------------------------------------------------
 
     /** @test */
-    public function policy_view_activo_accesible_para_todos_los_roles(): void
+    public function policy_view_aprobado_accesible_para_todos_los_roles(): void
     {
-        $r = $this->riesgo($this->activoId, $this->sectC);
+        $r = $this->riesgo($this->aprobadoId, $this->sectC);
         $this->assertTrue($this->policy()->view($this->nacho,  $r));
         $this->assertTrue($this->policy()->view($this->canela, $r));
         $this->assertTrue($this->policy()->view($this->lucia,  $r));
@@ -384,9 +384,9 @@ class VisibilidadTest extends TestCase
     // -------------------------------------------------------
 
     /** @test */
-    public function show_activo_devuelve_200_para_cualquier_usuario(): void
+    public function show_aprobado_devuelve_200_para_cualquier_usuario(): void
     {
-        $r = $this->riesgo($this->activoId, $this->sectC); // otra gerencia
+        $r = $this->riesgo($this->aprobadoId, $this->sectC); // otra gerencia
 
         $this->actingAs($this->nacho)
              ->get(route('auditoria.riesgos.show', $r))

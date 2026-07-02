@@ -22,7 +22,7 @@ use App\Enums\Auditoria\RespuestaRiesgo;
  * asociados; `clasificacion_total`/`clasificacion_residual` traducen esos
  * valores a bajo/moderado/mayor criticidad (ver clasificacion()). `respuesta`
  * es la estrategia frente al riesgo (mitigar/evitar/compartir/aceptar, ver
- * RespuestaRiesgo). Ciclo de vida de estado borrador → validado → activo/borrado.
+ * RespuestaRiesgo). Ciclo de vida de estado borrador → validado → aprobado/borrado.
  */
 class Riesgo extends Model implements HasMedia
 {

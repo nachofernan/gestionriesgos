@@ -30,7 +30,7 @@ class ValidacionMasivaService
     }
 
     /**
-     * Ejecuta la validación/activación en cascada según las selecciones del usuario.
+     * Ejecuta la validación/aprobación en cascada según las selecciones del usuario.
      *
      * @param array $bloqueantesSeleccionados  [['tipo' => 'objetivo', 'id' => 1, 'nivel' => 0], ...]
      * @param array $opcionalesSeleccionados   [['tipo' => 'control', 'id' => 5], ...]
@@ -107,7 +107,7 @@ class ValidacionMasivaService
         $opcionales  = [];
 
         // Estados que satisfacen el prerequisito para cada acción
-        $nivelRequerido = $accion === 'validar' ? ['validado', 'activo'] : ['activo'];
+        $nivelRequerido = $accion === 'validar' ? ['validado', 'aprobado'] : ['aprobado'];
         // Estado en que deben estar los hijos opcionales para ser ofrecidos
         $estadoFuente = $accion === 'validar' ? 'borrador' : 'validado';
 
@@ -152,7 +152,7 @@ class ValidacionMasivaService
         $bloqueantes = [];
         $opcionales  = [];
 
-        $nivelRequerido = $accion === 'validar' ? ['validado', 'activo'] : ['activo'];
+        $nivelRequerido = $accion === 'validar' ? ['validado', 'aprobado'] : ['aprobado'];
         $estadoFuente   = $accion === 'validar' ? 'borrador' : 'validado';
 
         $riesgos = $plan->riesgos()->with(['estado', 'objetivos.estado'])->get();
@@ -237,13 +237,13 @@ class ValidacionMasivaService
                 ->get();
             foreach ($pendientes as $act) {
                 $this->aplicarCambiosActualizacion($act, $entidad);
-                $act->update(['estado_id' => Estado::activo()->id]);
+                $act->update(['estado_id' => Estado::aprobado()->id]);
             }
-            $entidad->update(['estado_id' => Estado::activo()->id]);
+            $entidad->update(['estado_id' => Estado::aprobado()->id]);
             $entidad->actualizaciones()->create([
                 'user_id'   => $usuario->id,
-                'mensaje'   => 'Activado por ' . $usuario->name,
-                'estado_id' => Estado::activo()->id,
+                'mensaje'   => 'Aprobado por ' . $usuario->name,
+                'estado_id' => Estado::aprobado()->id,
                 'data'      => null,
             ]);
         }

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
- * CRUD de Control más su ciclo de vida de estados: borrador → validado → activo,
+ * CRUD de Control más su ciclo de vida de estados: borrador → validado → aprobado,
  * o borrador/validado → borrado (rechazo). Un control validado ya no se edita acá;
  * los cambios posteriores pasan por el sistema de Actualizaciones.
  */
@@ -135,7 +135,7 @@ class ControlController extends Controller
 
     /**
      * Valida el control y arrastra a "validado" todas sus actualizaciones que
-     * seguían en borrador, para que queden listas para activar() junto al control.
+     * seguían en borrador, para que queden listas para aprobar() junto al control.
      */
     public function validar(Control $control)
     {
@@ -158,12 +158,12 @@ class ControlController extends Controller
     }
 
     /**
-     * Activa el control y aplica los cambios de todas sus actualizaciones ya
+     * Aprueba el control y aplica los cambios de todas sus actualizaciones ya
      * validadas (creación y ediciones acumuladas) en una sola transacción.
      */
-    public function activar(Control $control)
+    public function aprobar(Control $control)
     {
-        $this->authorize('activar', $control);
+        $this->authorize('aprobar', $control);
 
         DB::transaction(function () use ($control) {
             $pendientes = $control->actualizaciones()
@@ -172,14 +172,14 @@ class ControlController extends Controller
 
             foreach ($pendientes as $act) {
                 $this->aplicarCambiosActualizacion($act, $control);
-                $act->update(['estado_id' => Estado::activo()->id]);
+                $act->update(['estado_id' => Estado::aprobado()->id]);
             }
 
-            $control->update(['estado_id' => Estado::activo()->id]);
-            $this->logActivo($control, 'Activado por ' . Auth::user()->name);
+            $control->update(['estado_id' => Estado::aprobado()->id]);
+            $this->logAprobado($control, 'Aprobado por ' . Auth::user()->name);
         });
 
-        return back()->with('ok', 'Control activado correctamente.');
+        return back()->with('ok', 'Control aprobado correctamente.');
     }
 
     public function rechazar(Control $control)
@@ -187,22 +187,22 @@ class ControlController extends Controller
         $this->authorize('rechazar', $control);
 
         $control->update(['estado_id' => Estado::borrado()->id]);
-        $this->logActivo($control, 'Rechazado por ' . Auth::user()->name);
+        $this->logAprobado($control, 'Rechazado por ' . Auth::user()->name);
 
         return back()->with('ok', 'Control rechazado.');
     }
 
     /**
-     * Deja constancia en `actualizaciones` de una transición de estado (activar
+     * Deja constancia en `actualizaciones` de una transición de estado (aprobar
      * o rechazar) con el mensaje dado; no crea una actualización pendiente de
      * aprobación, es sólo el registro de auditoría de la transición.
      */
-    private function logActivo($model, string $mensaje, array $campos = []): void
+    private function logAprobado($model, string $mensaje, array $campos = []): void
     {
         $model->actualizaciones()->create([
             'user_id'   => Auth::id(),
             'mensaje'   => $mensaje,
-            'estado_id' => Estado::activo()->id,
+            'estado_id' => Estado::aprobado()->id,
             'data'      => empty($campos) ? null : ['campos' => $campos],
         ]);
     }

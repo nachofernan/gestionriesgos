@@ -12,7 +12,7 @@ class EstadoRiesgoSeeder extends Seeder
         $estados = [
             ['nombre' => 'borrador', 'color' => 'gray'],
             ['nombre' => 'validado', 'color' => 'blue'],
-            ['nombre' => 'activo',   'color' => 'green'],
+            ['nombre' => 'aprobado', 'color' => 'green'],
             ['nombre' => 'borrado',  'color' => 'red'],
         ];
 

@@ -17,7 +17,7 @@ use App\Models\Concerns\HasVisibilityScope;
 
 /**
  * Objetivo estratégico o de anticorrupción asociado a uno o más Riesgo
- * (many-to-many). Ciclo de vida de estado borrador → validado → activo/borrado.
+ * (many-to-many). Ciclo de vida de estado borrador → validado → aprobado/borrado.
  */
 class Objetivo extends Model implements HasMedia
 {

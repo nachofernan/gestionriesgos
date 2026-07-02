@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
- * CRUD de Riesgo más su ciclo de vida de estados: borrador → validado → activo,
+ * CRUD de Riesgo más su ciclo de vida de estados: borrador → validado → aprobado,
  * o borrador/validado → borrado (rechazo). Un riesgo validado ya no se edita acá;
  * los cambios posteriores pasan por el sistema de Actualizaciones.
  */
@@ -170,7 +170,7 @@ class RiesgoController extends Controller
 
     /**
      * Valida el riesgo y arrastra a "validado" todas sus actualizaciones que
-     * seguían en borrador, para que queden listas para activar() junto al riesgo.
+     * seguían en borrador, para que queden listas para aprobar() junto al riesgo.
      */
     public function validar(Riesgo $riesgo)
     {
@@ -193,12 +193,12 @@ class RiesgoController extends Controller
     }
 
     /**
-     * Activa el riesgo y aplica los cambios de todas sus actualizaciones ya
+     * Aprueba el riesgo y aplica los cambios de todas sus actualizaciones ya
      * validadas (creación y ediciones acumuladas) en una sola transacción.
      */
-    public function activar(Riesgo $riesgo)
+    public function aprobar(Riesgo $riesgo)
     {
-        $this->authorize('activar', $riesgo);
+        $this->authorize('aprobar', $riesgo);
 
         DB::transaction(function () use ($riesgo) {
             $pendientes = $riesgo->actualizaciones()
@@ -207,14 +207,14 @@ class RiesgoController extends Controller
 
             foreach ($pendientes as $act) {
                 $this->aplicarCambiosActualizacion($act, $riesgo);
-                $act->update(['estado_id' => Estado::activo()->id]);
+                $act->update(['estado_id' => Estado::aprobado()->id]);
             }
 
-            $riesgo->update(['estado_id' => Estado::activo()->id]);
-            $this->logActivo($riesgo, 'Activado por ' . Auth::user()->name);
+            $riesgo->update(['estado_id' => Estado::aprobado()->id]);
+            $this->logAprobado($riesgo, 'Aprobado por ' . Auth::user()->name);
         });
 
-        return back()->with('ok', 'Riesgo activado correctamente.');
+        return back()->with('ok', 'Riesgo aprobado correctamente.');
     }
 
     public function rechazar(Riesgo $riesgo)
@@ -222,7 +222,7 @@ class RiesgoController extends Controller
         $this->authorize('rechazar', $riesgo);
 
         $riesgo->update(['estado_id' => Estado::borrado()->id]);
-        $this->logActivo($riesgo, 'Rechazado por ' . Auth::user()->name);
+        $this->logAprobado($riesgo, 'Rechazado por ' . Auth::user()->name);
 
         return back()->with('ok', 'Riesgo rechazado.');
     }
@@ -264,16 +264,16 @@ class RiesgoController extends Controller
     }
 
     /**
-     * Deja constancia en `actualizaciones` de una transición de estado (activar
+     * Deja constancia en `actualizaciones` de una transición de estado (aprobar
      * o rechazar) con el mensaje dado; no crea una actualización pendiente de
      * aprobación, es sólo el registro de auditoría de la transición.
      */
-    private function logActivo($model, string $mensaje, array $campos = []): void
+    private function logAprobado($model, string $mensaje, array $campos = []): void
     {
         $model->actualizaciones()->create([
             'user_id'   => Auth::id(),
             'mensaje'   => $mensaje,
-            'estado_id' => Estado::activo()->id,
+            'estado_id' => Estado::aprobado()->id,
             'data'      => empty($campos) ? null : ['campos' => $campos],
         ]);
     }

@@ -36,8 +36,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
         ->name('riesgos.objetivos');
     Route::post('riesgos/{riesgo}/validar',   [RiesgoController::class, 'validar'])
         ->name('riesgos.validar');
-    Route::post('riesgos/{riesgo}/activar',   [RiesgoController::class, 'activar'])
-        ->name('riesgos.activar');
+    Route::post('riesgos/{riesgo}/aprobar',   [RiesgoController::class, 'aprobar'])
+        ->name('riesgos.aprobar');
     Route::post('riesgos/{riesgo}/rechazar',  [RiesgoController::class, 'rechazar'])
         ->name('riesgos.rechazar');
     Route::post('riesgos/{riesgo}/actualizaciones', [ActualizacionController::class, 'storeRiesgo'])
@@ -50,8 +50,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
         ->parameters(['controles' => 'control']);
     Route::post('controles/{control}/validar',  [ControlController::class, 'validar'])
         ->name('controles.validar');
-    Route::post('controles/{control}/activar',  [ControlController::class, 'activar'])
-        ->name('controles.activar');
+    Route::post('controles/{control}/aprobar',  [ControlController::class, 'aprobar'])
+        ->name('controles.aprobar');
     Route::post('controles/{control}/rechazar', [ControlController::class, 'rechazar'])
         ->name('controles.rechazar');
     Route::post('controles/{control}/actualizaciones', [ActualizacionController::class, 'storeControl'])
@@ -64,8 +64,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
         ->parameters(['objetivos' => 'objetivo']);
     Route::post('objetivos/{objetivo}/validar',  [ObjetivoController::class, 'validar'])
         ->name('objetivos.validar');
-    Route::post('objetivos/{objetivo}/activar',  [ObjetivoController::class, 'activar'])
-        ->name('objetivos.activar');
+    Route::post('objetivos/{objetivo}/aprobar',  [ObjetivoController::class, 'aprobar'])
+        ->name('objetivos.aprobar');
     Route::post('objetivos/{objetivo}/rechazar', [ObjetivoController::class, 'rechazar'])
         ->name('objetivos.rechazar');
     Route::post('objetivos/{objetivo}/actualizaciones', [ActualizacionController::class, 'storeObjetivo'])
@@ -80,8 +80,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
         ->name('planes.tareas');
     Route::post('planes/{planAccion}/validar',  [PlanAccionController::class, 'validar'])
         ->name('planes.validar');
-    Route::post('planes/{planAccion}/activar',  [PlanAccionController::class, 'activar'])
-        ->name('planes.activar');
+    Route::post('planes/{planAccion}/aprobar',  [PlanAccionController::class, 'aprobar'])
+        ->name('planes.aprobar');
     Route::post('planes/{planAccion}/rechazar', [PlanAccionController::class, 'rechazar'])
         ->name('planes.rechazar');
     Route::post('planes/{planAccion}/actualizaciones', [ActualizacionController::class, 'storePlan'])
@@ -94,8 +94,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
         ->parameters(['tareas' => 'tarea']);
     Route::post('tareas/{tarea}/validar',  [TareaController::class, 'validar'])
         ->name('tareas.validar');
-    Route::post('tareas/{tarea}/activar',  [TareaController::class, 'activar'])
-        ->name('tareas.activar');
+    Route::post('tareas/{tarea}/aprobar',  [TareaController::class, 'aprobar'])
+        ->name('tareas.aprobar');
     Route::post('tareas/{tarea}/rechazar', [TareaController::class, 'rechazar'])
         ->name('tareas.rechazar');
     Route::post('tareas/{tarea}/actualizaciones', [ActualizacionController::class, 'storeTarea'])
@@ -106,8 +106,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // -------------------------------------------------------------------
     Route::post('actualizaciones/{actualizacion}/validar',  [ActualizacionController::class, 'validar'])
         ->name('actualizaciones.validar');
-    Route::post('actualizaciones/{actualizacion}/activar',  [ActualizacionController::class, 'activar'])
-        ->name('actualizaciones.activar');
+    Route::post('actualizaciones/{actualizacion}/aprobar',  [ActualizacionController::class, 'aprobar'])
+        ->name('actualizaciones.aprobar');
     Route::post('actualizaciones/{actualizacion}/rechazar', [ActualizacionController::class, 'rechazar'])
         ->name('actualizaciones.rechazar');
 });

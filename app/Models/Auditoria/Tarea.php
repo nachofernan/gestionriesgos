@@ -17,7 +17,7 @@ use App\Models\Concerns\HasVisibilityScope;
 
 /**
  * Tarea de ejecución de uno o más Plan de Acción (many-to-many). Ciclo de vida
- * de estado borrador → validado → activo/borrado; ver también
+ * de estado borrador → validado → aprobado/borrado; ver también
  * ActualizacionTareaController para el registro rápido de `porcentaje_avance`.
  */
 class Tarea extends Model implements HasMedia

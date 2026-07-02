@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Gestiona el ciclo de vida de las Actualizaciones: propuestas de cambio sobre
  * Riesgo, Control, Objetivo, PlanAccion y Tarea que quedan pendientes hasta ser
- * validadas/activadas (lo que aplica los cambios vía aplicarCambios()) o rechazadas.
+ * validadas/aprobadas (lo que aplica los cambios vía aplicarCambios()) o rechazadas.
  */
 class ActualizacionController extends Controller
 {
@@ -71,7 +71,7 @@ class ActualizacionController extends Controller
 
     /**
      * Valida la actualización y, si la entidad padre ya estaba en estado "validado",
-     * la activa en el mismo paso (aplicando los cambios) sin esperar una activación aparte.
+     * la aprueba en el mismo paso (aplicando los cambios) sin esperar una aprobación aparte.
      */
     public function validar(Actualizacion $actualizacion)
     {
@@ -93,22 +93,22 @@ class ActualizacionController extends Controller
     }
 
     /**
-     * Activa la actualización y aplica sus cambios sobre la entidad relacionada,
+     * Aprueba la actualización y aplica sus cambios sobre la entidad relacionada,
      * independientemente del estado de validación previo.
      */
-    public function activar(Actualizacion $actualizacion)
+    public function aprobar(Actualizacion $actualizacion)
     {
-        $this->authorize('activar', $actualizacion);
+        $this->authorize('aprobar', $actualizacion);
 
         DB::transaction(function () use ($actualizacion) {
             $actualizacion->update([
-                'estado_id' => Estado::activo()->id,
+                'estado_id' => Estado::aprobado()->id,
                 'data'      => array_merge($actualizacion->data ?? [], ['activated_by' => Auth::user()->name]),
             ]);
             $this->aplicarCambios($actualizacion->fresh());
         });
 
-        return back()->with('ok', 'Actualización activada y cambios aplicados.');
+        return back()->with('ok', 'Actualización aprobada y cambios aplicados.');
     }
 
     public function rechazar(Actualizacion $actualizacion)

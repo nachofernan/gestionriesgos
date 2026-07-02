@@ -139,7 +139,7 @@ class GestionObjetivos extends Component
             $data = ['tipo' => 'cambio', 'relaciones' => ['objetivos' => ['sync' => $ids]]];
             if (!empty($diffRel)) $data['diff'] = ['relaciones' => ['objetivos' => $diffRel]];
 
-            $aplicarAhora = $estadoId === Estado::activo()->id
+            $aplicarAhora = $estadoId === Estado::aprobado()->id
                 || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
 
             if ($aplicarAhora) {
@@ -166,15 +166,15 @@ class GestionObjetivos extends Component
     }
 
     /**
-     * Regla de negocio: el comité editando un riesgo ya activo genera la
-     * actualización directamente en activo; gerente o comité en cualquier otro
+     * Regla de negocio: el comité editando un riesgo ya aprobado genera la
+     * actualización directamente en aprobado; gerente o comité en cualquier otro
      * caso saltean el borrador y van a validado; el resto arranca en borrador.
      */
     private function estadoParaActualizacion(): int
     {
         $user = Auth::user();
-        if ($this->estadoModelo === 'activo' && $user->esComite()) {
-            return Estado::activo()->id;
+        if ($this->estadoModelo === 'aprobado' && $user->esComite()) {
+            return Estado::aprobado()->id;
         }
         if ($user->esGerente() || $user->esComite()) {
             return Estado::validado()->id;

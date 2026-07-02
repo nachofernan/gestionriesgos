@@ -13,7 +13,7 @@
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <div>
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-                            Confirmar {{ $accion === 'validar' ? 'validación' : 'activación' }}
+                            Confirmar {{ $accion === 'validar' ? 'validación' : 'aprobación' }}
                         </p>
                         <h3 class="text-base font-extrabold text-gray-900 leading-tight">
                             {{ $nombre }}
@@ -39,7 +39,7 @@
                             </p>
                         </div>
                         <p class="text-xs text-amber-600 mb-3 ml-6">
-                            Seleccioná al menos uno para {{ $accion === 'validar' ? 'validar' : 'activar' }} primero.
+                            Seleccioná al menos uno para {{ $accion === 'validar' ? 'validar' : 'aprobar' }} primero.
                         </p>
 
                         <div class="space-y-2">
@@ -167,7 +167,7 @@
                             wire:target="confirmar"
                             class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                         <span wire:loading.remove wire:target="confirmar">
-                            Confirmar {{ $accion === 'validar' ? 'validación' : 'activación' }}
+                            Confirmar {{ $accion === 'validar' ? 'validación' : 'aprobación' }}
                         </span>
                         <span wire:loading wire:target="confirmar">
                             Procesando...

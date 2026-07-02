@@ -19,7 +19,7 @@ use App\Models\Concerns\HasVisibilityScope;
  * Control de mitigación aplicable a uno o más Riesgo (many-to-many con
  * `mitigacion` en el pivot: el valor de mitigación efectivo para ese riesgo
  * puntual, que puede diferir de `mitigacion_default`). Ciclo de vida de estado
- * borrador → validado → activo/borrado.
+ * borrador → validado → aprobado/borrado.
  */
 class Control extends Model implements HasMedia
 {

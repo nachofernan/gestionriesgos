@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
- * CRUD de PlanAccion más su ciclo de vida de estados: borrador → validado → activo,
+ * CRUD de PlanAccion más su ciclo de vida de estados: borrador → validado → aprobado,
  * o borrador/validado → borrado (rechazo). Un plan validado ya no se edita acá;
  * los cambios posteriores pasan por el sistema de Actualizaciones.
  */
@@ -174,7 +174,7 @@ class PlanAccionController extends Controller
 
     /**
      * Valida el plan y arrastra a "validado" todas sus actualizaciones que
-     * seguían en borrador, para que queden listas para activar() junto al plan.
+     * seguían en borrador, para que queden listas para aprobar() junto al plan.
      */
     public function validar(PlanAccion $planAccion)
     {
@@ -197,12 +197,12 @@ class PlanAccionController extends Controller
     }
 
     /**
-     * Activa el plan y aplica los cambios de todas sus actualizaciones ya
+     * Aprueba el plan y aplica los cambios de todas sus actualizaciones ya
      * validadas (creación y ediciones acumuladas) en una sola transacción.
      */
-    public function activar(PlanAccion $planAccion)
+    public function aprobar(PlanAccion $planAccion)
     {
-        $this->authorize('activar', $planAccion);
+        $this->authorize('aprobar', $planAccion);
 
         DB::transaction(function () use ($planAccion) {
             $pendientes = $planAccion->actualizaciones()
@@ -211,14 +211,14 @@ class PlanAccionController extends Controller
 
             foreach ($pendientes as $act) {
                 $this->aplicarCambiosActualizacion($act, $planAccion);
-                $act->update(['estado_id' => Estado::activo()->id]);
+                $act->update(['estado_id' => Estado::aprobado()->id]);
             }
 
-            $planAccion->update(['estado_id' => Estado::activo()->id]);
-            $this->logActivo($planAccion, 'Activado por ' . Auth::user()->name);
+            $planAccion->update(['estado_id' => Estado::aprobado()->id]);
+            $this->logAprobado($planAccion, 'Aprobado por ' . Auth::user()->name);
         });
 
-        return back()->with('ok', 'Plan activado correctamente.');
+        return back()->with('ok', 'Plan aprobado correctamente.');
     }
 
     public function rechazar(PlanAccion $planAccion)
@@ -226,22 +226,22 @@ class PlanAccionController extends Controller
         $this->authorize('rechazar', $planAccion);
 
         $planAccion->update(['estado_id' => Estado::borrado()->id]);
-        $this->logActivo($planAccion, 'Rechazado por ' . Auth::user()->name);
+        $this->logAprobado($planAccion, 'Rechazado por ' . Auth::user()->name);
 
         return back()->with('ok', 'Plan rechazado.');
     }
 
     /**
-     * Deja constancia en `actualizaciones` de una transición de estado (activar
+     * Deja constancia en `actualizaciones` de una transición de estado (aprobar
      * o rechazar) con el mensaje dado; no crea una actualización pendiente de
      * aprobación, es sólo el registro de auditoría de la transición.
      */
-    private function logActivo($model, string $mensaje, array $campos = []): void
+    private function logAprobado($model, string $mensaje, array $campos = []): void
     {
         $model->actualizaciones()->create([
             'user_id'   => Auth::id(),
             'mensaje'   => $mensaje,
-            'estado_id' => Estado::activo()->id,
+            'estado_id' => Estado::aprobado()->id,
             'data'      => empty($campos) ? null : ['campos' => $campos],
         ]);
     }
