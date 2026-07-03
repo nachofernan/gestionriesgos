@@ -124,3 +124,5 @@ Los permisos se basan en una jerarquía de áreas (`area_padre_id` auto-referenc
 
 - `docs/modulo-auditoria.md` — estructura completa del módulo (modelos, rutas, controladores, Livewire, tests).
 - `docs/updates/YYYY-MM-DD.md` — log de cambios significativos. Crear uno nuevo por sesión de trabajo relevante.
+- `CHANGELOG.md` (raíz) — índice cronológico de `docs/updates/`, un renglón por entrada con link. Actualizar cada vez que se crea un `docs/updates/YYYY-MM-DD.md` nuevo.
+- `docs/ROADMAP.md` — trabajo pendiente (no es historial, eso es el changelog). Tachar/mover ítems a medida que se completan, agregar los que surjan. Actualizar la fecha de "última revisión" al final del archivo cuando se lo toca.
