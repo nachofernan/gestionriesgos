@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `docs/modulo-a
 
 ---
 
+- **2026-07-03 (cuater)** — [Pantalla de Pendientes](docs/updates/2026-07-03d.md): qué tiene que validar/aprobar cada usuario (entidades y cambios propuestos), con acción inline vía modal sin recargar el listado. De paso, se corrigió un bug preexistente donde el modal de validación en cascada nunca redirigía de verdad.
 - **2026-07-03 (tris)** — [Impacto/probabilidad ya no se editan a mano](docs/updates/2026-07-03c.md): en la edición pasan a ser de solo lectura; para cambiarlos hay que "Recalcular", que vuelve a pasar el wizard de preguntas.
 - **2026-07-03 (bis)** — [Fixes del wizard de riesgo](docs/updates/2026-07-03b.md): corrige un crash al ver el historial de un riesgo recién creado (arrays mezclados en `campos`) y hace que el área se autocomplete con la del usuario, igual que el responsable.
 - **2026-07-03** — [Wizard de creación de riesgo](docs/updates/2026-07-03.md): impacto/probabilidad ahora se calculan de 5 preguntas guiadas por dimensión en vez de cargarse libremente; objetivo y plan de acción (si aplica) pasan a ser obligatorios para validar, no para crear.

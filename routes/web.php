@@ -7,6 +7,7 @@ use App\Http\Controllers\Auditoria\ObjetivoController;
 use App\Http\Controllers\Auditoria\PlanAccionController;
 use App\Http\Controllers\Auditoria\TareaController;
 use App\Http\Controllers\Auditoria\ActualizacionController;
+use App\Http\Controllers\Auditoria\PendienteController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -114,6 +115,11 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
         ->name('actualizaciones.aprobar');
     Route::post('actualizaciones/{actualizacion}/rechazar', [ActualizacionController::class, 'rechazar'])
         ->name('actualizaciones.rechazar');
+
+    // -------------------------------------------------------------------
+    // Pendientes (qué tiene que validar/aprobar el usuario logueado)
+    // -------------------------------------------------------------------
+    Route::get('pendientes', [PendienteController::class, 'index'])->name('pendientes.index');
 });
 
 require __DIR__.'/auth.php';

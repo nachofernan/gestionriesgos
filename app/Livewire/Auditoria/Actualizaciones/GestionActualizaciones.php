@@ -129,23 +129,13 @@ class GestionActualizaciones extends Component
 
     /**
      * Valida la actualización y, si la entidad ya estaba en estado "validado",
-     * la aprueba en el mismo paso aplicando sus cambios (ver estadoModelo).
+     * la aprueba en el mismo paso aplicando sus cambios (ver Actualizacion::marcarValidada()).
      */
     public function validarActualizacion(int $actualizacionId): void
     {
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('validar', $actualizacion);
-
-        DB::transaction(function () use ($actualizacion) {
-            $actualizacion->update(['estado_id' => Estado::validado()->id]);
-
-            if ($this->estadoModelo === 'validado') {
-                $actualizacion->update([
-                    'data' => array_merge($actualizacion->data ?? [], ['activated_by' => Auth::user()->name]),
-                ]);
-                $this->aplicarCambiosDesdeActualizacion($actualizacion);
-            }
-        });
+        $actualizacion->marcarValidada(Auth::user());
     }
 
     public function cancelarActualizacion(int $actualizacionId): void
@@ -156,80 +146,18 @@ class GestionActualizaciones extends Component
         $actualizacion->update(['estado_id' => Estado::borrado()->id]);
     }
 
-    /**
-     * Aprueba la actualización y aplica sus cambios. Soporta tanto el formato
-     * nuevo (`data['campos']`/`data['relaciones']`) como el legacy, donde `data`
-     * son directamente los campos a actualizar (se excluyen las claves de control
-     * tipo/diff/activated_by antes de pasarlos a update()).
-     */
     public function aprobarActualizacion(int $actualizacionId): void
     {
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('aprobar', $actualizacion);
-
-        DB::transaction(function () use ($actualizacion) {
-            $actualizacion->update([
-                'estado_id' => Estado::aprobado()->id,
-                'data'      => array_merge($actualizacion->data ?? [], ['activated_by' => Auth::user()->name]),
-            ]);
-
-            $data = $actualizacion->fresh()->data ?? [];
-            if (empty($data)) return;
-
-            $model = $actualizacion->actualizable;
-
-            if (isset($data['campos']) || isset($data['relaciones'])) {
-                if (!empty($data['campos'])) {
-                    $model->update($data['campos']);
-                }
-            } else {
-                $model->update(collect($data)->except(['tipo', 'diff', 'activated_by'])->toArray());
-            }
-
-            if (!empty($data['relaciones'])) {
-                foreach ($data['relaciones'] as $relacion => $ops) {
-                    if (isset($ops['sync'])) $model->$relacion()->sync($ops['sync']);
-                    if (isset($ops['attach'])) $model->$relacion()->attach($ops['attach']);
-                    if (isset($ops['detach'])) $model->$relacion()->detach($ops['detach']);
-                }
-            }
-        });
+        $actualizacion->marcarAprobada(Auth::user());
     }
 
     public function rechazarActualizacion(int $actualizacionId): void
     {
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('rechazar', $actualizacion);
-
-        $actualizacion->update(['estado_id' => Estado::borrado()->id]);
-    }
-
-    /**
-     * Aplica sobre la entidad relacionada los cambios guardados en `data`
-     * (campos + sync/attach/detach de relaciones). Misma lógica que
-     * ActualizacionController::aplicarCambios(), duplicada para este componente.
-     */
-    private function aplicarCambiosDesdeActualizacion(Actualizacion $actualizacion): void
-    {
-        $data = $actualizacion->data ?? [];
-        if (empty($data)) return;
-
-        $tipo = $data['tipo'] ?? null;
-        if ($tipo !== null && $tipo !== 'cambio') return;
-
-        $model = $actualizacion->actualizable;
-
-        if (!empty($data['campos'])) {
-            $model->update($data['campos']);
-        }
-
-        if (!empty($data['relaciones'])) {
-            foreach ($data['relaciones'] as $relacion => $ops) {
-                if (isset($ops['sync']))   $model->$relacion()->sync($ops['sync']);
-                if (isset($ops['attach'])) $model->$relacion()->attach($ops['attach']);
-                if (isset($ops['detach'])) $model->$relacion()->detach($ops['detach']);
-            }
-        }
+        $actualizacion->marcarRechazada();
     }
 
     private function resolverModelo(): Model

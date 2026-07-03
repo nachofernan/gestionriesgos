@@ -20,6 +20,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 
 - [x] **Wizard de creación de riesgo con impacto/probabilidad calculados** (2026-07-03) — ver [changelog](updates/2026-07-03.md). Impacto/probabilidad dejan de cargarse a mano; objetivo y plan de acción pasan a ser requisito de validación, no de creación.
 - [x] **Impacto/probabilidad ya no editables en la edición** (2026-07-03) — ver [changelog](updates/2026-07-03c.md). Sólo se recalculan repitiendo el wizard de preguntas, nunca cargándolos directo.
+- [x] **Pantalla de Pendientes** (2026-07-03) — ver [changelog](updates/2026-07-03d.md). Qué tiene que validar/aprobar cada usuario, con acción inline por modal sin recargar el listado completo.
 
 ## Ideas abiertas / a definir
 
@@ -27,7 +28,8 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 - Reportes PDF/Excel: falta definir qué formato de reporte (por riesgo individual, consolidado por área, por plan de acción) y si el motivo de exportación es auditoría interna o para terceros.
 - Notificaciones: falta definir canal (email, in-app, ambos) y qué eventos disparan aviso.
+- Pendientes: aprobación/validación en bloque (varios ítems a la vez con un modal previo que liste todo lo que se va a hacer). Se evaluó al construir la pantalla de Pendientes y se decidió no hacerlo todavía — requiere resolver el análisis de prerequisitos bloqueantes/opcionales por cada ítem seleccionado, no sólo por uno.
 
 ---
 
-*Última revisión: 2026-07-03 (tris).*
+*Última revisión: 2026-07-03 (cuater).*

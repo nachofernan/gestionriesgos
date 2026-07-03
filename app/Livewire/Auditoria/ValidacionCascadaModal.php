@@ -27,6 +27,14 @@ class ValidacionCascadaModal extends Component
     public string  $accion     = '';
     public string  $nombre     = '';
 
+    /**
+     * Si viene en true (sólo lo manda la pantalla de Pendientes), confirmar() no
+     * redirige: cierra el modal y avisa por evento de navegador para que la fila
+     * se marque como resuelta sin recargar el resto del listado. En cualquier
+     * otro lugar (los show() de cada entidad) el comportamiento no cambia.
+     */
+    public bool $sinRedireccion = false;
+
     /** @var array<int, array{tipo:string, id:int, nombre:string, estado:string, puede_validar:bool, nivel:int}> */
     public array $bloqueantes = [];
 
@@ -44,9 +52,10 @@ class ValidacionCascadaModal extends Component
      * resuelto y pre-seleccionados los items que el usuario está autorizado a validar.
      */
     #[On('abrir-validacion-cascada')]
-    public function abrir(string $tipo, int $id, string $accion): void
+    public function abrir(string $tipo, int $id, string $accion, bool $sinRedireccion = false): void
     {
         $this->reset();
+        $this->sinRedireccion = $sinRedireccion;
 
         $entidad = $this->resolverModelo($tipo, $id);
         if (!$entidad) return;
@@ -159,8 +168,16 @@ class ValidacionCascadaModal extends Component
                 $ok .= " (Sin permisos para: {$nombresF})";
             }
 
+            if ($this->sinRedireccion) {
+                $this->dispatch('cascada-procesada', tipo: $this->tipo, id: $this->entidadId, mensaje: $ok);
+                return null;
+            }
+
             session()->flash('ok', $ok);
-            return redirect()->back();
+            // redirect()->back() no sirve acá: Livewire sólo intercepta to()/away()
+            // (back() llama a createRedirect() directo en Laravel, sin pasar por el
+            // wrapper de Livewire), así que nunca redirigía de verdad al usar el modal.
+            return redirect()->to(url()->previous());
         }
 
         $this->error = $resultado['error'] ?? 'Error inesperado.';

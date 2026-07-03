@@ -5,19 +5,19 @@ namespace App\Http\Controllers\Auditoria;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
-use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Gestiona el ciclo de vida de las Actualizaciones: propuestas de cambio sobre
  * Riesgo, Control, Objetivo, PlanAccion y Tarea que quedan pendientes hasta ser
- * validadas/aprobadas (lo que aplica los cambios vía aplicarCambios()) o rechazadas.
+ * validadas/aprobadas (lo que aplica los cambios vía Actualizacion::aplicarCambios())
+ * o rechazadas. Las transiciones en sí viven en el modelo (marcarValidada/
+ * marcarAprobada/marcarRechazada) porque también las usa GestionActualizaciones.
  */
 class ActualizacionController extends Controller
 {
@@ -76,18 +76,7 @@ class ActualizacionController extends Controller
     public function validar(Actualizacion $actualizacion)
     {
         $this->authorize('validar', $actualizacion);
-
-        DB::transaction(function () use ($actualizacion) {
-            $actualizacion->update(['estado_id' => Estado::validado()->id]);
-
-            $parent = $actualizacion->actualizable;
-            if ($parent?->estado?->nombre === 'validado') {
-                $actualizacion->update([
-                    'data' => array_merge($actualizacion->data ?? [], ['activated_by' => Auth::user()->name]),
-                ]);
-                $this->aplicarCambios($actualizacion->fresh());
-            }
-        });
+        $actualizacion->marcarValidada(Auth::user());
 
         return back()->with('ok', 'Actualización validada y cambios aplicados.');
     }
@@ -99,14 +88,7 @@ class ActualizacionController extends Controller
     public function aprobar(Actualizacion $actualizacion)
     {
         $this->authorize('aprobar', $actualizacion);
-
-        DB::transaction(function () use ($actualizacion) {
-            $actualizacion->update([
-                'estado_id' => Estado::aprobado()->id,
-                'data'      => array_merge($actualizacion->data ?? [], ['activated_by' => Auth::user()->name]),
-            ]);
-            $this->aplicarCambios($actualizacion->fresh());
-        });
+        $actualizacion->marcarAprobada(Auth::user());
 
         return back()->with('ok', 'Actualización aprobada y cambios aplicados.');
     }
@@ -114,49 +96,9 @@ class ActualizacionController extends Controller
     public function rechazar(Actualizacion $actualizacion)
     {
         $this->authorize('rechazar', $actualizacion);
-
-        $actualizacion->update(['estado_id' => Estado::borrado()->id]);
+        $actualizacion->marcarRechazada();
 
         return back()->with('ok', 'Actualización rechazada.');
-    }
-
-    // -------------------------------------------------------
-    // Helper compartido
-    // -------------------------------------------------------
-
-    /**
-     * Aplica sobre la entidad relacionada (`actualizable`) los cambios guardados en `data`:
-     * actualiza los campos de `data['campos']` (o el objeto completo si viene en formato
-     * legacy sin las claves `campos`/`relaciones`) y sincroniza las relaciones many-to-many
-     * indicadas en `data['relaciones']` (sync/attach/detach). No hace nada si `data` está
-     * vacío o si el tipo de actualización no es 'cambio'.
-     */
-    private function aplicarCambios(Actualizacion $actualizacion): void
-    {
-        $data = $actualizacion->data ?? [];
-        if (empty($data)) return;
-
-        $tipo = $data['tipo'] ?? null;
-        if ($tipo !== null && $tipo !== 'cambio') return;
-
-        $model = $actualizacion->actualizable;
-
-        if (isset($data['campos']) || isset($data['relaciones'])) {
-            if (!empty($data['campos'])) {
-                $model->update($data['campos']);
-            }
-        } else {
-            // Legacy format
-            $model->update($data);
-        }
-
-        if (!empty($data['relaciones'])) {
-            foreach ($data['relaciones'] as $relacion => $ops) {
-                if (isset($ops['sync']))   $model->$relacion()->sync($ops['sync']);
-                if (isset($ops['attach'])) $model->$relacion()->attach($ops['attach']);
-                if (isset($ops['detach'])) $model->$relacion()->detach($ops['detach']);
-            }
-        }
     }
 
     /**

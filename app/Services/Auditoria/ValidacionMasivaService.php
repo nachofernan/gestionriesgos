@@ -243,7 +243,7 @@ class ValidacionMasivaService
                 ->where('estado_id', Estado::validado()->id)
                 ->get();
             foreach ($pendientes as $act) {
-                $this->aplicarCambiosActualizacion($act, $entidad);
+                $act->aplicarCambios();
                 $act->update(['estado_id' => Estado::aprobado()->id]);
             }
             $entidad->update(['estado_id' => Estado::aprobado()->id]);
@@ -253,27 +253,6 @@ class ValidacionMasivaService
                 'estado_id' => Estado::aprobado()->id,
                 'data'      => null,
             ]);
-        }
-    }
-
-    private function aplicarCambiosActualizacion($actualizacion, Model $model): void
-    {
-        $data = $actualizacion->data ?? [];
-        if (empty($data)) return;
-
-        $tipo = $data['tipo'] ?? null;
-        if ($tipo !== null && $tipo !== 'cambio') return;
-
-        if (!empty($data['campos'])) {
-            $model->update($data['campos']);
-        }
-
-        if (!empty($data['relaciones'])) {
-            foreach ($data['relaciones'] as $relacion => $ops) {
-                if (isset($ops['sync']))   $model->$relacion()->sync($ops['sync']);
-                if (isset($ops['attach'])) $model->$relacion()->attach($ops['attach']);
-                if (isset($ops['detach'])) $model->$relacion()->detach($ops['detach']);
-            }
         }
     }
 
