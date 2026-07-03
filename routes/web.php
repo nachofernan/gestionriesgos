@@ -30,6 +30,10 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // -------------------------------------------------------------------
     Route::resource('riesgos', RiesgoController::class)
         ->parameters(['riesgos' => 'riesgo']);
+    Route::get('riesgos/{riesgo}/recalcular', [RiesgoController::class, 'recalcular'])
+        ->name('riesgos.recalcular');
+    Route::post('riesgos/{riesgo}/recalcular', [RiesgoController::class, 'recalcularStore'])
+        ->name('riesgos.recalcular.store');
     Route::post('riesgos/{riesgo}/controles', [RiesgoController::class, 'asociarControles'])
         ->name('riesgos.controles');
     Route::post('riesgos/{riesgo}/objetivos', [RiesgoController::class, 'asociarObjetivos'])

@@ -33,18 +33,18 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Impacto (0–10) *</label>
-                    <input type="number" name="impacto" value="{{ old('impacto', $riesgo->impacto) }}" min="0" max="10"
-                        class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('impacto') border-red-300 @enderror" />
-                    @error('impacto') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Impacto (0–10)</label>
+                    <div class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 text-gray-700 font-semibold">{{ $riesgo->impacto }}</div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Probabilidad (0–10) *</label>
-                    <input type="number" name="probabilidad" value="{{ old('probabilidad', $riesgo->probabilidad) }}" min="0" max="10"
-                        class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('probabilidad') border-red-300 @enderror" />
-                    @error('probabilidad') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Probabilidad (0–10)</label>
+                    <div class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 text-gray-700 font-semibold">{{ $riesgo->probabilidad }}</div>
                 </div>
             </div>
+            <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}"
+               class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 -mt-3">
+                Recalcular impacto y probabilidad (vuelve a pasar el wizard) →
+            </a>
 
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tipo de Riesgo *</label>

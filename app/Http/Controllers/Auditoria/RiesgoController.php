@@ -134,6 +134,12 @@ class RiesgoController extends Controller
         return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas', 'usuarios'));
     }
 
+    /**
+     * Impacto y probabilidad no se editan acá: son de solo lectura y sólo
+     * cambian a través de recalcularStore(), que vuelve a pasar el wizard de
+     * preguntas. Evita que se carguen a mano perdiendo la trazabilidad de qué
+     * respuestas los originaron.
+     */
     public function update(Request $request, Riesgo $riesgo)
     {
         $this->authorize('update', $riesgo);
@@ -146,8 +152,6 @@ class RiesgoController extends Controller
         $data = $request->validate([
             'nombre'          => 'required|string|max:255',
             'descripcion'     => 'nullable|string',
-            'impacto'         => 'required|integer|min:0|max:10',
-            'probabilidad'    => 'required|integer|min:0|max:10',
             'mayor_criticidad' => 'boolean',
             'respuesta'        => ['nullable', Rule::enum(RespuestaRiesgo::class)],
             'tipo_riesgo_id'   => 'required|exists:tipos_riesgo,id',
@@ -155,7 +159,7 @@ class RiesgoController extends Controller
             'user_id'          => 'nullable|exists:users,id',
         ]);
 
-        $suma = ($data['impacto'] ?? 0) + ($data['probabilidad'] ?? 0);
+        $suma = $riesgo->impacto + $riesgo->probabilidad;
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
 
         $original = $riesgo->only(array_keys($data));
@@ -182,6 +186,81 @@ class RiesgoController extends Controller
         }
 
         return redirect()->route('auditoria.riesgos.show', $riesgo)->with('ok', 'Riesgo actualizado.');
+    }
+
+    public function recalcular(Riesgo $riesgo)
+    {
+        $this->authorize('update', $riesgo);
+
+        if ($riesgo->estado?->nombre !== 'borrador') {
+            return redirect()->route('auditoria.riesgos.show', $riesgo)
+                ->with('error', 'El riesgo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
+        }
+
+        $preguntas = config('riesgo_preguntas');
+
+        return view('auditoria.riesgo.recalcular', compact('riesgo', 'preguntas'));
+    }
+
+    /**
+     * Vuelve a pasar el wizard de preguntas (mismo cálculo que store()) para
+     * recalcular impacto/probabilidad de un riesgo ya creado, en vez de
+     * permitir cargarlos a mano en update(). Registra el cambio como una
+     * Actualizacion de tipo 'edicion' con diff, igual que update().
+     */
+    public function recalcularStore(Request $request, Riesgo $riesgo)
+    {
+        $this->authorize('update', $riesgo);
+
+        if ($riesgo->estado?->nombre !== 'borrador') {
+            return redirect()->route('auditoria.riesgos.show', $riesgo)
+                ->with('error', 'El riesgo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
+        }
+
+        $data = $request->validate([
+            'probabilidad_respuestas'   => 'required|array|size:5',
+            'probabilidad_respuestas.*' => 'required|integer|min:0|max:2',
+            'impacto_respuestas'        => 'required|array|size:5',
+            'impacto_respuestas.*'      => 'required|integer|min:0|max:2',
+            'mayor_criticidad'          => 'boolean',
+        ]);
+
+        $probabilidadRespuestas = $data['probabilidad_respuestas'];
+        $impactoRespuestas      = $data['impacto_respuestas'];
+
+        $original = $riesgo->only(['impacto', 'probabilidad', 'mayor_criticidad']);
+
+        $nuevos = [];
+        $nuevos['probabilidad'] = array_sum($probabilidadRespuestas);
+        $nuevos['impacto']      = array_sum($impactoRespuestas);
+        $suma = $nuevos['impacto'] + $nuevos['probabilidad'];
+        $nuevos['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
+
+        $riesgo->update($nuevos);
+
+        $diff = [];
+        foreach ($nuevos as $campo => $valor) {
+            if ($original[$campo] != $valor) {
+                $diff[$campo] = ['antes' => $original[$campo], 'despues' => $valor];
+            }
+        }
+        if (!empty($diff)) {
+            $riesgo->actualizaciones()->create([
+                'user_id'   => Auth::id(),
+                'mensaje'   => 'Impacto y probabilidad recalculados',
+                'estado_id' => Estado::borrador()->id,
+                'data'      => [
+                    'tipo' => 'edicion',
+                    'diff' => ['campos' => $diff],
+                    'respuestas' => [
+                        'probabilidad' => $probabilidadRespuestas,
+                        'impacto'      => $impactoRespuestas,
+                    ],
+                ],
+            ]);
+        }
+
+        return redirect()->route('auditoria.riesgos.edit', $riesgo)->with('ok', 'Impacto y probabilidad recalculados.');
     }
 
     public function destroy(Riesgo $riesgo)

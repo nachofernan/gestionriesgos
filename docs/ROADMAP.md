@@ -19,6 +19,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 ## En curso / recién cerrado
 
 - [x] **Wizard de creación de riesgo con impacto/probabilidad calculados** (2026-07-03) — ver [changelog](updates/2026-07-03.md). Impacto/probabilidad dejan de cargarse a mano; objetivo y plan de acción pasan a ser requisito de validación, no de creación.
+- [x] **Impacto/probabilidad ya no editables en la edición** (2026-07-03) — ver [changelog](updates/2026-07-03c.md). Sólo se recalculan repitiendo el wizard de preguntas, nunca cargándolos directo.
 
 ## Ideas abiertas / a definir
 
@@ -29,4 +30,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-07-03.*
+*Última revisión: 2026-07-03 (tris).*

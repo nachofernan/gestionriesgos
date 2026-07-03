@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `docs/modulo-a
 
 ---
 
+- **2026-07-03 (tris)** — [Impacto/probabilidad ya no se editan a mano](docs/updates/2026-07-03c.md): en la edición pasan a ser de solo lectura; para cambiarlos hay que "Recalcular", que vuelve a pasar el wizard de preguntas.
 - **2026-07-03 (bis)** — [Fixes del wizard de riesgo](docs/updates/2026-07-03b.md): corrige un crash al ver el historial de un riesgo recién creado (arrays mezclados en `campos`) y hace que el área se autocomplete con la del usuario, igual que el responsable.
 - **2026-07-03** — [Wizard de creación de riesgo](docs/updates/2026-07-03.md): impacto/probabilidad ahora se calculan de 5 preguntas guiadas por dimensión en vez de cargarse libremente; objetivo y plan de acción (si aplica) pasan a ser obligatorios para validar, no para crear.
 - **2026-05-28** — [Brecha de autorización en actualizaciones](docs/updates/2026-05-28.md): un gerente podía validar/rechazar propuestas de otras gerencias. Corregido en `ActualizacionPolicy` y `GestionActualizaciones`, con 23 tests nuevos.
