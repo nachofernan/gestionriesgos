@@ -37,13 +37,18 @@ class RiesgoController extends Controller
         $areas       = Area::orderBy('nombre')->get();
         $usuarios    = User::orderBy('name')->get();
         $objetivos   = Objetivo::visiblePara(Auth::user())->orderBy('nombre')->get();
+        $preguntas   = config('riesgo_preguntas');
 
-        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'usuarios', 'objetivos'));
+        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'usuarios', 'objetivos', 'preguntas'));
     }
 
     /**
-     * `mayor_criticidad` sólo puede quedar en true si impacto + probabilidad >= 14;
-     * el checkbox del request es una propuesta, la suma es la que decide.
+     * Impacto y probabilidad no se cargan a mano: se calculan como la suma de
+     * las 5 respuestas (0-2 cada una) del wizard de creación para cada dimensión
+     * (ver config/riesgo_preguntas.php). `mayor_criticidad` sólo puede quedar en
+     * true si esa suma total es >= 14; el checkbox del request es una propuesta,
+     * la suma es la que decide. Objetivos es opcional acá: se vuelve obligatorio
+     * recién al validar el riesgo (ver Riesgo::motivosBloqueoValidacion()).
      */
     public function store(Request $request)
     {
@@ -52,22 +57,31 @@ class RiesgoController extends Controller
         $data = $request->validate([
             'nombre'          => 'required|string|max:255',
             'descripcion'     => 'nullable|string',
-            'impacto'         => 'required|integer|min:0|max:10',
-            'probabilidad'    => 'required|integer|min:0|max:10',
+            'probabilidad_respuestas'   => 'required|array|size:5',
+            'probabilidad_respuestas.*' => 'required|integer|min:0|max:2',
+            'impacto_respuestas'        => 'required|array|size:5',
+            'impacto_respuestas.*'      => 'required|integer|min:0|max:2',
             'mayor_criticidad' => 'boolean',
             'respuesta'        => ['nullable', Rule::enum(RespuestaRiesgo::class)],
             'tipo_riesgo_id'   => 'required|exists:tipos_riesgo,id',
             'area_id'          => 'nullable|exists:areas,id',
             'user_id'          => 'nullable|exists:users,id',
-            'objetivos'        => 'required|array|min:1',
+            'objetivos'        => 'nullable|array',
             'objetivos.*'      => ['exists:objetivos,id', Rule::in(Objetivo::visiblePara(Auth::user())->pluck('id')->toArray())],
         ]);
 
-        $suma = ($data['impacto'] ?? 0) + ($data['probabilidad'] ?? 0);
+        $probabilidadRespuestas = $data['probabilidad_respuestas'];
+        $impactoRespuestas      = $data['impacto_respuestas'];
+        unset($data['probabilidad_respuestas'], $data['impacto_respuestas']);
+
+        $data['probabilidad'] = array_sum($probabilidadRespuestas);
+        $data['impacto']      = array_sum($impactoRespuestas);
+
+        $suma = $data['impacto'] + $data['probabilidad'];
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
         $data['user_id']         = $data['user_id'] ?? Auth::id();
         $riesgo = Riesgo::create($data);
-        $riesgo->objetivos()->sync($request->input('objetivos'));
+        $riesgo->objetivos()->sync($request->input('objetivos', []));
         $riesgo->actualizaciones()->create([
             'user_id'   => Auth::id(),
             'mensaje'   => 'Riesgo creado',
@@ -79,6 +93,8 @@ class RiesgoController extends Controller
                 'probabilidad'    => $riesgo->probabilidad,
                 'mayor_criticidad' => $riesgo->mayor_criticidad,
                 'tipo_riesgo_id'  => $riesgo->tipo_riesgo_id,
+                'probabilidad_respuestas' => $probabilidadRespuestas,
+                'impacto_respuestas'      => $impactoRespuestas,
             ]],
         ]);
 
@@ -175,6 +191,11 @@ class RiesgoController extends Controller
     public function validar(Riesgo $riesgo)
     {
         $this->authorize('validar', $riesgo);
+
+        $motivos = $riesgo->motivosBloqueoValidacion();
+        if (!empty($motivos)) {
+            return back()->with('error', implode(' ', $motivos));
+        }
 
         $riesgo->update(['estado_id' => Estado::validado()->id]);
 

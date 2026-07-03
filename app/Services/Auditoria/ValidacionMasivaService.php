@@ -43,6 +43,13 @@ class ValidacionMasivaService
         array $opcionalesSeleccionados,
         User $usuario
     ): array {
+        if ($entidad instanceof Riesgo && $accion === 'validar') {
+            $motivos = $entidad->motivosBloqueoValidacion();
+            if (!empty($motivos)) {
+                return ['error' => implode(' ', $motivos)];
+            }
+        }
+
         $fallidos = [];
         $exitosos = [];
         $bloqueanteFallo = false;

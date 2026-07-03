@@ -167,4 +167,26 @@ class Riesgo extends Model implements HasMedia
     {
         return static::clasificacion($this->valor_residual);
     }
+
+    /**
+     * Prerequisitos duros para pasar a "validado", más allá de la cascada de
+     * ValidacionMasivaService: al menos un objetivo asociado, y si la respuesta
+     * es mitigar, al menos un plan de acción. Devuelve los motivos de bloqueo
+     * (vacío si puede validarse). Usado por RiesgoController::validar() y por
+     * ValidacionMasivaService::ejecutar().
+     */
+    public function motivosBloqueoValidacion(): array
+    {
+        $motivos = [];
+
+        if ($this->objetivos()->count() === 0) {
+            $motivos[] = 'El riesgo debe tener al menos un objetivo asociado para poder validarse.';
+        }
+
+        if ($this->respuesta === RespuestaRiesgo::Mitigar && $this->planesAccion()->count() === 0) {
+            $motivos[] = 'Un riesgo con respuesta "Reducir/Mitigar" debe tener al menos un plan de acción asociado para poder validarse.';
+        }
+
+        return $motivos;
+    }
 }
