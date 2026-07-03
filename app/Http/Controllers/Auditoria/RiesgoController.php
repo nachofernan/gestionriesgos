@@ -80,22 +80,31 @@ class RiesgoController extends Controller
         $suma = $data['impacto'] + $data['probabilidad'];
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
         $data['user_id']         = $data['user_id'] ?? Auth::id();
+        $data['area_id']         = $data['area_id'] ?? Auth::user()->area_id;
         $riesgo = Riesgo::create($data);
         $riesgo->objetivos()->sync($request->input('objetivos', []));
         $riesgo->actualizaciones()->create([
             'user_id'   => Auth::id(),
             'mensaje'   => 'Riesgo creado',
             'estado_id' => Estado::borrador()->id,
-            'data'      => ['tipo' => 'creacion', 'campos' => [
-                'nombre'          => $riesgo->nombre,
-                'descripcion'     => $riesgo->descripcion,
-                'impacto'         => $riesgo->impacto,
-                'probabilidad'    => $riesgo->probabilidad,
-                'mayor_criticidad' => $riesgo->mayor_criticidad,
-                'tipo_riesgo_id'  => $riesgo->tipo_riesgo_id,
-                'probabilidad_respuestas' => $probabilidadRespuestas,
-                'impacto_respuestas'      => $impactoRespuestas,
-            ]],
+            'data'      => [
+                'tipo' => 'creacion',
+                'campos' => [
+                    'nombre'          => $riesgo->nombre,
+                    'descripcion'     => $riesgo->descripcion,
+                    'impacto'         => $riesgo->impacto,
+                    'probabilidad'    => $riesgo->probabilidad,
+                    'mayor_criticidad' => $riesgo->mayor_criticidad,
+                    'tipo_riesgo_id'  => $riesgo->tipo_riesgo_id,
+                ],
+                // Respuestas guardadas aparte de "campos": ese array lo recorre la
+                // vista de historial esperando valores escalares (ver
+                // gestion-actualizaciones.blade.php), y mezclar arrays ahí rompe el render.
+                'respuestas' => [
+                    'probabilidad' => $probabilidadRespuestas,
+                    'impacto'      => $impactoRespuestas,
+                ],
+            ],
         ]);
 
         return redirect()->route('auditoria.riesgos.show', $riesgo)->with('ok', 'Riesgo creado correctamente.');

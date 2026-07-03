@@ -77,6 +77,33 @@ class RiesgoWizardTest extends TestCase
     }
 
     /** @test */
+    public function el_historial_de_actualizaciones_se_renderiza_sin_error_tras_crear_el_riesgo(): void
+    {
+        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+
+        $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard());
+        $riesgo = Riesgo::firstOrFail();
+
+        $respuesta = $this->actingAs($user)->get(route('auditoria.riesgos.show', $riesgo));
+
+        $respuesta->assertStatus(200);
+    }
+
+    /** @test */
+    public function el_riesgo_creado_sin_area_toma_el_area_del_usuario(): void
+    {
+        $area = \App\Models\Auditoria\Area::create(['nombre' => 'Área de prueba']);
+        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
+
+        $datos = $this->datosWizard();
+        unset($datos['area_id']);
+
+        $this->actingAs($user)->post(route('auditoria.riesgos.store'), $datos);
+
+        $this->assertEquals($area->id, Riesgo::firstOrFail()->area_id);
+    }
+
+    /** @test */
     public function el_wizard_exige_las_cinco_respuestas_de_cada_dimension(): void
     {
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);

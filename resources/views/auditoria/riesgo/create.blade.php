@@ -214,7 +214,7 @@
                             class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('area_id') border-red-300 @enderror">
                             <option value="">— Sin área —</option>
                             @foreach ($areas as $area)
-                                <option value="{{ $area->id }}" {{ old('area_id') == $area->id ? 'selected' : '' }}>
+                                <option value="{{ $area->id }}" {{ old('area_id', auth()->user()->area_id) == $area->id ? 'selected' : '' }}>
                                     {{ $area->nombre }}
                                 </option>
                             @endforeach
