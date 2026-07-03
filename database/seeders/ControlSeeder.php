@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
 use App\Models\User;
 
@@ -13,6 +14,11 @@ class ControlSeeder extends Seeder
     {
         $users     = User::where('id', '>', 1)->whereNotNull('area_id')->get();
         $riesgoIds = Riesgo::pluck('id')->toArray();
+        $estadoIds = Estado::pluck('id', 'nombre');
+
+        // Pool de estados con variedad (antes quedaban todos hardcodeados en "aprobado").
+        $pool = ['borrador', 'borrador', 'validado', 'validado', 'validado',
+                 'aprobado', 'aprobado', 'aprobado', 'aprobado', 'borrado'];
 
         // Distribución de controles por riesgo sobre 15 riesgos:
         // 20% (3) → 0 controles
@@ -41,7 +47,7 @@ class ControlSeeder extends Seeder
                     'mitigacion_default' => rand(1, 10),
                     'user_id'            => $user->id,
                     'area_id'            => $user->area_id,
-                    'estado_id'          => 3,
+                    'estado_id'          => $estadoIds[$pool[array_rand($pool)]],
                 ]);
 
                 $control->riesgos()->attach([

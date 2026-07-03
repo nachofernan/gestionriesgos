@@ -20,9 +20,9 @@ class DatabaseSeeder extends Seeder
             RolSeeder::class,
             TipoRiesgoSeeder::class,
             AreaSeeder::class,
+            ObjetivoSeeder::class,
             RiesgoSeeder::class,
             ControlSeeder::class,
-            ObjetivoSeeder::class,
             TareaSeeder::class,
             PlanAccionSeeder::class,
         ]);
