@@ -23,6 +23,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 - [x] **Pantalla de Pendientes** (2026-07-03) — ver [changelog](updates/2026-07-03d.md). Qué tiene que validar/aprobar cada usuario, con acción inline por modal sin recargar el listado completo.
 - [x] **Seeders con variedad real de estados** (2026-07-03) — ver [changelog](updates/2026-07-03e.md). Control/Objetivo/PlanAccion/Tarea ya no quedan todos "aprobado"; Riesgo siempre tiene `respuesta`, respetando los prerequisitos de validación existentes.
 - [x] **Riesgo con múltiples gerencias** (2026-07-07) — ver [changelog](updates/2026-07-07.md). Un riesgo puede pertenecer a varias gerencias (`area_riesgo`) con permisos equivalentes; el creador deja de ser editable (siempre `auth()`). Por ahora solo en Riesgo — no descartado extenderlo a otras entidades si surge la necesidad.
+- [x] **PDF de Pendientes** (2026-07-07 bis) — ver [changelog](updates/2026-07-07b.md). Botón para descargar en PDF el listado de la pantalla de Pendientes, para llevar impreso a una reunión.
 
 ## Ideas abiertas / a definir
 

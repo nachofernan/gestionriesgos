@@ -9,6 +9,7 @@ use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 /**
@@ -34,6 +35,25 @@ class PendienteController extends Controller
         $user = $request->user();
         abort_unless($user->esGerente() || $user->esComite(), 403);
 
+        return view('auditoria.pendiente.index', $this->datosPendientes($user));
+    }
+
+    /**
+     * Genera el mismo listado de index() en PDF, para llevar impreso a una
+     * reunión. Sin acciones ni interactividad, sólo lectura.
+     */
+    public function pdf(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user->esGerente() || $user->esComite(), 403);
+
+        $pdf = Pdf::loadView('auditoria.pendiente.pdf', $this->datosPendientes($user) + ['user' => $user]);
+
+        return $pdf->download('pendientes-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    private function datosPendientes($user): array
+    {
         // null = sin restricción de área (comité, o cualquier usuario sin área propia)
         $areaIds = $user->area_id ? $user->area->obtenerIdsSubarbol() : null;
 
@@ -59,13 +79,13 @@ class PendienteController extends Controller
             ? $this->buscarActualizaciones('validado', $morphClases, $areaIds)
             : collect();
 
-        return view('auditoria.pendiente.index', [
+        return [
             'tipos'                      => self::TIPOS,
             'paraValidar'                => $paraValidar,
             'paraAprobar'                => $paraAprobar,
             'actualizacionesParaValidar' => $actualizacionesParaValidar,
             'actualizacionesParaAprobar' => $actualizacionesParaAprobar,
-        ]);
+        ];
     }
 
     private function buscar(string $modelo, string $estadoNombre, ?array $areaIds)

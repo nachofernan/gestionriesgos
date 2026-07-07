@@ -9,9 +9,17 @@
 @section('content')
 <div class="space-y-10">
 
-    <div>
-        <h1 class="text-2xl font-extrabold text-gray-900">Pendientes</h1>
-        <p class="text-sm text-gray-500 mt-1">Lo que tenés que validar o aprobar. La lista se actualiza al recargar la página; cada acción sólo afecta a ese elemento.</p>
+    <div class="flex items-start justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-gray-900">Pendientes</h1>
+            <p class="text-sm text-gray-500 mt-1">Lo que tenés que validar o aprobar. La lista se actualiza al recargar la página; cada acción sólo afecta a ese elemento.</p>
+        </div>
+        @if($totalValidar > 0 || $totalAprobar > 0)
+            <a href="{{ route('auditoria.pendientes.pdf') }}"
+               class="shrink-0 px-4 py-2 bg-gray-50 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-100 transition-colors">
+                Descargar PDF
+            </a>
+        @endif
     </div>
 
     @if($totalValidar === 0 && $totalAprobar === 0)

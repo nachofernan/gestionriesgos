@@ -120,6 +120,7 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // Pendientes (qué tiene que validar/aprobar el usuario logueado)
     // -------------------------------------------------------------------
     Route::get('pendientes', [PendienteController::class, 'index'])->name('pendientes.index');
+    Route::get('pendientes/pdf', [PendienteController::class, 'pdf'])->name('pendientes.pdf');
 });
 
 require __DIR__.'/auth.php';

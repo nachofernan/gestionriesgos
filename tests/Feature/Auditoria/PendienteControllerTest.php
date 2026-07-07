@@ -133,4 +133,23 @@ class PendienteControllerTest extends TestCase
         $respuesta->assertOk();
         $respuesta->assertSee('No tenés nada pendiente por ahora.');
     }
+
+    /** @test */
+    public function un_empleado_no_puede_descargar_el_pdf_de_pendientes(): void
+    {
+        $this->actingAs($this->nacho)
+            ->get(route('auditoria.pendientes.pdf'))
+            ->assertForbidden();
+    }
+
+    /** @test */
+    public function el_gerente_puede_descargar_el_pdf_de_pendientes(): void
+    {
+        Riesgo::factory()->borrador()->create(['nombre' => 'Riesgo de mi sector', 'area_id' => $this->sectA->id]);
+
+        $respuesta = $this->actingAs($this->canela)->get(route('auditoria.pendientes.pdf'));
+
+        $respuesta->assertOk();
+        $respuesta->assertHeader('content-type', 'application/pdf');
+    }
 }
