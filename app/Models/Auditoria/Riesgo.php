@@ -114,6 +114,21 @@ class Riesgo extends Model implements HasMedia
         return $this->belongsToMany(Area::class, 'area_riesgo')->withTimestamps();
     }
 
+    /**
+     * Reemplaza a `$user->puedeGestionarArea($riesgo->area_id)` en RiesgoPolicy:
+     * un usuario puede gestionar el riesgo si puede gestionar alguna de sus
+     * gerencias asociadas. Sin gerencias asociadas (riesgo sin área), cualquiera
+     * puede gestionarlo, igual que el comportamiento previo de puedeGestionarArea(null).
+     */
+    public function puedeGestionarAlgunaArea(User $user): bool
+    {
+        if ($this->areas->isEmpty()) {
+            return true;
+        }
+
+        return $this->areas->contains(fn (Area $area) => $user->puedeGestionarArea($area->id));
+    }
+
     public function controles(): BelongsToMany
     {
         return $this->belongsToMany(Control::class, 'control_riesgo')

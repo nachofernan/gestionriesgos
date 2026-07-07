@@ -379,6 +379,30 @@ class VisibilidadTest extends TestCase
     }
 
     // -------------------------------------------------------
+    // Policy update/validar: riesgo con más de una gerencia asociada
+    // -------------------------------------------------------
+
+    /** @test */
+    public function gerente_de_gerencia_adicional_asociada_puede_gestionar_el_riesgo(): void
+    {
+        // r pertenece originalmente a gerAdmin (sectA); se asocia también gerProd (sectC)
+        $r = $this->riesgo($this->borradorId, $this->sectA);
+        $r->areas()->syncWithoutDetaching([$this->sectC->id]);
+
+        $this->assertTrue($this->policy()->update($this->grassi, $r));
+        $this->assertTrue($this->policy()->validar($this->grassi, $r));
+    }
+
+    /** @test */
+    public function gerente_sin_ninguna_gerencia_asociada_no_puede_gestionar_el_riesgo(): void
+    {
+        $r = $this->riesgo($this->borradorId, $this->sectA);
+
+        $this->assertFalse($this->policy()->update($this->grassi, $r));
+        $this->assertFalse($this->policy()->validar($this->grassi, $r));
+    }
+
+    // -------------------------------------------------------
     // HTTP: show controller
     // -------------------------------------------------------
 
