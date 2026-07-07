@@ -80,33 +80,18 @@
                 :checked="old('mayor_criticidad', $riesgo->mayor_criticidad)"
             />
 
-            <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Área</label>
-                    <select name="area_id"
-                        class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('area_id') border-red-300 @enderror">
-                        <option value="">— Sin área —</option>
-                        @foreach ($areas as $area)
-                            <option value="{{ $area->id }}" {{ old('area_id', $riesgo->area_id) == $area->id ? 'selected' : '' }}>
-                                {{ $area->nombre }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('area_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Responsable</label>
-                    <select name="user_id"
-                        class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('user_id') border-red-300 @enderror">
-                        <option value="">— Sin asignar —</option>
-                        @foreach ($usuarios as $usuario)
-                            <option value="{{ $usuario->id }}" {{ old('user_id', $riesgo->user_id) == $usuario->id ? 'selected' : '' }}>
-                                {{ $usuario->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('user_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
-                </div>
+            <div class="pt-2 border-t border-gray-100">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Área</label>
+                <select name="area_id"
+                    class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('area_id') border-red-300 @enderror">
+                    <option value="">— Sin área —</option>
+                    @foreach ($areas as $area)
+                        <option value="{{ $area->id }}" {{ old('area_id', $riesgo->area_id) == $area->id ? 'selected' : '' }}>
+                            {{ $area->nombre }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('area_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
             </div>
 
             <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">

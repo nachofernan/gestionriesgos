@@ -8,7 +8,6 @@ use App\Models\Auditoria\TipoRiesgo;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
-use App\Models\User;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,11 +34,10 @@ class RiesgoController extends Controller
     {
         $tiposRiesgo = TipoRiesgo::all();
         $areas       = Area::orderBy('nombre')->get();
-        $usuarios    = User::orderBy('name')->get();
         $objetivos   = Objetivo::visiblePara(Auth::user())->orderBy('nombre')->get();
         $preguntas   = config('riesgo_preguntas');
 
-        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'usuarios', 'objetivos', 'preguntas'));
+        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'objetivos', 'preguntas'));
     }
 
     /**
@@ -65,7 +63,6 @@ class RiesgoController extends Controller
             'respuesta'        => ['nullable', Rule::enum(RespuestaRiesgo::class)],
             'tipo_riesgo_id'   => 'required|exists:tipos_riesgo,id',
             'area_id'          => 'nullable|exists:areas,id',
-            'user_id'          => 'nullable|exists:users,id',
             'objetivos'        => 'nullable|array',
             'objetivos.*'      => ['exists:objetivos,id', Rule::in(Objetivo::visiblePara(Auth::user())->pluck('id')->toArray())],
         ]);
@@ -79,7 +76,7 @@ class RiesgoController extends Controller
 
         $suma = $data['impacto'] + $data['probabilidad'];
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
-        $data['user_id']         = $data['user_id'] ?? Auth::id();
+        $data['user_id']         = Auth::id();
         $data['area_id']         = $data['area_id'] ?? Auth::user()->area_id;
         $riesgo = Riesgo::create($data);
         $riesgo->objetivos()->sync($request->input('objetivos', []));
@@ -129,9 +126,8 @@ class RiesgoController extends Controller
 
         $tiposRiesgo = TipoRiesgo::orderBy('nombre')->get();
         $areas       = Area::orderBy('nombre')->get();
-        $usuarios    = User::orderBy('name')->get();
 
-        return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas', 'usuarios'));
+        return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas'));
     }
 
     /**
@@ -156,7 +152,6 @@ class RiesgoController extends Controller
             'respuesta'        => ['nullable', Rule::enum(RespuestaRiesgo::class)],
             'tipo_riesgo_id'   => 'required|exists:tipos_riesgo,id',
             'area_id'          => 'nullable|exists:areas,id',
-            'user_id'          => 'nullable|exists:users,id',
         ]);
 
         $suma = $riesgo->impacto + $riesgo->probabilidad;
