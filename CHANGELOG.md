@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `docs/modulo-a
 
 ---
 
+- **2026-07-07** — [Riesgo con múltiples gerencias](docs/updates/2026-07-07.md): un riesgo puede pertenecer a varias gerencias (`area_riesgo`), todas con los mismos permisos de gestión (`RiesgoPolicy`, visibilidad y componente Livewire nuevo desde el show). El creador del riesgo deja de ser editable, siempre es `auth()`.
 - **2026-07-03 (quinquies)** — [Seeders con variedad real de estados](docs/updates/2026-07-03e.md): Control/Objetivo/PlanAccion/Tarea dejan de quedar todos "aprobado" y Riesgo siempre tiene `respuesta`, respetando `motivosBloqueoValidacion()` (objetivo obligatorio, plan obligatorio si es "mitigar").
 - **2026-07-03 (cuater)** — [Pantalla de Pendientes](docs/updates/2026-07-03d.md): qué tiene que validar/aprobar cada usuario (entidades y cambios propuestos), con acción inline vía modal sin recargar el listado. De paso, se corrigió un bug preexistente donde el modal de validación en cascada nunca redirigía de verdad.
 - **2026-07-03 (tris)** — [Impacto/probabilidad ya no se editan a mano](docs/updates/2026-07-03c.md): en la edición pasan a ser de solo lectura; para cambiarlos hay que "Recalcular", que vuelve a pasar el wizard de preguntas.
