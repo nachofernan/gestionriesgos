@@ -82,6 +82,15 @@ class Riesgo extends Model implements HasMedia
                 $riesgo->codigo = 'R-' . str_pad($numero, 4, '0', STR_PAD_LEFT);
             }
         });
+
+        // El área del creador queda como primera gerencia con permisos sobre el
+        // riesgo; sin esto, un riesgo recién creado no tendría ninguna gerencia
+        // asociada en area_riesgo y nadie podría gestionarlo.
+        static::created(function ($riesgo) {
+            if ($riesgo->area_id) {
+                $riesgo->areas()->syncWithoutDetaching([$riesgo->area_id]);
+            }
+        });
     }
 
     public function user(): BelongsTo
@@ -92,6 +101,17 @@ class Riesgo extends Model implements HasMedia
     public function area(): BelongsTo
     {
         return $this->belongsTo(Area::class);
+    }
+
+    /**
+     * Gerencias a las que pertenece el riesgo, más allá de la que lo creó
+     * (area_id). Un riesgo puede pertenecer a varias; todas tienen los mismos
+     * permisos de gestión (ver RiesgoPolicy). Se sincroniza con el área del
+     * creador al crearse (ver booted()) y se administra después desde el show.
+     */
+    public function areas(): BelongsToMany
+    {
+        return $this->belongsToMany(Area::class, 'area_riesgo')->withTimestamps();
     }
 
     public function controles(): BelongsToMany
