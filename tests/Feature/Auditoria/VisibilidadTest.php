@@ -402,6 +402,16 @@ class VisibilidadTest extends TestCase
         $this->assertFalse($this->policy()->validar($this->grassi, $r));
     }
 
+    /** @test */
+    public function scope_visible_para_incluye_borrador_por_gerencia_adicional_asociada(): void
+    {
+        // r es de gerAdmin (sectA); se asocia también gerProd (sectC), donde está grassi
+        $r = $this->riesgo($this->borradorId, $this->sectA);
+        $r->areas()->syncWithoutDetaching([$this->sectC->id]);
+
+        $this->assertContains($r->id, $this->idsVisibles($this->grassi));
+    }
+
     // -------------------------------------------------------
     // HTTP: show controller
     // -------------------------------------------------------

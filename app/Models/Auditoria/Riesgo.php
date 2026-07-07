@@ -2,6 +2,7 @@
 
 namespace App\Models\Auditoria;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -91,6 +92,30 @@ class Riesgo extends Model implements HasMedia
                 $riesgo->areas()->syncWithoutDetaching([$riesgo->area_id]);
             }
         });
+    }
+
+    /**
+     * Sobrescribe HasVisibilityScope::scopeVisiblePara(): un riesgo es de "área
+     * propia" si CUALQUIERA de sus gerencias asociadas (area_riesgo) cae en el
+     * subárbol del usuario, no solo su area_id. El resto de la trait (público
+     * para aprobado/validado, comité solo ve público) se mantiene igual.
+     */
+    public function scopeVisiblePara(Builder $query, User $user): Builder
+    {
+        if (!$user->area_id) return $query;
+
+        $publicoIds = array_filter([Estado::aprobado()?->id, Estado::validado()?->id]);
+
+        if ($user->esComite()) {
+            return $query->whereIn('estado_id', $publicoIds);
+        }
+
+        $propiaIds = $user->area->obtenerIdsSubarbol();
+
+        return $query->where(fn ($q) =>
+            $q->whereIn('estado_id', $publicoIds)
+              ->orWhereHas('areas', fn ($sub) => $sub->whereIn('areas.id', $propiaIds))
+        );
     }
 
     public function user(): BelongsTo
