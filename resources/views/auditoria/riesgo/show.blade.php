@@ -133,6 +133,9 @@
                 </dl>
             </div>
 
+            {{-- Gerencias --}}
+            @livewire('auditoria.riesgo.show.gestion-areas', ['riesgo' => $riesgo])
+
             {{-- Objetivos --}}
             @livewire('auditoria.riesgo.show.gestion-objetivos', ['riesgo' => $riesgo])
 
