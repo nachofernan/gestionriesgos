@@ -8,7 +8,17 @@
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
+            @if (isset($correos) && $correos->isNotEmpty())
+                {{-- Acceso rápido en desarrollo: select con los correos sembrados. --}}
+                <select id="email" name="email" required autofocus autocomplete="username"
+                        class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                    @foreach ($correos as $correo)
+                        <option value="{{ $correo }}" @selected(old('email', $correos->first()) === $correo)>{{ $correo }}</option>
+                    @endforeach
+                </select>
+            @else
+                <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
+            @endif
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
@@ -19,6 +29,7 @@
             <x-text-input id="password" class="block mt-1 w-full"
                             type="password"
                             name="password"
+                            :value="isset($correos) && $correos->isNotEmpty() ? 'password' : ''"
                             required autocomplete="current-password" />
 
             <x-input-error :messages="$errors->get('password')" class="mt-2" />

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,11 +13,16 @@ use Illuminate\View\View;
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Display the login view.
+     * Display the login view. En entorno local pasa los correos de la DB para
+     * mostrar un select de acceso rápido (ver auth/login.blade.php).
      */
     public function create(): View
     {
-        return view('auth.login');
+        $correos = app()->isLocal()
+            ? User::orderByRaw("email = 'lucia@example.com' desc")->orderBy('email')->pluck('email')
+            : collect();
+
+        return view('auth.login', compact('correos'));
     }
 
     /**
