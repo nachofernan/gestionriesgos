@@ -134,6 +134,21 @@
                                 @endif
                             </div>
                         @endif
+
+                        {{-- Adjuntos --}}
+                        @if($actualizacion->getMedia('adjuntos')->isNotEmpty())
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                @foreach($actualizacion->getMedia('adjuntos') as $media)
+                                    <a href="{{ route('auditoria.actualizaciones.adjuntos.download', [$actualizacion, $media]) }}"
+                                       class="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-100 transition-colors">
+                                        <svg class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                        </svg>
+                                        {{ $media->file_name }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Acciones de transición --}}
@@ -225,6 +240,16 @@
                         </div>
                     </div>
                 @endif
+
+                {{-- Adjuntos --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Adjuntos (opcional)</label>
+                    <input type="file" wire:model="archivos" multiple
+                           class="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    <p class="text-xs text-gray-400 mt-1">PDF, Word, Excel o imágenes. Hasta 10&nbsp;MB por archivo.</p>
+                    <div wire:loading wire:target="archivos" class="text-xs text-indigo-600 mt-1">Subiendo archivos…</div>
+                    @error('archivos.*') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
             </div>
             <div class="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
                 <button wire:click="cerrarModal"

@@ -11,6 +11,8 @@ use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Gestiona el ciclo de vida de las Actualizaciones: propuestas de cambio sobre
@@ -102,6 +104,23 @@ class ActualizacionController extends Controller
     }
 
     /**
+     * Descarga un adjunto de la actualización. Autoriza por 'view' sobre la entidad
+     * relacionada (misma visibilidad que su show, donde se lista el historial), y
+     * verifica que el media pertenezca a esa actualización para evitar IDs cruzados.
+     */
+    public function descargarAdjunto(Actualizacion $actualizacion, Media $media): BinaryFileResponse
+    {
+        $this->authorize('view', $actualizacion->actualizable);
+
+        abort_unless(
+            $media->model_type === Actualizacion::class && $media->model_id === $actualizacion->id,
+            404
+        );
+
+        return response()->download($media->getPath(), $media->file_name);
+    }
+
+    /**
      * Crea la Actualizacion asociada a $model, capturando sólo los campos de
      * $camposPermitidos que vinieron en el request con valor no vacío.
      */
@@ -113,14 +132,14 @@ class ActualizacionController extends Controller
 
         // Capturar sólo los campos permitidos que hayan sido enviados con valor
         $cambios = collect($camposPermitidos)
-            ->filter(fn($campo) => $request->has($campo) && $request->input($campo) !== null && $request->input($campo) !== '')
-            ->mapWithKeys(fn($campo) => [$campo => $request->input($campo)])
+            ->filter(fn ($campo) => $request->has($campo) && $request->input($campo) !== null && $request->input($campo) !== '')
+            ->mapWithKeys(fn ($campo) => [$campo => $request->input($campo)])
             ->toArray();
 
         $model->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => $validated['mensaje'],
-            'data'    => empty($cambios) ? null : $cambios,
+            'data' => empty($cambios) ? null : $cambios,
         ]);
     }
 }

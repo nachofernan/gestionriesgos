@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /**
  * Modal de historial y gestión de Actualizaciones de una entidad genérica
@@ -22,26 +23,35 @@ use Livewire\Component;
  */
 class GestionActualizaciones extends Component
 {
+    use WithFileUploads;
+
     public string $modelType;
+
     public int $modelId;
+
     public string $estadoModelo = '';
 
     public bool $modalAbierto = false;
+
     public string $mensaje = '';
+
     public array $cambios = [];
+
+    /** Adjuntos temporales de Livewire para la actualización que se está creando. */
+    public array $archivos = [];
 
     protected $listeners = ['refrescarActualizaciones' => '$refresh'];
 
     public function mount(string $modelType, int $modelId): void
     {
-        $this->modelType    = $modelType;
-        $this->modelId      = $modelId;
+        $this->modelType = $modelType;
+        $this->modelId = $modelId;
         $this->estadoModelo = $this->resolverModelo()->estado?->nombre ?? '';
     }
 
     public function abrirModal(): void
     {
-        $this->reset(['mensaje', 'cambios']);
+        $this->reset(['mensaje', 'cambios', 'archivos']);
         $this->cambios = array_fill_keys(array_keys($this->camposEditables()), '');
         $this->modalAbierto = true;
     }
@@ -59,13 +69,16 @@ class GestionActualizaciones extends Component
      */
     public function guardar(): void
     {
-        $this->validate(['mensaje' => 'required|string|min:3']);
+        $this->validate([
+            'mensaje' => 'required|string|min:3',
+            'archivos.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+        ]);
 
         $campos = collect($this->cambios)
-            ->filter(fn($v) => $v !== null && $v !== '')
+            ->filter(fn ($v) => $v !== null && $v !== '')
             ->toArray();
 
-        $model    = $this->resolverModelo();
+        $model = $this->resolverModelo();
         $this->authorize('update', $model);
         $estadoId = $this->estadoParaActualizacion();
 
@@ -78,31 +91,43 @@ class GestionActualizaciones extends Component
         }
 
         $data = ['tipo' => 'cambio'];
-        if (!empty($campos)) {
+        if (! empty($campos)) {
             $data['campos'] = $campos;
-            if (!empty($diff)) $data['diff'] = ['campos' => $diff];
+            if (! empty($diff)) {
+                $data['diff'] = ['campos' => $diff];
+            }
         }
 
-        DB::transaction(function () use ($model, $campos, $estadoId, $data) {
+        $actualizacion = DB::transaction(function () use ($model, $campos, $estadoId, $data) {
             $aplicar = $estadoId === Estado::aprobado()->id
                 || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
 
             $dataFinal = empty($campos) ? ['tipo' => 'cambio'] : $data;
-            if ($aplicar && !empty($campos)) {
+            if ($aplicar && ! empty($campos)) {
                 $dataFinal['activated_by'] = Auth::user()->name;
             }
 
-            $model->actualizaciones()->create([
-                'user_id'   => Auth::id(),
-                'mensaje'   => $this->mensaje,
+            $actualizacion = $model->actualizaciones()->create([
+                'user_id' => Auth::id(),
+                'mensaje' => $this->mensaje,
                 'estado_id' => $estadoId,
-                'data'      => $dataFinal,
+                'data' => $dataFinal,
             ]);
 
-            if ($aplicar && !empty($campos)) {
+            if ($aplicar && ! empty($campos)) {
                 $model->update($campos);
             }
+
+            return $actualizacion;
         });
+
+        // El attach de medios no es transaccional (mueve archivos en disco), así que
+        // va después del commit, sobre la actualización ya persistida.
+        foreach ($this->archivos as $archivo) {
+            $actualizacion->addMedia($archivo->getRealPath())
+                ->usingFileName($archivo->getClientOriginalName())
+                ->toMediaCollection('adjuntos');
+        }
 
         $this->cerrarModal();
     }
@@ -162,12 +187,12 @@ class GestionActualizaciones extends Component
 
     private function resolverModelo(): Model
     {
-        return match($this->modelType) {
-            'riesgo'  => Riesgo::findOrFail($this->modelId),
+        return match ($this->modelType) {
+            'riesgo' => Riesgo::findOrFail($this->modelId),
             'control' => Control::findOrFail($this->modelId),
             'objetivo' => Objetivo::findOrFail($this->modelId),
-            'plan'    => PlanAccion::findOrFail($this->modelId),
-            'tarea'   => Tarea::findOrFail($this->modelId),
+            'plan' => PlanAccion::findOrFail($this->modelId),
+            'tarea' => Tarea::findOrFail($this->modelId),
         };
     }
 
@@ -178,32 +203,32 @@ class GestionActualizaciones extends Component
      */
     private function camposEditables(): array
     {
-        return match($this->modelType) {
-            'riesgo'  => [
-                'nombre'       => 'Nombre',
-                'descripcion'  => 'Descripción',
-                'impacto'      => 'Impacto',
+        return match ($this->modelType) {
+            'riesgo' => [
+                'nombre' => 'Nombre',
+                'descripcion' => 'Descripción',
+                'impacto' => 'Impacto',
                 'probabilidad' => 'Probabilidad',
             ],
             'control' => [
-                'nombre'             => 'Nombre',
-                'descripcion'        => 'Descripción',
+                'nombre' => 'Nombre',
+                'descripcion' => 'Descripción',
                 'mitigacion_default' => 'Mitigación por defecto',
             ],
             'objetivo' => [
-                'nombre'         => 'Nombre',
-                'descripcion'    => 'Descripción',
+                'nombre' => 'Nombre',
+                'descripcion' => 'Descripción',
                 'fecha_objetivo' => 'Fecha objetivo',
             ],
             'plan' => [
-                'nombre'      => 'Nombre',
+                'nombre' => 'Nombre',
                 'descripcion' => 'Descripción',
             ],
             'tarea' => [
-                'nombre'            => 'Nombre',
-                'descripcion'       => 'Descripción',
+                'nombre' => 'Nombre',
+                'descripcion' => 'Descripción',
                 'porcentaje_avance' => 'Porcentaje de avance',
-                'fecha'             => 'Fecha',
+                'fecha' => 'Fecha',
             ],
             default => [],
         };
@@ -213,13 +238,13 @@ class GestionActualizaciones extends Component
     {
         $actualizaciones = $this->resolverModelo()
             ->actualizaciones()
-            ->with(['user', 'estado'])
+            ->with(['user', 'estado', 'media'])
             ->latest('created_at')
             ->get();
 
         return view('livewire.auditoria.actualizaciones.gestion-actualizaciones', [
-            'actualizaciones'  => $actualizaciones,
-            'camposEditables'  => $this->camposEditables(),
+            'actualizaciones' => $actualizaciones,
+            'camposEditables' => $this->camposEditables(),
         ]);
     }
 }
