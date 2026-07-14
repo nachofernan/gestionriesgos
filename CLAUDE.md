@@ -11,6 +11,26 @@
 
 ---
 
+## Entorno y comandos
+
+- **SO / shell:** Windows + XAMPP, shell PowerShell. La DB es la **MySQL de XAMPP** — tiene que estar levantada para correr la app y los tests.
+- **Tests:** `php artisan test` (todo) o `php artisan test --filter=<Nombre>` para acotar. En `phpunit.xml` la conexión de DB está comenteada, así que los tests **corren contra la MySQL real de XAMPP con `RefreshDatabase`**, no SQLite en memoria. Si fallan por no conectar, es que MySQL no está corriendo — no es un bug del test.
+- **Formateo:** `./vendor/bin/pint` (Laravel Pint). Correr sobre lo tocado antes de commitear.
+- **Assets:** `npm run dev` (watch) / `npm run build` (producción) para Tailwind.
+
+---
+
+## Agentes del proyecto
+
+Hay dos subagentes definidos en `.claude/agents/`. Delegar según el peso de la tarea:
+
+- **`auditoria-junior`** (Sonnet, sin Bash) — tareas mecánicas y acotadas que no tocan estructura: copy en vistas, ajustes de Blade/Tailwind, typos, agregar un campo a `$fillable` ya existente. No testea ni commitea. Si la tarea resulta ser estructural, la devuelve para el senior.
+- **`auditoria-senior`** (Opus, todas las herramientas) — trabajo profundo que toca esquema, Policies, reglas de negocio o cruza capas. Investiga dependencias, implementa, corre tests + Pint y commitea. Como corre aislado, cuando hay ambigüedad real vuelve con las preguntas en su reporte en vez de asumir.
+
+Nota: un subagente corre en contexto aislado y **no puede preguntarte en vivo** — el ida y vuelta con vos ocurre en el hilo principal, que es quien delega y releva las dudas que el subagente devuelve.
+
+---
+
 ## Arquitectura general
 
 Sistema de gestión de auditoría de riesgos. El flujo central es:
