@@ -115,8 +115,8 @@
                                 @if($plan->codigo)
                                     <span class="font-mono text-[9px] text-gray-400 uppercase shrink-0">{{ $plan->codigo }}</span>
                                 @endif
+                                <x-auditoria.estado-punto :estado="$plan->estado" soloPunto size="sm" />
                                 <span class="flex-1 text-xs font-semibold text-gray-800 truncate">{{ $plan->nombre }}</span>
-                                <x-auditoria.estado-badge :estado="$plan->estado" size="xs" />
                             </div>
                             @if($plan->riesgos->count())
                                 <div class="flex flex-wrap gap-1">

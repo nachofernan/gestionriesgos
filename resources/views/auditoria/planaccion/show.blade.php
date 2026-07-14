@@ -13,7 +13,10 @@
             </a>
             <div>
                 <span class="font-mono text-xs text-gray-400 uppercase font-bold">{{ $planAccion->codigo }}</span>
-                <h1 class="text-2xl font-extrabold text-gray-900">{{ $planAccion->nombre }}</h1>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-2xl font-extrabold text-gray-900">{{ $planAccion->nombre }}</h1>
+                    <x-auditoria.estado-badge :estado="$planAccion->estado" />
+                </div>
             </div>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -65,11 +68,11 @@
                     $planVencido = $vencimientoPlan && \Carbon\Carbon::parse($vencimientoPlan)->lt($hoy)
                                    && ($planAccion->tareas->avg('porcentaje_avance') ?? 0) < 100;
                 @endphp
-                <div class="mb-4">
-                    <x-auditoria.estado-badge :estado="$planAccion->estado" />
-                </div>
-
                 <dl class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <dt class="text-gray-400 font-medium">Estado</dt>
+                        <dd><x-auditoria.estado-punto :estado="$planAccion->estado" /></dd>
+                    </div>
                     @if($planAccion->codigo)
                         <div class="flex justify-between">
                             <dt class="text-gray-400 font-medium">Código</dt>
@@ -116,9 +119,11 @@
                 @forelse ($planAccion->riesgos as $riesgo)
                     <div class="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-orange-50/50 border border-orange-100 hover:border-orange-200 transition-colors cursor-pointer"
                          onclick="Livewire.dispatch('ver-riesgo', {id: {{$riesgo->id}}})">
-                        <span class="text-sm font-medium text-gray-700">{{ $riesgo->nombre }}</span>
+                        <div class="flex items-center gap-2 min-w-0">
+                            <x-auditoria.estado-punto :estado="$riesgo->estado" soloPunto />
+                            <span class="text-sm font-medium text-gray-700 truncate">{{ $riesgo->nombre }}</span>
+                        </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            <x-auditoria.estado-badge :estado="$riesgo->estado" size="sm" />
                             <span class="text-[10px] font-bold text-orange-700">{{ $riesgo->valor_total }}</span>
                         </div>
                     </div>

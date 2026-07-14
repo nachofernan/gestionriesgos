@@ -92,7 +92,12 @@
                         <p class="text-sm font-semibold text-gray-700 mb-3">{{ $p['pregunta'] }}</p>
                         <div class="space-y-1.5">
                             @foreach ($p['opciones'] as $o)
-                                @php $checked = old('probabilidad_respuestas.'.$p['id']) == $o['v']; @endphp
+                                @php
+                                    // Sin guardar contra null, old() vacío (null) coincidiría con la
+                                    // opción de valor 0 (null == 0 en PHP) y la marcaría por defecto.
+                                    $seleccion = old('probabilidad_respuestas.'.$p['id']);
+                                    $checked = $seleccion !== null && $seleccion == $o['v'];
+                                @endphp
                                 <label class="flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all
                                     {{ $checked ? 'border-indigo-200 bg-indigo-50/50' : 'border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/20' }}">
                                     <input type="radio" name="probabilidad_respuestas[{{ $p['id'] }}]" value="{{ $o['v'] }}"
@@ -115,7 +120,10 @@
                         <p class="text-sm font-semibold text-gray-700 mb-3">{{ $p['pregunta'] }}</p>
                         <div class="space-y-1.5">
                             @foreach ($p['opciones'] as $o)
-                                @php $checked = old('impacto_respuestas.'.$p['id']) == $o['v']; @endphp
+                                @php
+                                    $seleccion = old('impacto_respuestas.'.$p['id']);
+                                    $checked = $seleccion !== null && $seleccion == $o['v'];
+                                @endphp
                                 <label class="flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all
                                     {{ $checked ? 'border-indigo-200 bg-indigo-50/50' : 'border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/20' }}">
                                     <input type="radio" name="impacto_respuestas[{{ $p['id'] }}]" value="{{ $o['v'] }}"

@@ -29,12 +29,11 @@
                  class="flex items-center gap-3 p-2.5 rounded-lg border transition-colors
                      {{ $editando ? 'border-blue-200 bg-blue-50/40' : 'border-gray-100 bg-gray-50/50 cursor-pointer hover:border-indigo-200 hover:bg-indigo-50/30' }}"
                  @if(!$editando) onclick="Livewire.dispatch('ver-control', {id: {{$ctrl['id']}}, mitigacion: {{$ctrl['mitigacion']}}})" @endif>
+                <x-auditoria.estado-punto :color="$ctrl['estado_color']" :nombre="$ctrl['estado'] ?? 'borrador'" soloPunto />
                 <div class="flex-1 min-w-0">
                     <span class="text-sm font-medium text-gray-700 truncate block">{{ $ctrl['nombre'] }}</span>
                 </div>
-                @if(!$editando)
-                    <x-auditoria.estado-badge :color="$ctrl['estado_color']" :nombre="$ctrl['estado'] ?? 'borrador'" size="sm" />
-                @else
+                @if($editando)
                     <span class="text-[11px] text-gray-400 font-normal shrink-0">(mit. default: {{ $ctrl['mitigacion_default'] }})</span>
                 @endif
                 <div class="flex items-center gap-1.5 shrink-0">

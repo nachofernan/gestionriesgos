@@ -63,8 +63,8 @@
                     @forelse($plan->riesgos as $riesgo)
                         <div class="py-1.5 border-b border-gray-50 last:border-0">
                             <div class="flex items-center gap-2 mb-0.5">
+                                <x-auditoria.estado-punto :estado="$riesgo->estado" soloPunto size="sm" />
                                 <span class="flex-1 text-xs font-medium text-gray-700 truncate">{{ $riesgo->nombre }}</span>
-                                <x-auditoria.estado-badge :estado="$riesgo->estado" size="xs" />
                             </div>
                             <div class="flex items-center gap-1.5">
                                 @if($riesgo->tipoRiesgo)

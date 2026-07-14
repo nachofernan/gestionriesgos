@@ -12,6 +12,7 @@
                 </svg>
             </a>
             <h1 class="text-2xl font-extrabold text-gray-900">{{ $control->nombre }}</h1>
+            <x-auditoria.estado-badge :estado="$control->estado" />
         </div>
         <div class="flex items-center gap-2 flex-wrap">
             @include('auditoria.partials.estado-acciones', ['item' => $control, 'routePrefix' => 'controles'])
@@ -47,11 +48,11 @@
                     <div class="text-[10px] text-blue-500 uppercase font-bold tracking-wider mt-0.5">Mitigación por defecto</div>
                 </div>
 
-                <div class="mb-4">
-                    <x-auditoria.estado-badge :estado="$control->estado" />
-                </div>
-
                 <dl class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <dt class="text-gray-400 font-medium">Estado</dt>
+                        <dd><x-auditoria.estado-punto :estado="$control->estado" /></dd>
+                    </div>
                     @if($control->area)
                         <div class="flex justify-between">
                             <dt class="text-gray-400 font-medium">Área</dt>
@@ -75,12 +76,14 @@
                     @forelse ($control->riesgos as $riesgo)
                         <div class="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
                              onclick="Livewire.dispatch('ver-riesgo', {id: {{$riesgo->id}}})">
-                            <div>
-                                <p class="text-sm font-semibold text-gray-800">{{ $riesgo->nombre }}</p>
-                                <p class="text-[11px] text-gray-400 mt-0.5">{{ $riesgo->tipoRiesgo?->nombre ?? '—' }}</p>
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <x-auditoria.estado-punto :estado="$riesgo->estado" soloPunto />
+                                <div class="min-w-0">
+                                    <p class="text-sm font-semibold text-gray-800 truncate">{{ $riesgo->nombre }}</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5">{{ $riesgo->tipoRiesgo?->nombre ?? '—' }}</p>
+                                </div>
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
-                                <x-auditoria.estado-badge :estado="$riesgo->estado" size="sm" />
                                 <span class="text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full">
                                     Mit: {{ $riesgo->pivot->mitigacion ?? $control->mitigacion_default }}
                                 </span>

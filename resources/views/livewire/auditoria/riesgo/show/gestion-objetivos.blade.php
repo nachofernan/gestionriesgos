@@ -29,10 +29,8 @@
                  class="flex items-center gap-3 p-2.5 rounded-lg border transition-colors
                      {{ $editando ? 'border-purple-200 bg-purple-50/40' : 'border-gray-100 bg-gray-50/50 cursor-pointer hover:border-purple-200 hover:bg-purple-50/30' }}"
                  @if(!$editando) onclick="Livewire.dispatch('ver-objetivo', {id: {{$obj['id']}}})" @endif>
+                <x-auditoria.estado-punto :color="$obj['estado_color']" :nombre="$obj['estado'] ?? 'borrador'" soloPunto />
                 <span class="flex-1 text-sm font-medium text-gray-700 min-w-0 truncate">{{ $obj['nombre'] }}</span>
-                @if(!$editando)
-                    <x-auditoria.estado-badge :color="$obj['estado_color']" :nombre="$obj['estado'] ?? 'borrador'" size="sm" />
-                @endif
                 @if($editando)
                     <button type="button" wire:click="quitar({{ $obj['id'] }})"
                         class="text-gray-400 hover:text-red-500 transition-colors shrink-0">

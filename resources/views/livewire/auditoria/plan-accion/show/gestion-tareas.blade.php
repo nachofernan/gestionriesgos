@@ -41,6 +41,7 @@
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-3">
                         <div class="flex items-center gap-2 min-w-0">
+                            <x-auditoria.estado-punto :color="$tarea['estado_color']" :nombre="$tarea['estado'] ?? 'borrador'" soloPunto />
                             <span class="text-sm font-medium truncate
                                 {{ $vencida ? 'text-red-700 font-semibold' : 'text-gray-700' }}">
                                 {{ $tarea['nombre'] }}
@@ -50,9 +51,6 @@
                             @endif
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            @if(!$editando)
-                                <x-auditoria.estado-badge :color="$tarea['estado_color']" :nombre="$tarea['estado'] ?? 'borrador'" size="sm" />
-                            @endif
                             @if($tarea['fecha'])
                                 <span class="text-[10px] {{ $vencida ? 'text-red-500 font-semibold' : 'text-gray-400' }}">
                                     {{ \Carbon\Carbon::parse($tarea['fecha'])->format('d/m/Y') }}

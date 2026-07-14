@@ -59,10 +59,10 @@
                         </h4>
                         @forelse($riesgo->controles as $ctrl)
                             <div class="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
+                                <x-auditoria.estado-punto :estado="$ctrl->estado" soloPunto size="sm" />
                                 <div class="flex-1 min-w-0">
                                     <span class="text-xs font-medium text-gray-700 block truncate">{{ $ctrl->nombre }}</span>
                                 </div>
-                                <x-auditoria.estado-badge :estado="$ctrl->estado" size="xs" />
                                 <span class="text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-full shrink-0">
                                     Mit: {{ $ctrl->pivot->mitigacion ?? $ctrl->mitigacion_default }}
                                 </span>
@@ -83,8 +83,8 @@
                         </h4>
                         @forelse($riesgo->objetivos as $obj)
                             <div class="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
+                                <x-auditoria.estado-punto :estado="$obj->estado" soloPunto size="sm" />
                                 <span class="flex-1 text-xs font-medium text-gray-700 truncate">{{ $obj->nombre }}</span>
-                                <x-auditoria.estado-badge :estado="$obj->estado" size="xs" />
                                 @if($obj->estrategico ?? false)
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 shrink-0">E</span>
                                 @endif
@@ -115,8 +115,8 @@
                                 @if($plan->codigo)
                                     <span class="font-mono text-[9px] text-gray-400 uppercase shrink-0">{{ $plan->codigo }}</span>
                                 @endif
+                                <x-auditoria.estado-punto :estado="$plan->estado" soloPunto size="sm" />
                                 <span class="flex-1 text-sm font-semibold text-gray-800 truncate">{{ $plan->nombre }}</span>
-                                <x-auditoria.estado-badge :estado="$plan->estado" size="xs" />
                             </div>
                             @if($avgAvance !== null)
                                 <div class="flex items-center gap-2 mb-2">

@@ -13,7 +13,10 @@
                 </svg>
             </a>
             <div>
-                <h1 class="text-2xl font-extrabold text-gray-900">{{ $riesgo->nombre }}</h1>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-2xl font-extrabold text-gray-900">{{ $riesgo->nombre }}</h1>
+                    <x-auditoria.estado-badge :estado="$riesgo->estado" />
+                </div>
                 <p class="text-sm text-gray-500">{{ $riesgo->tipoRiesgo->nombre ?? '—' }}</p>
             </div>
         </div>
@@ -79,11 +82,11 @@
                     </div>
                 </div>
 
-                <div class="mb-4">
-                    <x-auditoria.estado-badge :estado="$riesgo->estado" />
-                </div>
-
                 <dl class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <dt class="text-gray-400 font-medium">Estado</dt>
+                        <dd><x-auditoria.estado-punto :estado="$riesgo->estado" /></dd>
+                    </div>
                     @if($riesgo->codigo)
                         <div class="flex justify-between">
                             <dt class="text-gray-400 font-medium">Código</dt>

@@ -14,6 +14,7 @@
             </a>
             <div class="flex items-center gap-2 flex-wrap">
                 <h1 class="text-2xl font-extrabold {{ $tareaVencida ? 'text-red-700' : 'text-gray-900' }}">{{ $tarea->nombre }}</h1>
+                <x-auditoria.estado-badge :estado="$tarea->estado" />
                 @if($tareaVencida)
                     <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">Vencida</span>
                 @endif
@@ -70,11 +71,11 @@
                     </p>
                 </div>
 
-                <div class="mb-4">
-                    <x-auditoria.estado-badge :estado="$tarea->estado" />
-                </div>
-
                 <dl class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <dt class="text-gray-400 font-medium">Estado</dt>
+                        <dd><x-auditoria.estado-punto :estado="$tarea->estado" /></dd>
+                    </div>
                     @if($tarea->area)
                         <div class="flex justify-between">
                             <dt class="text-gray-400 font-medium">Área</dt>
@@ -111,12 +112,12 @@
                         <div class="px-5 py-4">
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center gap-2 flex-1 min-w-0">
+                                    <x-auditoria.estado-punto :estado="$plan->estado" soloPunto />
                                     <button type="button"
                                             onclick="Livewire.dispatch('ver-plan', {id: {{$plan->id}}})"
                                             class="text-sm font-semibold text-indigo-700 hover:text-indigo-900 truncate text-left">
                                         {{ $plan->nombre }}
                                     </button>
-                                    <x-auditoria.estado-badge :estado="$plan->estado" size="xs" />
                                 </div>
                                 <span class="font-mono text-[10px] text-gray-400 uppercase shrink-0 ml-2">{{ $plan->codigo }}</span>
                             </div>
