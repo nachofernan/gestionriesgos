@@ -2,18 +2,16 @@
 
 namespace App\Models\Auditoria;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\HasVisibilityScope;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use App\Models\User;
-use App\Models\Auditoria\Area;
-use App\Models\Auditoria\Estado;
-use App\Models\Concerns\HasVisibilityScope;
 
 /**
  * Plan de Acción con código correlativo (ver PlanAccionController::generarCodigo()),
@@ -22,7 +20,7 @@ use App\Models\Concerns\HasVisibilityScope;
  */
 class PlanAccion extends Model implements HasMedia
 {
-    use SoftDeletes, HasFactory, InteractsWithMedia, HasVisibilityScope;
+    use HasFactory, HasVisibilityScope, InteractsWithMedia, SoftDeletes;
 
     protected $table = 'planes_accion';
 
@@ -39,7 +37,7 @@ class PlanAccion extends Model implements HasMedia
     {
         // Requiere que exista el estado "borrador" (ver EstadoRiesgoSeeder).
         static::creating(function ($plan) {
-            if (!$plan->estado_id) {
+            if (! $plan->estado_id) {
                 $borrador = Estado::borrador();
                 if ($borrador) {
                     $plan->estado_id = $borrador->id;
@@ -61,6 +59,7 @@ class PlanAccion extends Model implements HasMedia
     public function riesgos(): BelongsToMany
     {
         return $this->belongsToMany(Riesgo::class, 'plan_accion_riesgo')
+            ->withPivot('mitigacion')
             ->withTimestamps();
     }
 
@@ -78,5 +77,28 @@ class PlanAccion extends Model implements HasMedia
     {
         return $this->belongsToMany(Tarea::class, 'plan_accion_tarea')
             ->withTimestamps();
+    }
+
+    // -------------------------------------------------------
+    // Accessors
+    // -------------------------------------------------------
+
+    /**
+     * Avance del plan como promedio del `porcentaje_avance` de sus tareas (0-100),
+     * o null si no tiene tareas. Un plan al 100% es el que aplica su mitigación al
+     * valor_residual del riesgo (ver Riesgo::getValorResidualAttribute).
+     */
+    public function getAvanceAttribute(): ?int
+    {
+        if ($this->tareas->isEmpty()) {
+            return null;
+        }
+
+        return (int) round($this->tareas->avg('porcentaje_avance'));
+    }
+
+    public function estaCompleto(): bool
+    {
+        return $this->avance === 100;
     }
 }

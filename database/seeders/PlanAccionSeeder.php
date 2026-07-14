@@ -42,9 +42,11 @@ class PlanAccionSeeder extends Seeder
                 'estado_id' => $estadoIds[$estadosPlan[$i - 1]],
             ]);
 
-            // 1-3 riesgos
+            // 1-3 riesgos, cada uno con la mitigación que el plan aplica al llegar al 100%.
             $rSample = (array) array_rand($riesgoIds, rand(1, min(3, count($riesgoIds))));
-            $plan->riesgos()->attach(array_map(fn ($idx) => $riesgoIds[$idx], $rSample));
+            $plan->riesgos()->attach(
+                collect($rSample)->mapWithKeys(fn ($idx) => [$riesgoIds[$idx] => ['mitigacion' => rand(2, 8)]])->all()
+            );
 
             // 3-5 tareas
             $tSample = (array) array_rand($tareaIds, rand(3, min(5, count($tareaIds))));
@@ -59,6 +61,6 @@ class PlanAccionSeeder extends Seeder
             ->whereHas('estado', fn ($q) => $q->whereIn('nombre', ['validado', 'aprobado']))
             ->whereDoesntHave('planesAccion')
             ->get()
-            ->each(fn ($riesgo) => $riesgo->planesAccion()->attach($planIds[array_rand($planIds)]));
+            ->each(fn ($riesgo) => $riesgo->planesAccion()->attach($planIds[array_rand($planIds)], ['mitigacion' => rand(2, 8)]));
     }
 }

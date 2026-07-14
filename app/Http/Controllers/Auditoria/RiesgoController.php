@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Auditoria;
 
+use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Http\Controllers\Controller;
-use App\Models\Auditoria\Riesgo;
-use App\Models\Auditoria\TipoRiesgo;
-use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
-use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Models\Auditoria\Objetivo;
+use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\TipoRiesgo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -33,9 +33,9 @@ class RiesgoController extends Controller
     public function create()
     {
         $tiposRiesgo = TipoRiesgo::all();
-        $areas       = Area::orderBy('nombre')->get();
-        $objetivos   = Objetivo::visiblePara(Auth::user())->orderBy('nombre')->get();
-        $preguntas   = config('riesgo_preguntas');
+        $areas = Area::orderBy('nombre')->get();
+        $objetivos = Objetivo::visiblePara(Auth::user())->orderBy('nombre')->get();
+        $preguntas = config('riesgo_preguntas');
 
         return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'objetivos', 'preguntas'));
     }
@@ -53,53 +53,53 @@ class RiesgoController extends Controller
         $this->authorize('create', [Riesgo::class, $request->input('area_id')]);
 
         $data = $request->validate([
-            'nombre'          => 'required|string|max:255',
-            'descripcion'     => 'nullable|string',
-            'probabilidad_respuestas'   => 'required|array|size:5',
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'probabilidad_respuestas' => 'required|array|size:5',
             'probabilidad_respuestas.*' => 'required|integer|min:0|max:2',
-            'impacto_respuestas'        => 'required|array|size:5',
-            'impacto_respuestas.*'      => 'required|integer|min:0|max:2',
+            'impacto_respuestas' => 'required|array|size:5',
+            'impacto_respuestas.*' => 'required|integer|min:0|max:2',
             'mayor_criticidad' => 'boolean',
-            'respuesta'        => ['nullable', Rule::enum(RespuestaRiesgo::class)],
-            'tipo_riesgo_id'   => 'required|exists:tipos_riesgo,id',
-            'area_id'          => 'nullable|exists:areas,id',
-            'objetivos'        => 'nullable|array',
-            'objetivos.*'      => ['exists:objetivos,id', Rule::in(Objetivo::visiblePara(Auth::user())->pluck('id')->toArray())],
+            'respuesta' => ['nullable', Rule::enum(RespuestaRiesgo::class)],
+            'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'objetivos' => 'nullable|array',
+            'objetivos.*' => ['exists:objetivos,id', Rule::in(Objetivo::visiblePara(Auth::user())->pluck('id')->toArray())],
         ]);
 
         $probabilidadRespuestas = $data['probabilidad_respuestas'];
-        $impactoRespuestas      = $data['impacto_respuestas'];
+        $impactoRespuestas = $data['impacto_respuestas'];
         unset($data['probabilidad_respuestas'], $data['impacto_respuestas']);
 
         $data['probabilidad'] = array_sum($probabilidadRespuestas);
-        $data['impacto']      = array_sum($impactoRespuestas);
+        $data['impacto'] = array_sum($impactoRespuestas);
 
         $suma = $data['impacto'] + $data['probabilidad'];
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
-        $data['user_id']         = Auth::id();
-        $data['area_id']         = $data['area_id'] ?? Auth::user()->area_id;
+        $data['user_id'] = Auth::id();
+        $data['area_id'] = $data['area_id'] ?? Auth::user()->area_id;
         $riesgo = Riesgo::create($data);
         $riesgo->objetivos()->sync($request->input('objetivos', []));
         $riesgo->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => 'Riesgo creado',
+            'user_id' => Auth::id(),
+            'mensaje' => 'Riesgo creado',
             'estado_id' => Estado::borrador()->id,
-            'data'      => [
+            'data' => [
                 'tipo' => 'creacion',
                 'campos' => [
-                    'nombre'          => $riesgo->nombre,
-                    'descripcion'     => $riesgo->descripcion,
-                    'impacto'         => $riesgo->impacto,
-                    'probabilidad'    => $riesgo->probabilidad,
+                    'nombre' => $riesgo->nombre,
+                    'descripcion' => $riesgo->descripcion,
+                    'impacto' => $riesgo->impacto,
+                    'probabilidad' => $riesgo->probabilidad,
                     'mayor_criticidad' => $riesgo->mayor_criticidad,
-                    'tipo_riesgo_id'  => $riesgo->tipo_riesgo_id,
+                    'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
                 ],
                 // Respuestas guardadas aparte de "campos": ese array lo recorre la
                 // vista de historial esperando valores escalares (ver
                 // gestion-actualizaciones.blade.php), y mezclar arrays ahí rompe el render.
                 'respuestas' => [
                     'probabilidad' => $probabilidadRespuestas,
-                    'impacto'      => $impactoRespuestas,
+                    'impacto' => $impactoRespuestas,
                 ],
             ],
         ]);
@@ -110,7 +110,8 @@ class RiesgoController extends Controller
     public function show(Riesgo $riesgo)
     {
         $this->authorize('view', $riesgo);
-        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area']);
+        // controles y planesAccion.tareas: los necesita el accessor valor_residual.
+        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'controles', 'planesAccion.tareas']);
 
         return view('auditoria.riesgo.show', compact('riesgo'));
     }
@@ -125,7 +126,7 @@ class RiesgoController extends Controller
         }
 
         $tiposRiesgo = TipoRiesgo::orderBy('nombre')->get();
-        $areas       = Area::orderBy('nombre')->get();
+        $areas = Area::orderBy('nombre')->get();
 
         return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas'));
     }
@@ -146,12 +147,12 @@ class RiesgoController extends Controller
         }
 
         $data = $request->validate([
-            'nombre'          => 'required|string|max:255',
-            'descripcion'     => 'nullable|string',
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
             'mayor_criticidad' => 'boolean',
-            'respuesta'        => ['nullable', Rule::enum(RespuestaRiesgo::class)],
-            'tipo_riesgo_id'   => 'required|exists:tipos_riesgo,id',
-            'area_id'          => 'nullable|exists:areas,id',
+            'respuesta' => ['nullable', Rule::enum(RespuestaRiesgo::class)],
+            'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
+            'area_id' => 'nullable|exists:areas,id',
         ]);
 
         $suma = $riesgo->impacto + $riesgo->probabilidad;
@@ -171,12 +172,12 @@ class RiesgoController extends Controller
                 $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
             }
         }
-        if (!empty($diff)) {
+        if (! empty($diff)) {
             $riesgo->actualizaciones()->create([
-                'user_id'   => Auth::id(),
-                'mensaje'   => 'Borrador modificado',
+                'user_id' => Auth::id(),
+                'mensaje' => 'Borrador modificado',
                 'estado_id' => Estado::borrador()->id,
-                'data'      => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
+                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
             ]);
         }
 
@@ -213,21 +214,21 @@ class RiesgoController extends Controller
         }
 
         $data = $request->validate([
-            'probabilidad_respuestas'   => 'required|array|size:5',
+            'probabilidad_respuestas' => 'required|array|size:5',
             'probabilidad_respuestas.*' => 'required|integer|min:0|max:2',
-            'impacto_respuestas'        => 'required|array|size:5',
-            'impacto_respuestas.*'      => 'required|integer|min:0|max:2',
-            'mayor_criticidad'          => 'boolean',
+            'impacto_respuestas' => 'required|array|size:5',
+            'impacto_respuestas.*' => 'required|integer|min:0|max:2',
+            'mayor_criticidad' => 'boolean',
         ]);
 
         $probabilidadRespuestas = $data['probabilidad_respuestas'];
-        $impactoRespuestas      = $data['impacto_respuestas'];
+        $impactoRespuestas = $data['impacto_respuestas'];
 
         $original = $riesgo->only(['impacto', 'probabilidad', 'mayor_criticidad']);
 
         $nuevos = [];
         $nuevos['probabilidad'] = array_sum($probabilidadRespuestas);
-        $nuevos['impacto']      = array_sum($impactoRespuestas);
+        $nuevos['impacto'] = array_sum($impactoRespuestas);
         $suma = $nuevos['impacto'] + $nuevos['probabilidad'];
         $nuevos['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
 
@@ -239,17 +240,17 @@ class RiesgoController extends Controller
                 $diff[$campo] = ['antes' => $original[$campo], 'despues' => $valor];
             }
         }
-        if (!empty($diff)) {
+        if (! empty($diff)) {
             $riesgo->actualizaciones()->create([
-                'user_id'   => Auth::id(),
-                'mensaje'   => 'Impacto y probabilidad recalculados',
+                'user_id' => Auth::id(),
+                'mensaje' => 'Impacto y probabilidad recalculados',
                 'estado_id' => Estado::borrador()->id,
-                'data'      => [
+                'data' => [
                     'tipo' => 'edicion',
                     'diff' => ['campos' => $diff],
                     'respuestas' => [
                         'probabilidad' => $probabilidadRespuestas,
-                        'impacto'      => $impactoRespuestas,
+                        'impacto' => $impactoRespuestas,
                     ],
                 ],
             ]);
@@ -276,7 +277,7 @@ class RiesgoController extends Controller
         $this->authorize('validar', $riesgo);
 
         $motivos = $riesgo->motivosBloqueoValidacion();
-        if (!empty($motivos)) {
+        if (! empty($motivos)) {
             return back()->with('error', implode(' ', $motivos));
         }
 
@@ -287,10 +288,10 @@ class RiesgoController extends Controller
             ->update(['estado_id' => Estado::validado()->id]);
 
         $riesgo->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => 'Validado por ' . Auth::user()->name,
+            'user_id' => Auth::id(),
+            'mensaje' => 'Validado por '.Auth::user()->name,
             'estado_id' => Estado::validado()->id,
-            'data'      => ['tipo' => 'validacion'],
+            'data' => ['tipo' => 'validacion'],
         ]);
 
         return back()->with('ok', 'Riesgo validado correctamente.');
@@ -315,7 +316,7 @@ class RiesgoController extends Controller
             }
 
             $riesgo->update(['estado_id' => Estado::aprobado()->id]);
-            $this->logAprobado($riesgo, 'Aprobado por ' . Auth::user()->name);
+            $this->logAprobado($riesgo, 'Aprobado por '.Auth::user()->name);
         });
 
         return back()->with('ok', 'Riesgo aprobado correctamente.');
@@ -326,7 +327,7 @@ class RiesgoController extends Controller
         $this->authorize('rechazar', $riesgo);
 
         $riesgo->update(['estado_id' => Estado::borrado()->id]);
-        $this->logAprobado($riesgo, 'Rechazado por ' . Auth::user()->name);
+        $this->logAprobado($riesgo, 'Rechazado por '.Auth::user()->name);
 
         return back()->with('ok', 'Riesgo rechazado.');
     }
@@ -340,7 +341,7 @@ class RiesgoController extends Controller
         $this->authorize('update', $riesgo);
 
         $request->validate([
-            'controles'   => 'nullable|array',
+            'controles' => 'nullable|array',
             'controles.*' => 'exists:controles,id',
         ]);
 
@@ -358,7 +359,7 @@ class RiesgoController extends Controller
         $this->authorize('update', $riesgo);
 
         $request->validate([
-            'objetivos'   => 'nullable|array',
+            'objetivos' => 'nullable|array',
             'objetivos.*' => ['exists:objetivos,id', Rule::in(Objetivo::visiblePara(Auth::user())->pluck('id')->toArray())],
         ]);
 
@@ -375,10 +376,10 @@ class RiesgoController extends Controller
     private function logAprobado($model, string $mensaje, array $campos = []): void
     {
         $model->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => $mensaje,
+            'user_id' => Auth::id(),
+            'mensaje' => $mensaje,
             'estado_id' => Estado::aprobado()->id,
-            'data'      => empty($campos) ? null : ['campos' => $campos],
+            'data' => empty($campos) ? null : ['campos' => $campos],
         ]);
     }
 
@@ -392,20 +393,30 @@ class RiesgoController extends Controller
     private function aplicarCambiosActualizacion($actualizacion, $model): void
     {
         $data = $actualizacion->data ?? [];
-        if (empty($data)) return;
+        if (empty($data)) {
+            return;
+        }
 
         $tipo = $data['tipo'] ?? null;
-        if ($tipo !== null && $tipo !== 'cambio') return;
+        if ($tipo !== null && $tipo !== 'cambio') {
+            return;
+        }
 
-        if (!empty($data['campos'])) {
+        if (! empty($data['campos'])) {
             $model->update($data['campos']);
         }
 
-        if (!empty($data['relaciones'])) {
+        if (! empty($data['relaciones'])) {
             foreach ($data['relaciones'] as $relacion => $ops) {
-                if (isset($ops['sync']))   $model->$relacion()->sync($ops['sync']);
-                if (isset($ops['attach'])) $model->$relacion()->attach($ops['attach']);
-                if (isset($ops['detach'])) $model->$relacion()->detach($ops['detach']);
+                if (isset($ops['sync'])) {
+                    $model->$relacion()->sync($ops['sync']);
+                }
+                if (isset($ops['attach'])) {
+                    $model->$relacion()->attach($ops['attach']);
+                }
+                if (isset($ops['detach'])) {
+                    $model->$relacion()->detach($ops['detach']);
+                }
             }
         }
     }

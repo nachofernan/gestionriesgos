@@ -32,13 +32,13 @@
                     @if($plan['codigo'] !== '—')
                         <span class="font-mono text-[10px] text-gray-400 uppercase shrink-0">{{ $plan['codigo'] }}</span>
                     @endif
+                    <x-auditoria.estado-punto :color="$plan['estado_color']" :nombre="$plan['estado'] ?? 'borrador'" soloPunto />
                     @if(!$editando)
                         <button type="button"
                                 onclick="Livewire.dispatch('ver-plan', {id: {{$plan['id']}}})"
                                 class="flex-1 text-sm font-semibold text-indigo-700 hover:text-indigo-900 truncate text-left">
                             {{ $plan['nombre'] }}
                         </button>
-                        <x-auditoria.estado-badge :color="$plan['estado_color']" :nombre="$plan['estado'] ?? 'borrador'" size="sm" />
                     @else
                         <span class="flex-1 text-sm font-semibold text-gray-700 truncate">{{ $plan['nombre'] }}</span>
                     @endif
@@ -46,6 +46,21 @@
                         @php $avg = round($planModel->tareas->avg('porcentaje_avance')); @endphp
                         <span class="text-xs font-extrabold shrink-0 {{ $avg === 100 ? 'text-green-600' : 'text-amber-600' }}">{{ $avg }}%</span>
                     @endif
+                    @php $completo = ($plan['avg_avance'] ?? null) === 100; @endphp
+                    <div class="flex items-center gap-1.5 shrink-0" title="Mitigación que el plan aplica al valor residual cuando llega al 100%">
+                        <label class="text-[10px] text-gray-500 font-bold">Mit:</label>
+                        @if($editando)
+                            <input type="number"
+                                value="{{ $plan['mitigacion'] }}"
+                                wire:change="actualizarMitigacion({{ $plan['id'] }}, $event.target.value)"
+                                min="0" max="20"
+                                class="w-14 border-gray-200 rounded-lg px-2 py-1 text-xs text-center focus:border-indigo-500 focus:ring-indigo-500" />
+                        @else
+                            <span class="w-14 text-xs font-bold text-center border rounded-lg px-2 py-1 {{ $completo ? 'text-green-700 bg-green-50 border-green-100' : 'text-gray-400 bg-gray-50 border-gray-200' }}">
+                                {{ $plan['mitigacion'] }}
+                            </span>
+                        @endif
+                    </div>
                     @if($editando)
                         <button type="button" wire:click="quitar({{ $plan['id'] }})"
                             class="text-gray-400 hover:text-red-500 transition-colors shrink-0">
@@ -55,6 +70,9 @@
                         </button>
                     @endif
                 </div>
+                @if($editando)
+                    <p class="text-[10px] text-gray-400 mb-1.5 -mt-1">La mitigación descuenta del valor residual sólo cuando el plan llega al 100%.</p>
+                @endif
                 @if($planModel && $planModel->tareas->count())
                     @php $hoyPlan = now()->startOfDay(); @endphp
                     <div class="space-y-1.5 pl-1 border-t border-gray-100 pt-2 mt-1">

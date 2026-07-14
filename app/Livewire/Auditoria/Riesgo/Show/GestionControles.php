@@ -2,11 +2,11 @@
 
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
-use Livewire\Component;
-use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\Riesgo;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 /**
  * Gestión de los Controles de mitigación asociados a un Riesgo, incluyendo el
@@ -20,12 +20,21 @@ use Illuminate\Support\Facades\Auth;
 class GestionControles extends Component
 {
     public int $riesgoId;
+
     public int $valorTotal = 0;
+
     public bool $modalAbierto = false;
+
     public bool $editando = false;
+
     public bool $esBorrador = true;
+
     public string $estadoModelo = 'borrador';
+
     public string $busqueda = '';
+
+    /** Mitigación de los planes ya asociados que están al 100%, base fija del preview de residual. */
+    public int $mitigacionPlanesBase = 0;
 
     /** @var array<int, array{id:int, nombre:string, mitigacion:int}> */
     public array $seleccionados = [];
@@ -35,7 +44,7 @@ class GestionControles extends Component
 
     public function mount(Riesgo $riesgo): void
     {
-        $this->riesgoId   = $riesgo->id;
+        $this->riesgoId = $riesgo->id;
         $this->valorTotal = $riesgo->valor_total;
         $this->cargar();
     }
@@ -84,19 +93,21 @@ class GestionControles extends Component
         }
 
         $control = Control::with(['estado', 'area'])->find($controlId);
-        if (!$control) return;
+        if (! $control) {
+            return;
+        }
 
         $this->seleccionados[] = [
-            'id'               => $control->id,
-            'nombre'           => $control->nombre,
-            'descripcion'      => $control->descripcion,
-            'mitigacion'       => $control->mitigacion_default,
+            'id' => $control->id,
+            'nombre' => $control->nombre,
+            'descripcion' => $control->descripcion,
+            'mitigacion' => $control->mitigacion_default,
             'mitigacion_default' => $control->mitigacion_default,
-            'estado'           => $control->estado?->nombre ?? 'borrador',
-            'estado_color'     => $control->estado?->color ?? 'gray',
-            'area'             => $control->area?->nombre,
-            'puede_ver'        => Auth::user()->can('view', $control),
-            'url'              => route('auditoria.controles.show', $control->id),
+            'estado' => $control->estado?->nombre ?? 'borrador',
+            'estado_color' => $control->estado?->color ?? 'gray',
+            'area' => $control->area?->nombre,
+            'puede_ver' => Auth::user()->can('view', $control),
+            'url' => route('auditoria.controles.show', $control->id),
         ];
 
         $this->cerrarModal();
@@ -106,7 +117,7 @@ class GestionControles extends Component
     public function quitar(int $controlId): void
     {
         $this->seleccionados = array_values(
-            array_filter($this->seleccionados, fn($c) => $c['id'] !== $controlId)
+            array_filter($this->seleccionados, fn ($c) => $c['id'] !== $controlId)
         );
         $this->dispatch('residual-actualizado', valor: $this->residualActual());
     }
@@ -123,7 +134,7 @@ class GestionControles extends Component
 
         $sync = [];
         foreach ($this->seleccionados as $item) {
-            $sync[(string)$item['id']] = ['mitigacion' => $item['mitigacion']];
+            $sync[(string) $item['id']] = ['mitigacion' => $item['mitigacion']];
         }
 
         if ($this->esBorrador) {
@@ -134,26 +145,28 @@ class GestionControles extends Component
         } else {
             $estadoId = $this->estadoParaActualizacion();
 
-            $antesMap  = $riesgo->controles->mapWithKeys(fn($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => $c->pivot->mitigacion]]);
-            $antesIds  = $antesMap->keys();
+            $antesMap = $riesgo->controles->mapWithKeys(fn ($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => $c->pivot->mitigacion]]);
+            $antesIds = $antesMap->keys();
             $despuesIds = collect($this->seleccionados)->pluck('id');
 
             $diffRel = array_filter([
                 'agrega' => collect($this->seleccionados)
-                    ->filter(fn($c) => !$antesIds->contains($c['id']))
-                    ->map(fn($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion' => $c['mitigacion']])
+                    ->filter(fn ($c) => ! $antesIds->contains($c['id']))
+                    ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion' => $c['mitigacion']])
                     ->values()->toArray(),
-                'quita'  => $antesMap->filter(fn($v, $k) => !$despuesIds->contains($k))
-                    ->map(fn($v, $k) => ['id' => $k, 'nombre' => $v['nombre']])
+                'quita' => $antesMap->filter(fn ($v, $k) => ! $despuesIds->contains($k))
+                    ->map(fn ($v, $k) => ['id' => $k, 'nombre' => $v['nombre']])
                     ->values()->toArray(),
                 'cambia' => collect($this->seleccionados)
-                    ->filter(fn($c) => $antesIds->contains($c['id']) && $antesMap[$c['id']]['mitigacion'] !== $c['mitigacion'])
-                    ->map(fn($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion_antes' => $antesMap[$c['id']]['mitigacion'], 'mitigacion_despues' => $c['mitigacion']])
+                    ->filter(fn ($c) => $antesIds->contains($c['id']) && $antesMap[$c['id']]['mitigacion'] !== $c['mitigacion'])
+                    ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion_antes' => $antesMap[$c['id']]['mitigacion'], 'mitigacion_despues' => $c['mitigacion']])
                     ->values()->toArray(),
-            ], fn($a) => !empty($a));
+            ], fn ($a) => ! empty($a));
 
             $data = ['tipo' => 'cambio', 'relaciones' => ['controles' => ['sync' => $sync]]];
-            if (!empty($diffRel)) $data['diff'] = ['relaciones' => ['controles' => $diffRel]];
+            if (! empty($diffRel)) {
+                $data['diff'] = ['relaciones' => ['controles' => $diffRel]];
+            }
 
             $aplicarAhora = $estadoId === Estado::aprobado()->id
                 || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
@@ -161,19 +174,19 @@ class GestionControles extends Component
             if ($aplicarAhora) {
                 $riesgo->controles()->sync($sync);
                 $riesgo->actualizaciones()->create([
-                    'user_id'   => Auth::id(),
-                    'mensaje'   => 'Controles de mitigación actualizados',
+                    'user_id' => Auth::id(),
+                    'mensaje' => 'Controles de mitigación actualizados',
                     'estado_id' => $estadoId,
-                    'data'      => $data,
+                    'data' => $data,
                 ]);
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Controles actualizados.');
             } else {
                 $riesgo->actualizaciones()->create([
-                    'user_id'   => Auth::id(),
-                    'mensaje'   => 'Propuesta de cambio en controles de mitigación',
+                    'user_id' => Auth::id(),
+                    'mensaje' => 'Propuesta de cambio en controles de mitigación',
                     'estado_id' => $estadoId,
-                    'data'      => $data,
+                    'data' => $data,
                 ]);
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
@@ -182,13 +195,15 @@ class GestionControles extends Component
     }
 
     /**
-     * Residual = valor total del riesgo menos la suma de mitigación de los
-     * controles actualmente seleccionados (no persiste, es sólo para feedback en vivo).
+     * Residual = valor total del riesgo menos la mitigación de los controles
+     * actualmente seleccionados menos la ya persistida de los planes al 100% (no
+     * persiste, es sólo para feedback en vivo).
      */
     private function residualActual(): int
     {
         $mitigacion = array_sum(array_column($this->seleccionados, 'mitigacion'));
-        return max(0, $this->valorTotal - $mitigacion);
+
+        return max(0, $this->valorTotal - $mitigacion - $this->mitigacionPlanesBase);
     }
 
     /**
@@ -205,27 +220,30 @@ class GestionControles extends Component
         if ($user->esGerente() || $user->esComite()) {
             return Estado::validado()->id;
         }
+
         return Estado::borrador()->id;
     }
 
     private function cargar(): void
     {
-        $riesgo = Riesgo::with(['controles.estado', 'controles.area', 'estado'])->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['controles.estado', 'controles.area', 'planesAccion.tareas', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
-        $this->esBorrador   = $this->estadoModelo === 'borrador';
+        $this->esBorrador = $this->estadoModelo === 'borrador';
+
+        $this->mitigacionPlanesBase = (int) $riesgo->planesAccion->sum(fn ($p) => $p->estaCompleto() ? ($p->pivot->mitigacion ?? 0) : 0);
 
         $user = Auth::user();
-        $this->seleccionados = $riesgo->controles->map(fn($c) => [
-            'id'               => $c->id,
-            'nombre'           => $c->nombre,
-            'descripcion'      => $c->descripcion,
-            'mitigacion'       => $c->pivot->mitigacion ?? $c->mitigacion_default,
+        $this->seleccionados = $riesgo->controles->map(fn ($c) => [
+            'id' => $c->id,
+            'nombre' => $c->nombre,
+            'descripcion' => $c->descripcion,
+            'mitigacion' => $c->pivot->mitigacion ?? $c->mitigacion_default,
             'mitigacion_default' => $c->mitigacion_default,
-            'estado'           => $c->estado?->nombre ?? 'borrador',
-            'estado_color'     => $c->estado?->color ?? 'gray',
-            'area'             => $c->area?->nombre,
-            'puede_ver'        => $user->can('view', $c),
-            'url'              => route('auditoria.controles.show', $c->id),
+            'estado' => $c->estado?->nombre ?? 'borrador',
+            'estado_color' => $c->estado?->color ?? 'gray',
+            'area' => $c->area?->nombre,
+            'puede_ver' => $user->can('view', $c),
+            'url' => route('auditoria.controles.show', $c->id),
         ])->values()->toArray();
     }
 
@@ -236,7 +254,7 @@ class GestionControles extends Component
         $resultados = $this->modalAbierto
             ? Control::query()
                 ->visiblePara(Auth::user())
-                ->when($this->busqueda, fn($q) => $q->where('nombre', 'like', '%' . $this->busqueda . '%'))
+                ->when($this->busqueda, fn ($q) => $q->where('nombre', 'like', '%'.$this->busqueda.'%'))
                 ->whereNotIn('id', $yaIds)
                 ->orderBy('nombre')
                 ->limit(20)

@@ -2,20 +2,18 @@
 
 namespace App\Models\Auditoria;
 
+use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Models\Concerns\HasVisibilityScope;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use App\Models\User;
-use App\Models\Auditoria\Area;
-use App\Models\Auditoria\Estado;
-use App\Models\Concerns\HasVisibilityScope;
-use App\Enums\Auditoria\RespuestaRiesgo;
 
 /**
  * Riesgo con código correlativo auto-generado. `valor_total` = impacto +
@@ -27,7 +25,7 @@ use App\Enums\Auditoria\RespuestaRiesgo;
  */
 class Riesgo extends Model implements HasMedia
 {
-    use SoftDeletes, HasFactory, InteractsWithMedia, HasVisibilityScope;
+    use HasFactory, HasVisibilityScope, InteractsWithMedia, SoftDeletes;
 
     protected $table = 'riesgos';
 
@@ -71,16 +69,16 @@ class Riesgo extends Model implements HasMedia
         // También asigna el código correlativo (R-0001, R-0002, ...) si no vino seteado,
         // incluyendo los borrados lógicamente (withTrashed) para no reutilizar códigos.
         static::creating(function ($riesgo) {
-            if (!$riesgo->estado_id) {
+            if (! $riesgo->estado_id) {
                 $borrador = Estado::borrador();
                 if ($borrador) {
                     $riesgo->estado_id = $borrador->id;
                 }
             }
-            if (!$riesgo->codigo) {
-                $ultimo  = Riesgo::withTrashed()->whereNotNull('codigo')->orderByDesc('id')->first();
-                $numero  = $ultimo ? (intval(preg_replace('/\D/', '', $ultimo->codigo)) + 1) : 1;
-                $riesgo->codigo = 'R-' . str_pad($numero, 4, '0', STR_PAD_LEFT);
+            if (! $riesgo->codigo) {
+                $ultimo = Riesgo::withTrashed()->whereNotNull('codigo')->orderByDesc('id')->first();
+                $numero = $ultimo ? (intval(preg_replace('/\D/', '', $ultimo->codigo)) + 1) : 1;
+                $riesgo->codigo = 'R-'.str_pad($numero, 4, '0', STR_PAD_LEFT);
             }
         });
 
@@ -102,7 +100,9 @@ class Riesgo extends Model implements HasMedia
      */
     public function scopeVisiblePara(Builder $query, User $user): Builder
     {
-        if (!$user->area_id) return $query;
+        if (! $user->area_id) {
+            return $query;
+        }
 
         $publicoIds = array_filter([Estado::aprobado()?->id, Estado::validado()?->id]);
 
@@ -112,9 +112,8 @@ class Riesgo extends Model implements HasMedia
 
         $propiaIds = $user->area->obtenerIdsSubarbol();
 
-        return $query->where(fn ($q) =>
-            $q->whereIn('estado_id', $publicoIds)
-              ->orWhereHas('areas', fn ($sub) => $sub->whereIn('areas.id', $propiaIds))
+        return $query->where(fn ($q) => $q->whereIn('estado_id', $publicoIds)
+            ->orWhereHas('areas', fn ($sub) => $sub->whereIn('areas.id', $propiaIds))
         );
     }
 
@@ -175,6 +174,7 @@ class Riesgo extends Model implements HasMedia
     public function planesAccion(): BelongsToMany
     {
         return $this->belongsToMany(PlanAccion::class, 'plan_accion_riesgo')
+            ->withPivot('mitigacion')
             ->withTimestamps();
     }
 
@@ -188,17 +188,23 @@ class Riesgo extends Model implements HasMedia
     }
 
     /**
-     * Resta al valor_total la mitigación efectiva de cada control asociado: el
-     * valor del pivot si fue ajustado para este riesgo puntual, o si no
-     * mitigacion_default del control.
+     * Resta al valor_total la mitigación efectiva de los controles asociados (el
+     * valor del pivot si fue ajustado para este riesgo puntual, o mitigacion_default
+     * del control) más la de los planes de acción que estén al 100% de avance. La
+     * mitigación de un plan sólo cuenta cuando el plan está completo; hasta entonces
+     * no descuenta nada. El residual nunca baja de 0.
      */
     public function getValorResidualAttribute(): int
     {
-        $mitigacionTotal = $this->controles->sum(function ($control) {
+        $mitigacionControles = $this->controles->sum(function ($control) {
             return $control->pivot->mitigacion ?? $control->mitigacion_default;
         });
 
-        return max(0, $this->valor_total - $mitigacionTotal);
+        $mitigacionPlanes = $this->planesAccion->sum(function ($plan) {
+            return $plan->estaCompleto() ? ($plan->pivot->mitigacion ?? 0) : 0;
+        });
+
+        return max(0, $this->valor_total - $mitigacionControles - $mitigacionPlanes);
     }
 
     /**
