@@ -42,19 +42,20 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 mb-4">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
+        {{-- Columna izquierda: Info + Riesgos --}}
         <div class="space-y-4">
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Información</h2>
 
-                <div class="mb-4">
-                    <x-auditoria.estado-badge :estado="$objetivo->estado" />
-                </div>
-
                 @if($objetivo->descripcion)
                     <p class="text-sm text-gray-700 mb-4">{{ $objetivo->descripcion }}</p>
                 @endif
+
+                <div class="mb-4">
+                    <x-auditoria.estado-badge :estado="$objetivo->estado" />
+                </div>
 
                 <dl class="space-y-3 text-sm">
                     <div class="flex justify-between">
@@ -81,9 +82,7 @@
                     </div>
                 </dl>
             </div>
-        </div>
 
-        <div>
             <x-auditoria.card-seccion titulo="Riesgos asociados" subtitulo="asignado desde cada riesgo">
                     @forelse ($objetivo->riesgos as $riesgo)
                         <div class="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
@@ -110,24 +109,21 @@
             </x-auditoria.card-seccion>
         </div>
 
-    </div>
-
-    {{-- Planes de acción desglosados --}}
-    @php
-        $planesUnicos = collect();
-        foreach ($objetivo->riesgos as $riesgo) {
-            foreach ($riesgo->planesAccion as $plan) {
-                if (!$planesUnicos->has($plan->id)) {
-                    $planesUnicos->put($plan->id, $plan);
+        {{-- Columna derecha: Planes vinculados + Actualizaciones --}}
+        <div class="space-y-4">
+            @php
+                $planesUnicos = collect();
+                foreach ($objetivo->riesgos as $riesgo) {
+                    foreach ($riesgo->planesAccion as $plan) {
+                        if (!$planesUnicos->has($plan->id)) {
+                            $planesUnicos->put($plan->id, $plan);
+                        }
+                    }
                 }
-            }
-        }
-    @endphp
+            @endphp
 
-    @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'objetivo', 'modelId' => $objetivo->id])
-
-    @if($planesUnicos->isNotEmpty())
-        <x-auditoria.card-seccion titulo="Planes de acción vinculados">
+            @if($planesUnicos->isNotEmpty())
+                <x-auditoria.card-seccion titulo="Planes de acción vinculados">
                 @foreach($planesUnicos as $plan)
                     @php $today = now()->startOfDay(); @endphp
                     <div x-data="{ abierto: false }" class="transition-colors">
@@ -200,8 +196,13 @@
 
                     </div>
                 @endforeach
-        </x-auditoria.card-seccion>
-    @endif
+                </x-auditoria.card-seccion>
+            @endif
+
+            @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'objetivo', 'modelId' => $objetivo->id])
+        </div>
+
+    </div>
 
 </div>
 @livewire('auditoria.validacion-cascada-modal')

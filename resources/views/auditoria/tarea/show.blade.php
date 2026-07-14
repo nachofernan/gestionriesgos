@@ -38,7 +38,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <div class="space-y-4">
             {{-- Información --}}
@@ -143,7 +143,7 @@
             </x-auditoria.card-seccion>
         </div>
 
-        <div class="lg:col-span-2 space-y-4">
+        <div class="space-y-4">
             @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'tarea', 'modelId' => $tarea->id])
         </div>
 

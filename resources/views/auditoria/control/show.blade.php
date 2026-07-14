@@ -32,7 +32,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <div class="space-y-4">
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
@@ -70,10 +70,6 @@
                     </div>
                 </dl>
             </div>
-        </div>
-
-        <div class="lg:col-span-2 space-y-4">
-            @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'control', 'modelId' => $control->id])
 
             <x-auditoria.card-seccion titulo="Riesgos que mitiga" subtitulo="asignado desde cada riesgo">
                     @forelse ($control->riesgos as $riesgo)
@@ -102,6 +98,10 @@
                         </div>
                     @endforelse
             </x-auditoria.card-seccion>
+        </div>
+
+        <div class="space-y-4">
+            @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'control', 'modelId' => $control->id])
         </div>
 
     </div>
