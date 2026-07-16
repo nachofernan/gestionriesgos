@@ -2,13 +2,16 @@
 
 namespace Tests\Feature\Auditoria;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Auditoria\Riesgo;
-use App\Models\Auditoria\TipoRiesgo;
+use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
+use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\TipoRiesgo;
+use App\Models\User;
+use Database\Seeders\EstadoRiesgoSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 /**
  * Cubre el wizard de creación de riesgo (impacto/probabilidad calculados a
@@ -23,17 +26,17 @@ class RiesgoWizardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\EstadoRiesgoSeeder::class);
+        $this->seed(EstadoRiesgoSeeder::class);
     }
 
     private function datosWizard(array $overrides = []): array
     {
         return array_merge([
-            'nombre'        => 'Riesgo de prueba',
-            'descripcion'   => 'Descripción de prueba',
+            'nombre' => 'Riesgo de prueba',
+            'descripcion' => 'Descripción de prueba',
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
-            'impacto_respuestas'      => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
         ], $overrides);
     }
 
@@ -92,7 +95,7 @@ class RiesgoWizardTest extends TestCase
     /** @test */
     public function el_riesgo_creado_sin_area_toma_el_area_del_usuario(): void
     {
-        $area = \App\Models\Auditoria\Area::create(['nombre' => 'Área de prueba']);
+        $area = Area::create(['nombre' => 'Área de prueba']);
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
 
         $datos = $this->datosWizard();
@@ -106,7 +109,7 @@ class RiesgoWizardTest extends TestCase
     /** @test */
     public function el_area_del_creador_queda_sincronizada_como_gerencia_del_riesgo(): void
     {
-        $area = \App\Models\Auditoria\Area::create(['nombre' => 'Área de prueba']);
+        $area = Area::create(['nombre' => 'Área de prueba']);
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
 
         $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard());
@@ -133,7 +136,7 @@ class RiesgoWizardTest extends TestCase
     public function no_se_puede_validar_un_riesgo_sin_objetivos(): void
     {
         $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
-        $riesgo  = Riesgo::factory()->borrador()->create(['user_id' => $gerente->id]);
+        $riesgo = Riesgo::factory()->borrador()->create(['user_id' => $gerente->id]);
 
         $respuesta = $this->actingAs($gerente)->post(route('auditoria.riesgos.validar', $riesgo));
 
@@ -144,11 +147,11 @@ class RiesgoWizardTest extends TestCase
     /** @test */
     public function no_se_puede_validar_un_riesgo_con_respuesta_mitigar_sin_plan_de_accion(): void
     {
-        $gerente  = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba']);
-        $riesgo   = Riesgo::factory()->borrador()->create([
-            'user_id'   => $gerente->id,
-            'respuesta' => \App\Enums\Auditoria\RespuestaRiesgo::Mitigar,
+        $riesgo = Riesgo::factory()->borrador()->create([
+            'user_id' => $gerente->id,
+            'respuesta' => RespuestaRiesgo::Mitigar,
         ]);
         $riesgo->objetivos()->attach($objetivo);
 
@@ -161,12 +164,12 @@ class RiesgoWizardTest extends TestCase
     /** @test */
     public function se_puede_validar_un_riesgo_con_respuesta_mitigar_si_tiene_objetivo_y_plan_de_accion(): void
     {
-        $gerente  = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba']);
-        $plan     = PlanAccion::factory()->create();
-        $riesgo   = Riesgo::factory()->borrador()->create([
-            'user_id'   => $gerente->id,
-            'respuesta' => \App\Enums\Auditoria\RespuestaRiesgo::Mitigar,
+        $plan = PlanAccion::factory()->create();
+        $riesgo = Riesgo::factory()->borrador()->create([
+            'user_id' => $gerente->id,
+            'respuesta' => RespuestaRiesgo::Mitigar,
         ]);
         $riesgo->objetivos()->attach($objetivo);
         $riesgo->planesAccion()->attach($plan);
@@ -180,16 +183,27 @@ class RiesgoWizardTest extends TestCase
     /** @test */
     public function se_puede_validar_un_riesgo_sin_mitigar_con_solo_un_objetivo(): void
     {
-        $gerente  = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba']);
-        $riesgo   = Riesgo::factory()->borrador()->create([
-            'user_id'   => $gerente->id,
-            'respuesta' => \App\Enums\Auditoria\RespuestaRiesgo::Aceptar,
+        $riesgo = Riesgo::factory()->borrador()->create([
+            'user_id' => $gerente->id,
+            'respuesta' => RespuestaRiesgo::Aceptar,
         ]);
         $riesgo->objetivos()->attach($objetivo);
 
         $respuesta = $this->actingAs($gerente)->post(route('auditoria.riesgos.validar', $riesgo));
 
         $this->assertEquals('validado', $riesgo->fresh()->estado->nombre);
+    }
+
+    /** @test */
+    public function la_clasificacion_traduce_el_valor_a_su_etiqueta_cualitativa(): void
+    {
+        $this->assertEquals('bajo', Riesgo::clasificacion(0)['etiqueta']);
+        $this->assertEquals('bajo', Riesgo::clasificacion(9)['etiqueta']);
+        $this->assertEquals('moderado', Riesgo::clasificacion(10)['etiqueta']);
+        $this->assertEquals('moderado', Riesgo::clasificacion(13)['etiqueta']);
+        $this->assertEquals('critico', Riesgo::clasificacion(14)['etiqueta']);
+        $this->assertEquals('critico', Riesgo::clasificacion(20)['etiqueta']);
     }
 }

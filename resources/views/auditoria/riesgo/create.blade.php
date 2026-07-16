@@ -141,7 +141,7 @@
             {{-- Paso 4: respuesta, objetivos, criticidad, área/responsable --}}
             <div x-show="paso === 4" class="space-y-5">
 
-                <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <div class="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <div>
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Probabilidad calculada</p>
                         <p class="text-2xl font-extrabold text-gray-800" x-text="probabilidadTotal"></p>
@@ -150,6 +150,37 @@
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Impacto calculado</p>
                         <p class="text-2xl font-extrabold text-gray-800" x-text="impactoTotal"></p>
                     </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Valor total</p>
+                        <div class="flex items-baseline gap-2">
+                            <p class="text-2xl font-extrabold" :class="clasificacion.texto" x-text="valorTotal"></p>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                                  :class="clasificacion.badge" x-text="clasificacion.etiqueta"></span>
+                        </div>
+                    </div>
+                </div>
+
+                {{--
+                    No se reutiliza <x-auditoria.criticidad-checkbox> acá: ese componente detecta
+                    cambios de impacto/probabilidad escuchando eventos "input" de inputs numéricos
+                    hermanos, y acá esos valores ya no se tipean, se calculan de las respuestas del
+                    wizard (mismo x-data). Se resuelve inline contra probabilidadTotal/impactoTotal.
+                --}}
+                <div class="rounded-xl border transition-colors"
+                     :class="habilitado ? 'bg-red-50 border-red-100 p-3' : 'bg-gray-50 border-gray-100 p-3'"
+                     x-effect="if (!habilitado && $refs.mayorCriticidad) $refs.mayorCriticidad.checked = false">
+                    <input type="hidden" name="mayor_criticidad" value="0" />
+                    <input type="checkbox" name="mayor_criticidad" id="mayor_criticidad" value="1"
+                        x-ref="mayorCriticidad"
+                        {{ old('mayor_criticidad', false) ? 'checked' : '' }}
+                        :disabled="!habilitado"
+                        class="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 disabled:opacity-40 disabled:cursor-not-allowed" />
+                    <label for="mayor_criticidad"
+                        :class="habilitado ? 'text-red-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'"
+                        class="text-sm font-semibold ml-2">
+                        Marcar como mayor criticidad
+                        <span x-show="!habilitado" class="text-xs font-normal ml-1">(requiere impacto+probabilidad ≥ 14)</span>
+                    </label>
                 </div>
 
                 <div>
@@ -190,29 +221,6 @@
                         @endforelse
                     </div>
                     @error('objetivos') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
-                </div>
-
-                {{--
-                    No se reutiliza <x-auditoria.criticidad-checkbox> acá: ese componente detecta
-                    cambios de impacto/probabilidad escuchando eventos "input" de inputs numéricos
-                    hermanos, y acá esos valores ya no se tipean, se calculan de las respuestas del
-                    wizard (mismo x-data). Se resuelve inline contra probabilidadTotal/impactoTotal.
-                --}}
-                <div class="rounded-xl border transition-colors"
-                     :class="habilitado ? 'bg-red-50 border-red-100 p-3' : 'bg-gray-50 border-gray-100 p-3'"
-                     x-effect="if (!habilitado && $refs.mayorCriticidad) $refs.mayorCriticidad.checked = false">
-                    <input type="hidden" name="mayor_criticidad" value="0" />
-                    <input type="checkbox" name="mayor_criticidad" id="mayor_criticidad" value="1"
-                        x-ref="mayorCriticidad"
-                        {{ old('mayor_criticidad', false) ? 'checked' : '' }}
-                        :disabled="!habilitado"
-                        class="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 disabled:opacity-40 disabled:cursor-not-allowed" />
-                    <label for="mayor_criticidad"
-                        :class="habilitado ? 'text-red-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'"
-                        class="text-sm font-semibold ml-2">
-                        Marcar como mayor criticidad
-                        <span x-show="!habilitado" class="text-xs font-normal ml-1">(requiere impacto+probabilidad ≥ 14)</span>
-                    </label>
                 </div>
 
                 <div class="pt-2 border-t border-gray-100">
@@ -293,8 +301,21 @@
             get impactoTotal() {
                 return Object.values(this.impacto).reduce((a, b) => a + (Number(b) || 0), 0);
             },
+            get valorTotal() {
+                return this.probabilidadTotal + this.impactoTotal;
+            },
+            // Mismos umbrales que Riesgo::clasificacion() (0-9 / 10-13 / 14+).
+            get clasificacion() {
+                if (this.valorTotal <= 9) {
+                    return { etiqueta: 'Bajo', texto: 'text-green-700', badge: 'bg-green-100 text-green-700' };
+                }
+                if (this.valorTotal <= 13) {
+                    return { etiqueta: 'Moderado', texto: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700' };
+                }
+                return { etiqueta: 'Crítico', texto: 'text-red-700', badge: 'bg-red-100 text-red-700' };
+            },
             get habilitado() {
-                return (this.probabilidadTotal + this.impactoTotal) >= 14;
+                return this.valorTotal >= 14;
             },
             get pasoCompleto() {
                 if (this.paso === 1) {

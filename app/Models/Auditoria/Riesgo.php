@@ -221,7 +221,7 @@ class Riesgo extends Model implements HasMedia
             return ['etiqueta' => 'moderado', 'color' => 'amarillo'];
         }
 
-        return ['etiqueta' => 'mayor criticidad', 'color' => 'rojo'];
+        return ['etiqueta' => 'critico', 'color' => 'rojo'];
     }
 
     public function getClasificacionTotalAttribute(): array

@@ -92,7 +92,7 @@
                 @endforeach
                 @error('impacto_respuestas') <p class="text-xs text-red-500 font-medium">{{ $message }}</p> @enderror
 
-                <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <div class="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <div>
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Probabilidad calculada</p>
                         <p class="text-2xl font-extrabold text-gray-800" x-text="probabilidadTotal"></p>
@@ -100,6 +100,14 @@
                     <div>
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Impacto calculado</p>
                         <p class="text-2xl font-extrabold text-gray-800" x-text="impactoTotal"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Valor total</p>
+                        <div class="flex items-baseline gap-2">
+                            <p class="text-2xl font-extrabold" :class="clasificacion.texto" x-text="valorTotal"></p>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                                  :class="clasificacion.badge" x-text="clasificacion.etiqueta"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -168,8 +176,21 @@
             get impactoTotal() {
                 return Object.values(this.impacto).reduce((a, b) => a + (Number(b) || 0), 0);
             },
+            get valorTotal() {
+                return this.probabilidadTotal + this.impactoTotal;
+            },
+            // Mismos umbrales que Riesgo::clasificacion() (0-9 / 10-13 / 14+).
+            get clasificacion() {
+                if (this.valorTotal <= 9) {
+                    return { etiqueta: 'Bajo', texto: 'text-green-700', badge: 'bg-green-100 text-green-700' };
+                }
+                if (this.valorTotal <= 13) {
+                    return { etiqueta: 'Moderado', texto: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700' };
+                }
+                return { etiqueta: 'Crítico', texto: 'text-red-700', badge: 'bg-red-100 text-red-700' };
+            },
             get habilitado() {
-                return (this.probabilidadTotal + this.impactoTotal) >= 14;
+                return this.valorTotal >= 14;
             },
             get pasoCompleto() {
                 return Object.keys(this.probabilidad).length === {{ count($preguntas['probabilidad']) }};
