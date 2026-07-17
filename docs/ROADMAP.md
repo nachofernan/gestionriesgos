@@ -26,6 +26,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 - [x] **Riesgo con múltiples gerencias** (2026-07-07) — ver [changelog](updates/2026-07-07.md). Un riesgo puede pertenecer a varias gerencias (`area_riesgo`) con permisos equivalentes; el creador deja de ser editable (siempre `auth()`). Por ahora solo en Riesgo — no descartado extenderlo a otras entidades si surge la necesidad.
 - [x] **PDF de Pendientes** (2026-07-07 bis) — ver [changelog](updates/2026-07-07b.md). Botón para descargar en PDF el listado de la pantalla de Pendientes, para llevar impreso a una reunión.
 - [x] **Reglas de negocio en el wizard de riesgo** (2026-07-17) — ver [changelog](updates/2026-07-17.md). Calificación cualitativa en el cálculo, área limitada a la línea del usuario, Corrupción sin compartir/aceptar, campo `fundamento` obligatorio para las respuestas que no reducen el riesgo.
+- [x] **Pantalla de Vencimientos** (2026-07-17 bis) — ver [changelog](updates/2026-07-17b.md). Tareas ordenadas por fecha, agrupadas en vencidas / por vencer / en plazo / sin fecha. Sólo tareas: los planes no tienen fecha en el esquema (ver ídem en "Ideas abiertas").
 
 ## Ideas abiertas / a definir
 
@@ -33,8 +34,9 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 - Reportes PDF/Excel: falta definir qué formato de reporte (por riesgo individual, consolidado por área, por plan de acción) y si el motivo de exportación es auditoría interna o para terceros.
 - Notificaciones: falta definir canal (email, in-app, ambos) y qué eventos disparan aviso.
+- Vencimiento propio del Plan de Acción: hoy `planes_accion` no tiene columna de fecha, así que la pantalla de Vencimientos lista sólo tareas y no existe el aviso de "esta tarea vence después de su plan". Si se decide que el plan tenga fecha propia, la cascada es: migración (`fecha_limite` nullable) → modelo (`$fillable` + `$casts`) → formularios create/edit → show del plan → factory y seeders → fila de plan en Vencimientos → aviso no bloqueante al asociar tareas en `GestionTareas` + marca de inconsistencia en el show del plan. Derivarla del `max(fecha)` de las tareas no sirve: haría el aviso imposible por construcción.
 - Pendientes: aprobación/validación en bloque (varios ítems a la vez con un modal previo que liste todo lo que se va a hacer). Se evaluó al construir la pantalla de Pendientes y se decidió no hacerlo todavía — requiere resolver el análisis de prerequisitos bloqueantes/opcionales por cada ítem seleccionado, no sólo por uno.
 
 ---
 
-*Última revisión: 2026-07-17.*
+*Última revisión: 2026-07-17 (bis).*
