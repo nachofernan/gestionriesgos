@@ -13,8 +13,9 @@ use Tests\TestCase;
 
 /**
  * Cubre la pantalla de Vencimientos: en qué tramo cae cada tarea según su fecha
- * y qué queda excluido del listado (terminadas al 100%, borradores, y lo que la
- * visibilidad por área ya le esconde al usuario).
+ * y qué queda excluido del listado (terminadas al 100%, borradores, y todo lo
+ * que cae fuera de la cascada del organigrama del usuario —su área y sub-áreas—,
+ * salvo el comité que ve todas las gerencias).
  */
 class VencimientoControllerTest extends TestCase
 {
@@ -163,5 +164,49 @@ class VencimientoControllerTest extends TestCase
         $this->actingAs($this->canela)
             ->get(route('auditoria.vencimientos.index'))
             ->assertDontSee('Borrador ajeno');
+    }
+
+    /** @test */
+    public function una_tarea_aprobada_de_otra_gerencia_no_aparece_pese_a_ser_publica(): void
+    {
+        $ajena = $this->crearTarea([
+            'nombre' => 'Vencimiento ajeno',
+            'fecha' => today()->subDays(5),
+            'area_id' => $this->gerProd->id,
+        ]);
+
+        $response = $this->actingAs($this->canela)->get(route('auditoria.vencimientos.index'));
+
+        $response->assertViewHas('vencidas', fn ($items) => $items->doesntContain('id', $ajena->id));
+        $response->assertDontSee('Vencimiento ajeno');
+    }
+
+    /** @test */
+    public function una_subarea_de_la_propia_gerencia_si_aparece(): void
+    {
+        $subArea = Area::create(['nombre' => 'Contaduría', 'area_padre_id' => $this->gerAdmin->id]);
+        $propia = $this->crearTarea([
+            'nombre' => 'Vencimiento de subárea',
+            'fecha' => today()->subDays(5),
+            'area_id' => $subArea->id,
+        ]);
+
+        $response = $this->actingAs($this->canela)->get(route('auditoria.vencimientos.index'));
+
+        $response->assertViewHas('vencidas', fn ($items) => $items->contains('id', $propia->id));
+        $response->assertSee('Vencimiento de subárea');
+    }
+
+    /** @test */
+    public function el_comite_ve_los_vencimientos_de_cualquier_gerencia(): void
+    {
+        $comiteUser = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $tareaAdmin = $this->crearTarea(['fecha' => today()->subDays(5), 'area_id' => $this->gerAdmin->id]);
+        $tareaProd = $this->crearTarea(['fecha' => today()->subDays(5), 'area_id' => $this->gerProd->id]);
+
+        $response = $this->actingAs($comiteUser)->get(route('auditoria.vencimientos.index'));
+
+        $response->assertViewHas('vencidas', fn ($items) => $items->contains('id', $tareaAdmin->id) && $items->contains('id', $tareaProd->id)
+        );
     }
 }

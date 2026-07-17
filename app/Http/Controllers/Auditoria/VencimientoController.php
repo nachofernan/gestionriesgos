@@ -14,6 +14,12 @@ use Illuminate\Http\Request;
  * cada fila es una tarea y muestra a qué plan(es) pertenece. Quedan afuera las
  * tareas terminadas (avance 100: ya no hay nada que reclamar) y las que no
  * llegaron a validado (un borrador todavía no es un compromiso con fecha).
+ *
+ * El sesgo es gerencial: cada usuario ve sólo los vencimientos de su área y sus
+ * sub-áreas (la cascada del organigrama), no los de gerencias hermanas. El comité
+ * (sin área) ve todo. Por eso acá NO se usa el scope general visiblePara() —ese
+ * trata lo aprobado/validado como público a toda la organización, y como esta
+ * pantalla ya filtra por esos estados terminaría mostrando las otras gerencias.
  */
 class VencimientoController extends Controller
 {
@@ -25,7 +31,10 @@ class VencimientoController extends Controller
         $hoy = today();
         $limite = $hoy->copy()->addDays(self::DIAS_POR_VENCER);
 
-        $tareas = Tarea::visiblePara($request->user())
+        $user = $request->user();
+
+        $tareas = Tarea::query()
+            ->when($user->area_id, fn ($q) => $q->whereIn('area_id', $user->idsAreasGestionables()))
             ->whereHas('estado', fn ($q) => $q->whereIn('nombre', ['validado', 'aprobado']))
             ->where('porcentaje_avance', '<', 100)
             ->with(['planesAccion', 'estado', 'area', 'user'])
