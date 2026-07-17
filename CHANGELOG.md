@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `docs/modulo-a
 
 ---
 
+- **2026-07-17 (tris)** — [Vencimientos con sesgo gerencial](docs/updates/2026-07-17c.md): la pantalla de Vencimientos deja de usar el scope general `visiblePara()` (que trata lo aprobado/validado como público) y filtra por la cascada del organigrama: cada usuario ve sólo su área y sub-áreas, el comité ve todo. Paso previo al dashboard de riesgos.
 - **2026-07-17 (bis)** — [Pantalla de Vencimientos](docs/updates/2026-07-17b.md): listado de tareas comprometidas ordenado por fecha y agrupado en vencidas / por vencer (30 días) / en plazo / sin fecha. Excluye las terminadas al 100% y los borradores. Los planes no tienen fila propia porque no tienen fecha en el esquema.
 - **2026-07-17** — [Reglas de negocio en el wizard de riesgo](docs/updates/2026-07-17.md): el wizard muestra la calificación cualitativa (bajo/moderado/crítico) junto al cálculo; el área se limita a la línea del usuario (ni hermanas ni primas); un riesgo de tipo Corrupción no puede compartirse ni aceptarse (flag `restringe_respuesta`); campo `fundamento` obligatorio para compartir/aceptar/evitar.
 - **2026-07-14 (bis)** — [Mitigación de planes al 100% en el valor residual](docs/updates/2026-07-14b.md): la relación plan↔riesgo lleva un valor de mitigación en el pivot (`plan_accion_riesgo.mitigacion`) que descuenta del residual del riesgo sólo cuando el plan llega al 100% de avance. Editable vía propuestas de cambio, al estilo de los controles.
