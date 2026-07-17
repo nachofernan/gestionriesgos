@@ -15,6 +15,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 - [ ] Dashboard con gráficos y KPIs (estimado original: 2-3 semanas)
 - [ ] Notificaciones automáticas (estimado original: 1 semana) — ej. avisar a un responsable cuando vence una tarea o cuando le asignan un riesgo
 - [ ] Auditoría detallada por usuario (estimado original: 1 semana) — más allá del historial de `Actualizacion` ya existente
+- [ ] **El comité no debería poder crear elementos** — hoy crea y al redirigir al show del borrador recién creado se come un 403. El `create()` de las 5 policies usa `puedeGestionarArea()` y el comité cuelga del área raíz, así que da `true`, pero `view()` le corta el borrador. Se resuelve junto con los permisos particulares en la migración del módulo al sistema real (decisión del 2026-07-17), no antes.
 
 ## En curso / recién cerrado
 
@@ -24,6 +25,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 - [x] **Seeders con variedad real de estados** (2026-07-03) — ver [changelog](updates/2026-07-03e.md). Control/Objetivo/PlanAccion/Tarea ya no quedan todos "aprobado"; Riesgo siempre tiene `respuesta`, respetando los prerequisitos de validación existentes.
 - [x] **Riesgo con múltiples gerencias** (2026-07-07) — ver [changelog](updates/2026-07-07.md). Un riesgo puede pertenecer a varias gerencias (`area_riesgo`) con permisos equivalentes; el creador deja de ser editable (siempre `auth()`). Por ahora solo en Riesgo — no descartado extenderlo a otras entidades si surge la necesidad.
 - [x] **PDF de Pendientes** (2026-07-07 bis) — ver [changelog](updates/2026-07-07b.md). Botón para descargar en PDF el listado de la pantalla de Pendientes, para llevar impreso a una reunión.
+- [x] **Reglas de negocio en el wizard de riesgo** (2026-07-17) — ver [changelog](updates/2026-07-17.md). Calificación cualitativa en el cálculo, área limitada a la línea del usuario, Corrupción sin compartir/aceptar, campo `fundamento` obligatorio para las respuestas que no reducen el riesgo.
 
 ## Ideas abiertas / a definir
 
@@ -35,4 +37,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-07-07.*
+*Última revisión: 2026-07-17.*

@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `docs/modulo-a
 
 ---
 
+- **2026-07-17** — [Reglas de negocio en el wizard de riesgo](docs/updates/2026-07-17.md): el wizard muestra la calificación cualitativa (bajo/moderado/crítico) junto al cálculo; el área se limita a la línea del usuario (ni hermanas ni primas); un riesgo de tipo Corrupción no puede compartirse ni aceptarse (flag `restringe_respuesta`); campo `fundamento` obligatorio para compartir/aceptar/evitar.
 - **2026-07-14 (bis)** — [Mitigación de planes al 100% en el valor residual](docs/updates/2026-07-14b.md): la relación plan↔riesgo lleva un valor de mitigación en el pivot (`plan_accion_riesgo.mitigacion`) que descuenta del residual del riesgo sólo cuando el plan llega al 100% de avance. Editable vía propuestas de cambio, al estilo de los controles.
 - **2026-07-14** — [Adjuntos en el historial de actualizaciones](docs/updates/2026-07-14.md): al crear una actualización (en cualquiera de los 5 elementos) se pueden subir archivos, y descargarlos desde el historial. Descarga controlada por ruta, autorizada con el `view` de la entidad.
 - **2026-07-07 (bis)** — [PDF de Pendientes](docs/updates/2026-07-07b.md): botón para descargar en PDF el listado de qué hay para validar/aprobar, para llevar impreso a una reunión. Se instaló `barryvdh/laravel-dompdf`.
