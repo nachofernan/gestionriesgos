@@ -33,7 +33,7 @@ class RiesgoController extends Controller
     public function create()
     {
         $tiposRiesgo = TipoRiesgo::all();
-        $areas = Area::orderBy('nombre')->get();
+        $areas = Area::whereIn('id', Auth::user()->idsAreasGestionables())->orderBy('nombre')->get();
         $objetivos = Objetivo::visiblePara(Auth::user())->orderBy('nombre')->get();
         $preguntas = config('riesgo_preguntas');
 
@@ -126,7 +126,10 @@ class RiesgoController extends Controller
         }
 
         $tiposRiesgo = TipoRiesgo::orderBy('nombre')->get();
-        $areas = Area::orderBy('nombre')->get();
+        // El área actual del riesgo se agrega aunque caiga fuera de la línea del
+        // usuario: si no, el select la perdería silenciosamente al guardar.
+        $areas = Area::whereIn('id', array_merge(Auth::user()->idsAreasGestionables(), [$riesgo->area_id]))
+            ->orderBy('nombre')->get();
 
         return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas'));
     }
@@ -146,13 +149,20 @@ class RiesgoController extends Controller
                 ->with('error', 'El riesgo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
+        // Se admite el área que el riesgo ya tenía aunque quede fuera de la línea
+        // del usuario: puede gestionarlo por estar asociado a otra de sus gerencias
+        // (ver Riesgo::puedeGestionarAlgunaArea()) y no debería verse forzado a moverlo.
+        $areasPermitidas = array_merge(Auth::user()->idsAreasGestionables(), [$riesgo->area_id]);
+
         $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'mayor_criticidad' => 'boolean',
             'respuesta' => ['nullable', Rule::enum(RespuestaRiesgo::class)],
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
-            'area_id' => 'nullable|exists:areas,id',
+            'area_id' => ['nullable', 'exists:areas,id', Rule::in($areasPermitidas)],
+        ], [
+            'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
 
         $suma = $riesgo->impacto + $riesgo->probabilidad;

@@ -56,7 +56,7 @@ class User extends Authenticatable
 
     public function esGerente(): bool
     {
-        return $this->rol === 'gerente' || !$this->area_id;
+        return $this->rol === 'gerente' || ! $this->area_id;
     }
 
     public function esEmpleado(): bool
@@ -72,14 +72,35 @@ class User extends Authenticatable
     // Devuelve el área de nivel gerencia (hijo directo del área raíz).
     public function areaGerencia(): ?Area
     {
-        if (!$this->area_id) return null;
+        if (! $this->area_id) {
+            return null;
+        }
         $area = $this->area;
         while ($area && $area->area_padre_id !== null) {
             $padre = Area::find($area->area_padre_id);
-            if ($padre?->area_padre_id === null) return $area;
+            if ($padre?->area_padre_id === null) {
+                return $area;
+            }
             $area = $padre;
         }
+
         return $area;
+    }
+
+    /**
+     * IDs de las áreas que el usuario puede elegir al asignar un área a una
+     * entidad: la propia y sus descendientes, nunca hermanas ni primas. Es la
+     * misma definición que aplica puedeGestionarArea() uno a uno; se usa para
+     * armar los selects de área y validarlos (ver RiesgoController::create/store).
+     * Sin área propia (superusuario), todas.
+     */
+    public function idsAreasGestionables(): array
+    {
+        if (! $this->area_id) {
+            return Area::pluck('id')->all();
+        }
+
+        return $this->area->obtenerIdsSubarbol();
     }
 
     // El usuario puede gestionar una entidad del área dada.
@@ -87,10 +108,10 @@ class User extends Authenticatable
     // Entidad sin área = cualquiera puede gestionarla.
     public function puedeGestionarArea(mixed $areaId): bool
     {
-        if (!$this->area_id) {
+        if (! $this->area_id) {
             return true;
         }
-        if (!$areaId) {
+        if (! $areaId) {
             return true;
         }
 
