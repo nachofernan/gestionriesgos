@@ -2,16 +2,17 @@
 
 namespace Tests\Feature\Auditoria;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
+use App\Enums\Auditoria\TipoArea;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
-use App\Models\Auditoria\Control;
 use App\Models\Auditoria\TipoRiesgo;
+use App\Models\User;
 use App\Policies\Auditoria\RiesgoPolicy;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 /**
  * Verifica las reglas de visibilidad jerárquica por rol y estado.
@@ -33,23 +34,37 @@ class VisibilidadTest extends TestCase
     use RefreshDatabase;
 
     private Area $comite;
+
     private Area $gerAdmin;
+
     private Area $gerProd;
+
     private Area $sectA;
+
     private Area $sectB;
+
     private Area $sectC;
 
     private User $lucia;    // comité   – comite
+
     private User $canela;   // gerente  – gerAdmin
+
     private User $nacho;    // empleado – sectA
+
     private User $tito;     // empleado – sectB (hermano de nacho)
+
     private User $grassi;   // gerente  – gerProd
+
     private User $nocetti;  // empleado – sectC
 
     private int $borradorId;
+
     private int $validadoId;
+
     private int $aprobadoId;
+
     private int $borradoId;
+
     private TipoRiesgo $tipo;
 
     // -------------------------------------------------------
@@ -62,24 +77,24 @@ class VisibilidadTest extends TestCase
 
         $this->seed(EstadoRiesgoSeeder::class);
 
-        $this->comite   = Area::create(['nombre' => 'Comité',     'area_padre_id' => null]);
-        $this->gerAdmin = Area::create(['nombre' => 'Ger. Admin', 'area_padre_id' => $this->comite->id]);
-        $this->gerProd  = Area::create(['nombre' => 'Ger. Prod',  'area_padre_id' => $this->comite->id]);
-        $this->sectA    = Area::create(['nombre' => 'Sector A',   'area_padre_id' => $this->gerAdmin->id]);
-        $this->sectB    = Area::create(['nombre' => 'Sector B',   'area_padre_id' => $this->gerAdmin->id]);
-        $this->sectC    = Area::create(['nombre' => 'Sector C',   'area_padre_id' => $this->gerProd->id]);
+        $this->comite = Area::create(['nombre' => 'Comité',     'area_padre_id' => null, 'tipo' => TipoArea::Gerencia]);
+        $this->gerAdmin = Area::create(['nombre' => 'Ger. Admin', 'area_padre_id' => $this->comite->id, 'tipo' => TipoArea::Gerencia]);
+        $this->gerProd = Area::create(['nombre' => 'Ger. Prod',  'area_padre_id' => $this->comite->id, 'tipo' => TipoArea::Gerencia]);
+        $this->sectA = Area::create(['nombre' => 'Sector A',   'area_padre_id' => $this->gerAdmin->id]);
+        $this->sectB = Area::create(['nombre' => 'Sector B',   'area_padre_id' => $this->gerAdmin->id]);
+        $this->sectC = Area::create(['nombre' => 'Sector C',   'area_padre_id' => $this->gerProd->id]);
 
-        $this->lucia   = User::factory()->create(['rol' => 'comite',   'area_id' => $this->comite->id]);
-        $this->canela  = User::factory()->create(['rol' => 'gerente',  'area_id' => $this->gerAdmin->id]);
-        $this->nacho   = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectA->id]);
-        $this->tito    = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectB->id]);
-        $this->grassi  = User::factory()->create(['rol' => 'gerente',  'area_id' => $this->gerProd->id]);
+        $this->lucia = User::factory()->create(['rol' => 'comite',   'area_id' => $this->comite->id]);
+        $this->canela = User::factory()->create(['rol' => 'gerente',  'area_id' => $this->gerAdmin->id]);
+        $this->nacho = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectA->id]);
+        $this->tito = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectB->id]);
+        $this->grassi = User::factory()->create(['rol' => 'gerente',  'area_id' => $this->gerProd->id]);
         $this->nocetti = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectC->id]);
 
         $this->borradorId = Estado::borrador()->id;
         $this->validadoId = Estado::validado()->id;
         $this->aprobadoId = Estado::aprobado()->id;
-        $this->borradoId  = Estado::borrado()->id;
+        $this->borradoId = Estado::borrado()->id;
 
         $this->tipo = TipoRiesgo::factory()->create();
     }
@@ -91,24 +106,24 @@ class VisibilidadTest extends TestCase
     private function riesgo(int $estadoId, Area $area): Riesgo
     {
         return Riesgo::create([
-            'nombre'         => 'R',
-            'impacto'        => 1,
-            'probabilidad'   => 1,
+            'nombre' => 'R',
+            'impacto' => 1,
+            'probabilidad' => 1,
             'tipo_riesgo_id' => $this->tipo->id,
-            'estado_id'      => $estadoId,
-            'area_id'        => $area->id,
-            'user_id'        => $this->nacho->id,
+            'estado_id' => $estadoId,
+            'area_id' => $area->id,
+            'user_id' => $this->nacho->id,
         ]);
     }
 
     private function control(int $estadoId, Area $area): Control
     {
         return Control::create([
-            'nombre'             => 'C',
+            'nombre' => 'C',
             'mitigacion_default' => 5,
-            'estado_id'          => $estadoId,
-            'area_id'            => $area->id,
-            'user_id'            => $this->nacho->id,
+            'estado_id' => $estadoId,
+            'area_id' => $area->id,
+            'user_id' => $this->nacho->id,
         ]);
     }
 
@@ -119,7 +134,7 @@ class VisibilidadTest extends TestCase
 
     private function policy(): RiesgoPolicy
     {
-        return new RiesgoPolicy();
+        return new RiesgoPolicy;
     }
 
     // -------------------------------------------------------
@@ -280,8 +295,8 @@ class VisibilidadTest extends TestCase
     public function superadmin_sin_area_ve_todo_incluyendo_borradores(): void
     {
         $admin = User::factory()->create(['area_id' => null, 'rol' => 'empleado']);
-        $r1    = $this->riesgo($this->borradorId, $this->sectA);
-        $r2    = $this->riesgo($this->borradorId, $this->sectC);
+        $r1 = $this->riesgo($this->borradorId, $this->sectA);
+        $r2 = $this->riesgo($this->borradorId, $this->sectC);
 
         $ids = Riesgo::visiblePara($admin)->pluck('id')->toArray();
         $this->assertContains($r1->id, $ids);
@@ -291,7 +306,7 @@ class VisibilidadTest extends TestCase
     /** @test */
     public function scope_funciona_en_control_igual_que_en_riesgo(): void
     {
-        $visible   = $this->control($this->aprobadoId,   $this->sectC);
+        $visible = $this->control($this->aprobadoId, $this->sectC);
         $invisible = $this->control($this->borradorId, $this->sectB); // hermano de nacho
 
         $ids = Control::visiblePara($this->nacho)->pluck('id')->toArray();
@@ -302,9 +317,9 @@ class VisibilidadTest extends TestCase
     /** @test */
     public function scope_combina_correctamente_con_filtros_adicionales(): void
     {
-        $r1 = $this->riesgo($this->aprobadoId,   $this->sectA);
+        $r1 = $this->riesgo($this->aprobadoId, $this->sectA);
         $r2 = $this->riesgo($this->borradorId, $this->sectA);
-        $r3 = $this->riesgo($this->aprobadoId,   $this->sectC);
+        $r3 = $this->riesgo($this->aprobadoId, $this->sectC);
 
         // Nacho filtra además por su propia área
         $ids = Riesgo::visiblePara($this->nacho)
@@ -324,9 +339,9 @@ class VisibilidadTest extends TestCase
     public function policy_view_aprobado_accesible_para_todos_los_roles(): void
     {
         $r = $this->riesgo($this->aprobadoId, $this->sectC);
-        $this->assertTrue($this->policy()->view($this->nacho,  $r));
+        $this->assertTrue($this->policy()->view($this->nacho, $r));
         $this->assertTrue($this->policy()->view($this->canela, $r));
-        $this->assertTrue($this->policy()->view($this->lucia,  $r));
+        $this->assertTrue($this->policy()->view($this->lucia, $r));
     }
 
     /** @test */
@@ -422,8 +437,8 @@ class VisibilidadTest extends TestCase
         $r = $this->riesgo($this->aprobadoId, $this->sectC); // otra gerencia
 
         $this->actingAs($this->nacho)
-             ->get(route('auditoria.riesgos.show', $r))
-             ->assertOk();
+            ->get(route('auditoria.riesgos.show', $r))
+            ->assertOk();
     }
 
     /** @test */
@@ -432,8 +447,8 @@ class VisibilidadTest extends TestCase
         $r = $this->riesgo($this->borradorId, $this->sectA);
 
         $this->actingAs($this->lucia)
-             ->get(route('auditoria.riesgos.show', $r))
-             ->assertForbidden();
+            ->get(route('auditoria.riesgos.show', $r))
+            ->assertForbidden();
     }
 
     /** @test */
@@ -442,8 +457,8 @@ class VisibilidadTest extends TestCase
         $r = $this->riesgo($this->borradorId, $this->sectA);
 
         $this->actingAs($this->nacho)
-             ->get(route('auditoria.riesgos.show', $r))
-             ->assertOk();
+            ->get(route('auditoria.riesgos.show', $r))
+            ->assertOk();
     }
 
     /** @test */
@@ -452,8 +467,8 @@ class VisibilidadTest extends TestCase
         $r = $this->riesgo($this->borradorId, $this->sectB);
 
         $this->actingAs($this->nacho)
-             ->get(route('auditoria.riesgos.show', $r))
-             ->assertForbidden();
+            ->get(route('auditoria.riesgos.show', $r))
+            ->assertForbidden();
     }
 
     /** @test */
@@ -462,8 +477,8 @@ class VisibilidadTest extends TestCase
         $r = $this->riesgo($this->borradorId, $this->sectC); // gerProd, canela es de gerAdmin
 
         $this->actingAs($this->canela)
-             ->get(route('auditoria.riesgos.show', $r))
-             ->assertForbidden();
+            ->get(route('auditoria.riesgos.show', $r))
+            ->assertForbidden();
     }
 
     /** @test */
@@ -472,7 +487,7 @@ class VisibilidadTest extends TestCase
         $r = $this->riesgo($this->validadoId, $this->sectC);
 
         $this->actingAs($this->nacho)
-             ->get(route('auditoria.riesgos.show', $r))
-             ->assertOk();
+            ->get(route('auditoria.riesgos.show', $r))
+            ->assertOk();
     }
 }

@@ -69,22 +69,13 @@ class User extends Authenticatable
         return $this->rol === 'comite';
     }
 
-    // Devuelve el área de nivel gerencia (hijo directo del área raíz).
+    /**
+     * Gerencia del usuario: la primera área marcada como tipo Gerencia subiendo
+     * desde su área propia (ver Area::gerencia()). Sin área propia devuelve null.
+     */
     public function areaGerencia(): ?Area
     {
-        if (! $this->area_id) {
-            return null;
-        }
-        $area = $this->area;
-        while ($area && $area->area_padre_id !== null) {
-            $padre = Area::find($area->area_padre_id);
-            if ($padre?->area_padre_id === null) {
-                return $area;
-            }
-            $area = $padre;
-        }
-
-        return $area;
+        return $this->area?->gerencia();
     }
 
     /**

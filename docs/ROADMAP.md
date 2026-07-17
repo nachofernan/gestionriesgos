@@ -28,6 +28,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 - [x] **Reglas de negocio en el wizard de riesgo** (2026-07-17) — ver [changelog](updates/2026-07-17.md). Calificación cualitativa en el cálculo, área limitada a la línea del usuario, Corrupción sin compartir/aceptar, campo `fundamento` obligatorio para las respuestas que no reducen el riesgo.
 - [x] **Pantalla de Vencimientos** (2026-07-17 bis) — ver [changelog](updates/2026-07-17b.md). Tareas ordenadas por fecha, agrupadas en vencidas / por vencer / en plazo / sin fecha. Sólo tareas: los planes no tienen fecha en el esquema (ver ídem en "Ideas abiertas").
 - [x] **Vencimientos con sesgo gerencial** (2026-07-17 tris) — ver [changelog](updates/2026-07-17c.md). La pantalla filtra por la cascada del organigrama (área propia + sub-áreas) en vez del scope general `visiblePara()`; el comité ve todo. Sienta el criterio de sesgo gerencial para el dashboard.
+- [x] **Gerencias explícitas sobre el árbol de áreas** (2026-07-17 quater) — ver [changelog](updates/2026-07-17d.md). Base de datos: `Area` lleva `tipo = gerencia` (enum `TipoArea`), y `Area::gerencia()` reemplaza la inferencia por profundidad. Solo modelo de datos; el siguiente paso es exponer/usar la marca en vistas, controladores y Policies.
 
 ## Ideas abiertas / a definir
 
@@ -40,4 +41,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-07-17 (tris).*
+*Última revisión: 2026-07-17 (quater).*
