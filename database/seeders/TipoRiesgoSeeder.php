@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Auditoria\TipoRiesgo;
 use Illuminate\Database\Seeder;
 
 class TipoRiesgoSeeder extends Seeder
@@ -41,11 +41,12 @@ class TipoRiesgoSeeder extends Seeder
             [
                 'nombre' => 'Corrupción',
                 'descripcion' => 'Es el riesgo de uso de los bienes públicos para beneficio privado, de una conducta deshonesta o fraudulenta de quienes ostentan poder, que suelen implicar sobornos y/o el abuso de poder encomendado para obtener beneficios',
-            ], 
+                'restringe_respuesta' => true,
+            ],
         ];
-        
+
         foreach ($tipos as $tipo) {
-            \App\Models\Auditoria\TipoRiesgo::create($tipo);
+            TipoRiesgo::create($tipo);
         }
     }
 }

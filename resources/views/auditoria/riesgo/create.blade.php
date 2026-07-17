@@ -189,12 +189,15 @@
                         class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('respuesta') border-red-300 @enderror">
                         <option value="">— Seleccionar respuesta —</option>
                         @foreach (\App\Enums\Auditoria\RespuestaRiesgo::cases() as $opcion)
-                            <option value="{{ $opcion->value }}" {{ old('respuesta') === $opcion->value ? 'selected' : '' }}>
-                                {{ $opcion->label() }}
-                            </option>
+                            @php $restringida = $opcion->estaRestringida(); @endphp
+                            <option value="{{ $opcion->value }}" {{ old('respuesta') === $opcion->value ? 'selected' : '' }}
+                                @if ($restringida) :disabled="tipoRestringido" @endif>{{ $opcion->label() }}</option>
                         @endforeach
                     </select>
                     @error('respuesta') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                    <p class="text-xs text-amber-600 mt-1.5 font-medium" x-show="tipoRestringido" x-cloak>
+                        Un riesgo de este tipo no puede compartirse ni aceptarse: sólo se puede mitigar o evitar.
+                    </p>
                     <p class="text-xs text-amber-600 mt-1.5 font-medium" x-show="respuesta === 'mitigar'" x-cloak>
                         Si la respuesta es "Reducir / Mitigar", va a hacer falta asociar un plan de acción antes de poder validar este riesgo.
                     </p>
@@ -294,6 +297,23 @@
             probabilidad: @json(collect(old('probabilidad_respuestas', []))->map(fn($v) => (int) $v)),
             impacto: @json(collect(old('impacto_respuestas', []))->map(fn($v) => (int) $v)),
             respuesta: @js(old('respuesta', '')),
+            tiposRestringidos: @js($tiposRiesgo->where('restringe_respuesta')->pluck('id')->map(fn($id) => (string) $id)->values()),
+            respuestasRestringidas: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::restringidas(), 'value')),
+
+            // El tipo elegido no admite compartir/aceptar (ver TipoRiesgo::restringe_respuesta).
+            get tipoRestringido() {
+                return this.tiposRestringidos.includes(this.tipoRiesgoId);
+            },
+
+            init() {
+                // Volver al paso 1 y pasar el riesgo a un tipo restringido dejaría
+                // seleccionada una respuesta que ya no es válida para ese tipo.
+                this.$watch('tipoRestringido', (restringido) => {
+                    if (restringido && this.respuestasRestringidas.includes(this.respuesta)) {
+                        this.respuesta = '';
+                    }
+                });
+            },
 
             get probabilidadTotal() {
                 return Object.values(this.probabilidad).reduce((a, b) => a + (Number(b) || 0), 0);

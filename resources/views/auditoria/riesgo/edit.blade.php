@@ -14,7 +14,20 @@
     </div>
 
     <div class="flex gap-6 items-start">
-    <form action="{{ route('auditoria.riesgos.update', $riesgo) }}" method="POST" class="flex-1 min-w-0">
+    <form action="{{ route('auditoria.riesgos.update', $riesgo) }}" method="POST" class="flex-1 min-w-0"
+          x-data="{
+              tipoRiesgoId: @js((string) old('tipo_riesgo_id', $riesgo->tipo_riesgo_id)),
+              respuesta: @js(old('respuesta', $riesgo->respuesta?->value ?? '')),
+              tiposRestringidos: @js($tiposRiesgo->where('restringe_respuesta')->pluck('id')->map(fn($id) => (string) $id)->values()),
+              respuestasRestringidas: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::restringidas(), 'value')),
+              // El tipo elegido no admite compartir/aceptar (ver TipoRiesgo::restringe_respuesta).
+              get tipoRestringido() { return this.tiposRestringidos.includes(this.tipoRiesgoId); },
+              init() {
+                  this.$watch('tipoRestringido', (restringido) => {
+                      if (restringido && this.respuestasRestringidas.includes(this.respuesta)) this.respuesta = '';
+                  });
+              },
+          }">
         @csrf @method('PATCH')
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
 
@@ -48,7 +61,7 @@
 
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tipo de Riesgo *</label>
-                <select name="tipo_riesgo_id"
+                <select name="tipo_riesgo_id" x-model="tipoRiesgoId"
                     class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('tipo_riesgo_id') border-red-300 @enderror">
                     <option value="">— Seleccionar categoría —</option>
                     @foreach ($tiposRiesgo as $tipo)
@@ -62,16 +75,18 @@
 
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Respuesta</label>
-                <select name="respuesta"
+                <select name="respuesta" x-model="respuesta"
                     class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('respuesta') border-red-300 @enderror">
                     <option value="">— Seleccionar respuesta —</option>
                     @foreach (\App\Enums\Auditoria\RespuestaRiesgo::cases() as $opcion)
-                        <option value="{{ $opcion->value }}" {{ old('respuesta', $riesgo->respuesta?->value) === $opcion->value ? 'selected' : '' }}>
-                            {{ $opcion->label() }}
-                        </option>
+                        <option value="{{ $opcion->value }}" {{ old('respuesta', $riesgo->respuesta?->value) === $opcion->value ? 'selected' : '' }}
+                            @if ($opcion->estaRestringida()) :disabled="tipoRestringido" @endif>{{ $opcion->label() }}</option>
                     @endforeach
                 </select>
                 @error('respuesta') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                <p class="text-xs text-amber-600 mt-1.5 font-medium" x-show="tipoRestringido" x-cloak>
+                    Un riesgo de este tipo no puede compartirse ni aceptarse: sólo se puede mitigar o evitar.
+                </p>
             </div>
 
             <x-auditoria.criticidad-checkbox

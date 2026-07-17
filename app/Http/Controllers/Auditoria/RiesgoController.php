@@ -21,6 +21,27 @@ use Illuminate\Validation\Rule;
  */
 class RiesgoController extends Controller
 {
+    private const MENSAJES_RESPUESTA = [
+        'respuesta.not_in' => 'Un riesgo de este tipo no puede compartirse ni aceptarse como respuesta.',
+    ];
+
+    /**
+     * Reglas para `respuesta` según el tipo elegido: un TipoRiesgo con
+     * `restringe_respuesta` (Corrupción) no admite las respuestas de
+     * RespuestaRiesgo::restringidas(). El `disabled` del select en el form es
+     * sólo la ayuda visual; el corte real es este.
+     */
+    private function reglaRespuesta(mixed $tipoRiesgoId): array
+    {
+        $reglas = ['nullable', Rule::enum(RespuestaRiesgo::class)];
+
+        if (TipoRiesgo::whereKey($tipoRiesgoId)->value('restringe_respuesta')) {
+            $reglas[] = Rule::notIn(array_column(RespuestaRiesgo::restringidas(), 'value'));
+        }
+
+        return $reglas;
+    }
+
     public function index()
     {
         $riesgos = Riesgo::with(['tipoRiesgo', 'estado', 'objetivos', 'user', 'area'])
@@ -60,12 +81,12 @@ class RiesgoController extends Controller
             'impacto_respuestas' => 'required|array|size:5',
             'impacto_respuestas.*' => 'required|integer|min:0|max:2',
             'mayor_criticidad' => 'boolean',
-            'respuesta' => ['nullable', Rule::enum(RespuestaRiesgo::class)],
+            'respuesta' => $this->reglaRespuesta($request->input('tipo_riesgo_id')),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => 'nullable|exists:areas,id',
             'objetivos' => 'nullable|array',
             'objetivos.*' => ['exists:objetivos,id', Rule::in(Objetivo::visiblePara(Auth::user())->pluck('id')->toArray())],
-        ]);
+        ], self::MENSAJES_RESPUESTA);
 
         $probabilidadRespuestas = $data['probabilidad_respuestas'];
         $impactoRespuestas = $data['impacto_respuestas'];
@@ -158,10 +179,10 @@ class RiesgoController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'mayor_criticidad' => 'boolean',
-            'respuesta' => ['nullable', Rule::enum(RespuestaRiesgo::class)],
+            'respuesta' => $this->reglaRespuesta($request->input('tipo_riesgo_id')),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => ['nullable', 'exists:areas,id', Rule::in($areasPermitidas)],
-        ], [
+        ], self::MENSAJES_RESPUESTA + [
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
 
