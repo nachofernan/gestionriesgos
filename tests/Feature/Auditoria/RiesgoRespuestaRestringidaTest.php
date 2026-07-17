@@ -76,8 +76,10 @@ class RiesgoRespuestaRestringidaTest extends TestCase
     /** @test */
     public function un_riesgo_de_corrupcion_admite_mitigar_y_evitar(): void
     {
-        $respuesta = $this->actingAs($this->usuario)
-            ->post(route('auditoria.riesgos.store'), $this->datosWizard(['respuesta' => 'evitar']));
+        $respuesta = $this->actingAs($this->usuario)->post(route('auditoria.riesgos.store'), $this->datosWizard([
+            'respuesta' => 'evitar',
+            'fundamento' => 'Se discontinúa el proceso que lo origina.',
+        ]));
 
         $respuesta->assertSessionHasNoErrors();
         $this->assertEquals(RespuestaRiesgo::Evitar, Riesgo::firstOrFail()->respuesta);
@@ -89,6 +91,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
         $respuesta = $this->actingAs($this->usuario)->post(route('auditoria.riesgos.store'), $this->datosWizard([
             'tipo_riesgo_id' => $this->operacional->id,
             'respuesta' => 'compartir',
+            'fundamento' => 'Se transfiere el riesgo a la aseguradora.',
         ]));
 
         $respuesta->assertSessionHasNoErrors();

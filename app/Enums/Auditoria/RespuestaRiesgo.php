@@ -35,4 +35,22 @@ enum RespuestaRiesgo: string
     {
         return in_array($this, self::restringidas(), true);
     }
+
+    /**
+     * Respuestas que exigen `fundamento` en el Riesgo: las que no reducen el
+     * riesgo por sí mismas y necesitan justificarse (compartir, aceptar,
+     * evitar). Mitigar queda afuera: se justifica con su plan de acción, que ya
+     * es obligatorio para validar (ver Riesgo::motivosBloqueoValidacion()).
+     *
+     * @return array<int, self>
+     */
+    public static function exigenFundamento(): array
+    {
+        return [self::Compartir, self::Aceptar, self::Evitar];
+    }
+
+    public function exigeFundamento(): bool
+    {
+        return in_array($this, self::exigenFundamento(), true);
+    }
 }

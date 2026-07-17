@@ -23,7 +23,19 @@ class RiesgoController extends Controller
 {
     private const MENSAJES_RESPUESTA = [
         'respuesta.not_in' => 'Un riesgo de este tipo no puede compartirse ni aceptarse como respuesta.',
+        'fundamento.required_if' => 'Debe fundamentar por qué se eligió esta respuesta frente al riesgo.',
     ];
+
+    /**
+     * Regla para `fundamento`: obligatorio sólo si la respuesta elegida lo exige
+     * (ver RespuestaRiesgo::exigenFundamento()); libre y opcional en el resto.
+     */
+    private function reglaFundamento(): array
+    {
+        $exigen = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
+
+        return ['nullable', 'string', 'required_if:respuesta,'.implode(',', $exigen)];
+    }
 
     /**
      * Reglas para `respuesta` según el tipo elegido: un TipoRiesgo con
@@ -82,6 +94,7 @@ class RiesgoController extends Controller
             'impacto_respuestas.*' => 'required|integer|min:0|max:2',
             'mayor_criticidad' => 'boolean',
             'respuesta' => $this->reglaRespuesta($request->input('tipo_riesgo_id')),
+            'fundamento' => $this->reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => 'nullable|exists:areas,id',
             'objetivos' => 'nullable|array',
@@ -180,6 +193,7 @@ class RiesgoController extends Controller
             'descripcion' => 'nullable|string',
             'mayor_criticidad' => 'boolean',
             'respuesta' => $this->reglaRespuesta($request->input('tipo_riesgo_id')),
+            'fundamento' => $this->reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => ['nullable', 'exists:areas,id', Rule::in($areasPermitidas)],
         ], self::MENSAJES_RESPUESTA + [

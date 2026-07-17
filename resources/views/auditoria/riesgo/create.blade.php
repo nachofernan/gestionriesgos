@@ -203,6 +203,14 @@
                     </p>
                 </div>
 
+                <div x-show="exigeFundamento" x-cloak>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fundamento *</label>
+                    <textarea name="fundamento" rows="3"
+                        class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('fundamento') border-red-300 @enderror"
+                        placeholder="Por qué se eligió esta respuesta frente al riesgo...">{{ old('fundamento') }}</textarea>
+                    @error('fundamento') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                </div>
+
                 {{-- Objetivos: opcional en la creación, obligatorio recién al validar --}}
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
@@ -299,10 +307,15 @@
             respuesta: @js(old('respuesta', '')),
             tiposRestringidos: @js($tiposRiesgo->where('restringe_respuesta')->pluck('id')->map(fn($id) => (string) $id)->values()),
             respuestasRestringidas: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::restringidas(), 'value')),
+            respuestasConFundamento: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::exigenFundamento(), 'value')),
 
             // El tipo elegido no admite compartir/aceptar (ver TipoRiesgo::restringe_respuesta).
             get tipoRestringido() {
                 return this.tiposRestringidos.includes(this.tipoRiesgoId);
+            },
+            // La respuesta elegida hay que justificarla (ver RespuestaRiesgo::exigenFundamento()).
+            get exigeFundamento() {
+                return this.respuestasConFundamento.includes(this.respuesta);
             },
 
             init() {

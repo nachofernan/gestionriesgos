@@ -20,8 +20,11 @@
               respuesta: @js(old('respuesta', $riesgo->respuesta?->value ?? '')),
               tiposRestringidos: @js($tiposRiesgo->where('restringe_respuesta')->pluck('id')->map(fn($id) => (string) $id)->values()),
               respuestasRestringidas: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::restringidas(), 'value')),
+              respuestasConFundamento: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::exigenFundamento(), 'value')),
               // El tipo elegido no admite compartir/aceptar (ver TipoRiesgo::restringe_respuesta).
               get tipoRestringido() { return this.tiposRestringidos.includes(this.tipoRiesgoId); },
+              // La respuesta elegida hay que justificarla (ver RespuestaRiesgo::exigenFundamento()).
+              get exigeFundamento() { return this.respuestasConFundamento.includes(this.respuesta); },
               init() {
                   this.$watch('tipoRestringido', (restringido) => {
                       if (restringido && this.respuestasRestringidas.includes(this.respuesta)) this.respuesta = '';
@@ -87,6 +90,14 @@
                 <p class="text-xs text-amber-600 mt-1.5 font-medium" x-show="tipoRestringido" x-cloak>
                     Un riesgo de este tipo no puede compartirse ni aceptarse: sólo se puede mitigar o evitar.
                 </p>
+            </div>
+
+            <div x-show="exigeFundamento" x-cloak>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fundamento *</label>
+                <textarea name="fundamento" rows="3"
+                    class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('fundamento') border-red-300 @enderror"
+                    placeholder="Por qué se eligió esta respuesta frente al riesgo...">{{ old('fundamento', $riesgo->fundamento) }}</textarea>
+                @error('fundamento') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
             </div>
 
             <x-auditoria.criticidad-checkbox

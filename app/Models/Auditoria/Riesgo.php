@@ -19,9 +19,11 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * Riesgo con código correlativo auto-generado. `valor_total` = impacto +
  * probabilidad; `valor_residual` descuenta la mitigación de los controles
  * asociados; `clasificacion_total`/`clasificacion_residual` traducen esos
- * valores a bajo/moderado/mayor criticidad (ver clasificacion()). `respuesta`
- * es la estrategia frente al riesgo (mitigar/evitar/compartir/aceptar, ver
- * RespuestaRiesgo). Ciclo de vida de estado borrador → validado → aprobado/borrado.
+ * valores a bajo/moderado/critico (ver clasificacion()). `respuesta` es la
+ * estrategia frente al riesgo (mitigar/evitar/compartir/aceptar, ver
+ * RespuestaRiesgo) y `fundamento` justifica esa elección: es obligatorio para
+ * las respuestas que no reducen el riesgo (ver RespuestaRiesgo::exigenFundamento()).
+ * Ciclo de vida de estado borrador → validado → aprobado/borrado.
  */
 class Riesgo extends Model implements HasMedia
 {
@@ -37,6 +39,7 @@ class Riesgo extends Model implements HasMedia
         'probabilidad',
         'mayor_criticidad',
         'respuesta',
+        'fundamento',
         'tipo_riesgo_id',
         'estado_id',
         'user_id',

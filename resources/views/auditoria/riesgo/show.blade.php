@@ -117,6 +117,13 @@
                             <dd class="font-bold text-gray-800">{{ $riesgo->respuesta->label() }}</dd>
                         </div>
                     @endif
+                    @if($riesgo->fundamento)
+                        {{-- Apilado y no en fila: es texto libre y largo. --}}
+                        <div>
+                            <dt class="text-gray-400 font-medium mb-1">Fundamento</dt>
+                            <dd class="text-gray-700 whitespace-pre-line">{{ $riesgo->fundamento }}</dd>
+                        </div>
+                    @endif
                     @if($riesgo->area)
                         <div class="flex justify-between">
                             <dt class="text-gray-400 font-medium">Área</dt>
