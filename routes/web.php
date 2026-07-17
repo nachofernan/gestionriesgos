@@ -7,6 +7,7 @@ use App\Http\Controllers\Auditoria\PendienteController;
 use App\Http\Controllers\Auditoria\PlanAccionController;
 use App\Http\Controllers\Auditoria\RiesgoController;
 use App\Http\Controllers\Auditoria\TareaController;
+use App\Http\Controllers\Auditoria\VencimientoController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -123,6 +124,11 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // -------------------------------------------------------------------
     Route::get('pendientes', [PendienteController::class, 'index'])->name('pendientes.index');
     Route::get('pendientes/pdf', [PendienteController::class, 'pdf'])->name('pendientes.pdf');
+
+    // -------------------------------------------------------------------
+    // Vencimientos (tareas ordenadas por fecha: vencidas / por vencer)
+    // -------------------------------------------------------------------
+    Route::get('vencimientos', [VencimientoController::class, 'index'])->name('vencimientos.index');
 });
 
 require __DIR__.'/auth.php';
