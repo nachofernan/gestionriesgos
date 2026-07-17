@@ -85,12 +85,18 @@ class Riesgo extends Model implements HasMedia
             }
         });
 
-        // El área del creador queda como primera gerencia con permisos sobre el
-        // riesgo; sin esto, un riesgo recién creado no tendría ninguna gerencia
-        // asociada en area_riesgo y nadie podría gestionarlo.
+        // Al crearse, area_riesgo queda con dos cosas: el área puntual del creador
+        // (para que quien lo creó conserve acceso a su propio borrador, ya que
+        // esAncestroOIgual sólo reconoce a un usuario cuya área sea ancestro-o-igual
+        // de la del pivot) y la gerencia resuelta de esa área (para que la gerencia
+        // responsable quede explícitamente asociada). Si el área ya es gerencia,
+        // ambas coinciden y array_unique evita el duplicado. Sin esto, nadie podría
+        // gestionar el riesgo recién creado.
         static::created(function ($riesgo) {
             if ($riesgo->area_id) {
-                $riesgo->areas()->syncWithoutDetaching([$riesgo->area_id]);
+                $gerenciaId = $riesgo->area?->gerencia()?->id;
+                $ids = array_unique(array_filter([$riesgo->area_id, $gerenciaId]));
+                $riesgo->areas()->syncWithoutDetaching($ids);
             }
         });
     }

@@ -29,6 +29,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 - [x] **Pantalla de Vencimientos** (2026-07-17 bis) — ver [changelog](updates/2026-07-17b.md). Tareas ordenadas por fecha, agrupadas en vencidas / por vencer / en plazo / sin fecha. Sólo tareas: los planes no tienen fecha en el esquema (ver ídem en "Ideas abiertas").
 - [x] **Vencimientos con sesgo gerencial** (2026-07-17 tris) — ver [changelog](updates/2026-07-17c.md). La pantalla filtra por la cascada del organigrama (área propia + sub-áreas) en vez del scope general `visiblePara()`; el comité ve todo. Sienta el criterio de sesgo gerencial para el dashboard.
 - [x] **Gerencias explícitas sobre el árbol de áreas** (2026-07-17 quater) — ver [changelog](updates/2026-07-17d.md). Base de datos: `Area` lleva `tipo = gerencia` (enum `TipoArea`), y `Area::gerencia()` reemplaza la inferencia por profundidad. Solo modelo de datos; el siguiente paso es exponer/usar la marca en vistas, controladores y Policies.
+- [x] **Gerencia resuelta en el pivot y la UI del Riesgo** (2026-07-17 quinquies) — ver [changelog](updates/2026-07-17e.md). Primer uso real de la marca: `area_riesgo` guarda área puntual + gerencia resuelta al crear; la sección "Gerencias" del show sólo gestiona gerencias y preserva el área puntual oculta. Sólo Riesgo (única entidad con pivot de áreas); Control/Objetivo/PlanAccion/Tarea usan `area_id` directo.
 
 ## Ideas abiertas / a definir
 
@@ -41,4 +42,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-07-17 (quater).*
+*Última revisión: 2026-07-17 (quinquies).*

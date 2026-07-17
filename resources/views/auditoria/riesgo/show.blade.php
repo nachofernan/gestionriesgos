@@ -129,6 +129,12 @@
                             <dt class="text-gray-400 font-medium">Área</dt>
                             <dd class="text-gray-700">{{ $riesgo->area->nombre }}</dd>
                         </div>
+                        @if($riesgo->area->gerencia())
+                            <div class="flex justify-between">
+                                <dt class="text-gray-400 font-medium">Gerencia</dt>
+                                <dd class="text-gray-700">{{ $riesgo->area->gerencia()->nombre }}</dd>
+                            </div>
+                        @endif
                     @endif
                     @if($riesgo->user)
                         <div class="flex justify-between">
