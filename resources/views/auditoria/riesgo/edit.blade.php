@@ -2,7 +2,7 @@
 @section('title', 'Editar Riesgo')
 
 @section('content')
-<div class="max-w-5xl space-y-6">
+<div class="max-w-6xl space-y-6">
 
     <div class="flex items-center gap-3">
         <a href="{{ route('auditoria.riesgos.show', $riesgo) }}" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -92,12 +92,15 @@
                 </p>
             </div>
 
-            <div x-show="exigeFundamento" x-cloak>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fundamento *</label>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fundamento <span x-show="exigeFundamento" x-cloak>*</span></label>
                 <textarea name="fundamento" rows="3"
                     class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('fundamento') border-red-300 @enderror"
                     placeholder="Por qué se eligió esta respuesta frente al riesgo...">{{ old('fundamento', $riesgo->fundamento) }}</textarea>
                 @error('fundamento') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                <p class="text-xs text-gray-400 mt-1.5" x-show="!exigeFundamento" x-cloak>
+                    Opcional. Podés dejar registrado por qué se eligió esta respuesta.
+                </p>
             </div>
 
             <x-auditoria.criticidad-checkbox
@@ -135,7 +138,7 @@
     </form>
 
     {{-- Panel de referencia: tipos de riesgo --}}
-    <div class="w-72 shrink-0">
+    <div class="w-96 shrink-0">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-3 sticky top-6">
             <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Referencia de Tipos</h2>
             <div class="space-y-2" id="tipo-riesgo-ref">

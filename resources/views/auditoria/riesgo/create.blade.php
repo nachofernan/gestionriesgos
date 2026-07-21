@@ -203,12 +203,15 @@
                     </p>
                 </div>
 
-                <div x-show="exigeFundamento" x-cloak>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fundamento *</label>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fundamento <span x-show="exigeFundamento" x-cloak>*</span></label>
                     <textarea name="fundamento" rows="3"
                         class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('fundamento') border-red-300 @enderror"
                         placeholder="Por qué se eligió esta respuesta frente al riesgo...">{{ old('fundamento') }}</textarea>
                     @error('fundamento') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                    <p class="text-xs text-gray-400 mt-1.5" x-show="!exigeFundamento" x-cloak>
+                        Opcional. Podés dejar registrado por qué se eligió esta respuesta.
+                    </p>
                 </div>
 
                 {{-- Objetivos: opcional en la creación, obligatorio recién al validar --}}
