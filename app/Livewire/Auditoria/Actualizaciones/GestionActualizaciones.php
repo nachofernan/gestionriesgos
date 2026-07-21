@@ -233,9 +233,13 @@ class GestionActualizaciones extends Component
     }
 
     /**
-     * Whitelist de campos editables por tipo de entidad: define tanto los inputs
-     * que se renderizan en el modal como los únicos campos que guardar() puede
-     * llegar a escribir.
+     * Campos editables por tipo de entidad: gobierna qué inputs se renderizan en
+     * el modal. No es una whitelist server-side: guardar() escribe lo que venga en
+     * la propiedad pública `cambios`, así que este listado acota la UI, no lo que
+     * el componente podría llegar a escribir. La doble validación de cambios de
+     * campos de un riesgo compartido sigue viva por debajo aunque el modal ya no
+     * exponga esos campos ('riesgo' => []); se re-expondrá cuando se resuelva el
+     * mecanismo pendiente para nombre/descripción.
      */
     private function camposEditables(): array
     {
