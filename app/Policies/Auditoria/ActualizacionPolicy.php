@@ -12,12 +12,18 @@ use App\Models\User;
  */
 class ActualizacionPolicy
 {
-    /** Sólo un gerente que gestione la entidad relacionada, y sólo si sigue en borrador. */
+    /**
+     * Sólo un gerente que gestione la entidad relacionada, y sólo si sigue en
+     * borrador. Bajo doble validación, además, la gerencia que ya emitió su voto
+     * (incluida la del proponente, que vota a favor al proponer) no vuelve a
+     * validar: el botón le desaparece y sólo espera al resto (ver yaVoto()).
+     */
     public function validar(User $user, Actualizacion $actualizacion): bool
     {
         return $user->esGerente()
             && $this->gestionaEntidad($user, $actualizacion)
-            && $actualizacion->estado?->nombre === 'borrador';
+            && $actualizacion->estado?->nombre === 'borrador'
+            && ! $this->yaVoto($user, $actualizacion);
     }
 
     /** Comité, sin restricción de área (aprobar es potestad del comité a nivel global). */
@@ -27,12 +33,30 @@ class ActualizacionPolicy
             && $actualizacion->estado?->nombre === 'validado';
     }
 
-    /** Igual que validar(): gerente que gestione la entidad relacionada, sólo en borrador. */
+    /** Igual que validar(): gerente que gestione la entidad, sólo en borrador y si su gerencia no votó. */
     public function rechazar(User $user, Actualizacion $actualizacion): bool
     {
         return $user->esGerente()
             && $this->gestionaEntidad($user, $actualizacion)
-            && $actualizacion->estado?->nombre === 'borrador';
+            && $actualizacion->estado?->nombre === 'borrador'
+            && ! $this->yaVoto($user, $actualizacion);
+    }
+
+    /**
+     * true si, bajo doble validación, la gerencia del usuario ya emitió su voto
+     * sobre esta propuesta. Fuera de la doble validación siempre es false (no hay
+     * votos por gerencia y rige el flujo de siempre).
+     */
+    private function yaVoto(User $user, Actualizacion $actualizacion): bool
+    {
+        if (! $actualizacion->requiereDobleValidacion()) {
+            return false;
+        }
+
+        $gerencia = $user->areaGerencia();
+
+        return $gerencia
+            && $actualizacion->validacionesGerencia()->where('area_id', $gerencia->id)->exists();
     }
 
     /**

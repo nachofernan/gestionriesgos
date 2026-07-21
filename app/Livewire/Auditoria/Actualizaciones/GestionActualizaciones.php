@@ -83,11 +83,10 @@ class GestionActualizaciones extends Component
 
         // Un riesgo con dos o más gerencias no aplica un cambio de una: la propuesta
         // nace pendiente (borrador) y necesita el voto de todas las gerencias (ver
-        // Actualizacion::requiereDobleValidacion()). El comité queda afuera: es la
+        // Riesgo::cambioRequiereDobleValidacion()). El comité queda afuera: es la
         // cúspide y valida solo, sin depender de las gerencias.
         $dobleValidacion = $model instanceof Riesgo
-            && $model->esMultigerencia()
-            && ! Auth::user()->esComite();
+            && $model->cambioRequiereDobleValidacion(Auth::user());
 
         $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 

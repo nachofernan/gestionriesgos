@@ -156,8 +156,8 @@ class GestionAreas extends Component
         // Si el riesgo ya es compartido (>=2 gerencias), este cambio no se aplica de
         // una: nace pendiente y necesita el voto de todas. Pasar de 1 a 2 gerencias
         // no cuenta (el padrón previo es una sola), así que la primera vez se aplica
-        // con la sola validación del proponente.
-        $dobleValidacion = $riesgo->esMultigerencia();
+        // con la sola validación del proponente. El comité queda afuera de la regla.
+        $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
 
         $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 

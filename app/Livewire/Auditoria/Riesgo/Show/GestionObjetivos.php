@@ -2,11 +2,11 @@
 
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
-use Livewire\Component;
-use App\Models\Auditoria\Riesgo;
-use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\Objetivo;
+use App\Models\Auditoria\Riesgo;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 /**
  * Gestión de los Objetivos asociados a un Riesgo (patrón $seleccionados en
@@ -19,11 +19,17 @@ use Illuminate\Support\Facades\Auth;
 class GestionObjetivos extends Component
 {
     public int $riesgoId;
+
     public bool $modalAbierto = false;
+
     public bool $editando = false;
+
     public bool $esBorrador = true;
+
     public string $estadoModelo = 'borrador';
+
     public string $busqueda = '';
+
     public string $error = '';
 
     /** @var array<int, array{id:int, nombre:string}> */
@@ -69,20 +75,22 @@ class GestionObjetivos extends Component
         }
 
         $objetivo = Objetivo::with(['estado', 'area'])->find($objetivoId);
-        if (!$objetivo) return;
+        if (! $objetivo) {
+            return;
+        }
 
         $this->seleccionados[] = [
-            'id'             => $objetivo->id,
-            'nombre'         => $objetivo->nombre,
-            'descripcion'    => $objetivo->descripcion,
-            'estado'         => $objetivo->estado?->nombre ?? 'borrador',
-            'estado_color'   => $objetivo->estado?->color ?? 'gray',
-            'area'           => $objetivo->area?->nombre,
+            'id' => $objetivo->id,
+            'nombre' => $objetivo->nombre,
+            'descripcion' => $objetivo->descripcion,
+            'estado' => $objetivo->estado?->nombre ?? 'borrador',
+            'estado_color' => $objetivo->estado?->color ?? 'gray',
+            'area' => $objetivo->area?->nombre,
             'fecha_objetivo' => $objetivo->fecha_objetivo?->format('d/m/Y'),
-            'estrategico'    => (bool)$objetivo->estrategico,
-            'anticorrupcion' => (bool)$objetivo->anticorrupcion,
-            'puede_ver'      => Auth::user()->can('view', $objetivo),
-            'url'            => route('auditoria.objetivos.show', $objetivo->id),
+            'estrategico' => (bool) $objetivo->estrategico,
+            'anticorrupcion' => (bool) $objetivo->anticorrupcion,
+            'puede_ver' => Auth::user()->can('view', $objetivo),
+            'url' => route('auditoria.objetivos.show', $objetivo->id),
         ];
 
         $this->error = '';
@@ -93,11 +101,12 @@ class GestionObjetivos extends Component
     {
         if (count($this->seleccionados) <= 1) {
             $this->error = 'El riesgo debe tener al menos un objetivo asociado.';
+
             return;
         }
 
         $this->seleccionados = array_values(
-            array_filter($this->seleccionados, fn($o) => $o['id'] !== $objetivoId)
+            array_filter($this->seleccionados, fn ($o) => $o['id'] !== $objetivoId)
         );
         $this->error = '';
     }
@@ -112,6 +121,7 @@ class GestionObjetivos extends Component
     {
         if (empty($this->seleccionados)) {
             $this->error = 'Debe seleccionar al menos un objetivo.';
+
             return;
         }
 
@@ -124,41 +134,52 @@ class GestionObjetivos extends Component
             $this->error = '';
             session()->flash('ok', 'Objetivos actualizados.');
         } else {
-            $estadoId = $this->estadoParaActualizacion();
+            // Riesgo compartido entre gerencias: el cambio no se aplica de una,
+            // nace pendiente y el proponente vota a favor por su gerencia (ver
+            // Riesgo::cambioRequiereDobleValidacion()).
+            $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
+            $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 
             $riesgo->load('objetivos');
-            $antesItems = $riesgo->objetivos->map(fn($o) => ['id' => $o->id, 'nombre' => $o->nombre]);
-            $antesIds   = $antesItems->pluck('id');
-            $despues    = collect($this->seleccionados);
+            $antesItems = $riesgo->objetivos->map(fn ($o) => ['id' => $o->id, 'nombre' => $o->nombre]);
+            $antesIds = $antesItems->pluck('id');
+            $despues = collect($this->seleccionados);
 
             $diffRel = array_filter([
-                'agrega' => $despues->filter(fn($o) => !$antesIds->contains($o['id']))->values()->toArray(),
-                'quita'  => $antesItems->filter(fn($o) => !$despues->pluck('id')->contains($o['id']))->values()->toArray(),
-            ], fn($a) => !empty($a));
+                'agrega' => $despues->filter(fn ($o) => ! $antesIds->contains($o['id']))->values()->toArray(),
+                'quita' => $antesItems->filter(fn ($o) => ! $despues->pluck('id')->contains($o['id']))->values()->toArray(),
+            ], fn ($a) => ! empty($a));
 
             $data = ['tipo' => 'cambio', 'relaciones' => ['objetivos' => ['sync' => $ids]]];
-            if (!empty($diffRel)) $data['diff'] = ['relaciones' => ['objetivos' => $diffRel]];
+            if (! empty($diffRel)) {
+                $data['diff'] = ['relaciones' => ['objetivos' => $diffRel]];
+            }
 
-            $aplicarAhora = $estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
+            $aplicarAhora = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
+                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
 
             if ($aplicarAhora) {
                 $riesgo->objetivos()->sync($ids);
                 $riesgo->actualizaciones()->create([
-                    'user_id'   => Auth::id(),
-                    'mensaje'   => 'Objetivos asociados actualizados',
+                    'user_id' => Auth::id(),
+                    'mensaje' => 'Objetivos asociados actualizados',
                     'estado_id' => $estadoId,
-                    'data'      => $data,
+                    'data' => $data,
                 ]);
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Objetivos actualizados.');
             } else {
-                $riesgo->actualizaciones()->create([
-                    'user_id'   => Auth::id(),
-                    'mensaje'   => 'Propuesta de cambio en objetivos asociados',
+                $actualizacion = $riesgo->actualizaciones()->create([
+                    'user_id' => Auth::id(),
+                    'mensaje' => 'Propuesta de cambio en objetivos asociados',
                     'estado_id' => $estadoId,
-                    'data'      => $data,
+                    'data' => $data,
                 ]);
+
+                if ($dobleValidacion) {
+                    $actualizacion->registrarVoto(Auth::user(), true);
+                }
+
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
             }
@@ -179,6 +200,7 @@ class GestionObjetivos extends Component
         if ($user->esGerente() || $user->esComite()) {
             return Estado::validado()->id;
         }
+
         return Estado::borrador()->id;
     }
 
@@ -186,21 +208,21 @@ class GestionObjetivos extends Component
     {
         $riesgo = Riesgo::with(['objetivos.estado', 'objetivos.area', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
-        $this->esBorrador   = $this->estadoModelo === 'borrador';
+        $this->esBorrador = $this->estadoModelo === 'borrador';
 
         $user = Auth::user();
-        $this->seleccionados = $riesgo->objetivos->map(fn($o) => [
-            'id'             => $o->id,
-            'nombre'         => $o->nombre,
-            'descripcion'    => $o->descripcion,
-            'estado'         => $o->estado?->nombre ?? 'borrador',
-            'estado_color'   => $o->estado?->color ?? 'gray',
-            'area'           => $o->area?->nombre,
+        $this->seleccionados = $riesgo->objetivos->map(fn ($o) => [
+            'id' => $o->id,
+            'nombre' => $o->nombre,
+            'descripcion' => $o->descripcion,
+            'estado' => $o->estado?->nombre ?? 'borrador',
+            'estado_color' => $o->estado?->color ?? 'gray',
+            'area' => $o->area?->nombre,
             'fecha_objetivo' => $o->fecha_objetivo?->format('d/m/Y'),
-            'estrategico'    => (bool)$o->estrategico,
-            'anticorrupcion' => (bool)$o->anticorrupcion,
-            'puede_ver'      => $user->can('view', $o),
-            'url'            => route('auditoria.objetivos.show', $o->id),
+            'estrategico' => (bool) $o->estrategico,
+            'anticorrupcion' => (bool) $o->anticorrupcion,
+            'puede_ver' => $user->can('view', $o),
+            'url' => route('auditoria.objetivos.show', $o->id),
         ])->values()->toArray();
     }
 
@@ -211,7 +233,7 @@ class GestionObjetivos extends Component
         $resultados = $this->modalAbierto
             ? Objetivo::query()
                 ->visiblePara(Auth::user())
-                ->when($this->busqueda, fn($q) => $q->where('nombre', 'like', '%' . $this->busqueda . '%'))
+                ->when($this->busqueda, fn ($q) => $q->where('nombre', 'like', '%'.$this->busqueda.'%'))
                 ->whereNotIn('id', $yaIds)
                 ->orderBy('nombre')
                 ->limit(20)

@@ -187,6 +187,18 @@ class Riesgo extends Model implements HasMedia
         return count($this->gerenciaIds()) >= 2;
     }
 
+    /**
+     * Decide si una propuesta de cambio sobre este riesgo tiene que pasar por la
+     * doble validación: sólo cuando es compartido entre gerencias y quien propone
+     * no es el comité. El comité es la cúspide y valida solo, sin depender de las
+     * gerencias. Es la regla única que consultan los componentes que generan
+     * Actualizaciones (GestionActualizaciones/Areas/Controles/Planes/Objetivos).
+     */
+    public function cambioRequiereDobleValidacion(User $user): bool
+    {
+        return $this->esMultigerencia() && ! $user->esComite();
+    }
+
     public function controles(): BelongsToMany
     {
         return $this->belongsToMany(Control::class, 'control_riesgo')

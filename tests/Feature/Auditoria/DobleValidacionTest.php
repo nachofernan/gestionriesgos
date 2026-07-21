@@ -5,7 +5,9 @@ namespace Tests\Feature\Auditoria;
 use App\Enums\Auditoria\TipoArea;
 use App\Livewire\Auditoria\Actualizaciones\GestionActualizaciones;
 use App\Livewire\Auditoria\Riesgo\Show\GestionAreas;
+use App\Livewire\Auditoria\Riesgo\Show\GestionControles;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
@@ -197,6 +199,50 @@ class DobleValidacionTest extends TestCase
             ->assertSet('error', 'Hay una propuesta pendiente de validación en este riesgo. Resolvela antes de cambiar las gerencias.');
 
         $this->assertFalse($riesgo->refresh()->areas->pluck('id')->contains($gerC->id));
+    }
+
+    /** @test */
+    public function asociar_un_control_a_un_riesgo_compartido_queda_pendiente_hasta_que_todas_validan(): void
+    {
+        ['riesgo' => $riesgo, 'gerA' => $gerA, 'userA' => $userA, 'userB' => $userB] = $this->riesgoCompartido();
+        $control = Control::factory()->create(['area_id' => $gerA->id]);
+
+        Livewire::actingAs($userA)
+            ->test(GestionControles::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->call('agregar', $control->id)
+            ->call('guardar');
+
+        // La asociación no se aplica: nace pendiente y el proponente ya votó a favor.
+        $this->assertFalse($riesgo->refresh()->controles->pluck('id')->contains($control->id));
+        $act = $riesgo->actualizaciones()->latest('created_at')->first();
+        $this->assertEquals('borrador', $act->estado->nombre);
+        $this->assertTrue($act->validacionesGerencia()->where('area_id', $gerA->id)->value('aprueba'));
+
+        // La otra gerencia valida → se aplica el control.
+        Livewire::actingAs($userB)
+            ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
+            ->call('validarActualizacion', $act->id);
+
+        $this->assertTrue($riesgo->refresh()->controles->pluck('id')->contains($control->id));
+    }
+
+    /** @test */
+    public function el_proponente_no_puede_validar_ni_rechazar_su_propia_propuesta(): void
+    {
+        ['riesgo' => $riesgo, 'userA' => $userA, 'userB' => $userB] = $this->riesgoCompartido();
+
+        $this->proponerCambioNombre($userA, $riesgo, 'Nuevo Nombre');
+        $act = $riesgo->actualizaciones()->latest('created_at')->first();
+        $policy = new ActualizacionPolicy;
+
+        // El proponente ya votó a favor al proponer: no le quedan validar ni rechazar.
+        $this->assertFalse($policy->validar($userA, $act));
+        $this->assertFalse($policy->rechazar($userA, $act));
+
+        // La gerencia que todavía no votó sí puede resolver.
+        $this->assertTrue($policy->validar($userB, $act));
+        $this->assertTrue($policy->rechazar($userB, $act));
     }
 
     /** @test */

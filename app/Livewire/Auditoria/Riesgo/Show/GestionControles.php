@@ -143,7 +143,11 @@ class GestionControles extends Component
             $this->dispatch('residual-actualizado', valor: $this->residualActual());
             session()->flash('ok', 'Controles actualizados.');
         } else {
-            $estadoId = $this->estadoParaActualizacion();
+            // Riesgo compartido entre gerencias: el cambio no se aplica de una,
+            // nace pendiente y el proponente vota a favor por su gerencia (ver
+            // Riesgo::cambioRequiereDobleValidacion()).
+            $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
+            $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 
             $antesMap = $riesgo->controles->mapWithKeys(fn ($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => $c->pivot->mitigacion]]);
             $antesIds = $antesMap->keys();
@@ -168,8 +172,8 @@ class GestionControles extends Component
                 $data['diff'] = ['relaciones' => ['controles' => $diffRel]];
             }
 
-            $aplicarAhora = $estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
+            $aplicarAhora = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
+                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
 
             if ($aplicarAhora) {
                 $riesgo->controles()->sync($sync);
@@ -182,12 +186,17 @@ class GestionControles extends Component
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Controles actualizados.');
             } else {
-                $riesgo->actualizaciones()->create([
+                $actualizacion = $riesgo->actualizaciones()->create([
                     'user_id' => Auth::id(),
                     'mensaje' => 'Propuesta de cambio en controles de mitigación',
                     'estado_id' => $estadoId,
                     'data' => $data,
                 ]);
+
+                if ($dobleValidacion) {
+                    $actualizacion->registrarVoto(Auth::user(), true);
+                }
+
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
             }
