@@ -3,6 +3,7 @@
 namespace App\Models\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Enums\Auditoria\TipoArea;
 use App\Models\Concerns\HasVisibilityScope;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -164,6 +165,26 @@ class Riesgo extends Model implements HasMedia
         return $this->areas->contains(
             fn (Area $area) => $user->puedeGestionarArea($area->id)
         );
+    }
+
+    /**
+     * IDs de las gerencias asociadas (las entradas del pivot que son tipo
+     * Gerencia; excluye el área puntual del creador). Es el padrón de gerencias
+     * que deben votar una propuesta de cambio bajo doble validación.
+     */
+    public function gerenciaIds(): array
+    {
+        return $this->areas()->where('tipo', TipoArea::Gerencia)->pluck('areas.id')->all();
+    }
+
+    /**
+     * true si el riesgo pertenece a dos o más gerencias: recién ahí aplica la
+     * doble validación (cada propuesta de cambio necesita el voto de todas). Con
+     * una sola gerencia el flujo es el de siempre (se aplica sin votos).
+     */
+    public function esMultigerencia(): bool
+    {
+        return count($this->gerenciaIds()) >= 2;
     }
 
     public function controles(): BelongsToMany

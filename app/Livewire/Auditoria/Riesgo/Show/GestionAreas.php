@@ -134,6 +134,15 @@ class GestionAreas extends Component
         $riesgo = Riesgo::with(['areas', 'estado'])->findOrFail($this->riesgoId);
         $this->authorize('gestionarGerencias', $riesgo);
 
+        // No se apilan cambios de gerencias sobre una propuesta todavía sin resolver:
+        // primero hay que validar (o rechazar) lo pendiente. Así el padrón de
+        // gerencias que debe votar una propuesta queda fijo mientras se resuelve.
+        if ($riesgo->actualizaciones()->where('estado_id', Estado::borrador()->id)->exists()) {
+            $this->error = 'Hay una propuesta pendiente de validación en este riesgo. Resolvela antes de cambiar las gerencias.';
+
+            return;
+        }
+
         // Las entradas no-gerencia del pivot (el área puntual del creador) no se
         // gestionan desde esta UI: se preservan al sincronizar para no dejar sin
         // acceso a quien creó el borrador. $seleccionados sólo trae gerencias.
@@ -144,7 +153,13 @@ class GestionAreas extends Component
             ->values()
             ->toArray();
 
-        $estadoId = $this->estadoParaActualizacion();
+        // Si el riesgo ya es compartido (>=2 gerencias), este cambio no se aplica de
+        // una: nace pendiente y necesita el voto de todas. Pasar de 1 a 2 gerencias
+        // no cuenta (el padrón previo es una sola), así que la primera vez se aplica
+        // con la sola validación del proponente.
+        $dobleValidacion = $riesgo->esMultigerencia();
+
+        $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 
         // El diff (registro de auditoría legible) se calcula sólo sobre las
         // gerencias visibles: el área puntual oculta no es un cambio que el
@@ -164,8 +179,8 @@ class GestionAreas extends Component
             $data['diff'] = ['relaciones' => ['areas' => $diffRel]];
         }
 
-        $aplicarAhora = $estadoId === Estado::aprobado()->id
-            || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
+        $aplicarAhora = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
+            || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
 
         if ($aplicarAhora) {
             $riesgo->areas()->sync($ids);
@@ -178,12 +193,18 @@ class GestionAreas extends Component
             $this->cancelarEdicion();
             session()->flash('ok', 'Gerencias actualizadas.');
         } else {
-            $riesgo->actualizaciones()->create([
+            $actualizacion = $riesgo->actualizaciones()->create([
                 'user_id' => Auth::id(),
                 'mensaje' => 'Propuesta de cambio en gerencias asociadas',
                 'estado_id' => $estadoId,
                 'data' => $data,
             ]);
+
+            // El proponente vota a favor por su propia gerencia al crear la propuesta.
+            if ($dobleValidacion) {
+                $actualizacion->registrarVoto(Auth::user(), true);
+            }
+
             $this->cancelarEdicion();
             session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
         }

@@ -80,7 +80,16 @@ class GestionActualizaciones extends Component
 
         $model = $this->resolverModelo();
         $this->authorize('update', $model);
-        $estadoId = $this->estadoParaActualizacion();
+
+        // Un riesgo con dos o más gerencias no aplica un cambio de una: la propuesta
+        // nace pendiente (borrador) y necesita el voto de todas las gerencias (ver
+        // Actualizacion::requiereDobleValidacion()). El comité queda afuera: es la
+        // cúspide y valida solo, sin depender de las gerencias.
+        $dobleValidacion = $model instanceof Riesgo
+            && $model->esMultigerencia()
+            && ! Auth::user()->esComite();
+
+        $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 
         $diff = [];
         foreach ($campos as $campo => $nuevo) {
@@ -98,9 +107,9 @@ class GestionActualizaciones extends Component
             }
         }
 
-        $actualizacion = DB::transaction(function () use ($model, $campos, $estadoId, $data) {
-            $aplicar = $estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
+        $actualizacion = DB::transaction(function () use ($model, $campos, $estadoId, $data, $dobleValidacion) {
+            $aplicar = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
+                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
 
             $dataFinal = empty($campos) ? ['tipo' => 'cambio'] : $data;
             if ($aplicar && ! empty($campos)) {
@@ -116,6 +125,11 @@ class GestionActualizaciones extends Component
 
             if ($aplicar && ! empty($campos)) {
                 $model->update($campos);
+            }
+
+            // El proponente vota a favor por su propia gerencia al crear la propuesta.
+            if ($dobleValidacion) {
+                $actualizacion->registrarVoto(Auth::user(), true);
             }
 
             return $actualizacion;
@@ -155,11 +169,25 @@ class GestionActualizaciones extends Component
     /**
      * Valida la actualización y, si la entidad ya estaba en estado "validado",
      * la aprueba en el mismo paso aplicando sus cambios (ver Actualizacion::marcarValidada()).
+     *
+     * Bajo doble validación (riesgo con varias gerencias) esto no valida directo:
+     * registra el voto a favor de la gerencia del usuario y sólo cuando TODAS las
+     * gerencias votaron a favor se marca validada (y se aplica).
      */
     public function validarActualizacion(int $actualizacionId): void
     {
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('validar', $actualizacion);
+
+        if ($actualizacion->requiereDobleValidacion()) {
+            $actualizacion->registrarVoto(Auth::user(), true);
+            if ($actualizacion->todasLasGerenciasValidaron()) {
+                $actualizacion->marcarValidada(Auth::user());
+            }
+
+            return;
+        }
+
         $actualizacion->marcarValidada(Auth::user());
     }
 
@@ -178,10 +206,19 @@ class GestionActualizaciones extends Component
         $actualizacion->marcarAprobada(Auth::user());
     }
 
+    /**
+     * Rechaza la propuesta. Bajo doble validación deja registrado el voto en contra
+     * de la gerencia; un solo rechazo tumba el cambio y queda todo como estaba.
+     */
     public function rechazarActualizacion(int $actualizacionId): void
     {
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('rechazar', $actualizacion);
+
+        if ($actualizacion->requiereDobleValidacion()) {
+            $actualizacion->registrarVoto(Auth::user(), false);
+        }
+
         $actualizacion->marcarRechazada();
     }
 

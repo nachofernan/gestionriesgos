@@ -2,15 +2,17 @@
 
 namespace App\Models\Auditoria;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Enums\Auditoria\TipoArea;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use App\Models\Auditoria\Estado;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use App\Models\User;
 
 /**
  * Registro polimórfico (actualizable: Riesgo, Control, Objetivo, PlanAccion o
@@ -28,6 +30,7 @@ class Actualizacion extends Model implements HasMedia
     protected $table = 'actualizaciones';
 
     public $timestamps = false;
+
     const CREATED_AT = 'created_at';
 
     protected $fillable = [
@@ -41,7 +44,7 @@ class Actualizacion extends Model implements HasMedia
     {
         // Requiere que exista el estado "borrador" (ver EstadoRiesgoSeeder).
         static::creating(function ($actualizacion) {
-            if (!$actualizacion->estado_id) {
+            if (! $actualizacion->estado_id) {
                 $borrador = Estado::borrador();
                 if ($borrador) {
                     $actualizacion->estado_id = $borrador->id;
@@ -75,6 +78,70 @@ class Actualizacion extends Model implements HasMedia
         return $this->belongsTo(Estado::class, 'estado_id');
     }
 
+    public function validacionesGerencia(): HasMany
+    {
+        return $this->hasMany(ValidacionGerencia::class);
+    }
+
+    // -------------------------------------------------------
+    // Doble validación (riesgos compartidos entre gerencias)
+    // -------------------------------------------------------
+
+    /**
+     * true si esta propuesta pertenece a un riesgo con dos o más gerencias: sólo
+     * en ese caso el cambio no se aplica de una y necesita el voto de todas las
+     * gerencias asociadas. Para el resto de entidades (y riesgos mono-gerencia)
+     * es false y rige el flujo de validación de siempre.
+     */
+    public function requiereDobleValidacion(): bool
+    {
+        $model = $this->actualizable;
+
+        return $model instanceof Riesgo && $model->esMultigerencia();
+    }
+
+    /**
+     * Registra (o cambia) el voto de la gerencia del usuario sobre esta propuesta.
+     * `aprueba` = validar (true) / rechazar (false). Cada gerencia vota una sola
+     * vez; el proponente vota a favor al crear la propuesta.
+     */
+    public function registrarVoto(User $usuario, bool $aprueba): void
+    {
+        $gerencia = $usuario->areaGerencia();
+        if (! $gerencia) {
+            return;
+        }
+
+        $this->validacionesGerencia()->updateOrCreate(
+            ['area_id' => $gerencia->id],
+            ['user_id' => $usuario->id, 'aprueba' => $aprueba],
+        );
+    }
+
+    /** true cuando todas las gerencias asociadas al riesgo votaron a favor. */
+    public function todasLasGerenciasValidaron(): bool
+    {
+        $gerenciaIds = $this->actualizable->gerenciaIds();
+        if (empty($gerenciaIds)) {
+            return false;
+        }
+
+        $aFavor = $this->validacionesGerencia()->where('aprueba', true)->pluck('area_id');
+
+        return collect($gerenciaIds)->every(fn ($id) => $aFavor->contains($id));
+    }
+
+    /** Nombres de las gerencias que todavía no votaron a favor (para mostrar en la UI). */
+    public function gerenciasPendientes(): Collection
+    {
+        $aFavor = $this->validacionesGerencia()->where('aprueba', true)->pluck('area_id');
+
+        return $this->actualizable->areas()
+            ->where('tipo', TipoArea::Gerencia)
+            ->whereNotIn('areas.id', $aFavor)
+            ->pluck('nombre');
+    }
+
     /**
      * Valida la actualización y, si la entidad relacionada ya estaba en
      * "validado", aplica los cambios en el mismo paso (no espera una
@@ -98,7 +165,7 @@ class Actualizacion extends Model implements HasMedia
         DB::transaction(function () use ($usuario) {
             $this->update([
                 'estado_id' => Estado::aprobado()->id,
-                'data'      => array_merge($this->data ?? [], ['activated_by' => $usuario->name]),
+                'data' => array_merge($this->data ?? [], ['activated_by' => $usuario->name]),
             ]);
             $this->fresh()->aplicarCambios();
         });
@@ -119,15 +186,19 @@ class Actualizacion extends Model implements HasMedia
     public function aplicarCambios(): void
     {
         $data = $this->data ?? [];
-        if (empty($data)) return;
+        if (empty($data)) {
+            return;
+        }
 
         $tipo = $data['tipo'] ?? null;
-        if ($tipo !== null && $tipo !== 'cambio') return;
+        if ($tipo !== null && $tipo !== 'cambio') {
+            return;
+        }
 
         $model = $this->actualizable;
 
         if (isset($data['campos']) || isset($data['relaciones'])) {
-            if (!empty($data['campos'])) {
+            if (! empty($data['campos'])) {
                 $model->update($data['campos']);
             }
         } else {
@@ -135,11 +206,17 @@ class Actualizacion extends Model implements HasMedia
             $model->update(collect($data)->except(['tipo', 'diff', 'activated_by'])->toArray());
         }
 
-        if (!empty($data['relaciones'])) {
+        if (! empty($data['relaciones'])) {
             foreach ($data['relaciones'] as $relacion => $ops) {
-                if (isset($ops['sync']))   $model->$relacion()->sync($ops['sync']);
-                if (isset($ops['attach'])) $model->$relacion()->attach($ops['attach']);
-                if (isset($ops['detach'])) $model->$relacion()->detach($ops['detach']);
+                if (isset($ops['sync'])) {
+                    $model->$relacion()->sync($ops['sync']);
+                }
+                if (isset($ops['attach'])) {
+                    $model->$relacion()->attach($ops['attach']);
+                }
+                if (isset($ops['detach'])) {
+                    $model->$relacion()->detach($ops['detach']);
+                }
             }
         }
     }

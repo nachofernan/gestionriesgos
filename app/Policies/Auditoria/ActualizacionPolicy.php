@@ -3,6 +3,7 @@
 namespace App\Policies\Auditoria;
 
 use App\Models\Auditoria\Actualizacion;
+use App\Models\Auditoria\Riesgo;
 use App\Models\User;
 
 /**
@@ -11,12 +12,11 @@ use App\Models\User;
  */
 class ActualizacionPolicy
 {
-    /** Sólo el gerente del área de la entidad relacionada, y sólo si sigue en borrador. */
+    /** Sólo un gerente que gestione la entidad relacionada, y sólo si sigue en borrador. */
     public function validar(User $user, Actualizacion $actualizacion): bool
     {
-        $areaId = $actualizacion->actualizable?->area_id;
         return $user->esGerente()
-            && $user->puedeGestionarArea($areaId)
+            && $this->gestionaEntidad($user, $actualizacion)
             && $actualizacion->estado?->nombre === 'borrador';
     }
 
@@ -27,13 +27,28 @@ class ActualizacionPolicy
             && $actualizacion->estado?->nombre === 'validado';
     }
 
-    /** Igual que validar(): gerente del área de la entidad relacionada, sólo en borrador. */
+    /** Igual que validar(): gerente que gestione la entidad relacionada, sólo en borrador. */
     public function rechazar(User $user, Actualizacion $actualizacion): bool
     {
-        $areaId = $actualizacion->actualizable?->area_id;
         return $user->esGerente()
-            && $user->puedeGestionarArea($areaId)
+            && $this->gestionaEntidad($user, $actualizacion)
             && $actualizacion->estado?->nombre === 'borrador';
+    }
+
+    /**
+     * Si la entidad relacionada es un Riesgo, cualquiera de sus gerencias asociadas
+     * habilita (así el gerente de una gerencia compartida puede votar, no sólo el
+     * del área de origen). Para el resto de entidades, se usa su area_id.
+     */
+    private function gestionaEntidad(User $user, Actualizacion $actualizacion): bool
+    {
+        $model = $actualizacion->actualizable;
+
+        if ($model instanceof Riesgo) {
+            return $model->puedeGestionarAlgunaArea($user);
+        }
+
+        return $user->puedeGestionarArea($model?->area_id);
     }
 
     /** Sólo quien la creó, y sólo mientras sigue en borrador. */

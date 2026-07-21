@@ -54,6 +54,16 @@
                         </div>
                         <p class="text-sm text-gray-700">{{ $actualizacion->mensaje }}</p>
 
+                        {{-- Doble validación: gerencias que todavía no votaron a favor --}}
+                        @if($actualizacion->estado?->nombre === 'borrador' && $actualizacion->requiereDobleValidacion())
+                            @php $gerenciasPendientes = $actualizacion->gerenciasPendientes(); @endphp
+                            @if($gerenciasPendientes->isNotEmpty())
+                                <p class="mt-1 text-[11px] font-semibold text-amber-600">
+                                    Pendiente de validación de: {{ $gerenciasPendientes->join(', ') }}
+                                </p>
+                            @endif
+                        @endif
+
                         {{-- Detalle de cambios --}}
                         @if($tieneContenido && !$skipData)
                             <div class="mt-2 p-2 {{ $dataBg }} border {{ $dataBorder }} rounded-lg">
