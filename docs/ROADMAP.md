@@ -40,7 +40,8 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 - Notificaciones: falta definir canal (email, in-app, ambos) y qué eventos disparan aviso.
 - Vencimiento propio del Plan de Acción: hoy `planes_accion` no tiene columna de fecha, así que la pantalla de Vencimientos lista sólo tareas y no existe el aviso de "esta tarea vence después de su plan". Si se decide que el plan tenga fecha propia, la cascada es: migración (`fecha_limite` nullable) → modelo (`$fillable` + `$casts`) → formularios create/edit → show del plan → factory y seeders → fila de plan en Vencimientos → aviso no bloqueante al asociar tareas en `GestionTareas` + marca de inconsistencia en el show del plan. Derivarla del `max(fecha)` de las tareas no sirve: haría el aviso imposible por construcción.
 - Pendientes: aprobación/validación en bloque (varios ítems a la vez con un modal previo que liste todo lo que se va a hacer). Se evaluó al construir la pantalla de Pendientes y se decidió no hacerlo todavía — requiere resolver el análisis de prerequisitos bloqueantes/opcionales por cada ítem seleccionado, no sólo por uno.
+- Recuperación de tareas soft-deleted: las tareas rechazadas (estado `borrado`) siguen siendo encontrables desde el listado de Tareas filtrando por estado (ver [2026-07-21c](updates/2026-07-21c.md)), pero las tareas eliminadas con `destroy()` (soft-delete) no son visibles en ninguna vista. Si se quiere una papelera / `withTrashed` para recuperarlas, falta definir alcance.
 
 ---
 
-*Última revisión: 2026-07-21.*
+*Última revisión: 2026-07-21 (ter).*

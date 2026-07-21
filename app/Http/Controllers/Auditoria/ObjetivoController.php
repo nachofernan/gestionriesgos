@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Controller;
-use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\Objetivo;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +29,7 @@ class ObjetivoController extends Controller
 
     public function create()
     {
-        $areas    = Area::orderBy('nombre')->get();
+        $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 
         return view('auditoria.objetivo.create', compact('areas', 'usuarios'));
@@ -40,28 +40,28 @@ class ObjetivoController extends Controller
         $this->authorize('create', [Objetivo::class, $request->input('area_id')]);
 
         $data = $request->validate([
-            'nombre'         => 'required|string|max:255',
-            'descripcion'    => 'nullable|string',
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
             'fecha_objetivo' => 'nullable|date',
-            'estrategico'    => 'boolean',
+            'estrategico' => 'boolean',
             'anticorrupcion' => 'boolean',
-            'area_id'        => 'nullable|exists:areas,id',
-            'user_id'        => 'nullable|exists:users,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'user_id' => 'nullable|exists:users,id',
         ]);
-        $data['estrategico']   = $request->boolean('estrategico');
+        $data['estrategico'] = $request->boolean('estrategico');
         $data['anticorrupcion'] = $request->boolean('anticorrupcion');
 
         $data['user_id'] = $data['user_id'] ?? Auth::id();
         $objetivo = Objetivo::create($data);
         $objetivo->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => 'Objetivo creado',
+            'user_id' => Auth::id(),
+            'mensaje' => 'Objetivo creado',
             'estado_id' => Estado::borrador()->id,
-            'data'      => ['tipo' => 'creacion', 'campos' => [
-                'nombre'         => $objetivo->nombre,
-                'descripcion'    => $objetivo->descripcion,
+            'data' => ['tipo' => 'creacion', 'campos' => [
+                'nombre' => $objetivo->nombre,
+                'descripcion' => $objetivo->descripcion,
                 'fecha_objetivo' => $objetivo->fecha_objetivo?->format('Y-m-d'),
-                'estrategico'    => $objetivo->estrategico,
+                'estrategico' => $objetivo->estrategico,
                 'anticorrupcion' => $objetivo->anticorrupcion,
             ]],
         ]);
@@ -74,6 +74,9 @@ class ObjetivoController extends Controller
         $this->authorize('view', $objetivo);
         $objetivo->load([
             'riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area',
+            // riesgos.controles.estado: lo usa el accessor valor_residual (sólo mitigan
+            // los controles aprobados); antes no se cargaba y generaba N+1.
+            'riesgos.controles.estado',
             'riesgos.planesAccion.estado', 'riesgos.planesAccion.area',
             'riesgos.planesAccion.tareas.estado', 'riesgos.planesAccion.tareas.area', 'riesgos.planesAccion.tareas.user',
             'user', 'area',
@@ -91,7 +94,7 @@ class ObjetivoController extends Controller
                 ->with('error', 'El objetivo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
-        $areas    = Area::orderBy('nombre')->get();
+        $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 
         return view('auditoria.objetivo.edit', compact('objetivo', 'areas', 'usuarios'));
@@ -107,15 +110,15 @@ class ObjetivoController extends Controller
         }
 
         $data = $request->validate([
-            'nombre'         => 'required|string|max:255',
-            'descripcion'    => 'nullable|string',
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
             'fecha_objetivo' => 'nullable|date',
-            'estrategico'    => 'boolean',
+            'estrategico' => 'boolean',
             'anticorrupcion' => 'boolean',
-            'area_id'        => 'nullable|exists:areas,id',
-            'user_id'        => 'nullable|exists:users,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'user_id' => 'nullable|exists:users,id',
         ]);
-        $data['estrategico']    = $request->boolean('estrategico');
+        $data['estrategico'] = $request->boolean('estrategico');
         $data['anticorrupcion'] = $request->boolean('anticorrupcion');
 
         $original = $objetivo->only(array_keys($data));
@@ -127,12 +130,12 @@ class ObjetivoController extends Controller
                 $diff[$campo] = ['antes' => $original[$campo], 'despues' => $nuevo];
             }
         }
-        if (!empty($diff)) {
+        if (! empty($diff)) {
             $objetivo->actualizaciones()->create([
-                'user_id'   => Auth::id(),
-                'mensaje'   => 'Borrador modificado',
+                'user_id' => Auth::id(),
+                'mensaje' => 'Borrador modificado',
                 'estado_id' => Estado::borrador()->id,
-                'data'      => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
+                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
             ]);
         }
 
@@ -163,10 +166,10 @@ class ObjetivoController extends Controller
             ->update(['estado_id' => Estado::validado()->id]);
 
         $objetivo->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => 'Validado por ' . Auth::user()->name,
+            'user_id' => Auth::id(),
+            'mensaje' => 'Validado por '.Auth::user()->name,
             'estado_id' => Estado::validado()->id,
-            'data'      => ['tipo' => 'validacion'],
+            'data' => ['tipo' => 'validacion'],
         ]);
 
         return back()->with('ok', 'Objetivo validado correctamente.');
@@ -191,7 +194,7 @@ class ObjetivoController extends Controller
             }
 
             $objetivo->update(['estado_id' => Estado::aprobado()->id]);
-            $this->logAprobado($objetivo, 'Aprobado por ' . Auth::user()->name);
+            $this->logAprobado($objetivo, 'Aprobado por '.Auth::user()->name);
         });
 
         return back()->with('ok', 'Objetivo aprobado correctamente.');
@@ -202,7 +205,7 @@ class ObjetivoController extends Controller
         $this->authorize('rechazar', $objetivo);
 
         $objetivo->update(['estado_id' => Estado::borrado()->id]);
-        $this->logAprobado($objetivo, 'Rechazado por ' . Auth::user()->name);
+        $this->logAprobado($objetivo, 'Rechazado por '.Auth::user()->name);
 
         return back()->with('ok', 'Objetivo rechazado.');
     }
@@ -215,10 +218,10 @@ class ObjetivoController extends Controller
     private function logAprobado($model, string $mensaje, array $campos = []): void
     {
         $model->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => $mensaje,
+            'user_id' => Auth::id(),
+            'mensaje' => $mensaje,
             'estado_id' => Estado::aprobado()->id,
-            'data'      => empty($campos) ? null : ['campos' => $campos],
+            'data' => empty($campos) ? null : ['campos' => $campos],
         ]);
     }
 
@@ -232,20 +235,30 @@ class ObjetivoController extends Controller
     private function aplicarCambiosActualizacion($actualizacion, $model): void
     {
         $data = $actualizacion->data ?? [];
-        if (empty($data)) return;
+        if (empty($data)) {
+            return;
+        }
 
         $tipo = $data['tipo'] ?? null;
-        if ($tipo !== null && $tipo !== 'cambio') return;
+        if ($tipo !== null && $tipo !== 'cambio') {
+            return;
+        }
 
-        if (!empty($data['campos'])) {
+        if (! empty($data['campos'])) {
             $model->update($data['campos']);
         }
 
-        if (!empty($data['relaciones'])) {
+        if (! empty($data['relaciones'])) {
             foreach ($data['relaciones'] as $relacion => $ops) {
-                if (isset($ops['sync']))   $model->$relacion()->sync($ops['sync']);
-                if (isset($ops['attach'])) $model->$relacion()->attach($ops['attach']);
-                if (isset($ops['detach'])) $model->$relacion()->detach($ops['detach']);
+                if (isset($ops['sync'])) {
+                    $model->$relacion()->sync($ops['sync']);
+                }
+                if (isset($ops['attach'])) {
+                    $model->$relacion()->attach($ops['attach']);
+                }
+                if (isset($ops['detach'])) {
+                    $model->$relacion()->detach($ops['detach']);
+                }
             }
         }
     }

@@ -2,18 +2,26 @@
 
 namespace Tests\Feature\Auditoria;
 
+use App\Livewire\Auditoria\PlanAccion\Show\GestionTareas;
+use App\Livewire\Auditoria\Riesgo\Show\GestionControles;
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
+use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Cubre la mitigación por plan de acción en el pivot plan_accion_riesgo: sólo
- * descuenta del valor_residual cuando el plan está al 100% de avance, y se
- * combina de forma aditiva con la mitigación de los controles.
+ * Cubre las tres reglas de mitigación del valor_residual:
+ * 1) Sólo los controles en estado "aprobado" descuentan mitigación.
+ * 2) El avance del plan promedia sólo las tareas aprobadas; las tareas en estado
+ *    "borrado" quedan fuera del plan (no cuentan ni se muestran).
+ * 3) La mitigación de un plan sólo cuenta cuando el plan está al 100% de avance,
+ *    combinada de forma aditiva con la de los controles.
  */
 class MitigacionPlanTest extends TestCase
 {
@@ -25,13 +33,31 @@ class MitigacionPlanTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
     }
 
+    private function tareaConEstado(int $porcentaje, string $estado): Tarea
+    {
+        return Tarea::factory()->create([
+            'porcentaje_avance' => $porcentaje,
+            'estado_id' => Estado::where('nombre', $estado)->value('id'),
+        ]);
+    }
+
+    /** Plan con una única tarea aprobada al porcentaje dado (el caso que descuenta). */
     private function planCon(int $porcentaje): PlanAccion
     {
         $plan = PlanAccion::factory()->create();
-        $plan->tareas()->attach(Tarea::factory()->create(['porcentaje_avance' => $porcentaje]));
+        $plan->tareas()->attach($this->tareaConEstado($porcentaje, 'aprobado'));
 
         return $plan;
     }
+
+    private function controlAprobado(): Control
+    {
+        return Control::factory()->create(['estado_id' => Estado::aprobado()->id]);
+    }
+
+    // -------------------------------------------------------
+    // Regla 3 — mitigación de planes al 100%
+    // -------------------------------------------------------
 
     /** @test */
     public function un_plan_al_100_descuenta_su_mitigacion_del_valor_residual()
@@ -69,10 +95,10 @@ class MitigacionPlanTest extends TestCase
     }
 
     /** @test */
-    public function la_mitigacion_del_plan_y_la_de_los_controles_se_suman()
+    public function la_mitigacion_del_plan_y_la_de_los_controles_aprobados_se_suman()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $control = Control::factory()->create();
+        $control = $this->controlAprobado();
         $plan = $this->planCon(100);
 
         $riesgo->controles()->attach($control->id, ['mitigacion' => 5]);
@@ -90,5 +116,129 @@ class MitigacionPlanTest extends TestCase
         $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 20]);
 
         $this->assertEquals(0, $riesgo->fresh()->valor_residual);
+    }
+
+    // -------------------------------------------------------
+    // Regla 1 — sólo mitigan los controles aprobados
+    // -------------------------------------------------------
+
+    /** @test */
+    public function un_control_no_aprobado_no_baja_el_valor_residual()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $control = Control::factory()->create(['estado_id' => Estado::borrador()->id]);
+
+        $riesgo->controles()->attach($control->id, ['mitigacion' => 5]);
+
+        $this->assertEquals(16, $riesgo->fresh()->valor_residual); // el borrador no mitiga
+    }
+
+    /** @test */
+    public function al_aprobar_el_control_recien_ahi_baja_el_valor_residual()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $control = Control::factory()->create(['estado_id' => Estado::borrador()->id]);
+        $riesgo->controles()->attach($control->id, ['mitigacion' => 5]);
+
+        $this->assertEquals(16, $riesgo->fresh()->valor_residual);
+
+        $control->update(['estado_id' => Estado::aprobado()->id]);
+
+        $this->assertEquals(11, $riesgo->fresh()->valor_residual); // 16 - 5
+    }
+
+    /** @test */
+    public function el_preview_en_vivo_de_controles_solo_cuenta_los_aprobados()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $aprobado = Control::factory()->create(['estado_id' => Estado::aprobado()->id, 'mitigacion_default' => 5]);
+        $borrador = Control::factory()->create(['estado_id' => Estado::borrador()->id, 'mitigacion_default' => 3]);
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(GestionControles::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->call('agregar', $aprobado->id)
+            ->call('agregar', $borrador->id)
+            ->assertDispatched('residual-actualizado', valor: 11); // 16 - 5 (el borrador no descuenta)
+    }
+
+    // -------------------------------------------------------
+    // Regla 2 — avance por tareas aprobadas; "borrado" fuera del plan
+    // -------------------------------------------------------
+
+    /** @test */
+    public function una_tarea_aprobada_al_100_completa_el_plan()
+    {
+        $plan = $this->planCon(100);
+
+        $this->assertEquals(100, $plan->fresh()->avance);
+        $this->assertTrue($plan->fresh()->estaCompleto());
+    }
+
+    /** @test */
+    public function el_avance_del_plan_promedia_solo_las_tareas_aprobadas()
+    {
+        $plan = PlanAccion::factory()->create();
+        $plan->tareas()->attach($this->tareaConEstado(100, 'aprobado'));
+        $plan->tareas()->attach($this->tareaConEstado(0, 'borrador'));
+        $plan->tareas()->attach($this->tareaConEstado(50, 'validado'));
+
+        // Sólo la aprobada cuenta: promedio = 100, no (100+0+50)/3.
+        $this->assertEquals(100, $plan->fresh()->avance);
+    }
+
+    /** @test */
+    public function un_plan_sin_tareas_aprobadas_no_tiene_avance()
+    {
+        $plan = PlanAccion::factory()->create();
+        $plan->tareas()->attach($this->tareaConEstado(100, 'borrador'));
+        $plan->tareas()->attach($this->tareaConEstado(80, 'validado'));
+
+        $this->assertNull($plan->fresh()->avance);
+        $this->assertFalse($plan->fresh()->estaCompleto());
+    }
+
+    /** @test */
+    public function una_tarea_en_estado_borrado_no_cuenta_para_el_avance()
+    {
+        $plan = PlanAccion::factory()->create();
+        $plan->tareas()->attach($this->tareaConEstado(100, 'aprobado'));
+        $plan->tareas()->attach($this->tareaConEstado(0, 'borrado'));
+
+        $this->assertEquals(100, $plan->fresh()->avance);
+    }
+
+    /** @test */
+    public function una_tarea_en_estado_borrado_no_se_muestra_en_la_gestion_de_tareas_del_plan()
+    {
+        $plan = PlanAccion::factory()->create();
+        $vigente = $this->tareaConEstado(100, 'aprobado');
+        $borrada = $this->tareaConEstado(0, 'borrado');
+        $plan->tareas()->attach([$vigente->id, $borrada->id]);
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(GestionTareas::class, ['plan' => $plan])
+            ->assertSet('seleccionados', fn ($sel) => collect($sel)->pluck('id')->contains($vigente->id)
+                && ! collect($sel)->pluck('id')->contains($borrada->id))
+            ->assertSet('ocultosIds', [$borrada->id]);
+    }
+
+    /** @test */
+    public function guardar_tareas_de_un_plan_borrador_preserva_las_tareas_borrado_ocultas()
+    {
+        $plan = PlanAccion::factory()->create(); // borrador
+        $vigente = $this->tareaConEstado(100, 'aprobado');
+        $borrada = $this->tareaConEstado(0, 'borrado');
+        $plan->tareas()->attach([$vigente->id, $borrada->id]);
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(GestionTareas::class, ['plan' => $plan])
+            ->call('activarEdicion')
+            ->call('guardar');
+
+        // La tarea borrada oculta sigue asociada al pivot, no se detachó al guardar.
+        $idsPivot = $plan->fresh()->tareas->pluck('id');
+        $this->assertTrue($idsPivot->contains($borrada->id));
+        $this->assertTrue($idsPivot->contains($vigente->id));
     }
 }

@@ -144,8 +144,9 @@ class RiesgoController extends Controller
     public function show(Riesgo $riesgo)
     {
         $this->authorize('view', $riesgo);
-        // controles y planesAccion.tareas: los necesita el accessor valor_residual.
-        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'controles', 'planesAccion.tareas']);
+        // controles.estado y planesAccion.tareas.estado: los necesita el accessor
+        // valor_residual (sólo mitigan los controles aprobados y las tareas aprobadas).
+        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'controles.estado', 'planesAccion.tareas.estado']);
 
         return view('auditoria.riesgo.show', compact('riesgo'));
     }

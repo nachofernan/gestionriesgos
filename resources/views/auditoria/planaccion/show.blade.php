@@ -49,8 +49,14 @@
                     <p class="text-sm text-gray-700 mb-4">{{ $planAccion->descripcion }}</p>
                 @endif
 
-                @if($planAccion->tareas->count())
-                    @php $avg = round($planAccion->tareas->avg('porcentaje_avance')); @endphp
+                @php
+                    // Las tareas en estado "borrado" (rechazadas) no cuentan ni se muestran
+                    // en el plan; siguen siendo visibles desde el listado de Tareas.
+                    $tareasVigentes = $planAccion->tareas->reject(fn ($t) => $t->estado?->nombre === 'borrado');
+                    // Avance sólo sobre tareas aprobadas (ver PlanAccion::getAvanceAttribute).
+                    $avg = $planAccion->avance;
+                @endphp
+                @if($avg !== null)
                     <div class="mb-4">
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-xs text-gray-400 font-medium">Avance General</span>
@@ -63,10 +69,10 @@
                 @endif
 
                 @php
-                    $vencimientoPlan = $planAccion->tareas->whereNotNull('fecha')->max('fecha');
+                    $vencimientoPlan = $tareasVigentes->whereNotNull('fecha')->max('fecha');
                     $hoy = now()->startOfDay();
                     $planVencido = $vencimientoPlan && \Carbon\Carbon::parse($vencimientoPlan)->lt($hoy)
-                                   && ($planAccion->tareas->avg('porcentaje_avance') ?? 0) < 100;
+                                   && ! $planAccion->estaCompleto();
                 @endphp
                 <dl class="space-y-3 text-sm">
                     <div class="flex justify-between">

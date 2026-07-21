@@ -205,12 +205,15 @@ class GestionControles extends Component
 
     /**
      * Residual = valor total del riesgo menos la mitigación de los controles
-     * actualmente seleccionados menos la ya persistida de los planes al 100% (no
-     * persiste, es sólo para feedback en vivo).
+     * seleccionados que estén en estado "aprobado" menos la ya persistida de los
+     * planes al 100% (no persiste, es sólo para feedback en vivo). Refleja la misma
+     * regla que Riesgo::getValorResidualAttribute: un control no aprobado no mitiga.
      */
     private function residualActual(): int
     {
-        $mitigacion = array_sum(array_column($this->seleccionados, 'mitigacion'));
+        $mitigacion = collect($this->seleccionados)
+            ->filter(fn ($c) => ($c['estado'] ?? null) === 'aprobado')
+            ->sum('mitigacion');
 
         return max(0, $this->valorTotal - $mitigacion - $this->mitigacionPlanesBase);
     }
@@ -235,7 +238,7 @@ class GestionControles extends Component
 
     private function cargar(): void
     {
-        $riesgo = Riesgo::with(['controles.estado', 'controles.area', 'planesAccion.tareas', 'estado'])->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['controles.estado', 'controles.area', 'planesAccion.tareas.estado', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
         $this->esBorrador = $this->estadoModelo === 'borrador';
 

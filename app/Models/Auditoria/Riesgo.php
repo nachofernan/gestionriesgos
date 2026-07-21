@@ -236,15 +236,17 @@ class Riesgo extends Model implements HasMedia
     /**
      * Resta al valor_total la mitigación efectiva de los controles asociados (el
      * valor del pivot si fue ajustado para este riesgo puntual, o mitigacion_default
-     * del control) más la de los planes de acción que estén al 100% de avance. La
-     * mitigación de un plan sólo cuenta cuando el plan está completo; hasta entonces
-     * no descuenta nada. El residual nunca baja de 0.
+     * del control) más la de los planes de acción que estén al 100% de avance. Sólo
+     * mitigan los controles en estado "aprobado": un control en borrador/validado no
+     * baja el valor del riesgo. La mitigación de un plan sólo cuenta cuando el plan
+     * está completo; hasta entonces no descuenta nada. El residual nunca baja de 0.
+     * Consumir con `controles.estado` y `planesAccion.tareas.estado` eager-loaded.
      */
     public function getValorResidualAttribute(): int
     {
-        $mitigacionControles = $this->controles->sum(function ($control) {
-            return $control->pivot->mitigacion ?? $control->mitigacion_default;
-        });
+        $mitigacionControles = $this->controles
+            ->filter(fn ($control) => $control->estado?->nombre === 'aprobado')
+            ->sum(fn ($control) => $control->pivot->mitigacion ?? $control->mitigacion_default);
 
         $mitigacionPlanes = $this->planesAccion->sum(function ($plan) {
             return $plan->estaCompleto() ? ($plan->pivot->mitigacion ?? 0) : 0;

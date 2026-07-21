@@ -96,7 +96,7 @@ class GestionPlanes extends Component
             return;
         }
 
-        $plan = PlanAccion::with(['estado', 'area', 'tareas'])->find($planId);
+        $plan = PlanAccion::with(['estado', 'area', 'tareas.estado'])->find($planId);
         if (! $plan) {
             return;
         }
@@ -245,11 +245,14 @@ class GestionPlanes extends Component
 
     private function cargar(): void
     {
-        $riesgo = Riesgo::with(['planesAccion.estado', 'planesAccion.area', 'planesAccion.tareas', 'controles', 'estado'])->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['planesAccion.estado', 'planesAccion.area', 'planesAccion.tareas.estado', 'controles.estado', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
         $this->esBorrador = $this->estadoModelo === 'borrador';
 
-        $this->mitigacionControlesBase = (int) $riesgo->controles->sum(fn ($c) => $c->pivot->mitigacion ?? $c->mitigacion_default);
+        // Sólo los controles aprobados mitigan (misma regla que el accessor valor_residual).
+        $this->mitigacionControlesBase = (int) $riesgo->controles
+            ->filter(fn ($c) => $c->estado?->nombre === 'aprobado')
+            ->sum(fn ($c) => $c->pivot->mitigacion ?? $c->mitigacion_default);
 
         $user = Auth::user();
         $this->seleccionados = $riesgo->planesAccion->map(function ($p) use ($user) {

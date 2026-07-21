@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Controller;
-use App\Models\Auditoria\PlanAccion;
-use App\Models\Auditoria\Riesgo;
-use App\Models\Auditoria\Tarea;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\PlanAccion;
+use App\Models\Auditoria\Riesgo;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,9 +31,9 @@ class PlanAccionController extends Controller
 
     public function create()
     {
-        $riesgos        = Riesgo::visiblePara(Auth::user())->orderBy('nombre')->get();
-        $areas          = Area::orderBy('nombre')->get();
-        $usuarios       = User::orderBy('name')->get();
+        $riesgos = Riesgo::visiblePara(Auth::user())->orderBy('nombre')->get();
+        $areas = Area::orderBy('nombre')->get();
+        $usuarios = User::orderBy('name')->get();
         $codigoSugerido = $this->generarCodigo();
 
         return view('auditoria.planaccion.create', compact('riesgos', 'areas', 'usuarios', 'codigoSugerido'));
@@ -45,13 +44,13 @@ class PlanAccionController extends Controller
         $this->authorize('create', [PlanAccion::class, $request->input('area_id')]);
 
         $data = $request->validate([
-            'codigo'       => 'required|string|max:100|unique:planes_accion,codigo',
-            'nombre'       => 'required|string|max:255',
-            'descripcion'  => 'nullable|string',
-            'riesgo_ids'   => 'nullable|array',
+            'codigo' => 'required|string|max:100|unique:planes_accion,codigo',
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'riesgo_ids' => 'nullable|array',
             'riesgo_ids.*' => ['exists:riesgos,id', Rule::in(Riesgo::visiblePara(Auth::user())->pluck('id')->toArray())],
-            'area_id'      => 'nullable|exists:areas,id',
-            'user_id'      => 'nullable|exists:users,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
         $riesgoIds = $data['riesgo_ids'] ?? [];
@@ -59,16 +58,16 @@ class PlanAccionController extends Controller
         $data['user_id'] = $data['user_id'] ?? Auth::id();
 
         $plan = PlanAccion::create($data);
-        if (!empty($riesgoIds)) {
+        if (! empty($riesgoIds)) {
             $plan->riesgos()->sync($riesgoIds);
         }
         $plan->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => 'Plan de acción creado',
+            'user_id' => Auth::id(),
+            'mensaje' => 'Plan de acción creado',
             'estado_id' => Estado::borrador()->id,
-            'data'      => ['tipo' => 'creacion', 'campos' => [
-                'codigo'      => $plan->codigo,
-                'nombre'      => $plan->nombre,
+            'data' => ['tipo' => 'creacion', 'campos' => [
+                'codigo' => $plan->codigo,
+                'nombre' => $plan->nombre,
                 'descripcion' => $plan->descripcion,
             ]],
         ]);
@@ -79,7 +78,9 @@ class PlanAccionController extends Controller
     public function show(PlanAccion $planAccion)
     {
         $this->authorize('view', $planAccion);
-        $planAccion->load(['riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'tareas', 'user', 'area']);
+        // tareas.estado: lo necesita el accessor avance (sólo promedia tareas aprobadas)
+        // y la vista para ocultar las tareas en estado "borrado".
+        $planAccion->load(['riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'tareas.estado', 'user', 'area']);
 
         return view('auditoria.planaccion.show', compact('planAccion'));
     }
@@ -94,8 +95,8 @@ class PlanAccionController extends Controller
         }
 
         $planAccion->load('riesgos');
-        $riesgos  = Riesgo::visiblePara(Auth::user())->orderBy('nombre')->get();
-        $areas    = Area::orderBy('nombre')->get();
+        $riesgos = Riesgo::visiblePara(Auth::user())->orderBy('nombre')->get();
+        $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 
         return view('auditoria.planaccion.edit', compact('planAccion', 'riesgos', 'areas', 'usuarios'));
@@ -111,13 +112,13 @@ class PlanAccionController extends Controller
         }
 
         $data = $request->validate([
-            'codigo'       => 'required|string|max:100|unique:planes_accion,codigo,' . $planAccion->id,
-            'nombre'       => 'required|string|max:255',
-            'descripcion'  => 'nullable|string',
-            'riesgo_ids'   => 'nullable|array',
+            'codigo' => 'required|string|max:100|unique:planes_accion,codigo,'.$planAccion->id,
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'riesgo_ids' => 'nullable|array',
             'riesgo_ids.*' => ['exists:riesgos,id', Rule::in(Riesgo::visiblePara(Auth::user())->pluck('id')->toArray())],
-            'area_id'      => 'nullable|exists:areas,id',
-            'user_id'      => 'nullable|exists:users,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
         $riesgoIds = $data['riesgo_ids'] ?? [];
@@ -133,12 +134,12 @@ class PlanAccionController extends Controller
                 $diff[$campo] = ['antes' => $original[$campo], 'despues' => $nuevo];
             }
         }
-        if (!empty($diff)) {
+        if (! empty($diff)) {
             $planAccion->actualizaciones()->create([
-                'user_id'   => Auth::id(),
-                'mensaje'   => 'Borrador modificado',
+                'user_id' => Auth::id(),
+                'mensaje' => 'Borrador modificado',
                 'estado_id' => Estado::borrador()->id,
-                'data'      => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
+                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
             ]);
         }
 
@@ -163,7 +164,7 @@ class PlanAccionController extends Controller
         $this->authorize('update', $planAccion);
 
         $request->validate([
-            'tareas'   => 'nullable|array',
+            'tareas' => 'nullable|array',
             'tareas.*' => 'exists:tareas,id',
         ]);
 
@@ -187,10 +188,10 @@ class PlanAccionController extends Controller
             ->update(['estado_id' => Estado::validado()->id]);
 
         $planAccion->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => 'Validado por ' . Auth::user()->name,
+            'user_id' => Auth::id(),
+            'mensaje' => 'Validado por '.Auth::user()->name,
             'estado_id' => Estado::validado()->id,
-            'data'      => ['tipo' => 'validacion'],
+            'data' => ['tipo' => 'validacion'],
         ]);
 
         return back()->with('ok', 'Plan validado correctamente.');
@@ -215,7 +216,7 @@ class PlanAccionController extends Controller
             }
 
             $planAccion->update(['estado_id' => Estado::aprobado()->id]);
-            $this->logAprobado($planAccion, 'Aprobado por ' . Auth::user()->name);
+            $this->logAprobado($planAccion, 'Aprobado por '.Auth::user()->name);
         });
 
         return back()->with('ok', 'Plan aprobado correctamente.');
@@ -226,7 +227,7 @@ class PlanAccionController extends Controller
         $this->authorize('rechazar', $planAccion);
 
         $planAccion->update(['estado_id' => Estado::borrado()->id]);
-        $this->logAprobado($planAccion, 'Rechazado por ' . Auth::user()->name);
+        $this->logAprobado($planAccion, 'Rechazado por '.Auth::user()->name);
 
         return back()->with('ok', 'Plan rechazado.');
     }
@@ -239,10 +240,10 @@ class PlanAccionController extends Controller
     private function logAprobado($model, string $mensaje, array $campos = []): void
     {
         $model->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => $mensaje,
+            'user_id' => Auth::id(),
+            'mensaje' => $mensaje,
             'estado_id' => Estado::aprobado()->id,
-            'data'      => empty($campos) ? null : ['campos' => $campos],
+            'data' => empty($campos) ? null : ['campos' => $campos],
         ]);
     }
 
@@ -256,20 +257,30 @@ class PlanAccionController extends Controller
     private function aplicarCambiosActualizacion($actualizacion, $model): void
     {
         $data = $actualizacion->data ?? [];
-        if (empty($data)) return;
+        if (empty($data)) {
+            return;
+        }
 
         $tipo = $data['tipo'] ?? null;
-        if ($tipo !== null && $tipo !== 'cambio') return;
+        if ($tipo !== null && $tipo !== 'cambio') {
+            return;
+        }
 
-        if (!empty($data['campos'])) {
+        if (! empty($data['campos'])) {
             $model->update($data['campos']);
         }
 
-        if (!empty($data['relaciones'])) {
+        if (! empty($data['relaciones'])) {
             foreach ($data['relaciones'] as $relacion => $ops) {
-                if (isset($ops['sync']))   $model->$relacion()->sync($ops['sync']);
-                if (isset($ops['attach'])) $model->$relacion()->attach($ops['attach']);
-                if (isset($ops['detach'])) $model->$relacion()->detach($ops['detach']);
+                if (isset($ops['sync'])) {
+                    $model->$relacion()->sync($ops['sync']);
+                }
+                if (isset($ops['attach'])) {
+                    $model->$relacion()->attach($ops['attach']);
+                }
+                if (isset($ops['detach'])) {
+                    $model->$relacion()->detach($ops['detach']);
+                }
             }
         }
     }
@@ -284,6 +295,6 @@ class PlanAccionController extends Controller
         $ultimo = PlanAccion::withTrashed()->orderByDesc('id')->first();
         $numero = $ultimo ? (intval(preg_replace('/\D/', '', $ultimo->codigo)) + 1) : 1;
 
-        return 'PA-' . str_pad($numero, 4, '0', STR_PAD_LEFT);
+        return 'PA-'.str_pad($numero, 4, '0', STR_PAD_LEFT);
     }
 }

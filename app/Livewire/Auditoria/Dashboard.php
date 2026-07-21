@@ -2,14 +2,14 @@
 
 namespace App\Livewire\Auditoria;
 
-use Livewire\Component;
-use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
+use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
+use Livewire\Component;
 
 /**
  * Panel único con tabs para listar y hacer CRUD/asociaciones rápidas de las 5
@@ -31,10 +31,11 @@ class Dashboard extends Component
     // Modal genérico
     // -------------------------------------------------------
     public bool $modalAbierto = false;
+
     public string $modalTipo = ''; // crear_riesgo | editar_riesgo | crear_control | editar_control | crear_objetivo | editar_objetivo | crear_plan | editar_plan | crear_tarea | editar_tarea
-                                   // asociar_control | asociar_objetivo | asociar_tarea_riesgo
-                                   // asociar_tarea_plan
-    
+    // asociar_control | asociar_objetivo | asociar_tarea_riesgo
+    // asociar_tarea_plan
+
     // -------------------------------------------------------
     // Edición
     // -------------------------------------------------------
@@ -49,6 +50,7 @@ class Dashboard extends Component
     // Asociaciones
     // -------------------------------------------------------
     public ?int $entidadSeleccionadaId = null; // ID del riesgo/plan al que se asocia
+
     public array $idsParaAsociar = [];          // checkboxes seleccionados
 
     // -------------------------------------------------------
@@ -61,15 +63,15 @@ class Dashboard extends Component
         $this->modalTipo = $tipo;
         $this->modalAbierto = true;
     }
-    
+
     public function abrirModalEditar(string $tipo, int $entidadId): void
     {
         $this->entidadEditandoId = $entidadId;
         $this->cargarDatosEntidad($tipo, $entidadId);
-        $this->modalTipo = 'editar_' . $tipo;
+        $this->modalTipo = 'editar_'.$tipo;
         $this->modalAbierto = true;
     }
-    
+
     private function cargarDatosEntidad(string $tipo, int $entidadId): void
     {
         match ($tipo) {
@@ -81,7 +83,7 @@ class Dashboard extends Component
             default => null,
         };
     }
-    
+
     private function cargarRiesgo(int $id): void
     {
         $riesgo = Riesgo::findOrFail($id);
@@ -93,7 +95,7 @@ class Dashboard extends Component
             'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
         ];
     }
-    
+
     private function cargarControl(int $id): void
     {
         $control = Control::findOrFail($id);
@@ -103,7 +105,7 @@ class Dashboard extends Component
             'mitigacion_default' => $control->mitigacion_default,
         ];
     }
-    
+
     private function cargarObjetivo(int $id): void
     {
         $objetivo = Objetivo::findOrFail($id);
@@ -113,7 +115,7 @@ class Dashboard extends Component
             'fecha_objetivo' => $objetivo->fecha_objetivo?->format('Y-m-d'),
         ];
     }
-    
+
     private function cargarPlan(int $id): void
     {
         $plan = PlanAccion::findOrFail($id);
@@ -124,7 +126,7 @@ class Dashboard extends Component
             'riesgo_id' => $plan->riesgo_id,
         ];
     }
-    
+
     private function cargarTarea(int $id): void
     {
         $tarea = Tarea::findOrFail($id);
@@ -145,7 +147,7 @@ class Dashboard extends Component
         $this->modalTipo = $tipo;
         $this->modalAbierto = true;
     }
-    
+
     private function cargarAsociacionesActuales(string $tipo, int $entidadId): void
     {
         match ($tipo) {
@@ -156,25 +158,25 @@ class Dashboard extends Component
             default => null,
         };
     }
-    
+
     private function cargarControlesDeRiesgo(int $riesgoId): void
     {
         $riesgo = Riesgo::findOrFail($riesgoId);
         $this->idsParaAsociar = $riesgo->controles()->pluck('control_id')->toArray();
     }
-    
+
     private function cargarObjetivosDeRiesgo(int $riesgoId): void
     {
         $riesgo = Riesgo::findOrFail($riesgoId);
         $this->idsParaAsociar = $riesgo->objetivos()->pluck('objetivo_id')->toArray();
     }
-    
+
     private function cargarTareasDeRiesgo(int $riesgoId): void
     {
         $riesgo = Riesgo::with('planesAccion.tareas')->findOrFail($riesgoId);
         $this->idsParaAsociar = $riesgo->planesAccion->flatMap->tareas->pluck('id')->unique()->toArray();
     }
-    
+
     private function cargarTareasDePlan(int $planId): void
     {
         $plan = PlanAccion::findOrFail($planId);
@@ -197,57 +199,57 @@ class Dashboard extends Component
     public function guardar(): void
     {
         match ($this->modalTipo) {
-            'crear_riesgo'   => $this->guardarRiesgo(),
-            'editar_riesgo'  => $this->actualizarRiesgo(),
-            'crear_control'  => $this->guardarControl(),
+            'crear_riesgo' => $this->guardarRiesgo(),
+            'editar_riesgo' => $this->actualizarRiesgo(),
+            'crear_control' => $this->guardarControl(),
             'editar_control' => $this->actualizarControl(),
             'crear_objetivo' => $this->guardarObjetivo(),
-            'editar_objetivo'=> $this->actualizarObjetivo(),
-            'crear_plan'     => $this->guardarPlan(),
-            'editar_plan'    => $this->actualizarPlan(),
-            'crear_tarea'    => $this->guardarTarea(),
-            'editar_tarea'   => $this->actualizarTarea(),
-            default          => null,
+            'editar_objetivo' => $this->actualizarObjetivo(),
+            'crear_plan' => $this->guardarPlan(),
+            'editar_plan' => $this->actualizarPlan(),
+            'crear_tarea' => $this->guardarTarea(),
+            'editar_tarea' => $this->actualizarTarea(),
+            default => null,
         };
     }
 
     private function guardarRiesgo(): void
     {
         $this->validate([
-            'form.nombre'        => 'required|string|max:255',
-            'form.impacto'       => 'required|integer|min:0|max:10',
-            'form.probabilidad'  => 'required|integer|min:0|max:10',
+            'form.nombre' => 'required|string|max:255',
+            'form.impacto' => 'required|integer|min:0|max:10',
+            'form.probabilidad' => 'required|integer|min:0|max:10',
             'form.tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
         ]);
 
         Riesgo::create([
-            'nombre'        => $this->form['nombre'],
-            'descripcion'   => $this->form['descripcion'] ?? null,
-            'impacto'       => $this->form['impacto'],
-            'probabilidad'  => $this->form['probabilidad'],
+            'nombre' => $this->form['nombre'],
+            'descripcion' => $this->form['descripcion'] ?? null,
+            'impacto' => $this->form['impacto'],
+            'probabilidad' => $this->form['probabilidad'],
             'tipo_riesgo_id' => $this->form['tipo_riesgo_id'],
-            'user_id'       => 1,
+            'user_id' => 1,
         ]);
 
         $this->cerrarModal();
         session()->flash('ok', 'Riesgo creado.');
     }
-    
+
     private function actualizarRiesgo(): void
     {
         $this->validate([
-            'form.nombre'        => 'required|string|max:255',
-            'form.impacto'       => 'required|integer|min:0|max:10',
-            'form.probabilidad'  => 'required|integer|min:0|max:10',
+            'form.nombre' => 'required|string|max:255',
+            'form.impacto' => 'required|integer|min:0|max:10',
+            'form.probabilidad' => 'required|integer|min:0|max:10',
             'form.tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
         ]);
 
         $riesgo = Riesgo::findOrFail($this->entidadEditandoId);
         $riesgo->update([
-            'nombre'        => $this->form['nombre'],
-            'descripcion'   => $this->form['descripcion'] ?? null,
-            'impacto'       => $this->form['impacto'],
-            'probabilidad'  => $this->form['probabilidad'],
+            'nombre' => $this->form['nombre'],
+            'descripcion' => $this->form['descripcion'] ?? null,
+            'impacto' => $this->form['impacto'],
+            'probabilidad' => $this->form['probabilidad'],
             'tipo_riesgo_id' => $this->form['tipo_riesgo_id'],
         ]);
 
@@ -258,32 +260,32 @@ class Dashboard extends Component
     private function guardarControl(): void
     {
         $this->validate([
-            'form.nombre'             => 'required|string|max:255',
+            'form.nombre' => 'required|string|max:255',
             'form.mitigacion_default' => 'required|integer|min:1|max:10',
         ]);
 
         Control::create([
-            'nombre'             => $this->form['nombre'],
-            'descripcion'        => $this->form['descripcion'] ?? null,
+            'nombre' => $this->form['nombre'],
+            'descripcion' => $this->form['descripcion'] ?? null,
             'mitigacion_default' => $this->form['mitigacion_default'],
-            'user_id'            => 1,
+            'user_id' => 1,
         ]);
 
         $this->cerrarModal();
         session()->flash('ok', 'Control creado.');
     }
-    
+
     private function actualizarControl(): void
     {
         $this->validate([
-            'form.nombre'             => 'required|string|max:255',
+            'form.nombre' => 'required|string|max:255',
             'form.mitigacion_default' => 'required|integer|min:1|max:10',
         ]);
 
         $control = Control::findOrFail($this->entidadEditandoId);
         $control->update([
-            'nombre'             => $this->form['nombre'],
-            'descripcion'        => $this->form['descripcion'] ?? null,
+            'nombre' => $this->form['nombre'],
+            'descripcion' => $this->form['descripcion'] ?? null,
             'mitigacion_default' => $this->form['mitigacion_default'],
         ]);
 
@@ -298,16 +300,16 @@ class Dashboard extends Component
         ]);
 
         Objetivo::create([
-            'nombre'          => $this->form['nombre'],
-            'descripcion'     => $this->form['descripcion'] ?? null,
-            'fecha_objetivo'  => $this->form['fecha_objetivo'] ?? null,
-            'user_id'         => 1,
+            'nombre' => $this->form['nombre'],
+            'descripcion' => $this->form['descripcion'] ?? null,
+            'fecha_objetivo' => $this->form['fecha_objetivo'] ?? null,
+            'user_id' => 1,
         ]);
 
         $this->cerrarModal();
         session()->flash('ok', 'Objetivo creado.');
     }
-    
+
     private function actualizarObjetivo(): void
     {
         $this->validate([
@@ -316,9 +318,9 @@ class Dashboard extends Component
 
         $objetivo = Objetivo::findOrFail($this->entidadEditandoId);
         $objetivo->update([
-            'nombre'          => $this->form['nombre'],
-            'descripcion'     => $this->form['descripcion'] ?? null,
-            'fecha_objetivo'  => $this->form['fecha_objetivo'] ?? null,
+            'nombre' => $this->form['nombre'],
+            'descripcion' => $this->form['descripcion'] ?? null,
+            'fecha_objetivo' => $this->form['fecha_objetivo'] ?? null,
         ]);
 
         $this->cerrarModal();
@@ -334,31 +336,31 @@ class Dashboard extends Component
         ]);
 
         PlanAccion::create([
-            'codigo'      => $this->form['codigo'],
-            'nombre'      => $this->form['nombre'],
+            'codigo' => $this->form['codigo'],
+            'nombre' => $this->form['nombre'],
             'descripcion' => $this->form['descripcion'] ?? null,
-            'riesgo_id'   => $this->form['riesgo_id'],
-            'user_id'     => 1,
+            'riesgo_id' => $this->form['riesgo_id'],
+            'user_id' => 1,
         ]);
 
         $this->cerrarModal();
         session()->flash('ok', 'Plan de acción creado.');
     }
-    
+
     private function actualizarPlan(): void
     {
         $this->validate([
-            'form.codigo' => 'required|string|max:100|unique:planes_accion,codigo,' . $this->entidadEditandoId,
+            'form.codigo' => 'required|string|max:100|unique:planes_accion,codigo,'.$this->entidadEditandoId,
             'form.nombre' => 'required|string|max:255',
             'form.riesgo_id' => 'required|exists:riesgos,id',
         ]);
 
         $plan = PlanAccion::findOrFail($this->entidadEditandoId);
         $plan->update([
-            'codigo'      => $this->form['codigo'],
-            'nombre'      => $this->form['nombre'],
+            'codigo' => $this->form['codigo'],
+            'nombre' => $this->form['nombre'],
             'descripcion' => $this->form['descripcion'] ?? null,
-            'riesgo_id'   => $this->form['riesgo_id'],
+            'riesgo_id' => $this->form['riesgo_id'],
         ]);
 
         $this->cerrarModal();
@@ -368,32 +370,32 @@ class Dashboard extends Component
     private function guardarTarea(): void
     {
         $this->validate([
-            'form.nombre'            => 'required|string|max:255',
+            'form.nombre' => 'required|string|max:255',
             'form.porcentaje_avance' => 'required|integer|min:0|max:100',
         ]);
 
         Tarea::create([
-            'nombre'            => $this->form['nombre'],
-            'descripcion'       => $this->form['descripcion'] ?? null,
+            'nombre' => $this->form['nombre'],
+            'descripcion' => $this->form['descripcion'] ?? null,
             'porcentaje_avance' => $this->form['porcentaje_avance'] ?? 0,
-            'user_id'           => 1,
+            'user_id' => 1,
         ]);
 
         $this->cerrarModal();
         session()->flash('ok', 'Tarea creada.');
     }
-    
+
     private function actualizarTarea(): void
     {
         $this->validate([
-            'form.nombre'            => 'required|string|max:255',
+            'form.nombre' => 'required|string|max:255',
             'form.porcentaje_avance' => 'required|integer|min:0|max:100',
         ]);
 
         $tarea = Tarea::findOrFail($this->entidadEditandoId);
         $tarea->update([
-            'nombre'            => $this->form['nombre'],
-            'descripcion'       => $this->form['descripcion'] ?? null,
+            'nombre' => $this->form['nombre'],
+            'descripcion' => $this->form['descripcion'] ?? null,
             'porcentaje_avance' => $this->form['porcentaje_avance'] ?? 0,
         ]);
 
@@ -407,11 +409,11 @@ class Dashboard extends Component
     public function asociar(): void
     {
         match ($this->modalTipo) {
-            'asociar_control'      => $this->asociarControlARiesgo(),
-            'asociar_objetivo'     => $this->asociarObjetivoARiesgo(),
+            'asociar_control' => $this->asociarControlARiesgo(),
+            'asociar_objetivo' => $this->asociarObjetivoARiesgo(),
             'asociar_tarea_riesgo' => $this->asociarTareaARiesgo(),
-            'asociar_tarea_plan'   => $this->asociarTareaAPlan(),
-            default                => null,
+            'asociar_tarea_plan' => $this->asociarTareaAPlan(),
+            default => null,
         };
     }
 
@@ -451,7 +453,7 @@ class Dashboard extends Component
     {
         $ultimo = PlanAccion::withTrashed()->orderByDesc('id')->first();
         $numero = $ultimo ? (intval(preg_replace('/\D/', '', $ultimo->codigo)) + 1) : 1;
-        $this->form['codigo'] = 'PA-' . str_pad($numero, 4, '0', STR_PAD_LEFT);
+        $this->form['codigo'] = 'PA-'.str_pad($numero, 4, '0', STR_PAD_LEFT);
     }
 
     // -------------------------------------------------------
@@ -461,11 +463,13 @@ class Dashboard extends Component
     {
         $data = [
             'tiposRiesgo' => TipoRiesgo::all(),
-            'usuarios'    => User::select('id', 'name')->get(),
+            'usuarios' => User::select('id', 'name')->get(),
         ];
 
         if ($this->tabActiva === 'riesgos') {
-            $data['riesgos'] = Riesgo::with(['tipoRiesgo', 'controles', 'planesAccion.tareas', 'objetivos', 'user'])
+            // controles.estado y planesAccion.tareas.estado: los usa el accessor
+            // valor_residual que muestra el listado de riesgos.
+            $data['riesgos'] = Riesgo::with(['tipoRiesgo', 'controles.estado', 'planesAccion.tareas.estado', 'objetivos', 'user'])
                 ->latest()->get();
         }
 
@@ -489,11 +493,11 @@ class Dashboard extends Component
         if ($this->modalAbierto) {
             $data['todosControles'] = Control::all();
             $data['todosObjetivos'] = Objetivo::all();
-            $data['todasTareas']    = Tarea::all();
-            $data['todosRiesgos']   = Riesgo::all();
+            $data['todasTareas'] = Tarea::all();
+            $data['todosRiesgos'] = Riesgo::all();
 
             if ($this->entidadEditandoId) {
-                $data['entidadActual'] = match(str_replace('editar_', '', $this->modalTipo)) {
+                $data['entidadActual'] = match (str_replace('editar_', '', $this->modalTipo)) {
                     'riesgo' => Riesgo::with(['controles', 'objetivos', 'planesAccion.tareas'])->find($this->entidadEditandoId),
                     'control' => Control::with(['riesgos'])->find($this->entidadEditandoId),
                     'objetivo' => Objetivo::with(['riesgos'])->find($this->entidadEditandoId),

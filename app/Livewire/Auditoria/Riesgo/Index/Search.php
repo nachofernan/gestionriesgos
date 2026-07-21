@@ -2,13 +2,14 @@
 
 namespace App\Livewire\Auditoria\Riesgo\Index;
 
-use Livewire\Component;
-use Livewire\WithPagination;
+use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
-use App\Models\Auditoria\Estado;
-use App\Models\Auditoria\Area;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 /**
  * Listado/búsqueda de Riesgos con filtros por nombre, tipo, estado, área (con
@@ -20,12 +21,19 @@ class Search extends Component
     use WithPagination;
 
     public string $search = '';
+
     public ?int $filtroTipo = null;
+
     public ?int $filtroEstado = null;
+
     public ?int $filtroArea = null;
+
     public bool $soloAlta = false;
+
     public bool $mostrarHijos = true;
+
     public string $ordenarPor = 'estado';
+
     public string $direccion = 'asc';
 
     protected $queryString = [
@@ -94,15 +102,17 @@ class Search extends Component
 
     public function render()
     {
+        // controles.estado y planesAccion.tareas.estado: los necesita el accessor
+        // valor_residual, que este listado muestra y usa para ordenar.
         $query = Riesgo::query()
-            ->with(['tipoRiesgo', 'estado', 'area', 'user', 'controles', 'objetivos'])
+            ->with(['tipoRiesgo', 'estado', 'area', 'user', 'controles.estado', 'planesAccion.tareas.estado', 'objetivos'])
             ->visiblePara(Auth::user())
             ->leftJoin('estados', 'estados.id', '=', 'riesgos.estado_id')
             ->select('riesgos.*');
 
         // Búsqueda por nombre
         if ($this->search) {
-            $query->where('riesgos.nombre', 'like', '%' . $this->search . '%');
+            $query->where('riesgos.nombre', 'like', '%'.$this->search.'%');
         }
 
         // Filtro por tipo de riesgo
@@ -135,9 +145,9 @@ class Search extends Component
             $riesgos = $query->orderBy('nombre')->get();
 
             if ($this->ordenarPor === 'valor_total') {
-                $riesgos = $riesgos->sortBy(fn($r) => $r->valor_total, SORT_NUMERIC);
+                $riesgos = $riesgos->sortBy(fn ($r) => $r->valor_total, SORT_NUMERIC);
             } else {
-                $riesgos = $riesgos->sortBy(fn($r) => $r->valor_residual, SORT_NUMERIC);
+                $riesgos = $riesgos->sortBy(fn ($r) => $r->valor_residual, SORT_NUMERIC);
             }
 
             if ($this->direccion === 'desc') {
@@ -148,7 +158,7 @@ class Search extends Component
             $page = request()->query('page', 1);
             $perPage = 15;
             $items = $riesgos->slice(($page - 1) * $perPage, $perPage)->values();
-            $riesgos = new \Illuminate\Pagination\Paginator(
+            $riesgos = new Paginator(
                 $items,
                 $perPage,
                 $page,
@@ -160,7 +170,7 @@ class Search extends Component
         } else {
             $columna = $this->ordenarPor === 'estado'
                 ? 'estados.nombre'
-                : 'riesgos.' . $this->ordenarPor;
+                : 'riesgos.'.$this->ordenarPor;
             $query->orderBy($columna, $this->direccion);
             $riesgos = $query->paginate(15);
         }

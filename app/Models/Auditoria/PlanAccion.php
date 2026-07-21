@@ -84,17 +84,22 @@ class PlanAccion extends Model implements HasMedia
     // -------------------------------------------------------
 
     /**
-     * Avance del plan como promedio del `porcentaje_avance` de sus tareas (0-100),
-     * o null si no tiene tareas. Un plan al 100% es el que aplica su mitigación al
-     * valor_residual del riesgo (ver Riesgo::getValorResidualAttribute).
+     * Avance del plan como promedio del `porcentaje_avance` de sus tareas en estado
+     * "aprobado" (0-100), o null si no tiene ninguna tarea aprobada. Las tareas en
+     * borrador/validado son trabajo real pendiente pero no cuentan para el avance, y
+     * las de estado "borrado" quedan fuera por completo. Un plan al 100% es el que
+     * aplica su mitigación al valor_residual del riesgo (ver
+     * Riesgo::getValorResidualAttribute). Consumir con `tareas.estado` eager-loaded.
      */
     public function getAvanceAttribute(): ?int
     {
-        if ($this->tareas->isEmpty()) {
+        $aprobadas = $this->tareas->filter(fn ($tarea) => $tarea->estado?->nombre === 'aprobado');
+
+        if ($aprobadas->isEmpty()) {
             return null;
         }
 
-        return (int) round($this->tareas->avg('porcentaje_avance'));
+        return (int) round($aprobadas->avg('porcentaje_avance'));
     }
 
     public function estaCompleto(): bool

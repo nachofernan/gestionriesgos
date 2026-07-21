@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Controller;
-use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -29,7 +29,7 @@ class ControlController extends Controller
 
     public function create()
     {
-        $areas    = Area::orderBy('nombre')->get();
+        $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 
         return view('auditoria.control.create', compact('areas', 'usuarios'));
@@ -40,22 +40,22 @@ class ControlController extends Controller
         $this->authorize('create', [Control::class, $request->input('area_id')]);
 
         $data = $request->validate([
-            'nombre'             => 'required|string|max:255',
-            'descripcion'        => 'nullable|string',
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
             'mitigacion_default' => 'required|integer|min:1|max:10',
-            'area_id'            => 'nullable|exists:areas,id',
-            'user_id'            => 'nullable|exists:users,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
         $data['user_id'] = $data['user_id'] ?? Auth::id();
         $control = Control::create($data);
         $control->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => 'Control creado',
+            'user_id' => Auth::id(),
+            'mensaje' => 'Control creado',
             'estado_id' => Estado::borrador()->id,
-            'data'      => ['tipo' => 'creacion', 'campos' => [
-                'nombre'             => $control->nombre,
-                'descripcion'        => $control->descripcion,
+            'data' => ['tipo' => 'creacion', 'campos' => [
+                'nombre' => $control->nombre,
+                'descripcion' => $control->descripcion,
                 'mitigacion_default' => $control->mitigacion_default,
             ]],
         ]);
@@ -66,7 +66,12 @@ class ControlController extends Controller
     public function show(Control $control)
     {
         $this->authorize('view', $control);
-        $control->load(['riesgos.controles', 'riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'user', 'area']);
+        // riesgos.controles.estado y riesgos.planesAccion.tareas.estado: los usa el
+        // accessor valor_residual de cada riesgo listado en la vista del control.
+        $control->load([
+            'riesgos.controles.estado', 'riesgos.planesAccion.tareas.estado',
+            'riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'user', 'area',
+        ]);
 
         return view('auditoria.control.show', compact('control'));
     }
@@ -80,7 +85,7 @@ class ControlController extends Controller
                 ->with('error', 'El control ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
-        $areas    = Area::orderBy('nombre')->get();
+        $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 
         return view('auditoria.control.edit', compact('control', 'areas', 'usuarios'));
@@ -96,11 +101,11 @@ class ControlController extends Controller
         }
 
         $data = $request->validate([
-            'nombre'             => 'required|string|max:255',
-            'descripcion'        => 'nullable|string',
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
             'mitigacion_default' => 'required|integer|min:1|max:10',
-            'area_id'            => 'nullable|exists:areas,id',
-            'user_id'            => 'nullable|exists:users,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
         $original = $control->only(array_keys($data));
@@ -112,12 +117,12 @@ class ControlController extends Controller
                 $diff[$campo] = ['antes' => $original[$campo], 'despues' => $nuevo];
             }
         }
-        if (!empty($diff)) {
+        if (! empty($diff)) {
             $control->actualizaciones()->create([
-                'user_id'   => Auth::id(),
-                'mensaje'   => 'Borrador modificado',
+                'user_id' => Auth::id(),
+                'mensaje' => 'Borrador modificado',
                 'estado_id' => Estado::borrador()->id,
-                'data'      => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
+                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
             ]);
         }
 
@@ -148,10 +153,10 @@ class ControlController extends Controller
             ->update(['estado_id' => Estado::validado()->id]);
 
         $control->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => 'Validado por ' . Auth::user()->name,
+            'user_id' => Auth::id(),
+            'mensaje' => 'Validado por '.Auth::user()->name,
             'estado_id' => Estado::validado()->id,
-            'data'      => ['tipo' => 'validacion'],
+            'data' => ['tipo' => 'validacion'],
         ]);
 
         return back()->with('ok', 'Control validado correctamente.');
@@ -176,7 +181,7 @@ class ControlController extends Controller
             }
 
             $control->update(['estado_id' => Estado::aprobado()->id]);
-            $this->logAprobado($control, 'Aprobado por ' . Auth::user()->name);
+            $this->logAprobado($control, 'Aprobado por '.Auth::user()->name);
         });
 
         return back()->with('ok', 'Control aprobado correctamente.');
@@ -187,7 +192,7 @@ class ControlController extends Controller
         $this->authorize('rechazar', $control);
 
         $control->update(['estado_id' => Estado::borrado()->id]);
-        $this->logAprobado($control, 'Rechazado por ' . Auth::user()->name);
+        $this->logAprobado($control, 'Rechazado por '.Auth::user()->name);
 
         return back()->with('ok', 'Control rechazado.');
     }
@@ -200,10 +205,10 @@ class ControlController extends Controller
     private function logAprobado($model, string $mensaje, array $campos = []): void
     {
         $model->actualizaciones()->create([
-            'user_id'   => Auth::id(),
-            'mensaje'   => $mensaje,
+            'user_id' => Auth::id(),
+            'mensaje' => $mensaje,
             'estado_id' => Estado::aprobado()->id,
-            'data'      => empty($campos) ? null : ['campos' => $campos],
+            'data' => empty($campos) ? null : ['campos' => $campos],
         ]);
     }
 
@@ -217,20 +222,30 @@ class ControlController extends Controller
     private function aplicarCambiosActualizacion($actualizacion, $model): void
     {
         $data = $actualizacion->data ?? [];
-        if (empty($data)) return;
+        if (empty($data)) {
+            return;
+        }
 
         $tipo = $data['tipo'] ?? null;
-        if ($tipo !== null && $tipo !== 'cambio') return;
+        if ($tipo !== null && $tipo !== 'cambio') {
+            return;
+        }
 
-        if (!empty($data['campos'])) {
+        if (! empty($data['campos'])) {
             $model->update($data['campos']);
         }
 
-        if (!empty($data['relaciones'])) {
+        if (! empty($data['relaciones'])) {
             foreach ($data['relaciones'] as $relacion => $ops) {
-                if (isset($ops['sync']))   $model->$relacion()->sync($ops['sync']);
-                if (isset($ops['attach'])) $model->$relacion()->attach($ops['attach']);
-                if (isset($ops['detach'])) $model->$relacion()->detach($ops['detach']);
+                if (isset($ops['sync'])) {
+                    $model->$relacion()->sync($ops['sync']);
+                }
+                if (isset($ops['attach'])) {
+                    $model->$relacion()->attach($ops['attach']);
+                }
+                if (isset($ops['detach'])) {
+                    $model->$relacion()->detach($ops['detach']);
+                }
             }
         }
     }
