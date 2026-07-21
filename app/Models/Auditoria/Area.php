@@ -54,6 +54,24 @@ class Area extends Model
     }
 
     /**
+     * IDs de esta área más todos sus ancestros hasta la raíz, recorriendo
+     * `area_padre_id` hacia arriba. Complemento ascendente de obtenerIdsSubarbol();
+     * se usa para expresar en SQL "¿esta gerencia es ancestro-o-igual del área del
+     * usuario?" como un whereIn contra esta lista, sin recorrer el árbol por fila.
+     */
+    public function obtenerIdsAncestros(): array
+    {
+        $ids = [$this->id];
+        $area = $this;
+        while ($area?->area_padre_id) {
+            $ids[] = $area->area_padre_id;
+            $area = static::find($area->area_padre_id);
+        }
+
+        return $ids;
+    }
+
+    /**
      * true si $this es igual o ancestro del área con $areaId. Recorre hacia
      * arriba desde $areaId (en vez de hacia abajo desde $this) para no cargar
      * todo el subárbol cuando sólo hace falta esta comprobación puntual.

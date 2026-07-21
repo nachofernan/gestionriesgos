@@ -155,6 +155,80 @@ class GestionAreasTest extends TestCase
     }
 
     /** @test */
+    public function las_entradas_auto_sincronizadas_al_crear_quedan_como_gerencia_propia(): void
+    {
+        $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
+        $subarea = Area::create(['nombre' => 'Sistemas', 'area_padre_id' => $gerencia->id]);
+
+        $riesgo = $this->riesgoEnSubarea($subarea);
+
+        // Ambas entradas (área puntual + gerencia propia) van con gerencia_ajena = false.
+        $this->assertDatabaseHas('area_riesgo', [
+            'riesgo_id' => $riesgo->id, 'area_id' => $subarea->id, 'gerencia_ajena' => false,
+        ]);
+        $this->assertDatabaseHas('area_riesgo', [
+            'riesgo_id' => $riesgo->id, 'area_id' => $gerencia->id, 'gerencia_ajena' => false,
+        ]);
+    }
+
+    /** @test */
+    public function agregar_una_gerencia_ajena_la_marca_en_el_pivot(): void
+    {
+        $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
+        $subarea = Area::create(['nombre' => 'Sistemas', 'area_padre_id' => $gerencia->id]);
+        $gerenciaAjena = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
+        $riesgo = $this->riesgoEnSubarea($subarea);
+        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+
+        Livewire::actingAs($user)
+            ->test(GestionAreas::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->call('agregar', $gerenciaAjena->id)
+            ->call('guardar');
+
+        // La gerencia agregada es ajena → true; las propias siguen en false.
+        $this->assertDatabaseHas('area_riesgo', [
+            'riesgo_id' => $riesgo->id, 'area_id' => $gerenciaAjena->id, 'gerencia_ajena' => true,
+        ]);
+        $this->assertDatabaseHas('area_riesgo', [
+            'riesgo_id' => $riesgo->id, 'area_id' => $gerencia->id, 'gerencia_ajena' => false,
+        ]);
+        $this->assertDatabaseHas('area_riesgo', [
+            'riesgo_id' => $riesgo->id, 'area_id' => $subarea->id, 'gerencia_ajena' => false,
+        ]);
+    }
+
+    /** @test */
+    public function el_flujo_de_actualizacion_persiste_el_flag_al_aplicarse(): void
+    {
+        $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
+        $subarea = Area::create(['nombre' => 'Sistemas', 'area_padre_id' => $gerencia->id]);
+        $gerenciaAjena = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
+
+        // Riesgo ya validado: guardar() no sincroniza directo, genera Actualizacion.
+        // Un gerente lo aplica de inmediato (estadoParaActualizacion → validado y
+        // estadoModelo validado ⇒ aplicarAhora), pasando por areas()->sync($sync).
+        $riesgo = Riesgo::factory()->validado()->create([
+            'area_id' => $subarea->id,
+            'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
+        ]);
+        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+
+        Livewire::actingAs($user)
+            ->test(GestionAreas::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->call('agregar', $gerenciaAjena->id)
+            ->call('guardar');
+
+        $this->assertDatabaseHas('area_riesgo', [
+            'riesgo_id' => $riesgo->id, 'area_id' => $gerenciaAjena->id, 'gerencia_ajena' => true,
+        ]);
+        $this->assertDatabaseHas('area_riesgo', [
+            'riesgo_id' => $riesgo->id, 'area_id' => $gerencia->id, 'gerencia_ajena' => false,
+        ]);
+    }
+
+    /** @test */
     public function el_buscador_de_agregar_no_devuelve_areas_que_no_son_gerencia(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);

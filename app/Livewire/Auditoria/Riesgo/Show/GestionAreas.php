@@ -138,8 +138,18 @@ class GestionAreas extends Component
             ->values()
             ->toArray();
 
+        // El flag gerencia_ajena se recalcula por identidad en cada guardado (no se
+        // rastrea "qué se agregó en esta sesión"): las entradas propias del riesgo
+        // —su área puntual y la gerencia resuelta desde area_id— van con false;
+        // cualquier otra gerencia de la lista es ajena y va con true. Así toda la
+        // gente bajo una gerencia ajena gana acceso (ver Riesgo::puedeGestionarAlgunaArea).
+        $idsPropias = array_filter([$riesgo->area_id, $riesgo->area?->gerencia()?->id]);
+        $sync = collect($ids)->mapWithKeys(fn ($id) => [
+            $id => ['gerencia_ajena' => ! in_array($id, $idsPropias)],
+        ])->all();
+
         if ($this->esBorrador) {
-            $riesgo->areas()->sync($ids);
+            $riesgo->areas()->sync($sync);
             $this->editando = false;
             $this->error = '';
             session()->flash('ok', 'Gerencias actualizadas.');
@@ -159,7 +169,7 @@ class GestionAreas extends Component
                 'quita' => $antesItems->filter(fn ($a) => ! $despues->pluck('id')->contains($a['id']))->values()->toArray(),
             ], fn ($a) => ! empty($a));
 
-            $data = ['tipo' => 'cambio', 'relaciones' => ['areas' => ['sync' => $ids]]];
+            $data = ['tipo' => 'cambio', 'relaciones' => ['areas' => ['sync' => $sync]]];
             if (! empty($diffRel)) {
                 $data['diff'] = ['relaciones' => ['areas' => $diffRel]];
             }
@@ -168,7 +178,7 @@ class GestionAreas extends Component
                 || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
 
             if ($aplicarAhora) {
-                $riesgo->areas()->sync($ids);
+                $riesgo->areas()->sync($sync);
                 $riesgo->actualizaciones()->create([
                     'user_id' => Auth::id(),
                     'mensaje' => 'Gerencias asociadas actualizadas',

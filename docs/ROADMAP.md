@@ -30,6 +30,11 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 - [x] **Vencimientos con sesgo gerencial** (2026-07-17 tris) — ver [changelog](updates/2026-07-17c.md). La pantalla filtra por la cascada del organigrama (área propia + sub-áreas) en vez del scope general `visiblePara()`; el comité ve todo. Sienta el criterio de sesgo gerencial para el dashboard.
 - [x] **Gerencias explícitas sobre el árbol de áreas** (2026-07-17 quater) — ver [changelog](updates/2026-07-17d.md). Base de datos: `Area` lleva `tipo = gerencia` (enum `TipoArea`), y `Area::gerencia()` reemplaza la inferencia por profundidad. Solo modelo de datos; el siguiente paso es exponer/usar la marca en vistas, controladores y Policies.
 - [x] **Gerencia resuelta en el pivot y la UI del Riesgo** (2026-07-17 quinquies) — ver [changelog](updates/2026-07-17e.md). Primer uso real de la marca: `area_riesgo` guarda área puntual + gerencia resuelta al crear; la sección "Gerencias" del show sólo gestiona gerencias y preserva el área puntual oculta. Sólo Riesgo (única entidad con pivot de áreas); Control/Objetivo/PlanAccion/Tarea usan `area_id` directo.
+- [x] **Gerencia ajena amplía el acceso a toda su gente** (2026-07-21) — ver [changelog](updates/2026-07-21.md). Columna `area_riesgo.gerencia_ajena` (recalculada por identidad al sincronizar); una gerencia asociada distinta a la de origen da ver/gestionar a todos los que cuelgan de ella, no sólo a su gerente. Nuevo helper `Area::obtenerIdsAncestros()`. No aplana el acceso dentro de la misma gerencia.
+
+## Próximo paso comprometido
+
+- [ ] **Doble validación entre gerencias sobre cambios propuestos** — cuando un riesgo tiene más de una gerencia asociada (una propia + una o más ajenas, ver [2026-07-21](updates/2026-07-21.md)), una actualización originada por una gerencia debería tener que ser validada también por la(s) otra(s) gerencia(s) asociada(s), no aplicarse con la validación de una sola. Pospuesto explícitamente por el usuario al implementar la ampliación de acceso por gerencia ajena; es el paso siguiente de esa conversación.
 
 ## Ideas abiertas / a definir
 
@@ -42,4 +47,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-07-17 (quinquies).*
+*Última revisión: 2026-07-21.*
