@@ -96,12 +96,7 @@ class Riesgo extends Model implements HasMedia
             if ($riesgo->area_id) {
                 $gerenciaId = $riesgo->area?->gerencia()?->id;
                 $ids = array_unique(array_filter([$riesgo->area_id, $gerenciaId]));
-                // Ambas entradas son la gerencia propia (nunca ajena en este punto):
-                // van con gerencia_ajena = false. El flag sólo pasa a true para
-                // gerencias agregadas después vía GestionAreas (ver su guardar()).
-                $riesgo->areas()->syncWithoutDetaching(
-                    collect($ids)->mapWithKeys(fn ($id) => [$id => ['gerencia_ajena' => false]])->all()
-                );
+                $riesgo->areas()->syncWithoutDetaching($ids);
             }
         });
     }
@@ -109,11 +104,7 @@ class Riesgo extends Model implements HasMedia
     /**
      * Sobrescribe HasVisibilityScope::scopeVisiblePara(): un riesgo es de "área
      * propia" si CUALQUIERA de sus gerencias asociadas (area_riesgo) cae en el
-     * subárbol del usuario, no solo su area_id. Además, si una gerencia AJENA
-     * (gerencia_ajena = true, marcada al asociar una gerencia distinta a la de
-     * origen del riesgo) es ancestro-o-igual del área del usuario, todos los que
-     * cuelgan de esa gerencia también lo ven — así el sesgo gerencial no se limita
-     * al gerente, sino a toda su gente. El resto de la trait (público para
+     * subárbol del usuario, no solo su area_id. El resto de la trait (público para
      * aprobado/validado, comité solo ve público) se mantiene igual.
      */
     public function scopeVisiblePara(Builder $query, User $user): Builder
@@ -129,12 +120,9 @@ class Riesgo extends Model implements HasMedia
         }
 
         $propiaIds = $user->area->obtenerIdsSubarbol();
-        $lineaAscendenteIds = $user->area->obtenerIdsAncestros();
 
         return $query->where(fn ($q) => $q->whereIn('estado_id', $publicoIds)
             ->orWhereHas('areas', fn ($sub) => $sub->whereIn('areas.id', $propiaIds))
-            ->orWhereHas('areas', fn ($sub) => $sub->where('area_riesgo.gerencia_ajena', true)
-                ->whereIn('areas.id', $lineaAscendenteIds))
         );
     }
 
@@ -157,23 +145,15 @@ class Riesgo extends Model implements HasMedia
     public function areas(): BelongsToMany
     {
         return $this->belongsToMany(Area::class, 'area_riesgo')
-            ->withPivot('gerencia_ajena')
             ->withTimestamps();
     }
 
     /**
      * Reemplaza a `$user->puedeGestionarArea($riesgo->area_id)` en RiesgoPolicy:
      * un usuario puede gestionar el riesgo si puede gestionar alguna de sus
-     * gerencias asociadas. Sin gerencias asociadas (riesgo sin área), cualquiera
+     * gerencias asociadas. Todas las gerencias asociadas pesan igual (no hay
+     * "propia" vs "ajena"). Sin gerencias asociadas (riesgo sin área), cualquiera
      * puede gestionarlo, igual que el comportamiento previo de puedeGestionarArea(null).
-     *
-     * Regla adicional: si una gerencia asociada está marcada como AJENA
-     * (gerencia_ajena en el pivot, ver GestionAreas::guardar()) y es ancestro-o-igual
-     * del área del usuario, éste también puede gestionar. Esto amplía el acceso a
-     * TODA la gente que cuelga de una gerencia ajena, no sólo a quien la tiene como
-     * área ancestro-o-igual "hacia abajo". No aplana el comportamiento dentro de la
-     * misma gerencia: la gerencia propia del riesgo nunca lleva gerencia_ajena = true,
-     * así que este camino sólo se activa para gerencias explícitamente ajenas.
      */
     public function puedeGestionarAlgunaArea(User $user): bool
     {
@@ -181,13 +161,9 @@ class Riesgo extends Model implements HasMedia
             return true;
         }
 
-        return $this->areas->contains(function (Area $area) use ($user) {
-            if ($user->puedeGestionarArea($area->id)) {
-                return true;
-            }
-
-            return $area->pivot->gerencia_ajena && $area->esAncestroOIgual($user->area_id);
-        });
+        return $this->areas->contains(
+            fn (Area $area) => $user->puedeGestionarArea($area->id)
+        );
     }
 
     public function controles(): BelongsToMany

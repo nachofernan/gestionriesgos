@@ -428,60 +428,15 @@ class VisibilidadTest extends TestCase
     }
 
     // -------------------------------------------------------
-    // Gerencia AJENA asociada: amplía a toda la gente bajo esa gerencia
+    // Borrador de un sector no se aplana a hermanos de la misma gerencia
     // -------------------------------------------------------
 
-    /**
-     * Asocia gerProd como gerencia ajena (gerencia_ajena = true) a un riesgo
-     * nacido en gerAdmin, replicando lo que hace GestionAreas::guardar() al
-     * agregar una gerencia distinta a la de origen.
-     */
-    private function conGerenciaAjena(Riesgo $r, Area $gerencia): Riesgo
-    {
-        $r->areas()->syncWithoutDetaching([$gerencia->id => ['gerencia_ajena' => true]]);
-        $r->load('areas');
-
-        return $r;
-    }
-
     /** @test */
-    public function empleado_de_gerencia_ajena_ve_y_gestiona_el_borrador(): void
+    public function borrador_de_un_sector_no_es_visible_para_hermano_de_la_misma_gerencia(): void
     {
-        // r nace en gerAdmin (sectA); se le agrega gerProd como gerencia ajena.
-        // nocetti es empleado bajo sectC (cuelga de gerProd), no es su gerente.
-        $r = $this->conGerenciaAjena($this->riesgo($this->borradorId, $this->sectA), $this->gerProd);
-
-        $this->assertContains($r->id, $this->idsVisibles($this->nocetti));
-        $this->assertTrue($this->policy()->view($this->nocetti, $r));
-        $this->assertTrue($this->policy()->update($this->nocetti, $r));
-        $this->assertTrue($this->policy()->delete($this->nocetti, $r));
-    }
-
-    /** @test */
-    public function gerente_de_gerencia_ajena_ve_y_gestiona_el_borrador(): void
-    {
-        $r = $this->conGerenciaAjena($this->riesgo($this->borradorId, $this->sectA), $this->gerProd);
-
-        $this->assertContains($r->id, $this->idsVisibles($this->grassi));
-        $this->assertTrue($this->policy()->view($this->grassi, $r));
-        $this->assertTrue($this->policy()->update($this->grassi, $r));
-    }
-
-    /** @test */
-    public function empleado_de_gerencia_ajena_no_puede_validar_ni_rechazar(): void
-    {
-        // Gana update/delete, pero validar/rechazar siguen exigiendo esGerente().
-        $r = $this->conGerenciaAjena($this->riesgo($this->borradorId, $this->sectA), $this->gerProd);
-
-        $this->assertFalse($this->policy()->validar($this->nocetti, $r));
-        $this->assertFalse($this->policy()->rechazar($this->nocetti, $r));
-    }
-
-    /** @test */
-    public function gerencia_propia_sin_ajena_no_aplana_dentro_de_la_misma_gerencia(): void
-    {
-        // Regresión: r de sectA (gerAdmin), sin ninguna gerencia ajena. Tito, empleado
-        // de sectB (hermano, misma gerencia), sigue SIN poder ver ni gestionar el borrador.
+        // Regresión: r de sectA (gerAdmin). Tito, empleado de sectB (hermano, misma
+        // gerencia), sigue SIN poder ver ni gestionar el borrador: el acceso baja por
+        // el subárbol propio, no se comparte lateralmente entre sectores.
         $r = $this->riesgo($this->borradorId, $this->sectA);
         $r->load('areas');
 
