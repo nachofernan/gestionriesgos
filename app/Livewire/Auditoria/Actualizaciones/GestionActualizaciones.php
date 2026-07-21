@@ -240,12 +240,10 @@ class GestionActualizaciones extends Component
     private function camposEditables(): array
     {
         return match ($this->modelType) {
-            'riesgo' => [
-                'nombre' => 'Nombre',
-                'descripcion' => 'Descripción',
-                'impacto' => 'Impacto',
-                'probabilidad' => 'Probabilidad',
-            ],
+            // Un riesgo se actualiza solo con mensaje + adjunto: impacto y probabilidad
+            // son calculados por el wizard de creación/recálculo (no se tipean a mano),
+            // y nombre/descripción quedan pendientes de resolverse por otro mecanismo.
+            'riesgo' => [],
             'control' => [
                 'nombre' => 'Nombre',
                 'descripcion' => 'Descripción',
