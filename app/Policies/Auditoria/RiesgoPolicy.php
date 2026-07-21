@@ -22,9 +22,16 @@ class RiesgoPolicy
     public function view(User $user, Riesgo $riesgo): bool
     {
         $estado = $riesgo->estado?->nombre;
-        if (in_array($estado, ['aprobado', 'validado'])) return true;
-        if (!$user->area_id) return true;
-        if ($user->esComite()) return false;
+        if (in_array($estado, ['aprobado', 'validado'])) {
+            return true;
+        }
+        if (! $user->area_id) {
+            return true;
+        }
+        if ($user->esComite()) {
+            return false;
+        }
+
         return $riesgo->puedeGestionarAlgunaArea($user);
     }
 
@@ -62,5 +69,21 @@ class RiesgoPolicy
         return $user->esGerente()
             && $riesgo->puedeGestionarAlgunaArea($user)
             && $riesgo->estado?->nombre === 'borrador';
+    }
+
+    /**
+     * Gestionar (agregar/quitar) las gerencias asociadas a un riesgo: sólo un
+     * gerente de alguna gerencia asociada, y sólo una vez que el riesgo dejó el
+     * borrador (validado o aprobado). En borrador el riesgo conserva su única
+     * gerencia de origen; compartirlo con otra gerencia es una acción posterior
+     * a la validación. Esta regla es la que garantiza que un borrador siempre
+     * tenga una sola gerencia, y por lo tanto que la doble validación sólo entre
+     * en juego sobre cambios de un riesgo ya validado (ver Riesgo::gerencias()).
+     */
+    public function gestionarGerencias(User $user, Riesgo $riesgo): bool
+    {
+        return $user->esGerente()
+            && $riesgo->puedeGestionarAlgunaArea($user)
+            && in_array($riesgo->estado?->nombre, ['validado', 'aprobado']);
     }
 }

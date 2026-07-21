@@ -6,6 +6,7 @@ use App\Enums\Auditoria\TipoArea;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -27,15 +28,18 @@ use Livewire\Component;
  */
 class GestionAreas extends Component
 {
+    use AuthorizesRequests;
+
     public int $riesgoId;
 
     public bool $modalAbierto = false;
 
     public bool $editando = false;
 
-    public bool $esBorrador = true;
-
     public string $estadoModelo = 'borrador';
+
+    /** Si el usuario puede agregar/quitar gerencias (gerente + riesgo ya validado). */
+    public bool $puedeGestionar = false;
 
     public string $busqueda = '';
 
@@ -52,6 +56,7 @@ class GestionAreas extends Component
 
     public function activarEdicion(): void
     {
+        $this->authorize('gestionarGerencias', Riesgo::findOrFail($this->riesgoId));
         $this->editando = true;
         $this->error = '';
     }
@@ -112,10 +117,11 @@ class GestionAreas extends Component
     }
 
     /**
-     * Si el riesgo está en borrador, sincroniza gerencias de inmediato. Si no,
-     * arma el diff (agrega/quita) y lo guarda como Actualizacion; según el
-     * estado que le toque (estadoParaActualizacion()) la aplica en el momento o
-     * la deja pendiente de validación.
+     * Registra el cambio de gerencias como una Actualizacion (propuesta), con el
+     * diff legible de lo agregado/quitado. Según el estado que le toque
+     * (estadoParaActualizacion()) se aplica en el momento o queda pendiente de
+     * validación. Sólo se llega acá con el riesgo ya validado/aprobado y por un
+     * gerente (ver policy gestionarGerencias); un borrador nunca se comparte.
      */
     public function guardar(): void
     {
@@ -125,8 +131,8 @@ class GestionAreas extends Component
             return;
         }
 
-        $riesgo = Riesgo::findOrFail($this->riesgoId);
-        $riesgo->load('areas');
+        $riesgo = Riesgo::with(['areas', 'estado'])->findOrFail($this->riesgoId);
+        $this->authorize('gestionarGerencias', $riesgo);
 
         // Las entradas no-gerencia del pivot (el área puntual del creador) no se
         // gestionan desde esta UI: se preservan al sincronizar para no dejar sin
@@ -138,55 +144,48 @@ class GestionAreas extends Component
             ->values()
             ->toArray();
 
-        if ($this->esBorrador) {
+        $estadoId = $this->estadoParaActualizacion();
+
+        // El diff (registro de auditoría legible) se calcula sólo sobre las
+        // gerencias visibles: el área puntual oculta no es un cambio que el
+        // usuario haya hecho ni se ve en esta UI.
+        $antesItems = $riesgo->areas->filter->esGerencia()
+            ->map(fn ($a) => ['id' => $a->id, 'nombre' => $a->nombre])->values();
+        $antesIds = $antesItems->pluck('id');
+        $despues = collect($this->seleccionados);
+
+        $diffRel = array_filter([
+            'agrega' => $despues->filter(fn ($a) => ! $antesIds->contains($a['id']))->values()->toArray(),
+            'quita' => $antesItems->filter(fn ($a) => ! $despues->pluck('id')->contains($a['id']))->values()->toArray(),
+        ], fn ($a) => ! empty($a));
+
+        $data = ['tipo' => 'cambio', 'relaciones' => ['areas' => ['sync' => $ids]]];
+        if (! empty($diffRel)) {
+            $data['diff'] = ['relaciones' => ['areas' => $diffRel]];
+        }
+
+        $aplicarAhora = $estadoId === Estado::aprobado()->id
+            || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
+
+        if ($aplicarAhora) {
             $riesgo->areas()->sync($ids);
-            $this->editando = false;
-            $this->error = '';
+            $riesgo->actualizaciones()->create([
+                'user_id' => Auth::id(),
+                'mensaje' => 'Gerencias asociadas actualizadas',
+                'estado_id' => $estadoId,
+                'data' => $data,
+            ]);
+            $this->cancelarEdicion();
             session()->flash('ok', 'Gerencias actualizadas.');
         } else {
-            $estadoId = $this->estadoParaActualizacion();
-
-            // El diff (registro de auditoría legible) se calcula sólo sobre las
-            // gerencias visibles: el área puntual oculta no es un cambio que el
-            // usuario haya hecho ni se ve en esta UI.
-            $antesItems = $riesgo->areas->filter->esGerencia()
-                ->map(fn ($a) => ['id' => $a->id, 'nombre' => $a->nombre])->values();
-            $antesIds = $antesItems->pluck('id');
-            $despues = collect($this->seleccionados);
-
-            $diffRel = array_filter([
-                'agrega' => $despues->filter(fn ($a) => ! $antesIds->contains($a['id']))->values()->toArray(),
-                'quita' => $antesItems->filter(fn ($a) => ! $despues->pluck('id')->contains($a['id']))->values()->toArray(),
-            ], fn ($a) => ! empty($a));
-
-            $data = ['tipo' => 'cambio', 'relaciones' => ['areas' => ['sync' => $ids]]];
-            if (! empty($diffRel)) {
-                $data['diff'] = ['relaciones' => ['areas' => $diffRel]];
-            }
-
-            $aplicarAhora = $estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
-
-            if ($aplicarAhora) {
-                $riesgo->areas()->sync($ids);
-                $riesgo->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => 'Gerencias asociadas actualizadas',
-                    'estado_id' => $estadoId,
-                    'data' => $data,
-                ]);
-                $this->cancelarEdicion();
-                session()->flash('ok', 'Gerencias actualizadas.');
-            } else {
-                $riesgo->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => 'Propuesta de cambio en gerencias asociadas',
-                    'estado_id' => $estadoId,
-                    'data' => $data,
-                ]);
-                $this->cancelarEdicion();
-                session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
-            }
+            $riesgo->actualizaciones()->create([
+                'user_id' => Auth::id(),
+                'mensaje' => 'Propuesta de cambio en gerencias asociadas',
+                'estado_id' => $estadoId,
+                'data' => $data,
+            ]);
+            $this->cancelarEdicion();
+            session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
         }
     }
 
@@ -212,7 +211,7 @@ class GestionAreas extends Component
     {
         $riesgo = Riesgo::with(['areas', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
-        $this->esBorrador = $this->estadoModelo === 'borrador';
+        $this->puedeGestionar = Auth::user()->can('gestionarGerencias', $riesgo);
 
         $this->seleccionados = $riesgo->areas
             ->filter->esGerencia()

@@ -17,7 +17,8 @@ use Tests\TestCase;
 /**
  * Cubre la gestión de gerencias asociadas a un Riesgo desde su show (ver
  * app/Livewire/Auditoria/Riesgo/Show/GestionAreas.php): agregar/quitar en
- * memoria, el mínimo de una gerencia y el sync directo en borrador.
+ * memoria, el mínimo de una gerencia, y el bloqueo que sólo permite compartir
+ * un riesgo ya validado y sólo a un gerente (ver RiesgoPolicy::gestionarGerencias).
  */
 class GestionAreasTest extends TestCase
 {
@@ -29,15 +30,29 @@ class GestionAreasTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
     }
 
-    private function riesgoBorrador(Area $area): Riesgo
+    private function riesgoValidado(Area $area): Riesgo
     {
-        $riesgo = Riesgo::factory()->borrador()->create([
+        $riesgo = Riesgo::factory()->validado()->create([
             'area_id' => $area->id,
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
         ]);
         $riesgo->areas()->sync([$area->id]);
 
-        return $riesgo;
+        return $riesgo->load(['areas', 'estado']);
+    }
+
+    /**
+     * Crea un riesgo en una sub-área (no gerencia) descendiente de una gerencia,
+     * dejando que el observer de Riesgo sincronice area_riesgo (área puntual +
+     * gerencia). $estado permite nacerlo en borrador o validado.
+     */
+    private function riesgoEnSubarea(Area $subarea, string $estado = 'borrador', ?User $creador = null): Riesgo
+    {
+        return Riesgo::factory()->{$estado}()->create([
+            'area_id' => $subarea->id,
+            'user_id' => $creador?->id ?? User::factory()->create()->id,
+            'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
+        ]);
     }
 
     /** @test */
@@ -45,7 +60,7 @@ class GestionAreasTest extends TestCase
     {
         $areaOriginal = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
         $areaNueva = Area::create(['nombre' => 'Gerencia B', 'tipo' => TipoArea::Gerencia]);
-        $riesgo = $this->riesgoBorrador($areaOriginal);
+        $riesgo = $this->riesgoValidado($areaOriginal);
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $areaOriginal->id]);
 
         Livewire::actingAs($user)
@@ -54,16 +69,14 @@ class GestionAreasTest extends TestCase
             ->call('agregar', $areaNueva->id)
             ->call('guardar');
 
-        $riesgo->refresh();
-        $this->assertCount(2, $riesgo->areas);
-        $this->assertTrue($riesgo->areas->pluck('id')->contains($areaNueva->id));
+        $this->assertTrue($riesgo->refresh()->areas->pluck('id')->contains($areaNueva->id));
     }
 
     /** @test */
     public function no_se_puede_quitar_la_unica_gerencia_asociada(): void
     {
         $area = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $riesgo = $this->riesgoBorrador($area);
+        $riesgo = $this->riesgoValidado($area);
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
 
         Livewire::actingAs($user)
@@ -73,22 +86,7 @@ class GestionAreasTest extends TestCase
             ->assertSet('error', 'El riesgo debe tener al menos una gerencia asociada.')
             ->assertSet('seleccionados', [['id' => $area->id, 'nombre' => $area->nombre]]);
 
-        $riesgo->refresh();
-        $this->assertCount(1, $riesgo->areas);
-    }
-
-    /**
-     * Crea un riesgo en una sub-área (no gerencia) descendiente de una gerencia,
-     * dejando que el observer de Riesgo sincronice area_riesgo (sin pisarlo con un
-     * sync manual como riesgoBorrador()).
-     */
-    private function riesgoEnSubarea(Area $subarea, ?User $creador = null): Riesgo
-    {
-        return Riesgo::factory()->borrador()->create([
-            'area_id' => $subarea->id,
-            'user_id' => $creador?->id ?? User::factory()->create()->id,
-            'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
-        ]);
+        $this->assertCount(1, $riesgo->refresh()->areas);
     }
 
     /** @test */
@@ -125,7 +123,7 @@ class GestionAreasTest extends TestCase
         $subarea = Area::create(['nombre' => 'Sistemas', 'area_padre_id' => $gerencia->id]);
         $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $subarea->id]);
 
-        $riesgo = $this->riesgoEnSubarea($subarea, $empleado);
+        $riesgo = $this->riesgoEnSubarea($subarea, 'borrador', $empleado);
         $riesgo->load('areas');
 
         $this->assertTrue($riesgo->puedeGestionarAlgunaArea($empleado));
@@ -138,7 +136,7 @@ class GestionAreasTest extends TestCase
         $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
         $subarea = Area::create(['nombre' => 'Sistemas', 'area_padre_id' => $gerencia->id]);
         $gerenciaDos = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
-        $riesgo = $this->riesgoEnSubarea($subarea);
+        $riesgo = $this->riesgoEnSubarea($subarea, 'validado');
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
 
         Livewire::actingAs($user)
@@ -159,7 +157,7 @@ class GestionAreasTest extends TestCase
     {
         $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
         $subarea = Area::create(['nombre' => 'Sistemas', 'area_padre_id' => $gerencia->id]);
-        $riesgo = $this->riesgoEnSubarea($subarea);
+        $riesgo = $this->riesgoEnSubarea($subarea, 'validado');
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
 
         Livewire::actingAs($user)
@@ -168,5 +166,52 @@ class GestionAreasTest extends TestCase
             ->call('abrirModal')
             ->set('busqueda', 'Sistemas')
             ->assertViewHas('resultados', fn ($resultados) => $resultados->isEmpty());
+    }
+
+    // -------------------------------------------------------
+    // Bloqueo: compartir sólo con el riesgo validado y sólo gerente
+    // -------------------------------------------------------
+
+    /** @test */
+    public function gestionar_gerencias_requiere_gerente_y_riesgo_validado(): void
+    {
+        $area = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
+        $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $area->id]);
+        $policy = new RiesgoPolicy;
+
+        $borrador = Riesgo::factory()->borrador()->create([
+            'area_id' => $area->id,
+            'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
+        ])->load(['areas', 'estado']);
+        $validado = $this->riesgoValidado($area);
+
+        // El gerente sólo puede una vez validado, no en borrador.
+        $this->assertFalse($policy->gestionarGerencias($gerente, $borrador));
+        $this->assertTrue($policy->gestionarGerencias($gerente, $validado));
+
+        // El empleado no puede nunca, ni siquiera validado.
+        $this->assertFalse($policy->gestionarGerencias($empleado, $validado));
+    }
+
+    /** @test */
+    public function puede_gestionar_refleja_estado_y_rol_en_el_componente(): void
+    {
+        $area = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
+
+        $borrador = Riesgo::factory()->borrador()->create([
+            'area_id' => $area->id,
+            'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
+        ]);
+        $borrador->areas()->sync([$area->id]);
+
+        Livewire::actingAs($gerente)
+            ->test(GestionAreas::class, ['riesgo' => $borrador])
+            ->assertSet('puedeGestionar', false);
+
+        Livewire::actingAs($gerente)
+            ->test(GestionAreas::class, ['riesgo' => $this->riesgoValidado($area)])
+            ->assertSet('puedeGestionar', true);
     }
 }
