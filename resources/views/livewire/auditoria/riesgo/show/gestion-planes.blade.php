@@ -130,7 +130,7 @@
     {{-- Modal de búsqueda (agregar) --}}
     @if($modalAbierto)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" wire:click.self="cerrarModal">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="text-sm font-bold text-gray-800">Buscar plan de acción</h3>
                     <button type="button" wire:click="cerrarModal" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -143,14 +143,29 @@
                     <input type="text" wire:model.live="busqueda" autofocus
                         placeholder="Nombre o código..."
                         class="w-full border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
-                    <div class="space-y-1 max-h-64 overflow-y-auto">
+                    <div class="space-y-1.5 max-h-72 overflow-y-auto">
                         @forelse ($resultados as $plan)
+                            @php $avance = $plan->avance; @endphp
                             <button type="button" wire:click="agregar({{ $plan->id }})"
-                                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg hover:bg-indigo-50 transition-colors text-left border border-transparent hover:border-indigo-200">
-                                @if($plan->codigo)
-                                    <span class="font-mono text-[10px] text-gray-400 uppercase shrink-0">{{ $plan->codigo }}</span>
-                                @endif
-                                <span class="font-medium text-gray-700">{{ $plan->nombre }}</span>
+                                class="w-full text-left px-4 py-3 rounded-lg hover:bg-indigo-50 transition-colors border border-gray-100 hover:border-indigo-200">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        @if($plan->codigo)
+                                            <span class="font-mono text-[10px] text-gray-400 uppercase shrink-0">{{ $plan->codigo }}</span>
+                                        @endif
+                                        <span class="font-semibold text-gray-800 truncate">{{ $plan->nombre }}</span>
+                                    </div>
+                                    <x-auditoria.estado-badge :estado="$plan->estado" size="xs" class="shrink-0" />
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
+                                    <span class="font-bold shrink-0 {{ $avance === 100 ? 'text-green-600' : 'text-amber-600' }}">
+                                        Avance: {{ $avance !== null ? $avance.'%' : '—' }}
+                                    </span>
+                                    @if($plan->area)
+                                        <span class="text-gray-300">·</span>
+                                        <span class="truncate">{{ $plan->area->nombre }}</span>
+                                    @endif
+                                </div>
                             </button>
                         @empty
                             <p class="text-sm text-gray-400 italic px-4 py-3">

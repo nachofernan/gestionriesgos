@@ -125,11 +125,26 @@ class GestionObjetivos extends Component
             return;
         }
 
-        $riesgo = Riesgo::findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with('objetivos')->findOrFail($this->riesgoId);
         $ids = collect($this->seleccionados)->pluck('id')->toArray();
+
+        $diffRel = $this->construirDiff($riesgo);
 
         if ($this->esBorrador) {
             $riesgo->objetivos()->sync($ids);
+
+            // Dejar rastro del cambio en el historial también en borrador, pero sólo
+            // si la selección realmente cambió (mismo diff que pinta la vista de
+            // actualizaciones vía data['diff']['relaciones']).
+            if (! empty($diffRel)) {
+                $riesgo->actualizaciones()->create([
+                    'user_id' => Auth::id(),
+                    'mensaje' => 'Objetivos asociados',
+                    'estado_id' => Estado::borrador()->id,
+                    'data' => ['tipo' => 'edicion', 'diff' => ['relaciones' => ['objetivos' => $diffRel]]],
+                ]);
+            }
+
             $this->editando = false;
             $this->error = '';
             session()->flash('ok', 'Objetivos actualizados.');
@@ -139,16 +154,6 @@ class GestionObjetivos extends Component
             // Riesgo::cambioRequiereDobleValidacion()).
             $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
             $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
-
-            $riesgo->load('objetivos');
-            $antesItems = $riesgo->objetivos->map(fn ($o) => ['id' => $o->id, 'nombre' => $o->nombre]);
-            $antesIds = $antesItems->pluck('id');
-            $despues = collect($this->seleccionados);
-
-            $diffRel = array_filter([
-                'agrega' => $despues->filter(fn ($o) => ! $antesIds->contains($o['id']))->values()->toArray(),
-                'quita' => $antesItems->filter(fn ($o) => ! $despues->pluck('id')->contains($o['id']))->values()->toArray(),
-            ], fn ($a) => ! empty($a));
 
             $data = ['tipo' => 'cambio', 'relaciones' => ['objetivos' => ['sync' => $ids]]];
             if (! empty($diffRel)) {
@@ -184,6 +189,25 @@ class GestionObjetivos extends Component
                 session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
             }
         }
+    }
+
+    /**
+     * Diff (agrega/quita) entre los objetivos actualmente persistidos en el riesgo
+     * y la selección en memoria. La relación objetivo-riesgo no tiene mitigación, así
+     * que sólo hay altas y bajas. Vacío si nada cambió. Lo consumen ambas ramas de
+     * guardar() (borrador y propuesta) y lo pinta el historial de actualizaciones.
+     */
+    private function construirDiff(Riesgo $riesgo): array
+    {
+        $antesItems = $riesgo->objetivos->map(fn ($o) => ['id' => $o->id, 'nombre' => $o->nombre]);
+        $antesIds = $antesItems->pluck('id');
+        $despues = collect($this->seleccionados);
+
+        return array_filter([
+            'agrega' => $despues->filter(fn ($o) => ! $antesIds->contains($o['id']))
+                ->map(fn ($o) => ['id' => $o['id'], 'nombre' => $o['nombre']])->values()->toArray(),
+            'quita' => $antesItems->filter(fn ($o) => ! $despues->pluck('id')->contains($o['id']))->values()->toArray(),
+        ], fn ($a) => ! empty($a));
     }
 
     /**
@@ -232,7 +256,9 @@ class GestionObjetivos extends Component
 
         $resultados = $this->modalAbierto
             ? Objetivo::query()
+                ->with(['estado', 'area'])
                 ->visiblePara(Auth::user())
+                ->whereNot('estado_id', Estado::borrado()->id)
                 ->when($this->busqueda, fn ($q) => $q->where('nombre', 'like', '%'.$this->busqueda.'%'))
                 ->whereNotIn('id', $yaIds)
                 ->orderBy('nombre')

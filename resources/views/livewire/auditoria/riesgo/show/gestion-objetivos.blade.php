@@ -74,7 +74,7 @@
     {{-- Modal de búsqueda (agregar) --}}
     @if($modalAbierto)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" wire:click.self="cerrarModal">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="text-sm font-bold text-gray-800">Buscar objetivo</h3>
                     <button type="button" wire:click="cerrarModal" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -87,11 +87,23 @@
                     <input type="text" wire:model.live="busqueda" autofocus
                         placeholder="Escribí para buscar..."
                         class="w-full border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-purple-500 focus:ring-purple-500" />
-                    <div class="space-y-1 max-h-64 overflow-y-auto">
+                    <div class="space-y-1.5 max-h-72 overflow-y-auto">
                         @forelse ($resultados as $obj)
                             <button type="button" wire:click="agregar({{ $obj->id }})"
-                                class="w-full flex items-center px-4 py-2.5 text-sm rounded-lg hover:bg-purple-50 transition-colors text-left border border-transparent hover:border-purple-200">
-                                <span class="font-medium text-gray-700">{{ $obj->nombre }}</span>
+                                class="w-full text-left px-4 py-3 rounded-lg hover:bg-purple-50 transition-colors border border-gray-100 hover:border-purple-200">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-semibold text-gray-800 truncate">{{ $obj->nombre }}</span>
+                                    <x-auditoria.estado-badge :estado="$obj->estado" size="xs" class="shrink-0" />
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
+                                    @if($obj->fecha_objetivo)
+                                        <span class="shrink-0">Fecha objetivo: {{ $obj->fecha_objetivo->format('d/m/Y') }}</span>
+                                    @endif
+                                    @if($obj->area)
+                                        @if($obj->fecha_objetivo)<span class="text-gray-300">·</span>@endif
+                                        <span class="truncate">{{ $obj->area->nombre }}</span>
+                                    @endif
+                                </div>
                             </button>
                         @empty
                             <p class="text-sm text-gray-400 italic px-4 py-3">

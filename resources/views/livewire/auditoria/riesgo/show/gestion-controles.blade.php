@@ -89,7 +89,7 @@
     {{-- Modal de búsqueda (agregar) --}}
     @if($modalAbierto)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" wire:click.self="cerrarModal">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="text-sm font-bold text-gray-800">Buscar control</h3>
                     <button type="button" wire:click="cerrarModal" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -102,14 +102,21 @@
                     <input type="text" wire:model.live="busqueda" autofocus
                         placeholder="Escribí para buscar..."
                         class="w-full border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-blue-500" />
-                    <div class="space-y-1 max-h-64 overflow-y-auto">
+                    <div class="space-y-1.5 max-h-72 overflow-y-auto">
                         @forelse ($resultados as $ctrl)
                             <button type="button" wire:click="agregar({{ $ctrl->id }})"
-                                class="w-full flex items-center justify-between px-4 py-2.5 text-sm rounded-lg hover:bg-blue-50 transition-colors text-left border border-transparent hover:border-blue-200">
-                                <span class="font-medium text-gray-700">{{ $ctrl->nombre }}</span>
-                                <span class="text-[10px] text-blue-600 font-bold bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full ml-2 shrink-0">
-                                    Mit: {{ $ctrl->mitigacion_default }}
-                                </span>
+                                class="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors border border-gray-100 hover:border-blue-200">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-semibold text-gray-800 truncate">{{ $ctrl->nombre }}</span>
+                                    <x-auditoria.estado-badge :estado="$ctrl->estado" size="xs" class="shrink-0" />
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
+                                    <span class="font-bold text-blue-600 shrink-0">Mit. por defecto: {{ $ctrl->mitigacion_default }}</span>
+                                    @if($ctrl->area)
+                                        <span class="text-gray-300">·</span>
+                                        <span class="truncate">{{ $ctrl->area->nombre }}</span>
+                                    @endif
+                                </div>
                             </button>
                         @empty
                             <p class="text-sm text-gray-400 italic px-4 py-3">

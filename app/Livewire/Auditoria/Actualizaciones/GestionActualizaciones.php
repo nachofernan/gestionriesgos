@@ -9,6 +9,7 @@ use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
+use App\Models\Auditoria\TipoRiesgo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -283,6 +284,9 @@ class GestionActualizaciones extends Component
         return view('livewire.auditoria.actualizaciones.gestion-actualizaciones', [
             'actualizaciones' => $actualizaciones,
             'camposEditables' => $this->camposEditables(),
+            // Resuelve tipo_riesgo_id → nombre en la entrada de creación de un riesgo
+            // (una consulta liviana; para el resto de entidades queda vacío e inocuo).
+            'tiposRiesgo' => TipoRiesgo::pluck('nombre', 'id'),
         ]);
     }
 }

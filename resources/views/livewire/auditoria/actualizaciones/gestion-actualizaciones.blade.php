@@ -11,6 +11,29 @@
         @endif
     </div>
 
+    {{-- Etiquetas legibles para los campos crudos que guarda `data` (creación /
+         propuestas). Genérico a cualquier entidad: si el campo no está mapeado se
+         humaniza el snake_case. --}}
+    @php
+        $etiquetasCampos = [
+            'nombre' => 'Nombre',
+            'descripcion' => 'Descripción',
+            'impacto' => 'Impacto',
+            'probabilidad' => 'Probabilidad',
+            'mayor_criticidad' => 'Mayor criticidad',
+            'tipo_riesgo_id' => 'Tipo de riesgo',
+            'mitigacion_default' => 'Mitigación por defecto',
+            'fecha_objetivo' => 'Fecha objetivo',
+            'porcentaje_avance' => 'Avance',
+            'fecha' => 'Fecha',
+            'codigo' => 'Código',
+        ];
+        // Numéricos que merecen realce en la entrada de creación.
+        $camposRealce = ['impacto', 'probabilidad', 'valor', 'mitigacion_default', 'porcentaje_avance'];
+        // Campos de texto largo: van como fila full-width, no como chip.
+        $camposTexto = ['nombre', 'descripcion'];
+    @endphp
+
     {{-- Lista --}}
     <div class="divide-y divide-gray-100">
         @forelse ($actualizaciones as $actualizacion)
@@ -22,6 +45,15 @@
                     || ($tipo === 'legacy' && collect($data)->except(['tipo', 'activated_by'])->filter(fn($v) => !is_array($v))->isNotEmpty());
                 $estaAprobado = $actualizacion->estado?->nombre === 'aprobado';
                 $activadoPor = $data['activated_by'] ?? null;
+
+                // Ícono/indicador visual según el tipo de entrada.
+                [$icono, $iconoClase] = match ($tipo) {
+                    'creacion'            => ['creacion', 'bg-green-100 text-green-600'],
+                    'edicion', 'cambio'   => ['cambio', 'bg-amber-100 text-amber-600'],
+                    'validacion', 'activacion' => ['validacion', 'bg-blue-100 text-blue-600'],
+                    'rechazo'             => ['rechazo', 'bg-red-100 text-red-500'],
+                    default               => ['otro', 'bg-gray-100 text-gray-500'],
+                };
 
                 if ($estaAprobado) {
                     $dataBg     = 'bg-green-50';
@@ -42,17 +74,47 @@
             @endphp
             <div class="px-5 py-4">
                 <div class="flex items-start justify-between gap-4 mb-2">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
+                    <div class="flex items-start gap-3 flex-1 min-w-0">
+                        {{-- Indicador visual del tipo de entrada --}}
+                        <span class="shrink-0 mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full {{ $iconoClase }}">
+                            @switch($icono)
+                                @case('creacion')
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    @break
+                                @case('cambio')
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    @break
+                                @case('validacion')
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    @break
+                                @case('rechazo')
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    @break
+                                @default
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                            @endswitch
+                        </span>
+                        <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-800">{{ $actualizacion->mensaje }}</p>
+                        <div class="flex items-center flex-wrap gap-2 mt-1">
                             <x-auditoria.estado-badge :estado="$actualizacion->estado" size="sm" />
                             @if($actualizacion->user)
-                                <span class="text-xs text-gray-400">{{ $actualizacion->user->name }}</span>
+                                <span class="text-xs text-gray-500">{{ $actualizacion->user->name }}</span>
                             @endif
                             <span class="text-xs text-gray-400">
                                 {{ \Carbon\Carbon::parse($actualizacion->created_at)->format('d/m/Y H:i') }}
                             </span>
                         </div>
-                        <p class="text-sm text-gray-700">{{ $actualizacion->mensaje }}</p>
 
                         {{-- Doble validación: gerencias que todavía no votaron a favor --}}
                         @if($actualizacion->estado?->nombre === 'borrador' && $actualizacion->requiereDobleValidacion())
@@ -110,14 +172,44 @@
                                     @endforeach
                                 @endif
 
-                                {{-- Snapshot de campos (sin diff: creación o propuesta sin antes/despues) --}}
+                                {{-- Snapshot de campos (sin diff: creación o propuesta sin antes/despues).
+                                     Texto largo como fila; numéricos/booleanos como chips etiquetados. --}}
                                 @if(!isset($data['diff']) && isset($data['campos']))
-                                    @foreach($data['campos'] as $campo => $valor)
-                                        <div class="text-xs {{ $dataTxt }} leading-5">
-                                            <span class="font-medium">{{ $campo }}:</span>
-                                            {{ is_bool($valor) ? ($valor ? 'sí' : 'no') : $valor }}
-                                        </div>
-                                    @endforeach
+                                    <div class="space-y-1">
+                                        @foreach($data['campos'] as $campo => $valor)
+                                            @if(in_array($campo, $camposTexto))
+                                                @php $etq = $etiquetasCampos[$campo] ?? ucfirst(str_replace('_', ' ', $campo)); @endphp
+                                                <div class="text-xs {{ $dataTxt }} leading-5">
+                                                    <span class="font-semibold">{{ $etq }}:</span>
+                                                    <span class="opacity-90">{{ ($valor === null || $valor === '') ? '—' : $valor }}</span>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                        @php
+                                            $chips = collect($data['campos'])->reject(fn($v, $k) => in_array($k, $camposTexto));
+                                        @endphp
+                                        @if($chips->isNotEmpty())
+                                            <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                                @foreach($chips as $campo => $valor)
+                                                    @php
+                                                        $etq = $etiquetasCampos[$campo] ?? ucfirst(str_replace('_', ' ', $campo));
+                                                        if ($campo === 'tipo_riesgo_id') {
+                                                            $val = $tiposRiesgo[$valor] ?? '#'.$valor;
+                                                        } elseif (is_bool($valor)) {
+                                                            $val = $valor ? 'Sí' : 'No';
+                                                        } else {
+                                                            $val = ($valor === null || $valor === '') ? '—' : $valor;
+                                                        }
+                                                        $realce = in_array($campo, $camposRealce);
+                                                    @endphp
+                                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 bg-white/70 border {{ $dataBorder }} rounded-lg">
+                                                        <span class="text-[10px] font-semibold uppercase tracking-wide {{ $dataTxt }} opacity-60">{{ $etq }}</span>
+                                                        <span class="text-xs {{ $realce ? 'font-extrabold' : 'font-medium' }} {{ $dataTxt }}">{{ $val }}</span>
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
                                 @endif
 
                                 {{-- Relaciones sin diff (fallback) --}}
@@ -159,6 +251,7 @@
                                 @endforeach
                             </div>
                         @endif
+                        </div>
                     </div>
 
                     {{-- Acciones de transición --}}

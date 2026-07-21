@@ -137,8 +137,23 @@ class GestionControles extends Component
             $sync[(string) $item['id']] = ['mitigacion' => $item['mitigacion']];
         }
 
+        $diffRel = $this->construirDiff($riesgo);
+
         if ($this->esBorrador) {
             $riesgo->controles()->sync($sync);
+
+            // Dejar rastro del cambio en el historial también en borrador, pero sólo
+            // si la selección realmente cambió (mismo diff que pinta la vista de
+            // actualizaciones vía data['diff']['relaciones']).
+            if (! empty($diffRel)) {
+                $riesgo->actualizaciones()->create([
+                    'user_id' => Auth::id(),
+                    'mensaje' => 'Controles de mitigación asociados',
+                    'estado_id' => Estado::borrador()->id,
+                    'data' => ['tipo' => 'edicion', 'diff' => ['relaciones' => ['controles' => $diffRel]]],
+                ]);
+            }
+
             $this->editando = false;
             $this->dispatch('residual-actualizado', valor: $this->residualActual());
             session()->flash('ok', 'Controles actualizados.');
@@ -148,24 +163,6 @@ class GestionControles extends Component
             // Riesgo::cambioRequiereDobleValidacion()).
             $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
             $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
-
-            $antesMap = $riesgo->controles->mapWithKeys(fn ($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => $c->pivot->mitigacion]]);
-            $antesIds = $antesMap->keys();
-            $despuesIds = collect($this->seleccionados)->pluck('id');
-
-            $diffRel = array_filter([
-                'agrega' => collect($this->seleccionados)
-                    ->filter(fn ($c) => ! $antesIds->contains($c['id']))
-                    ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion' => $c['mitigacion']])
-                    ->values()->toArray(),
-                'quita' => $antesMap->filter(fn ($v, $k) => ! $despuesIds->contains($k))
-                    ->map(fn ($v, $k) => ['id' => $k, 'nombre' => $v['nombre']])
-                    ->values()->toArray(),
-                'cambia' => collect($this->seleccionados)
-                    ->filter(fn ($c) => $antesIds->contains($c['id']) && $antesMap[$c['id']]['mitigacion'] !== $c['mitigacion'])
-                    ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion_antes' => $antesMap[$c['id']]['mitigacion'], 'mitigacion_despues' => $c['mitigacion']])
-                    ->values()->toArray(),
-            ], fn ($a) => ! empty($a));
 
             $data = ['tipo' => 'cambio', 'relaciones' => ['controles' => ['sync' => $sync]]];
             if (! empty($diffRel)) {
@@ -201,6 +198,33 @@ class GestionControles extends Component
                 session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
             }
         }
+    }
+
+    /**
+     * Diff (agrega/quita/cambia mitigación) entre los controles actualmente
+     * persistidos en el riesgo y la selección en memoria. Vacío si nada cambió.
+     * Lo consumen ambas ramas de guardar() (borrador y propuesta de cambio) y lo
+     * pinta el historial de actualizaciones vía data['diff']['relaciones'].
+     */
+    private function construirDiff(Riesgo $riesgo): array
+    {
+        $antesMap = $riesgo->controles->mapWithKeys(fn ($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => $c->pivot->mitigacion]]);
+        $antesIds = $antesMap->keys();
+        $despuesIds = collect($this->seleccionados)->pluck('id');
+
+        return array_filter([
+            'agrega' => collect($this->seleccionados)
+                ->filter(fn ($c) => ! $antesIds->contains($c['id']))
+                ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion' => $c['mitigacion']])
+                ->values()->toArray(),
+            'quita' => $antesMap->filter(fn ($v, $k) => ! $despuesIds->contains($k))
+                ->map(fn ($v, $k) => ['id' => $k, 'nombre' => $v['nombre']])
+                ->values()->toArray(),
+            'cambia' => collect($this->seleccionados)
+                ->filter(fn ($c) => $antesIds->contains($c['id']) && $antesMap[$c['id']]['mitigacion'] !== $c['mitigacion'])
+                ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion_antes' => $antesMap[$c['id']]['mitigacion'], 'mitigacion_despues' => $c['mitigacion']])
+                ->values()->toArray(),
+        ], fn ($a) => ! empty($a));
     }
 
     /**
@@ -265,7 +289,9 @@ class GestionControles extends Component
 
         $resultados = $this->modalAbierto
             ? Control::query()
+                ->with(['estado', 'area'])
                 ->visiblePara(Auth::user())
+                ->whereNot('estado_id', Estado::borrado()->id)
                 ->when($this->busqueda, fn ($q) => $q->where('nombre', 'like', '%'.$this->busqueda.'%'))
                 ->whereNotIn('id', $yaIds)
                 ->orderBy('nombre')
