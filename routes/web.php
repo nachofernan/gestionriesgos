@@ -12,11 +12,11 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('auditoria.objetivos.index');
+    return redirect()->route('auditoria.riesgos.index');
 });
 
 Route::get('/dashboard', function () {
-    return redirect()->route('auditoria.objetivos.index');
+    return redirect()->route('auditoria.riesgos.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
