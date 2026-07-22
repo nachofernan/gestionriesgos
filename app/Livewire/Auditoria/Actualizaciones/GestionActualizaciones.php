@@ -32,6 +32,9 @@ class GestionActualizaciones extends Component
 
     public string $estadoModelo = '';
 
+    /** Gobierna la visibilidad del botón "Nueva Actualización" en la vista. */
+    public bool $puedeActualizar = false;
+
     public bool $modalAbierto = false;
 
     public string $mensaje = '';
@@ -47,7 +50,9 @@ class GestionActualizaciones extends Component
     {
         $this->modelType = $modelType;
         $this->modelId = $modelId;
-        $this->estadoModelo = $this->resolverModelo()->estado?->nombre ?? '';
+        $modelo = $this->resolverModelo();
+        $this->estadoModelo = $modelo->estado?->nombre ?? '';
+        $this->puedeActualizar = Auth::user()->can('update', $modelo);
     }
 
     public function abrirModal(): void
@@ -70,9 +75,21 @@ class GestionActualizaciones extends Component
      */
     public function guardar(): void
     {
-        $this->validate([
+        // Los campos de fecha se validan en el borde: un texto libre entra por la
+        // propiedad pública `cambios` y la entidad castea fecha a date, así que sin
+        // esto se podría guardar basura. Sólo se valida el campo si trae valor.
+        $reglas = [
             'mensaje' => 'required|string|min:3',
             'archivos.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+        ];
+        foreach ($this->camposFecha() as $campo) {
+            if (($this->cambios[$campo] ?? '') !== '') {
+                $reglas["cambios.$campo"] = 'date';
+            }
+        }
+
+        $this->validate($reglas, [
+            'cambios.*.date' => 'Ingresá una fecha válida.',
         ]);
 
         $campos = collect($this->cambios)
@@ -273,6 +290,17 @@ class GestionActualizaciones extends Component
         };
     }
 
+    /**
+     * Campos de `camposEditables()` que representan fechas: el modal los renderiza
+     * como <input type="date"> y guardar() los valida como fecha. La lista es genérica
+     * (fecha en tarea, fecha_objetivo en objetivo); para el resto de entidades el
+     * in_array simplemente no matchea y quedan como texto.
+     */
+    private function camposFecha(): array
+    {
+        return ['fecha', 'fecha_objetivo'];
+    }
+
     public function render()
     {
         $actualizaciones = $this->resolverModelo()
@@ -284,6 +312,7 @@ class GestionActualizaciones extends Component
         return view('livewire.auditoria.actualizaciones.gestion-actualizaciones', [
             'actualizaciones' => $actualizaciones,
             'camposEditables' => $this->camposEditables(),
+            'camposFecha' => $this->camposFecha(),
             // Resuelve tipo_riesgo_id → nombre en la entrada de creación de un riesgo
             // (una consulta liviana; para el resto de entidades queda vacío e inocuo).
             'tiposRiesgo' => TipoRiesgo::pluck('nombre', 'id'),

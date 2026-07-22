@@ -29,6 +29,9 @@ class GestionControles extends Component
 
     public bool $esBorrador = true;
 
+    /** Gobierna la visibilidad de los botones de mutar (Editar / Proponer cambio) en la vista. */
+    public bool $puedeActualizar = false;
+
     public string $estadoModelo = 'borrador';
 
     public string $busqueda = '';
@@ -46,6 +49,7 @@ class GestionControles extends Component
     {
         $this->riesgoId = $riesgo->id;
         $this->valorTotal = $riesgo->valor_total;
+        $this->puedeActualizar = Auth::user()->can('update', $riesgo);
         $this->cargar();
     }
 
@@ -131,6 +135,7 @@ class GestionControles extends Component
     public function guardar(): void
     {
         $riesgo = Riesgo::with('controles')->findOrFail($this->riesgoId);
+        $this->authorize('update', $riesgo);
 
         $sync = [];
         foreach ($this->seleccionados as $item) {

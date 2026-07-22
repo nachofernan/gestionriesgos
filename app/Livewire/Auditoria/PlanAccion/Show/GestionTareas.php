@@ -25,6 +25,9 @@ class GestionTareas extends Component
 
     public bool $esBorrador = true;
 
+    /** Gobierna la visibilidad de los botones de mutar (Editar / Proponer cambio) en la vista. */
+    public bool $puedeActualizar = false;
+
     public string $estadoModelo = 'borrador';
 
     public string $busqueda = '';
@@ -53,6 +56,7 @@ class GestionTareas extends Component
     public function mount(PlanAccion $plan): void
     {
         $this->planId = $plan->id;
+        $this->puedeActualizar = Auth::user()->can('update', $plan);
         $this->cargar();
     }
 
@@ -110,6 +114,8 @@ class GestionTareas extends Component
      */
     public function guardarNuevaTarea(): void
     {
+        $this->authorize('update', PlanAccion::findOrFail($this->planId));
+
         $this->validate([
             'nuevaNombre' => 'required|string|max:255',
             'nuevaFecha' => 'nullable|date',
@@ -192,6 +198,7 @@ class GestionTareas extends Component
     public function guardar(): void
     {
         $plan = PlanAccion::findOrFail($this->planId);
+        $this->authorize('update', $plan);
         // Las tareas "borrado" ocultas se re-agregan al sync para no detacharlas.
         $ids = array_values(array_unique(array_merge(
             collect($this->seleccionados)->pluck('id')->toArray(),

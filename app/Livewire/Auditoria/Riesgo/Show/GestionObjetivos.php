@@ -26,6 +26,9 @@ class GestionObjetivos extends Component
 
     public bool $esBorrador = true;
 
+    /** Gobierna la visibilidad de los botones de mutar (Editar / Proponer cambio) en la vista. */
+    public bool $puedeActualizar = false;
+
     public string $estadoModelo = 'borrador';
 
     public string $busqueda = '';
@@ -38,6 +41,7 @@ class GestionObjetivos extends Component
     public function mount(Riesgo $riesgo): void
     {
         $this->riesgoId = $riesgo->id;
+        $this->puedeActualizar = Auth::user()->can('update', $riesgo);
         $this->cargar();
     }
 
@@ -126,6 +130,7 @@ class GestionObjetivos extends Component
         }
 
         $riesgo = Riesgo::with('objetivos')->findOrFail($this->riesgoId);
+        $this->authorize('update', $riesgo);
         $ids = collect($this->seleccionados)->pluck('id')->toArray();
 
         $diffRel = $this->construirDiff($riesgo);

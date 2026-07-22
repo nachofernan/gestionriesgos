@@ -3,7 +3,7 @@
     {{-- Header --}}
     <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
         <h2 class="text-sm font-bold text-gray-700">Historial de Actualizaciones</h2>
-        @if($estadoModelo !== 'borrador')
+        @if($puedeActualizar && $estadoModelo !== 'borrador')
             <button wire:click="abrirModal"
                     class="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition-colors">
                 Nueva Actualización
@@ -65,6 +65,14 @@
                     $dataBorder = 'border-gray-200';
                     $dataTxt    = 'text-gray-700';
                     $dataLabel  = $tipo === 'creacion' ? 'Datos de creación' : 'Modificaciones';
+                } elseif ($activadoPor) {
+                    // El cambio ya se aplicó al modelo (p. ej. gerente sobre una entidad
+                    // validada: la entrada queda en validado con activated_by seteado)
+                    // aunque todavía no esté aprobado: no es una propuesta pendiente.
+                    $dataBg     = 'bg-blue-50';
+                    $dataBorder = 'border-blue-100';
+                    $dataTxt    = 'text-blue-800';
+                    $dataLabel  = 'Cambios aplicados';
                 } else {
                     $dataBg     = 'bg-amber-50';
                     $dataBorder = 'border-amber-100';
@@ -333,11 +341,13 @@
                         <p class="text-xs font-semibold text-gray-500 uppercase mb-3">Cambios propuestos (opcional)</p>
                         <div class="space-y-3">
                             @foreach($camposEditables as $campo => $etiqueta)
+                                @php $esFecha = in_array($campo, $camposFecha); @endphp
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1">{{ $etiqueta }}</label>
-                                    <input type="text" wire:model="cambios.{{ $campo }}"
-                                           placeholder="Nuevo valor (dejar vacío para no cambiar)"
+                                    <input type="{{ $esFecha ? 'date' : 'text' }}" wire:model="cambios.{{ $campo }}"
+                                           @unless($esFecha) placeholder="Nuevo valor (dejar vacío para no cambiar)" @endunless
                                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50">
+                                    @error('cambios.'.$campo) <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                             @endforeach
                         </div>

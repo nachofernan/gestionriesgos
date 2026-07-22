@@ -7,12 +7,12 @@
             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">
                 {{ count($seleccionados) }} tarea(s)
             </span>
-            @if(!$editando && $esBorrador)
+            @if($puedeActualizar && !$editando && $esBorrador)
                 <button type="button" wire:click="activarEdicion"
                     class="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-colors">
                     Editar
                 </button>
-            @elseif(!$editando && !$esBorrador)
+            @elseif($puedeActualizar && !$editando && !$esBorrador)
                 <button type="button" wire:click="activarEdicion"
                     class="text-[10px] font-bold text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition-colors">
                     Proponer cambio
@@ -98,7 +98,7 @@
                     </div>
                     <div x-data="{ avance: @entangle('nuevaPorcentaje') }">
                         <label class="block text-[10px] text-gray-500 font-semibold mb-1 uppercase">Avance (<span x-text="avance + '%'"></span>)</label>
-                        <input type="range" wire:model="nuevaPorcentaje" min="0" max="100" step="5"
+                        <input type="range" x-model="avance" min="0" max="100" step="5"
                             class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600" />
                     </div>
                 </div>
