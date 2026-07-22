@@ -80,7 +80,12 @@ class PlanAccionController extends Controller
         $this->authorize('view', $planAccion);
         // tareas.estado: lo necesita el accessor avance (sólo promedia tareas aprobadas)
         // y la vista para ocultar las tareas en estado "borrado".
-        $planAccion->load(['riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'tareas.estado', 'user', 'area']);
+        // riesgos filtrados por visibilidad: un borrador de otra gerencia no debe
+        // aparecer como fila en "Riesgos asociados" (axioma 3 + scopeVisiblePara).
+        $planAccion->load([
+            'riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
+            'riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'tareas.estado', 'user', 'area',
+        ]);
 
         return view('auditoria.planaccion.show', compact('planAccion'));
     }
