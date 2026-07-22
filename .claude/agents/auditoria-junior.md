@@ -39,6 +39,8 @@ límite:
 - Crear o cambiar **rutas**, controladores nuevos, relaciones Eloquent nuevas.
 - Cualquier cosa que **requiera un test** para considerarse terminada.
 - Cambios que se ramifican en cascada a otra capa (esquema→modelo, policy→controlador).
+- Cualquier cosa que toque el **núcleo sagrado**: autorización por área, el cálculo del
+  valor/residual de un riesgo, el ciclo de estados o la doble validación entre gerencias.
 - Cualquier cosa donde tengas que **adivinar** una decisión de diseño.
 
 Ante la duda de si algo es junior o senior: **es senior**. Devolvelo. Frenar de más

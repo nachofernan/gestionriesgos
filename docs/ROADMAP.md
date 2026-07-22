@@ -1,6 +1,6 @@
 # Roadmap — Módulo de Auditoría
 
-Estado del trabajo pendiente. Se actualiza a medida que se completan o surgen ítems — no es un historial (para eso está [CHANGELOG.md](../CHANGELOG.md)).
+Estado del trabajo pendiente. Se actualiza a medida que se completan o surgen ítems — no es un historial (para eso está [CHANGELOG.md](CHANGELOG.md)).
 
 ## Cronograma original — estado
 

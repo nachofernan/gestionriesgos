@@ -75,5 +75,8 @@ Los permisos se basan en una jerarquía de áreas. Un gerente gestiona su área 
 ## Documentación
 
 - [`docs/modulo-auditoria.md`](docs/modulo-auditoria.md) — arquitectura completa, modelos, rutas, componentes Livewire y tests.
-- [`docs/updates/`](docs/updates/) — log de cambios por fecha.
+- [`docs/DECISIONES.md`](docs/DECISIONES.md) — bitácora de decisiones de diseño y arquitectura, con el motivo de cada una.
+- [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — índice cronológico de cambios significativos.
+- [`docs/updates/`](docs/updates/) — detalle de cada cambio por fecha.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — trabajo pendiente.
 - [`CLAUDE.md`](CLAUDE.md) — guía de convenciones y reglas de trabajo para el proyecto.

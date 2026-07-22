@@ -33,27 +33,40 @@ de escribir código, entendés el terreno.
 
 ## Cómo trabajás
 
-1. **Investigá primero.** Leé el `CLAUDE.md` de la raíz y `docs/modulo-auditoria.md`.
-   Antes de mutar, mapeá qué depende de lo que vas a tocar: quién llama a ese método,
-   qué relaciones cuelgan de esa tabla, qué Policy gobierna esa entidad, qué tests
-   existen. No toques a ciegas.
+1. **Investigá primero.** Leé el `CLAUDE.md` de la raíz, `docs/modulo-auditoria.md` y
+   `docs/DECISIONES.md` (lo ya decidido y por qué — no reabras una decisión cerrada sin
+   motivo). Antes de mutar, mapeá qué depende de lo que vas a tocar: quién llama a ese
+   método, qué relaciones cuelgan de esa tabla, qué Policy gobierna esa entidad, qué
+   tests existen. No toques a ciegas.
 2. **Marcá las cascadas explícitamente.** Si un cambio obliga a tocar otra capa
    (esquema→modelo, regla de negocio→test, policy→controlador), decilo en tu reporte
    como efecto en cascada. Nunca silencioso.
 3. **Implementá en pasos lógicos chicos**, no todo de golpe. Una migración + su modelo
    + su policy básica es una etapa; una vista + su componente es otra.
-4. **Testeá de verdad.** Toda funcionalidad nueva lleva al menos un test antes de darse
-   por terminada — camino feliz + casos de permisos (403 esperados). Tests de
-   integración reales, no mocks de DB. Nombres en español descriptivo
-   (`un_riesgo_se_crea_con_estado_borrador_por_defecto`). Si algo genuinamente no se
-   puede testear todavía (depende de un servicio externo no disponible), decí por qué;
-   no lo omitas en silencio.
+4. **Testeá dosificado por zona.** El núcleo sagrado (autorización/Policies,
+   `scopeVisiblePara`, cálculo de `valor_residual` y mitigación, ciclo de estados y doble
+   validación) **siempre** lleva test antes de darse por terminado: camino feliz + casos
+   de permisos (403 esperados) + el caso feo (un gerente que no debería validar la
+   propuesta de otra gerencia, un control en borrador que no debe bajar el residual, un
+   plan incompleto que no descuenta). La periferia (CRUD, Blade, textos) sólo lleva test
+   si la rotura puede propagar; una boludez cerrada no. Tests de integración reales contra
+   la MySQL de XAMPP, no mocks de DB. Nombres en español descriptivo
+   (`un_riesgo_se_crea_con_estado_borrador_por_defecto`). Si algo genuinamente no se puede
+   testear todavía, decí por qué; no lo omitas en silencio.
+   - **Alcance:** durante el trabajo corré sólo el/los test relevantes (`--filter=`). La
+     suite completa es un checkpoint: antes de commitear algo del núcleo sagrado o al
+     tocar algo transversal (modelo base, scope global, config). Reportá el **resumen**
+     (`110 passed`, o los que fallan con su detalle), no el volcado verde línea por línea.
+     Si fallan por no conectar a MySQL, decilo — es que XAMPP no está corriendo, no lo
+     ocultes ni lo maquilles.
 5. **Pint + commit al cerrar etapa.** Corré Pint sobre lo tocado, verificá que los
    tests pasan, y commiteá cuando una etapa tiene sentido propio. Nunca commitees a
    mitad de un cambio que no compila o no pasa tests. Mensaje de commit en español,
    estilo del historial del repo (`feat:`, `fix:`, `docs:`...).
 6. **Documentá si corresponde.** Cambios significativos → `docs/updates/YYYY-MM-DD.md`,
-   más su renglón en `CHANGELOG.md`. Si movés trabajo pendiente, actualizá `docs/ROADMAP.md`.
+   más su renglón en `docs/CHANGELOG.md`. Si de tu trabajo sale una decisión de diseño
+   (o se revierte una previa), anotala en `docs/DECISIONES.md` como entrada nueva — no
+   reescribas el pasado. Si movés trabajo pendiente, actualizá `docs/ROADMAP.md`.
 
 ## Autorización — no la aflojes
 
