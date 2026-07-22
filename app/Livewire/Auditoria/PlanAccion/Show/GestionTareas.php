@@ -236,6 +236,9 @@ class GestionTareas extends Component
                 || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
 
             if ($aplicarAhora) {
+                // El cambio se aplica en el acto: se marca activated_by para que el
+                // historial lo rotule "Cambios aplicados" y no "Cambios propuestos".
+                $data['activated_by'] = Auth::user()->name;
                 $plan->tareas()->sync($ids);
                 $plan->actualizaciones()->create([
                     'user_id' => Auth::id(),

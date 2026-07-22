@@ -169,6 +169,9 @@ class GestionObjetivos extends Component
                 || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
 
             if ($aplicarAhora) {
+                // El cambio se aplica en el acto: se marca activated_by para que el
+                // historial lo rotule "Cambios aplicados" y no "Cambios propuestos".
+                $data['activated_by'] = Auth::user()->name;
                 $riesgo->objetivos()->sync($ids);
                 $riesgo->actualizaciones()->create([
                     'user_id' => Auth::id(),

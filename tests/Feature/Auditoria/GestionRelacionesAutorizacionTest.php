@@ -8,6 +8,7 @@ use App\Livewire\Auditoria\Riesgo\Show\GestionControles;
 use App\Livewire\Auditoria\Riesgo\Show\GestionObjetivos;
 use App\Livewire\Auditoria\Riesgo\Show\GestionPlanes;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
@@ -196,5 +197,33 @@ class GestionRelacionesAutorizacionTest extends TestCase
             ->test(GestionObjetivos::class, ['riesgo' => $riesgo])
             ->call('guardar')
             ->assertOk();
+    }
+
+    // -------------------------------------------------------
+    // Rótulo "Cambios aplicados": la asociación aplicada en el acto (gerente que
+    // gestiona sobre riesgo validado) queda marcada con activated_by, que es lo
+    // que el historial usa para rotularla "Cambios aplicados" y no "propuestos".
+    // -------------------------------------------------------
+
+    /** @test */
+    public function una_asociacion_de_controles_aplicada_en_el_acto_queda_marcada_como_activada(): void
+    {
+        $riesgo = $this->riesgoValidadoProd();
+        $control = Control::factory()->create([
+            'estado_id' => Estado::aprobado()->id,
+            'area_id' => $this->gerProd->id,
+        ]);
+
+        Livewire::actingAs($this->gerenteProd)
+            ->test(GestionControles::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->call('agregar', $control->id)
+            ->call('guardar')
+            ->assertOk();
+
+        $actualizacion = $riesgo->actualizaciones()->latest('id')->first();
+
+        $this->assertNotNull($actualizacion);
+        $this->assertSame($this->gerenteProd->name, $actualizacion->data['activated_by'] ?? null);
     }
 }
