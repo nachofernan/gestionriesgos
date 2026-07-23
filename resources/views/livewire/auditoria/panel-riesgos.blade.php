@@ -1,11 +1,11 @@
 @php
-    // Colores por clasificación (bajo/moderado/crítico). "tint" para celdas vacías
-    // (dibuja las bandas de severidad aunque no haya riesgos); "full" para celdas
-    // con riesgos; "chip" para badges y leyendas.
+    // Colores por clasificación (bajo/moderado/crítico). "tint" para cubos vacíos
+    // (dibuja las bandas de severidad aunque no haya riesgos); "full" para cubos
+    // con riesgos.
     $paleta = [
-        'verde'    => ['tint' => 'bg-green-50',  'full' => 'bg-green-500', 'chip' => 'bg-green-100 text-green-700', 'bar' => 'bg-green-500'],
-        'amarillo' => ['tint' => 'bg-amber-50',  'full' => 'bg-amber-400', 'chip' => 'bg-amber-100 text-amber-700', 'bar' => 'bg-amber-400'],
-        'rojo'     => ['tint' => 'bg-red-50',     'full' => 'bg-red-500',   'chip' => 'bg-red-100 text-red-700',     'bar' => 'bg-red-500'],
+        'verde'    => ['tint' => 'bg-green-50', 'full' => 'bg-green-500'],
+        'amarillo' => ['tint' => 'bg-amber-50', 'full' => 'bg-amber-400'],
+        'rojo'     => ['tint' => 'bg-red-50',   'full' => 'bg-red-500'],
     ];
     $colorPorEtiqueta = ['bajo' => 'verde', 'moderado' => 'amarillo', 'critico' => 'rojo'];
     $mitigado = $exposicionTotal - $exposicionResidual;
@@ -19,7 +19,7 @@
         <div>
             <h1 class="text-2xl font-extrabold text-gray-900">Panel de Riesgos</h1>
             <p class="text-sm text-gray-500 mt-1">
-                Estado de situación de la matriz que podés ver: mapa de calor, cuánto mitigan los controles y qué tenés por hacer.
+                Estado de situación de la matriz que podés ver: cuánto mitigan los controles y planes, y qué tenés por hacer.
             </p>
         </div>
         <div class="flex items-center gap-5">
@@ -52,113 +52,23 @@
         @endforeach
     </div>
 
-    {{-- Mapa de calor + detalle --}}
-    <div wire:key="mapa-{{ $soloAprobados ? 'apr' : 'val' }}"
-         x-data="{ celda: null, riesgos: @js($riesgosJs) }"
+    {{-- Antes y después de mitigar: rieles interactivos + listado --}}
+    <div wire:key="rieles-{{ $soloAprobados ? 'apr' : 'val' }}"
+         x-data="{
+            riesgos: @js($riesgosJs),
+            sel: null,
+            hov: null,
+            seleccionar(rail, v) { this.sel = (this.sel && this.sel.rail === rail && this.sel.v === v) ? null : { rail, v }; },
+            activa(rail, v) { return this.sel && this.sel.rail === rail && this.sel.v === v; },
+            resaltada(rail, v) { return this.hov && ((rail === 'inherente' && this.hov.total === v) || (rail === 'residual' && this.hov.residual === v)); },
+            lista() { return this.sel ? this.riesgos.filter(r => (this.sel.rail === 'inherente' ? r.total : r.residual) === this.sel.v) : []; }
+         }"
          class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h2 class="text-lg font-bold text-gray-900">Mapa de calor</h2>
-                <p class="text-xs text-gray-500 mt-0.5">Riesgo inherente: impacto × probabilidad. Hacé clic en una celda para ver sus riesgos.</p>
-            </div>
-            <div class="flex items-center gap-3 text-xs">
-                @foreach(['critico' => 'Crítico', 'moderado' => 'Moderado', 'bajo' => 'Bajo'] as $et => $label)
-                    <span class="inline-flex items-center gap-1.5">
-                        <span class="w-3 h-3 rounded {{ $paleta[$colorPorEtiqueta[$et]]['full'] }}"></span>
-                        <span class="text-gray-500">{{ $label }}</span>
-                    </span>
-                @endforeach
-            </div>
-        </div>
 
-        <div class="flex flex-col xl:flex-row gap-6">
-            {{-- Grilla --}}
-            <div class="overflow-x-auto">
-                <div class="flex">
-                    <div class="flex flex-col items-center justify-center pr-2">
-                        <span class="text-[11px] font-semibold text-gray-500 -rotate-90 whitespace-nowrap">Impacto →</span>
-                    </div>
-                    <table class="border-separate" style="border-spacing: 3px;">
-                        <tbody>
-                            @for($imp = 10; $imp >= 0; $imp--)
-                                <tr>
-                                    <td class="text-[10px] text-gray-400 font-mono pr-1 text-right align-middle">{{ $imp }}</td>
-                                    @for($prob = 0; $prob <= 10; $prob++)
-                                        @php
-                                            $clave = $imp.'-'.$prob;
-                                            $cls = \App\Models\Auditoria\Riesgo::clasificacion($imp + $prob);
-                                            $count = $celdas[$clave] ?? 0;
-                                            $bg = $count ? $paleta[$cls['color']]['full'].' text-white' : $paleta[$cls['color']]['tint'].' text-transparent';
-                                        @endphp
-                                        <td>
-                                            <button type="button"
-                                                @click="celda = (celda === '{{ $clave }}' ? null : '{{ $clave }}')"
-                                                x-bind:class="celda === '{{ $clave }}' ? 'ring-2 ring-indigo-600 ring-offset-1' : ''"
-                                                class="w-9 h-9 rounded-md text-xs font-bold flex items-center justify-center transition {{ $bg }} {{ $count ? 'hover:opacity-80 cursor-pointer' : 'cursor-default' }}"
-                                                @if(!$count) disabled @endif>
-                                                {{ $count ?: '·' }}
-                                            </button>
-                                        </td>
-                                    @endfor
-                                </tr>
-                            @endfor
-                            <tr>
-                                <td></td>
-                                @for($prob = 0; $prob <= 10; $prob++)
-                                    <td class="text-[10px] text-gray-400 font-mono text-center pt-1">{{ $prob }}</td>
-                                @endfor
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="text-[11px] font-semibold text-gray-500 text-center mt-1 pl-8">Probabilidad →</div>
-            </div>
-
-            {{-- Detalle de la celda seleccionada --}}
-            <div class="flex-1 min-w-0 border-l border-gray-100 xl:pl-6">
-                <template x-if="!celda">
-                    <div class="h-full flex items-center justify-center text-center text-sm text-gray-400 italic py-10">
-                        Elegí una celda del mapa para ver qué riesgos caen ahí.
-                    </div>
-                </template>
-                <template x-if="celda">
-                    <div>
-                        <div class="text-xs font-semibold text-gray-500 mb-3">
-                            Riesgos en la celda
-                            <span class="font-mono text-gray-700" x-text="'(impacto ' + celda.split('-')[0] + ', prob. ' + celda.split('-')[1] + ')'"></span>
-                        </div>
-                        <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
-                            <template x-for="r in riesgos.filter(x => x.celda === celda)" :key="r.codigo">
-                                <a :href="r.url" class="block rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/40 px-3 py-2 transition">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="font-mono text-xs text-gray-500" x-text="r.codigo"></span>
-                                        <span class="text-[11px] px-1.5 py-0.5 rounded"
-                                              :class="{
-                                                'bg-red-100 text-red-700': r.clasificacion === 'critico',
-                                                'bg-amber-100 text-amber-700': r.clasificacion === 'moderado',
-                                                'bg-green-100 text-green-700': r.clasificacion === 'bajo',
-                                              }"
-                                              x-text="'residual ' + r.residual"></span>
-                                    </div>
-                                    <div class="text-sm font-medium text-gray-800 mt-0.5 truncate" x-text="r.nombre"></div>
-                                    <div class="text-[11px] text-gray-400 mt-0.5">
-                                        <span x-text="r.tipo"></span> · <span x-text="'total ' + r.total"></span> · <span class="capitalize" x-text="r.estado"></span>
-                                    </div>
-                                </a>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </div>
-    </div>
-
-    {{-- Antes y después de mitigar: dos rieles de cubitos 0→20 --}}
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
             <div>
                 <h2 class="text-lg font-bold text-gray-900">Antes y después de mitigar</h2>
-                <p class="text-xs text-gray-500 mt-0.5">Cada cubo es un valor de riesgo (0 nulo → 20 máximo). Comparar las dos filas muestra cuánto corren los controles y planes el panorama hacia la izquierda.</p>
+                <p class="text-xs text-gray-500 mt-0.5">Cada cubo es un valor de riesgo (0 nulo → 20 máximo). Hacé clic en un cubo para ver sus riesgos; al pasar el mouse sobre uno, se marca dónde queda en ambos rieles.</p>
             </div>
             <div class="text-right">
                 <div class="text-2xl font-extrabold text-indigo-600">{{ $pctMitigado }}%</div>
@@ -168,13 +78,13 @@
 
         @php
             $filas = [
-                ['titulo' => 'Antes de mitigar',   'sub' => 'valor inherente', 'pista' => $pistaInherente],
-                ['titulo' => 'Después de mitigar', 'sub' => 'valor residual',  'pista' => $pistaResidual],
+                ['rail' => 'inherente', 'titulo' => 'Antes de mitigar',   'sub' => 'valor inherente', 'pista' => $pistaInherente],
+                ['rail' => 'residual',  'titulo' => 'Después de mitigar', 'sub' => 'valor residual',  'pista' => $pistaResidual],
             ];
         @endphp
 
         <div class="overflow-x-auto">
-            <div class="space-y-2 min-w-max">
+            <div class="space-y-2 min-w-max py-2">
                 @foreach($filas as $fila)
                     <div class="flex items-center gap-3">
                         <div class="w-32 shrink-0 text-right">
@@ -188,10 +98,17 @@
                                     $n = $fila['pista'][$v] ?? 0;
                                     $bg = $n ? $paleta[$cls['color']]['full'].' text-white' : $paleta[$cls['color']]['tint'].' text-transparent';
                                 @endphp
-                                <div class="w-8 h-8 rounded-md text-xs font-bold flex items-center justify-center {{ $bg }}"
-                                     title="Valor {{ $v }} · {{ ucfirst($cls['etiqueta']) }}{{ $n ? ' · '.$n.' riesgo(s)' : '' }}">
+                                <button type="button"
+                                    @if($n) @click="seleccionar('{{ $fila['rail'] }}', {{ $v }})" @else disabled @endif
+                                    :class="{
+                                        'ring-2 ring-indigo-600 ring-offset-1': activa('{{ $fila['rail'] }}', {{ $v }}),
+                                        'ring-2 ring-indigo-500 ring-offset-1': resaltada('{{ $fila['rail'] }}', {{ $v }}),
+                                        'opacity-20': hov && !resaltada('{{ $fila['rail'] }}', {{ $v }})
+                                    }"
+                                    class="w-8 h-8 rounded-md text-xs font-bold flex items-center justify-center transition {{ $bg }} {{ $n ? 'cursor-pointer' : 'cursor-default' }}"
+                                    title="Valor {{ $v }} · {{ ucfirst($cls['etiqueta']) }}{{ $n ? ' · '.$n.' riesgo(s)' : '' }}">
                                     {{ $n ?: '·' }}
-                                </div>
+                                </button>
                             @endfor
                         </div>
                     </div>
@@ -216,6 +133,45 @@
                     <span class="text-gray-500">{{ $label }}</span>
                 </span>
             @endforeach
+        </div>
+
+        {{-- Listado de los riesgos del cubo seleccionado --}}
+        <div class="mt-5 border-t border-gray-100 pt-5">
+            <template x-if="!sel">
+                <div class="text-center text-sm text-gray-400 italic py-6">
+                    Hacé clic en un cubo de cualquier riel para ver los riesgos con ese valor.
+                </div>
+            </template>
+            <template x-if="sel">
+                <div>
+                    <div class="text-xs font-semibold text-gray-500 mb-3">
+                        Riesgos con
+                        <span x-text="sel.rail === 'inherente' ? 'valor inherente' : 'valor residual'"></span>
+                        = <span class="font-mono text-gray-700" x-text="sel.v"></span>
+                        <span class="text-gray-300 font-normal">— pasá el mouse por uno para ubicarlo en ambos rieles</span>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-2">
+                        <template x-for="r in lista()" :key="r.codigo">
+                            <a :href="r.url"
+                               @mouseenter="hov = r" @mouseleave="hov = null"
+                               class="block rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/40 px-3 py-2 transition">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-mono text-xs text-gray-500" x-text="r.codigo"></span>
+                                    <span class="text-[11px] font-semibold text-gray-600">
+                                        <span x-text="'total ' + r.total"></span>
+                                        <span class="text-gray-300">→</span>
+                                        <span x-text="'residual ' + r.residual"></span>
+                                    </span>
+                                </div>
+                                <div class="text-sm font-medium text-gray-800 mt-0.5 truncate" x-text="r.nombre"></div>
+                                <div class="text-[11px] text-gray-400 mt-0.5">
+                                    <span x-text="r.tipo"></span> · <span class="capitalize" x-text="r.estado"></span>
+                                </div>
+                            </a>
+                        </template>
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
 
@@ -279,6 +235,61 @@
             </div>
         </a>
 
+    </div>
+
+    {{-- Matriz de calor 2D (referencia) --}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Matriz de calor <span class="font-normal text-gray-400 text-sm">— referencia</span></h2>
+                <p class="text-xs text-gray-500 mt-0.5">Riesgo inherente: impacto × probabilidad. La suma define la severidad (misma escala que los rieles de arriba).</p>
+            </div>
+            <div class="flex items-center gap-3 text-xs">
+                @foreach(['critico' => 'Crítico', 'moderado' => 'Moderado', 'bajo' => 'Bajo'] as $et => $label)
+                    <span class="inline-flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded {{ $paleta[$colorPorEtiqueta[$et]]['full'] }}"></span>
+                        <span class="text-gray-500">{{ $label }}</span>
+                    </span>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <div class="flex">
+                <div class="flex flex-col items-center justify-center pr-2">
+                    <span class="text-[11px] font-semibold text-gray-500 -rotate-90 whitespace-nowrap">Impacto →</span>
+                </div>
+                <table class="border-separate" style="border-spacing: 3px;">
+                    <tbody>
+                        @for($imp = 10; $imp >= 0; $imp--)
+                            <tr>
+                                <td class="text-[10px] text-gray-400 font-mono pr-1 text-right align-middle">{{ $imp }}</td>
+                                @for($prob = 0; $prob <= 10; $prob++)
+                                    @php
+                                        $cls = \App\Models\Auditoria\Riesgo::clasificacion($imp + $prob);
+                                        $count = $celdas[$imp.'-'.$prob] ?? 0;
+                                        $bg = $count ? $paleta[$cls['color']]['full'].' text-white' : $paleta[$cls['color']]['tint'].' text-transparent';
+                                    @endphp
+                                    <td>
+                                        <div class="w-9 h-9 rounded-md text-xs font-bold flex items-center justify-center {{ $bg }}"
+                                             title="Impacto {{ $imp }} · Prob. {{ $prob }}{{ $count ? ' · '.$count.' riesgo(s)' : '' }}">
+                                            {{ $count ?: '·' }}
+                                        </div>
+                                    </td>
+                                @endfor
+                            </tr>
+                        @endfor
+                        <tr>
+                            <td></td>
+                            @for($prob = 0; $prob <= 10; $prob++)
+                                <td class="text-[10px] text-gray-400 font-mono text-center pt-1">{{ $prob }}</td>
+                            @endfor
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-[11px] font-semibold text-gray-500 text-center mt-1 pl-8">Probabilidad →</div>
+        </div>
     </div>
 
 </div>
