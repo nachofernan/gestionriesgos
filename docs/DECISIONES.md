@@ -98,3 +98,27 @@ junto con los permisos particulares cuando el módulo migre al sistema real.
 **Motivo.** Un parche aislado ahora se pisaría con el rediseño de permisos que viene con la migración.
 
 Fuente: [ROADMAP.md](ROADMAP.md), ítem de próximos pasos.
+
+---
+
+## D-007 — Panel de Riesgos: dashboard de lectura con sesgo gerencial (2026-07-23)
+
+**Decisión.** El dashboard de situación (`PanelRiesgos`) es de **lectura**: resume y linkea a
+Pendientes y Vencimientos, no las reimplementa ni actúa sobre ellas. Su recorte de visibilidad usa un
+scope nuevo y reusable, `Riesgo::scopeDeCascadaArea` (gerente = su gerencia y sub-áreas; comité = todo),
+que **no** trata lo aprobado/validado como público a toda la organización. El panel **nunca** muestra
+borradores (ni de la propia gerencia) ni borrados; un toggle "ver solo aprobados" —**encendido por
+defecto**— alterna entre sólo aprobados y aprobados + validados. El mapa de calor grafica el riesgo
+**inherente** (impacto × probabilidad); el corrimiento por mitigación se muestra aparte, en dos rieles
+de cubitos 0-20 (inherente vs residual), no en el mapa. La landing (`/`, `/dashboard`) pasa a redirigir
+al panel.
+
+**Motivo.** (1) El sesgo gerencial ya era el criterio acordado en Vencimientos; extraerlo a un scope
+sobre `Riesgo` era el segundo consumidor que lo justificaba. (2) El residual no tiene coordenadas
+propias en la grilla 2D —sólo baja la suma—, así que la comparación antes/después va sobre un eje 0-20,
+no sobre el mapa (idea del propio usuario). (3) "Solo aprobados" por defecto porque la foto de gestión
+por defecto es la matriz consolidada; ver los validados es un paso opcional. (4) Se descartó reusar el
+`Dashboard` viejo (scaffolding que escribe sin `authorize()` ni `Auth::id()`): es inseguro y de otra
+naturaleza; queda para retirar aparte.
+
+Fuente: [changelog 2026-07-23](updates/2026-07-23.md).

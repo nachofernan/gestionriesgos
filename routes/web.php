@@ -12,11 +12,11 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('auditoria.riesgos.index');
+    return redirect()->route('auditoria.panel.index');
 });
 
 Route::get('/dashboard', function () {
-    return redirect()->route('auditoria.riesgos.index');
+    return redirect()->route('auditoria.panel.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -26,6 +26,11 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(function () {
+
+    // -------------------------------------------------------------------
+    // Panel de situación (mapa de calor, distribución, accesos rápidos)
+    // -------------------------------------------------------------------
+    Route::view('panel', 'auditoria.panel.index')->name('panel.index');
 
     // -------------------------------------------------------------------
     // Riesgos

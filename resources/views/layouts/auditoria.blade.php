@@ -17,6 +17,11 @@
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center gap-1">
                     <span class="font-extrabold text-gray-900 text-sm tracking-tight mr-3">Módulo de Auditoría</span>
+                    <a href="{{ route('auditoria.panel.index') }}"
+                       class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors
+                           {{ request()->routeIs('auditoria.panel.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700' }}">
+                        Panel
+                    </a>
                     @foreach([
                         ['auditoria.riesgos', 'Riesgos'],
                         ['auditoria.controles', 'Controles'],

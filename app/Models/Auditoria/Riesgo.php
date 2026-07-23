@@ -127,6 +127,27 @@ class Riesgo extends Model implements HasMedia
         );
     }
 
+    /**
+     * Sesgo gerencial para paneles y listados de situación: cada usuario ve sólo
+     * los riesgos de su gerencia y sub-áreas (la cascada del organigrama, vía la
+     * relación `areas`), nunca los de gerencias hermanas o primas. El comité y
+     * cualquier usuario sin área propia (superusuario) ven todo. A diferencia de
+     * scopeVisiblePara(), NO trata lo aprobado/validado como público a toda la
+     * organización —eso rompería el sesgo mostrando otras gerencias— y NO filtra
+     * por estado: quien consume decide qué estados incluir. Estrenado como criterio
+     * en la pantalla de Vencimientos; acá se extrae reusable para el PanelRiesgos.
+     */
+    public function scopeDeCascadaArea(Builder $query, User $user): Builder
+    {
+        if (! $user->area_id) {
+            return $query;
+        }
+
+        $ids = $user->area->obtenerIdsSubarbol();
+
+        return $query->whereHas('areas', fn ($q) => $q->whereIn('areas.id', $ids));
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

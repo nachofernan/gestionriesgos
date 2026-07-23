@@ -12,13 +12,13 @@ Las 6 fases del cronograma inicial (`docs/CRONOGRAMA_ORIGINAL.txt`) están compl
 
 Identificados en el análisis de avances como expansión posible, sin fecha comprometida:
 
-- [ ] Dashboard con gráficos y KPIs (estimado original: 2-3 semanas) — arranca con el sesgo gerencial ya establecido en Vencimientos (cascada del organigrama: área propia + sub-áreas, comité ve todo). Al construirlo, evaluar extraer ese filtro a un scope reusable (ej. `scopeDeCascadaArea`) si aparece un segundo consumidor sobre `Riesgo` u otras entidades.
 - [ ] Notificaciones automáticas (estimado original: 1 semana) — ej. avisar a un responsable cuando vence una tarea o cuando le asignan un riesgo
 - [ ] Auditoría detallada por usuario (estimado original: 1 semana) — más allá del historial de `Actualizacion` ya existente
 - [ ] **El comité no debería poder crear elementos** — hoy crea y al redirigir al show del borrador recién creado se come un 403. El `create()` de las 5 policies usa `puedeGestionarArea()` y el comité cuelga del área raíz, así que da `true`, pero `view()` le corta el borrador. Se resuelve junto con los permisos particulares en la migración del módulo al sistema real (decisión del 2026-07-17), no antes.
 
 ## En curso / recién cerrado
 
+- [x] **Dashboard con gráficos y KPIs — primer pase** (2026-07-23) — ver [changelog](updates/2026-07-23.md). `PanelRiesgos`: panel de lectura con mapa de calor (impacto×probabilidad, riesgo inherente), dos rieles de cubitos 0-20 que comparan inherente vs residual, KPIs por criticidad residual y accesos a Pendientes/Vencimientos. El filtro de cascada quedó extraído a `Riesgo::scopeDeCascadaArea` reusable, como estaba previsto; toggle "solo aprobados" encendido por defecto; landing redirige al panel. Continuación posible: más gráficos (tendencia, por tipo de riesgo), migrar Vencimientos al mismo scope, y retirar el `Dashboard` viejo de scaffolding.
 - [x] **Wizard de creación de riesgo con impacto/probabilidad calculados** (2026-07-03) — ver [changelog](updates/2026-07-03.md). Impacto/probabilidad dejan de cargarse a mano; objetivo y plan de acción pasan a ser requisito de validación, no de creación.
 - [x] **Impacto/probabilidad ya no editables en la edición** (2026-07-03) — ver [changelog](updates/2026-07-03c.md). Sólo se recalculan repitiendo el wizard de preguntas, nunca cargándolos directo.
 - [x] **Pantalla de Pendientes** (2026-07-03) — ver [changelog](updates/2026-07-03d.md). Qué tiene que validar/aprobar cada usuario, con acción inline por modal sin recargar el listado completo.
@@ -44,4 +44,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-07-21 (ter).*
+*Última revisión: 2026-07-23.*
