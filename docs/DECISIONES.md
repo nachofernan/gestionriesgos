@@ -122,3 +122,38 @@ por defecto es la matriz consolidada; ver los validados es un paso opcional. (4)
 naturaleza; queda para retirar aparte.
 
 Fuente: [changelog 2026-07-23](updates/2026-07-23.md).
+
+---
+
+## D-008 — Los agentes son fases del trabajo, no rangos; el núcleo no se delega (2026-08-04)
+
+**Decisión.** Reemplaza a [D-001](#d-001--marco-de-trabajo-de-tres-roles--estructura-de-documentación-2026-07-22)
+en lo que hace a los agentes. Los tres roles jerárquicos (mentor / senior / junior) se descartan y se
+adopta el esquema de **fases**: `explorador` (Haiku, solo lectura — fan-out de búsqueda, devuelve la
+conclusión con rutas, no el volcado), `ejecutor` (Sonnet — periferia con decisión ya tomada,
+ex-`auditoria-junior`), `testeador` (Haiku — corre la suite y devuelve el veredicto destilado) y
+`mentor` (Opus, solo lectura — la decisión pesada puntual, no el camino habitual). **Se elimina
+`auditoria-senior`**: el trabajo que toca estructura o el núcleo sagrado vuelve al hilo principal, con
+el usuario presente. Los nombres pierden el prefijo `auditoria-`.
+
+De D-001 **sigue en pie** todo lo demás: principio cero, axiomas numerados, "cómo se pregunta",
+testing dosificado por zona y checkpoint, y `DECISIONES.md` como bitácora append-only.
+
+**Motivo.** Un subagente aislado arranca en frío: tiene que releer `CLAUDE.md`, los docs y mapear el
+código antes de tocar nada, y no puede preguntar en vivo — cada ambigüedad es otra invocación que paga
+el arranque de nuevo. Para trabajo de juicio eso cuesta el doble de contexto y produce menos que el
+hilo principal, que ya lo tiene todo caliente. El subagente rinde donde el valor está en *filtrar
+material crudo*: un `php artisan test` completo son miles de tokens de volcado verde que quedan en
+contexto para siempre, y el fan-out de búsqueda otro tanto. De ahí que las dos incorporaciones sean
+Haiku y de una sola función.
+
+**Descartado.** (1) Dejar el senior como opción para tareas largas y mecánicas: si es mecánica la hace
+el ejecutor, y si no lo es, se quiere al usuario presente. (2) Volver `DECISIONES.md` una referencia
+viva reescribible, como en "Consultorio": el dominio de este proyecto *es* auditoría y el append-only
+tiene sentido semántico; con 124 líneas todavía no pesa.
+
+**Efecto en cascada anotado.** `CLAUDE.md`: se reescribe "Los modos de trabajo", el núcleo sagrado se
+define una sola vez y ahí, `docs/updates/` deja de ser por sesión y pasa a ser sólo para el cambio que
+mueve la arquitectura (el CHANGELOG queda como registro por defecto), los docblocks del núcleo pasan a
+nombrar el test que los cubre, y se agrega una sección "Estado" para no tener que abrir ROADMAP y
+`modulo-auditoria.md` en cada arranque.

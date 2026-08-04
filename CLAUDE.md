@@ -25,36 +25,45 @@ entrada nueva que la reemplaza.
 
 ## Los modos de trabajo
 
-Este proyecto se conversa antes de codearse. Hay tres roles, encarnados como agentes en
-`.claude/agents/`, y hay que saber en cuál se está:
+Este proyecto se conversa antes de codearse. **El hilo principal —donde se piensa, se decide y se
+toca el núcleo, con el usuario presente— es el centro.** Ahí se discute el dominio, se cierra un
+diseño y se implementa todo lo que toca el núcleo sagrado: la exactitud de la autorización y del
+cálculo de riesgo se protege con *presencia*, no con potencia.
 
-- **Mentor** (`auditoria-mentor` — Opus, solo lectura). La voz de asesor del proyecto: se discute
-  dominio de auditoría, modelo de datos, autorización por área, reglas de negocio del ciclo de
-  riesgo, roadmap y decisiones de largo plazo. No escribe código ni "aprovecha" la charla para dejar
-  un archivo hecho. **La sesión principal trabaja por defecto con este stance**: antes de mandar a
-  ejecutar algo grande, se piensa y se recomienda. El agente `auditoria-mentor` es para clavarse en
-  una decisión pesada y devolver un análisis de un tiro. Si de la charla sale una decisión, se anota
-  en `docs/DECISIONES.md` y ahí termina.
-- **Senior** (`auditoria-senior` — Opus, todas las tools). Implementa el trabajo profundo que toca
-  estructura o reglas: esquema (migraciones), Policies y autorización, lógica de negocio, relaciones
-  Eloquent nuevas, observers, accessors calculados, refactors con efecto en cascada. En pasos chicos
-  explicados antes. Acá **los tests importan y mucho**: la exactitud de la autorización y del cálculo
-  de riesgo es sagrada y se prueba antes de cerrar. Durante el trabajo corre el test local; la suite
-  completa la reserva para el checkpoint. Corre Pint y commitea al cerrar una etapa con sentido
-  propio.
-- **Junior** (`auditoria-junior` — Sonnet, solo edición). Ejecuta ediciones directas y acotadas que
-  no tocan estructura: copy en vistas, ajustes de Blade/Tailwind, typos, agregar un campo a
-  `$fillable` cuando la columna ya existe, renombrar una variable local, mover un partial. Cumple lo
-  que se le pide, sin dudar mucho y con poco preámbulo. No corre tests, no commitea, no testea
-  visualmente. Si la tarea resulta ser estructural (migración, policy, regla de negocio, ruta,
-  relación nueva) o toca un nervio del núcleo sagrado, **frena y la devuelve para el senior**.
+**El núcleo sagrado** son las Policies y la autorización por jerarquía de área, `scopeVisiblePara`,
+el cálculo de `valor_total` / `valor_residual` y la mitigación, el ciclo de estados y la doble
+validación entre gerencias. **No se delega.** Un subagente corre aislado: arranca en frío —tiene que
+releer este archivo, los docs y mapear el código— y no puede preguntar en vivo. Para trabajo de
+juicio eso paga dos veces el contexto y produce menos.
 
-Si el rol no está claro, se pregunta cuál corresponde antes de hacer nada. Ante la duda, mentor: una
-pregunta de más cuesta menos que un archivo escrito de más.
+Los agentes de `.claude/agents/` **no son rangos** (un junior, un senior, un jefe): son **fases del
+trabajo**. Un subagente no le sirve al usuario, le sirve al hilo principal: es una función acotada
+que corre en su propia ventana de contexto y devuelve un resultado destilado, para no ensuciar la
+conversación con material crudo. Se delega el trabajo *mecánico o de fan-out*, no el juicio.
 
-> Nota: un subagente corre en contexto aislado y **no puede preguntarte en vivo** — el ida y vuelta
-> ocurre en el hilo principal, que es quien delega y releva las dudas que el subagente devuelve en su
-> reporte.
+- **Explorador** (`explorador` — Haiku, solo lectura). El sabueso: rastrea dónde vive una regla, qué
+  Policy gobierna una entidad, quién llama a un método, qué tests cubren algo, y **devuelve la
+  conclusión con rutas exactas, no el volcado de archivos.** Se usa cuando contestar implica barrer
+  muchos archivos y sólo importa el resultado. Buscar bien es mecánico y barato; por eso es Haiku, no
+  porque sea tonto.
+- **Ejecutor** (`ejecutor` — Sonnet, edita). Ejecuta **decisiones ya tomadas** en la **periferia**:
+  Blade, Tailwind, textos, tweaks de UI, un `$fillable` cuya columna ya existe, renombrar una
+  variable local, mover un partial. Cumple con poco preámbulo y sin reabrir lo decidido. Si el pedido
+  roza estructura (migración, ruta, relación nueva) o el núcleo sagrado, **corta y avisa**: eso
+  vuelve al hilo principal.
+- **Testeador** (`testeador` — Haiku, solo corre y reporta). Corre `php artisan test` y devuelve un
+  veredicto destilado —`233 passed`, o los que fallan con su detalle— sin cargar el volcado verde en
+  la conversación. **No arregla:** un test que falla nunca se maquilla para que pase; el arreglo se
+  decide en el hilo principal.
+- **Mentor** (`mentor` — Opus, solo lectura). El caso raro: una decisión pesada donde elegir mal es
+  caro y conviene un análisis dedicado de un tiro. **La sesión principal ya trabaja con ese stance
+  por defecto** —antes de ejecutar algo grande se piensa y se recomienda—, así que invocarlo es la
+  excepción, no el camino habitual. Si de la charla sale una decisión, se anota en
+  `docs/DECISIONES.md` y ahí termina.
+
+Regla que ordena todo: **planear y ejecutar el núcleo pasan por el hilo principal, con el usuario
+presente.** Los subagentes están para lo que *no* es esa decisión — encontrar, ejecutar periferia,
+verificar. Ante la duda de si algo es núcleo o periferia, es núcleo: se pregunta antes de delegar.
 
 ### Cómo se pregunta
 
@@ -163,6 +172,10 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
   llevan un docblock breve si el nombre no alcanza para explicar para qué sirven y cómo se conectan
   con el resto (quién los llama, qué disparan, de qué dependen). No es un comentario de "qué hace la
   línea siguiente".
+- Si el método es del **núcleo sagrado**, ese docblock además **nombra el test que lo cubre** (por
+  nombre del test, no por `archivo:línea`), para poder tirar el `--filter` exacto sin barrer la suite
+  buscando cuál era. Sólo donde hay lógica real —un cálculo, una regla—, no en getters. Si el test se
+  renombra o se mueve, se actualiza el docblock: es una línea.
 - No sobre-abstractar. Si algo se usa una o dos veces, escribirlo directo. Extraer solo cuando la
   duplicación es real y el patrón es estable. Tres líneas repetidas son mejores que una abstracción
   prematura.
@@ -221,8 +234,7 @@ exactitud de la autorización y del cálculo de riesgo sigue siendo sagrada; lo 
 cuánto ritual se aplica *fuera* de ese núcleo. No se gastan diez unidades de esfuerzo en programar y
 cien en re-testear cosas ya probadas.
 
-**Núcleo sagrado (autorización/Policies, `scopeVisiblePara`, cálculo de `valor_residual` y
-mitigación, ciclo de estados y doble validación):**
+**Núcleo sagrado** (definido arriba, en *Los modos de trabajo*)**:**
 
 - **Toda regla de este núcleo lleva test antes de considerarse terminada.** Camino feliz + casos de
   permisos (los 403 esperados) + el caso feo (un gerente que no debería poder validar la propuesta de
@@ -245,9 +257,10 @@ mitigación, ciclo de estados y doble validación):**
 - La **suite completa** es un evento de *checkpoint*, no de cada paso: se corre al cerrar un bloque
   grande, antes de commitear algo del núcleo sagrado, o cuando se tocó algo transversal (un modelo
   base, un scope global, config). No después de agregar un campo a un form.
-- Se reporta el **resumen** de la corrida (`110 passed`, o los que fallan con su detalle), no el
-  volcado verde línea por línea. Si los tests fallan por no conectar a MySQL, se dice — no se maquilla
-  ni se oculta.
+- Se reporta el **resumen** de la corrida (`233 passed`, o los que fallan con su detalle), no el
+  volcado verde línea por línea. El costo no es correr los tests: es cargar su output en la
+  conversación — por eso la corrida se delega al `testeador`, que devuelve el veredicto destilado. Si
+  los tests fallan por no conectar a MySQL, se dice — no se maquilla ni se oculta.
 
 **Testeo visual:** no lo hace Claude. Nada de `curl`, Playwright ni levantar navegador para "ver" una
 pantalla, salvo pedido explícito. La revisión visual la hace el usuario; a lo sumo manda un
@@ -263,10 +276,12 @@ screenshot con el detalle que vio.
 - `docs/DECISIONES.md` — bitácora **append-only** de decisiones de diseño y arquitectura, con el
   motivo y lo que se descartó. Cuando una charla cierra algo, se anota acá. No se reescribe el pasado:
   si una decisión se revierte, se agrega una entrada nueva que la revierte.
-- `docs/updates/YYYY-MM-DD.md` — detalle de cada cambio significativo. Crear uno nuevo por sesión de
-  trabajo relevante.
-- `docs/CHANGELOG.md` — índice cronológico de `docs/updates/`, un renglón por entrada con link.
-  Actualizar cada vez que se crea un `docs/updates/` nuevo.
+- `docs/CHANGELOG.md` — índice cronológico de lo que cambió, un renglón por entrada. **Es el registro
+  por defecto**: una tanda de trabajo cerrada se resume acá y ahí termina.
+- `docs/updates/YYYY-MM-DD.md` — detalle largo, **sólo para el cambio que mueve la arquitectura**
+  (esquema, autorización, una regla del ciclo de riesgo, un patrón nuevo que se va a repetir). No se
+  crea uno por sesión: escribir el detalle cuesta, y un update de un tweak de UI es ruido que después
+  hay que leer. Si se crea uno, su renglón en el CHANGELOG lo linkea.
 - `docs/ROADMAP.md` — trabajo pendiente (no es historial, eso es el changelog). Tachar/mover ítems a
   medida que se completan. Actualizar la fecha de "última revisión" al final cuando se lo toca.
 
@@ -298,11 +313,28 @@ Todo bajo el namespace `Auditoria/` tanto en controladores como en Livewire y vi
 
 ## Lo que no hacer
 
-- No crear abstracciones de repositorios o servicios si no hay necesidad real.
-- No agregar campos o lógica "por si acaso se necesita en el futuro".
+Lo que no está dicho en otro lado (el resto vive en *Axiomas* y *Convenciones*):
+
+- No agregar campos ni lógica "por si acaso se necesita en el futuro".
 - No duplicar validaciones entre controlador y componente Livewire — elegir uno o coordinarlos.
 - No dejar `dd()`, `dump()` o `var_dump()` en commits.
-- No usar `$guarded = []` en modelos.
-- No hacer lazy-loading en vistas (`$model->relation` dentro de un `@foreach` sin eager load previo).
-- No recalcular el valor de un riesgo en una vista: se consume el accessor del modelo.
-- No mutar datos sin `authorize()`, ni siquiera en un componente Livewire.
+
+Y las dos que sí vale repetir, porque romperlas rompe el producto: **no se muta sin `authorize()`**
+—ni siquiera en un componente Livewire— y **no se recalcula el valor de un riesgo en una vista**: se
+consume el accessor del modelo.
+
+---
+
+## Estado
+
+El **ciclo completo está construido y andando**: riesgos con impacto/probabilidad calculados por el
+wizard, controles, objetivos, planes de acción y tareas, historial polimórfico de actualizaciones con
+adjuntos, autorización por jerarquía de área con visibilidad por estado, riesgo compartido entre
+gerencias con doble validación, y las pantallas de Pendientes, Vencimientos y el Panel de Riesgos
+(dashboard de situación con sesgo gerencial). Las 6 fases del cronograma original están cerradas
+salvo los reportes exportables. La suite ronda los ~233 tests, 23 archivos en
+`tests/Feature/Auditoria/`.
+
+Lo que sigue abierto vive en `docs/ROADMAP.md` (reportes PDF/Excel, notificaciones, vencimiento
+propio del plan de acción, y que el comité hoy puede crear elementos que después no puede ver). El
+*por qué* de cada decisión, en `docs/DECISIONES.md`. Los dos mandan sobre este párrafo si divergen.
