@@ -75,7 +75,7 @@ class ObjetivoController extends Controller
             ]],
         ]);
 
-        return redirect()->route('auditoria.objetivos.index')->with('ok', 'Objetivo creado.');
+        return redirect()->route('auditoria.objetivos.show', $objetivo)->with('ok', 'Objetivo creado.');
     }
 
     public function show(Objetivo $objetivo)
