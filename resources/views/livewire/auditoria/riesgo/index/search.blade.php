@@ -123,7 +123,7 @@
                                 @endif
                             </div>
                         </th>
-                        <th class="px-6 py-4 text-left">Objetivos</th>
+                        <th class="px-6 py-4 text-left">Plan de acción</th>
                         <th class="px-6 py-4 text-left">Usuario / Área</th>
                         <th class="px-6 py-4"></th>
                     </tr>
@@ -184,11 +184,13 @@
                                     {{ $riesgo->valor_residual }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-xs text-gray-600">
-                                @forelse($riesgo->objetivos as $obj)
-                                    {{ $obj->nombre }}@if(!$loop->last)<br>@endif
+                            <td class="px-6 py-4 text-xs">
+                                @forelse($riesgo->planesAccion as $plan)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $plan->avance === 100 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' }} {{ !$loop->last ? 'mr-1' : '' }}">
+                                        {{ $plan->avance !== null ? $plan->avance.'%' : '—' }}
+                                    </span>
                                 @empty
-                                    <span class="text-gray-400">—</span>
+                                    <span class="text-gray-400">Sin plan</span>
                                 @endforelse
                             </td>
                             <td class="px-6 py-4 text-xs">
