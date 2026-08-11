@@ -30,7 +30,7 @@
                 {{-- Bloqueantes (prerequisitos requeridos) --}}
                 @if(!empty($bloqueantes))
                     <div class="px-6 py-4 border-b border-gray-100 bg-amber-50">
-                        <div class="flex items-center gap-2 mb-1">
+                        <div class="flex items-center gap-2 mb-3">
                             <svg class="h-4 w-4 text-amber-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                             </svg>
@@ -38,39 +38,58 @@
                                 Prerequisitos requeridos
                             </p>
                         </div>
-                        <p class="text-xs text-amber-600 mb-3 ml-6">
-                            Seleccioná al menos uno para {{ $accion === 'validar' ? 'validar' : 'aprobar' }} primero.
-                        </p>
 
-                        <div class="space-y-2">
-                            @foreach($bloqueantes as $item)
+                        {{-- Cada grupo (objetivo, plan, ...) es un prerequisito independiente: hace
+                             falta al menos uno seleccionado POR GRUPO, no "cualquiera" del total. --}}
+                        <div class="space-y-4">
+                            @foreach(collect($bloqueantes)->groupBy('tipo') as $grupoTipo => $items)
                                 @php
-                                    $key = $item['tipo'] . ':' . $item['id'];
-                                    $seleccionado = $seleccionados[$key] ?? false;
-                                    $indent = ($item['nivel'] ?? 0) > 0;
-                                    $labelTipo = match($item['tipo']) {
+                                    $labelGrupo = match($grupoTipo) {
                                         'objetivo' => 'Objetivo',
+                                        'plan'     => 'Plan de acción',
                                         'riesgo'   => 'Riesgo',
-                                        default    => ucfirst($item['tipo']),
+                                        default    => ucfirst($grupoTipo),
                                     };
                                 @endphp
-                                <label class="flex items-start gap-2.5 cursor-pointer {{ $indent ? 'ml-5' : '' }} {{ !$item['puede_validar'] ? 'opacity-50 cursor-not-allowed' : '' }}">
-                                    <input type="checkbox"
-                                           @if($item['puede_validar'])
-                                               wire:click="toggleSeleccion('{{ $key }}')"
-                                           @else
-                                               disabled
-                                           @endif
-                                           @checked($seleccionado)
-                                           class="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500 {{ !$item['puede_validar'] ? 'cursor-not-allowed' : 'cursor-pointer' }}">
-                                    <div class="min-w-0">
-                                        <span class="text-sm text-gray-700 font-medium">{{ $item['nombre'] }}</span>
-                                        <span class="ml-1.5 text-[10px] font-bold text-gray-400 uppercase">{{ $labelTipo }}</span>
-                                        @if(!$item['puede_validar'])
-                                            <span class="ml-1.5 text-[10px] font-bold text-red-400">Sin permisos</span>
-                                        @endif
+                                <div wire:key="grupo-{{ $grupoTipo }}">
+                                    <p class="text-xs text-amber-600 mb-2 ml-6">
+                                        <strong>{{ $labelGrupo }}:</strong> seleccioná al menos uno para {{ $accion === 'validar' ? 'validar' : 'aprobar' }} primero.
+                                    </p>
+
+                                    <div class="space-y-2">
+                                        @foreach($items as $item)
+                                            @php
+                                                $key = $item['tipo'] . ':' . $item['id'];
+                                                $seleccionado = $seleccionados[$key] ?? false;
+                                                $indent = ($item['nivel'] ?? 0) > 0;
+                                            @endphp
+                                            <label wire:key="bloqueante-{{ $key }}" class="flex items-start gap-2.5 cursor-pointer {{ $indent ? 'ml-5' : '' }} {{ !$item['puede_validar'] ? 'opacity-50 cursor-not-allowed' : '' }}">
+                                                <input type="checkbox"
+                                                       {{-- $version fuerza a Livewire a recrear el checkbox en cada
+                                                            intento de clic (se acepte o se rechace): cuando el servidor
+                                                            rechaza el cambio, $seleccionado no varía, así que keyear con
+                                                            el valor no alcanza — el navegador ya invirtió la propiedad
+                                                            `checked` de forma nativa antes de que la respuesta vuelva, y
+                                                            sin una key distinta Livewire no tiene señal para recrear el
+                                                            nodo y resincronizarla. --}}
+                                                       wire:key="check-{{ $key }}-{{ $version }}"
+                                                       @if($item['puede_validar'])
+                                                           wire:click="toggleSeleccion('{{ $key }}')"
+                                                       @else
+                                                           disabled
+                                                       @endif
+                                                       @checked($seleccionado)
+                                                       class="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500 {{ !$item['puede_validar'] ? 'cursor-not-allowed' : 'cursor-pointer' }}">
+                                                <div class="min-w-0">
+                                                    <span class="text-sm text-gray-700 font-medium">{{ $item['nombre'] }}</span>
+                                                    @if(!$item['puede_validar'])
+                                                        <span class="ml-1.5 text-[10px] font-bold text-red-400">Sin permisos</span>
+                                                    @endif
+                                                </div>
+                                            </label>
+                                        @endforeach
                                     </div>
-                                </label>
+                                </div>
                             @endforeach
                         </div>
                     </div>
@@ -97,8 +116,9 @@
                                         default   => ucfirst($item['tipo']),
                                     };
                                 @endphp
-                                <label class="flex items-start gap-2.5 cursor-pointer {{ !$item['puede_validar'] ? 'opacity-50 cursor-not-allowed' : '' }}">
+                                <label wire:key="opcional-{{ $key }}" class="flex items-start gap-2.5 cursor-pointer {{ !$item['puede_validar'] ? 'opacity-50 cursor-not-allowed' : '' }}">
                                     <input type="checkbox"
+                                           wire:key="check-{{ $key }}-{{ $version }}"
                                            @if($item['puede_validar'])
                                                wire:click="toggleSeleccion('{{ $key }}')"
                                            @else
@@ -126,7 +146,7 @@
                             </p>
                             <ol class="space-y-1">
                                 @foreach($resumenItems as $i => $item)
-                                    <li class="flex items-center gap-2 text-sm text-gray-600">
+                                    <li wire:key="resumen-{{ $item['tipo'] }}-{{ $i }}" class="flex items-center gap-2 text-sm text-gray-600">
                                         <span class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold
                                             {{ isset($item['principal']) ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-500' }}">
                                             {{ $i + 1 }}
@@ -165,6 +185,7 @@
                             wire:click="confirmar"
                             wire:loading.attr="disabled"
                             wire:target="confirmar"
+                            @disabled(!$this->puedeConfirmar())
                             class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                         <span wire:loading.remove wire:target="confirmar">
                             Confirmar {{ $accion === 'validar' ? 'validación' : 'aprobación' }}

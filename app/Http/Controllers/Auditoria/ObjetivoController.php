@@ -72,16 +72,20 @@ class ObjetivoController extends Controller
     public function show(Objetivo $objetivo)
     {
         $this->authorize('view', $objetivo);
+        $user = Auth::user();
         // riesgos filtrados por visibilidad: un borrador de otra gerencia no debe
         // aparecer como fila en "Riesgos asociados" (axioma 3 + scopeVisiblePara).
-        // Nota: el cálculo de "Planes vinculados" en la vista se deriva de estos
-        // riesgos, así que también queda acotado al conjunto visible (ver reporte).
+        // "Planes de acción vinculados" en la vista se deriva de riesgos.planesAccion,
+        // así que ese también necesita su propio filtro: un plan puede ser de una
+        // gerencia distinta a la del riesgo que lo asocia. Los "borrado" quedan en
+        // limbo (nunca se muestran, ver CLAUDE.md).
         $objetivo->load([
-            'riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
+            'riesgos' => fn ($q) => $q->visiblePara($user),
             'riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area',
             // riesgos.controles.estado: lo usa el accessor valor_residual (sólo mitigan
             // los controles aprobados); antes no se cargaba y generaba N+1.
             'riesgos.controles.estado',
+            'riesgos.planesAccion' => fn ($q) => $q->visiblePara($user)->whereNot('estado_id', Estado::borrado()->id),
             'riesgos.planesAccion.estado', 'riesgos.planesAccion.area',
             'riesgos.planesAccion.tareas.estado', 'riesgos.planesAccion.tareas.area', 'riesgos.planesAccion.tareas.user',
             'user', 'area',

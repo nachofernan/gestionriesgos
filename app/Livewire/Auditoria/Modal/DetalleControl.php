@@ -2,9 +2,10 @@
 
 namespace App\Livewire\Auditoria\Modal;
 
-use Livewire\Component;
-use Livewire\Attributes\On;
 use App\Models\Auditoria\Control;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
 /**
  * Modal de resumen rápido de un Control, abierto vía el evento global 'ver-control'
@@ -13,13 +14,20 @@ use App\Models\Auditoria\Control;
 class DetalleControl extends Component
 {
     public bool $abierto = false;
+
     public ?Control $control = null;
+
     public ?int $mitigacion = null;
 
+    /** riesgos filtrados por visibilidad (axioma 1 + scopeVisiblePara), ver DetalleObjetivo::abrir(). */
     #[On('ver-control')]
     public function abrir(int $id, ?int $mitigacion = null): void
     {
-        $this->control = Control::with(['estado', 'area', 'user', 'riesgos.estado', 'riesgos.tipoRiesgo'])->find($id);
+        $this->control = Control::with([
+            'estado', 'area', 'user',
+            'riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
+            'riesgos.estado', 'riesgos.tipoRiesgo',
+        ])->find($id);
         $this->mitigacion = $mitigacion;
         $this->abierto = (bool) $this->control;
     }

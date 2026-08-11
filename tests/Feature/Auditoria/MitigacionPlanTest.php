@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Auditoria;
 
+use App\Livewire\Auditoria\Modal\DetallePlan;
+use App\Livewire\Auditoria\PlanAccion\Index\Search as PlanAccionSearch;
 use App\Livewire\Auditoria\PlanAccion\Show\GestionTareas;
 use App\Livewire\Auditoria\Riesgo\Show\GestionControles;
+use App\Livewire\Auditoria\Riesgo\Show\GestionPlanes;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
@@ -41,10 +44,13 @@ class MitigacionPlanTest extends TestCase
         ]);
     }
 
-    /** Plan con una única tarea aprobada al porcentaje dado (el caso que descuenta). */
+    /**
+     * Plan en estado "aprobado" con una única tarea aprobada al porcentaje dado
+     * (el caso que descuenta: sólo un plan aprobado y al 100% mitiga).
+     */
     private function planCon(int $porcentaje): PlanAccion
     {
-        $plan = PlanAccion::factory()->create();
+        $plan = PlanAccion::factory()->create(['estado_id' => Estado::aprobado()->id]);
         $plan->tareas()->attach($this->tareaConEstado($porcentaje, 'aprobado'));
 
         return $plan;
@@ -80,6 +86,53 @@ class MitigacionPlanTest extends TestCase
         $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
 
         $this->assertEquals(16, $riesgo->fresh()->valor_residual); // sin descuento
+    }
+
+    /** @test */
+    public function un_plan_validado_al_100_no_afecta_el_valor_residual()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $plan = $this->planCon(100);
+        $plan->update(['estado_id' => Estado::validado()->id]);
+
+        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+
+        $this->assertTrue($plan->fresh()->estaCompleto());
+        $this->assertEquals(16, $riesgo->fresh()->valor_residual); // validado no mitiga, aunque esté completo
+    }
+
+    /** @test */
+    public function al_aprobar_el_plan_completo_recien_ahi_baja_el_valor_residual()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $plan = $this->planCon(100);
+        $plan->update(['estado_id' => Estado::validado()->id]);
+        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+
+        $this->assertEquals(16, $riesgo->fresh()->valor_residual);
+
+        $plan->update(['estado_id' => Estado::aprobado()->id]);
+
+        $this->assertEquals(10, $riesgo->fresh()->valor_residual); // 16 - 6
+    }
+
+    /** @test */
+    public function el_preview_en_vivo_de_planes_solo_cuenta_los_aprobados_al_100()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $aprobado = $this->planCon(100);
+        $aprobado->update(['estado_id' => Estado::aprobado()->id]);
+        $validado = $this->planCon(100);
+        $validado->update(['estado_id' => Estado::validado()->id]);
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(GestionPlanes::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->call('agregar', $aprobado->id)
+            ->call('actualizarMitigacion', $aprobado->id, 6)
+            ->call('agregar', $validado->id)
+            ->call('actualizarMitigacion', $validado->id, 5)
+            ->assertDispatched('residual-actualizado', valor: 10); // 16 - 6 (el validado no descuenta)
     }
 
     /** @test */
@@ -160,6 +213,58 @@ class MitigacionPlanTest extends TestCase
             ->call('agregar', $aprobado->id)
             ->call('agregar', $borrador->id)
             ->assertDispatched('residual-actualizado', valor: 11); // 16 - 5 (el borrador no descuenta)
+    }
+
+    /** @test */
+    public function la_vista_de_riesgo_solo_lista_las_tareas_aprobadas_del_plan()
+    {
+        $riesgo = Riesgo::factory()->create(['estado_id' => Estado::aprobado()->id, 'impacto' => 5, 'probabilidad' => 5]);
+        $plan = PlanAccion::factory()->create();
+        $aprobada = $this->tareaConEstado(100, 'aprobado');
+        $aprobada->update(['nombre' => 'Tarea Aprobada Visible']);
+        $validada = $this->tareaConEstado(50, 'validado');
+        $validada->update(['nombre' => 'Tarea Validada Oculta']);
+        $plan->tareas()->attach([$aprobada->id, $validada->id]);
+        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 0]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('auditoria.riesgos.show', $riesgo))
+            ->assertOk()
+            ->assertSee('Tarea Aprobada Visible')
+            ->assertDontSee('Tarea Validada Oculta');
+    }
+
+    /** @test */
+    public function el_modal_de_plan_muestra_el_avance_y_el_conteo_solo_de_tareas_aprobadas()
+    {
+        $plan = PlanAccion::factory()->create();
+        $plan->tareas()->attach($this->tareaConEstado(100, 'aprobado'));
+        $plan->tareas()->attach($this->tareaConEstado(63, 'validado'));
+        $plan->tareas()->attach($this->tareaConEstado(61, 'validado'));
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(DetallePlan::class)
+            ->call('abrir', $plan->id)
+            ->assertSee('100%') // avance real (sólo la aprobada), no el promedio de las 3 (75%)
+            ->assertDontSee('75%')
+            ->assertSee('Tarea aprobada'); // singular: 1 sola tarea aprobada, no "Tareas aprobadas"
+    }
+
+    /** @test */
+    public function el_listado_de_planes_muestra_el_avance_solo_de_tareas_aprobadas()
+    {
+        $plan = PlanAccion::factory()->create();
+        $plan->tareas()->attach($this->tareaConEstado(100, 'aprobado'));
+        $plan->tareas()->attach($this->tareaConEstado(63, 'validado'));
+        $plan->tareas()->attach($this->tareaConEstado(61, 'validado'));
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(PlanAccionSearch::class)
+            ->assertViewHas('planes', function ($planes) use ($plan) {
+                $p = $planes->firstWhere('id', $plan->id);
+
+                return $p && $p->avance === 100; // no el promedio de las 3 (75)
+            });
     }
 
     // -------------------------------------------------------

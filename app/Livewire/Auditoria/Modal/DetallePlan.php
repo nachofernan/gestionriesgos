@@ -2,9 +2,10 @@
 
 namespace App\Livewire\Auditoria\Modal;
 
-use Livewire\Component;
-use Livewire\Attributes\On;
 use App\Models\Auditoria\PlanAccion;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
 /**
  * Modal de resumen rápido de un Plan de Acción, abierto vía el evento global
@@ -13,12 +14,19 @@ use App\Models\Auditoria\PlanAccion;
 class DetallePlan extends Component
 {
     public bool $abierto = false;
+
     public ?PlanAccion $plan = null;
 
+    /** riesgos filtrados por visibilidad (axioma 1 + scopeVisiblePara), ver DetalleObjetivo::abrir(). */
     #[On('ver-plan')]
     public function abrir(int $id): void
     {
-        $this->plan = PlanAccion::with(['estado', 'area', 'user', 'riesgos.estado', 'riesgos.tipoRiesgo', 'tareas.estado', 'tareas.user'])->find($id);
+        $this->plan = PlanAccion::with([
+            'estado', 'area', 'user',
+            'riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
+            'riesgos.estado', 'riesgos.tipoRiesgo',
+            'tareas.estado', 'tareas.user',
+        ])->find($id);
         $this->abierto = (bool) $this->plan;
     }
 

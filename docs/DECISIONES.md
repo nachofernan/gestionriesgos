@@ -157,3 +157,50 @@ define una sola vez y ahí, `docs/updates/` deja de ser por sesión y pasa a ser
 mueve la arquitectura (el CHANGELOG queda como registro por defecto), los docblocks del núcleo pasan a
 nombrar el test que los cubre, y se agrega una sección "Estado" para no tener que abrir ROADMAP y
 `modulo-auditoria.md` en cada arranque.
+
+---
+
+## D-009 — El plan de acción es prerequisito del riesgo para mitigar, no al revés (2026-08-06)
+
+**Decisión.** Un riesgo con respuesta "Reducir/Mitigar" no se valida con que **exista** un plan de
+acción asociado: al menos uno de sus planes tiene que estar **validado** para poder validar el riesgo,
+y al menos uno **aprobado** para poder aprobarlo (`Riesgo::motivosBloqueoValidacion()` /
+`motivosBloqueoAprobacion()`, nuevo). Con varios planes asociados alcanza con que **uno** cumpla el
+estado requerido — no exige que todos avancen juntos, igual que el residual descuenta la mitigación
+plan por plan, no todo-o-nada. La cascada de validación (`ValidacionMasivaService`) reflejaba la
+dirección opuesta: al validar/aprobar un Plan ofrecía sus Riesgos asociados como bloqueantes. Se
+invierte: ahora es `analizarRiesgo()` quien ofrece el Plan como bloqueante (mismo trato que Objetivo,
+no opcional como los Controles), y `analizarPlanAccion()` deja de depender del estado del Riesgo.
+
+**Motivo.** No tiene sentido dar por válida la mitigación de un riesgo si el plan que la sostiene
+sigue en borrador — un plan sin validar no es una mitigación creíble, es una promesa. La dirección
+vieja de la cascada (Plan → exige Riesgo validado) no correspondía a ninguna regla de negocio
+documentada; fue un bug de causalidad invertida (posible copy-paste del patrón objetivo→riesgo)
+reportado por el usuario al notar que la pantalla de un plan le ofrecía aprobar riesgos.
+
+**Descartado.** Exigir que **todos** los planes asociados estén en el estado requerido (no sólo uno):
+más estricto, pero inconsistente con cómo ya se trata la mitigación real (aditiva por plan) y con el
+mismo criterio ya usado para Objetivo (alcanza con uno válido).
+
+**Efecto en cascada anotado.** `Riesgo.php`, `RiesgoController.php`, `ValidacionMasivaService.php`
+(afecta también a Control/Objetivo/Tarea, que comparten el mismo servicio). Mismo criterio aplicado al
+cálculo real del residual: `Riesgo::getValorResidualAttribute()` contaba un plan como mitigante con
+sólo estar al 100% de avance (`estaCompleto()`), sin chequear su estado — un plan `validado` pero no
+`aprobado` ya descontaba del residual, inconsistente con la regla nueva de arriba. Ahora exige también
+`estado = aprobado`, igual que los controles. 13 tests nuevos en `PlanRequeridoParaMitigarTest`; se
+actualizó un test de `RiesgoWizardTest` que codificaba la regla vieja.
+
+**Adenda (mismo día).** Al probar el modal, el usuario detectó que la leyenda "Seleccioná al menos
+uno" quedaba ambigua con dos familias de bloqueantes mezcladas (Objetivo y Plan), y que en los hechos
+alcanzaba con dejar tildado el Plan para aprobar el riesgo sin tocar el Objetivo — el modal trataba
+todos los bloqueantes como un pool único donde "cualquiera" cumplía el prerequisito, en vez de exigir
+selección **por grupo**. Se corrigieron dos cosas: (1) `Riesgo::motivosBloqueoValidacion()` /
+`motivosBloqueoAprobacion()` pasan a exigir también que el Objetivo esté validado/aprobado —no sólo
+que exista—, simétrico a como ya quedó el Plan (cierra el hueco en la capa que de verdad protege, no
+sólo en la UI); (2) `ValidacionCascadaModal::toggleSeleccion()` y `confirmar()` exigen al menos un
+item seleccionado **por grupo** (`tipo`), y la vista separa la leyenda por grupo ("Objetivo: seleccioná
+al menos uno" / "Plan de acción: seleccioná al menos uno"). 6 tests nuevos en
+`CascadaGruposIndependientesTest`; 2 tests de `RiesgoWizardTest` actualizados (el objetivo de prueba
+ahora necesita estado validado, no sólo existir).
+
+Fuente: [changelog 2026-08-06](updates/2026-08-06.md).

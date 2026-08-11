@@ -144,9 +144,10 @@ class RiesgoController extends Controller
     public function show(Riesgo $riesgo)
     {
         $this->authorize('view', $riesgo);
-        // controles.estado y planesAccion.tareas.estado: los necesita el accessor
-        // valor_residual (sólo mitigan los controles aprobados y las tareas aprobadas).
-        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'controles.estado', 'planesAccion.tareas.estado']);
+        // controles.estado, planesAccion.estado y planesAccion.tareas.estado: los necesita
+        // el accessor valor_residual (sólo mitigan los controles y planes aprobados, y
+        // sólo cuando el plan está al 100%).
+        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado']);
 
         return view('auditoria.riesgo.show', compact('riesgo'));
     }
@@ -346,10 +347,16 @@ class RiesgoController extends Controller
     /**
      * Aprueba el riesgo y aplica los cambios de todas sus actualizaciones ya
      * validadas (creación y ediciones acumuladas) en una sola transacción.
+     * Bloquea si no se cumple Riesgo::motivosBloqueoAprobacion() (ver ahí).
      */
     public function aprobar(Riesgo $riesgo)
     {
         $this->authorize('aprobar', $riesgo);
+
+        $motivos = $riesgo->motivosBloqueoAprobacion();
+        if (! empty($motivos)) {
+            return back()->with('error', implode(' ', $motivos));
+        }
 
         DB::transaction(function () use ($riesgo) {
             $pendientes = $riesgo->actualizaciones()

@@ -1,7 +1,11 @@
 <div>
 @if($abierto && $plan)
 @php
-    $avgAvance = $plan->tareas->count() ? (int) round($plan->tareas->avg('porcentaje_avance')) : null;
+    // Avance = accessor del modelo (sólo promedia tareas aprobadas, ver PlanAccion::getAvanceAttribute).
+    $avgAvance = $plan->avance;
+    // Las "borrado" (rechazadas) no se muestran, quedan en limbo (ver CLAUDE.md).
+    $tareasVigentes = $plan->tareas->reject(fn ($t) => $t->estado?->nombre === 'borrado');
+    $tareasAprobadasCount = $plan->tareas->filter(fn ($t) => $t->estado?->nombre === 'aprobado')->count();
     $hoy = now()->startOfDay();
 @endphp
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -35,8 +39,10 @@
                         <div class="text-[9px] {{ $avgAvance === 100 ? 'text-green-500' : 'text-amber-500' }} uppercase font-bold tracking-wider mt-0.5">Avance</div>
                     </div>
                     <div class="bg-gray-50 rounded-xl px-4 py-2 text-center">
-                        <div class="text-xl font-extrabold text-gray-700">{{ $plan->tareas->count() }}</div>
-                        <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider mt-0.5">Tareas</div>
+                        <div class="text-xl font-extrabold text-gray-700">{{ $tareasAprobadasCount }}</div>
+                        <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider mt-0.5">
+                            {{ $tareasAprobadasCount === 1 ? 'Tarea aprobada' : 'Tareas aprobadas' }}
+                        </div>
                     </div>
                 </div>
                 <button wire:click="cerrar" class="text-gray-400 hover:text-gray-600 transition-colors ml-1">
@@ -90,15 +96,15 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                         </svg>
                         Tareas
-                        <span class="ml-auto text-gray-300 font-normal">{{ $plan->tareas->count() }}</span>
+                        <span class="ml-auto text-gray-300 font-normal">{{ $tareasVigentes->count() }}</span>
                     </h4>
-                    @forelse($plan->tareas as $tarea)
+                    @forelse($tareasVigentes as $tarea)
                         @php
                             $tareaVenc = $tarea->fecha && $tarea->fecha->lt($hoy) && $tarea->porcentaje_avance < 100;
                         @endphp
                         <div class="py-1.5 border-b border-gray-50 last:border-0">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="w-1 h-1 rounded-full shrink-0 {{ $tareaVenc ? 'bg-red-400' : 'bg-gray-300' }}"></span>
+                                <x-auditoria.estado-punto :estado="$tarea->estado" soloPunto size="sm" />
                                 <span class="flex-1 text-xs truncate {{ $tareaVenc ? 'text-red-600 font-semibold' : 'text-gray-700 font-medium' }}">
                                     {{ $tarea->nombre }}
                                 </span>

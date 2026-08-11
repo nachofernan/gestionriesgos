@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Auditoria\Modal;
 
-use Livewire\Component;
-use Livewire\Attributes\On;
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
 /**
  * Modal de resumen rápido de un Riesgo, abierto vía el evento global 'ver-riesgo'
@@ -13,17 +15,30 @@ use App\Models\Auditoria\Riesgo;
 class DetalleRiesgo extends Component
 {
     public bool $abierto = false;
+
     public ?Riesgo $riesgo = null;
 
+    /**
+     * controles/objetivos/planesAccion filtrados por visibilidad (axioma 1 +
+     * scopeVisiblePara) y sin los "borrado" (limbo, nunca se muestran), mismo
+     * criterio que GestionControles/GestionObjetivos/GestionPlanes en el show del
+     * riesgo.
+     */
     #[On('ver-riesgo')]
     public function abrir(int $id): void
     {
+        $user = Auth::user();
+        $vigenteYVisible = fn ($q) => $q->visiblePara($user)->whereNot('estado_id', Estado::borrado()->id);
+
         $this->riesgo = Riesgo::with([
             'estado',
             'tipoRiesgo',
             'area',
+            'controles' => $vigenteYVisible,
             'controles.estado',
+            'objetivos' => $vigenteYVisible,
             'objetivos.estado',
+            'planesAccion' => $vigenteYVisible,
             'planesAccion.estado',
             'planesAccion.tareas.estado',
         ])->find($id);

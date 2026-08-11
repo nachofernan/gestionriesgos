@@ -257,11 +257,11 @@ class Riesgo extends Model implements HasMedia
     /**
      * Resta al valor_total la mitigación efectiva de los controles asociados (el
      * valor del pivot si fue ajustado para este riesgo puntual, o mitigacion_default
-     * del control) más la de los planes de acción que estén al 100% de avance. Sólo
-     * mitigan los controles en estado "aprobado": un control en borrador/validado no
-     * baja el valor del riesgo. La mitigación de un plan sólo cuenta cuando el plan
-     * está completo; hasta entonces no descuenta nada. El residual nunca baja de 0.
-     * Consumir con `controles.estado` y `planesAccion.tareas.estado` eager-loaded.
+     * del control) más la de los planes de acción que estén aprobados y al 100% de
+     * avance. Sólo mitigan los controles y planes en estado "aprobado": uno en
+     * borrador/validado no baja el valor del riesgo, aunque esté completo. El
+     * residual nunca baja de 0. Consumir con `controles.estado` y
+     * `planesAccion.estado`/`planesAccion.tareas.estado` eager-loaded.
      */
     public function getValorResidualAttribute(): int
     {
@@ -270,7 +270,9 @@ class Riesgo extends Model implements HasMedia
             ->sum(fn ($control) => $control->pivot->mitigacion ?? $control->mitigacion_default);
 
         $mitigacionPlanes = $this->planesAccion->sum(function ($plan) {
-            return $plan->estaCompleto() ? ($plan->pivot->mitigacion ?? 0) : 0;
+            $aporta = $plan->estado?->nombre === 'aprobado' && $plan->estaCompleto();
+
+            return $aporta ? ($plan->pivot->mitigacion ?? 0) : 0;
         });
 
         return max(0, $this->valor_total - $mitigacionControles - $mitigacionPlanes);
@@ -305,21 +307,63 @@ class Riesgo extends Model implements HasMedia
 
     /**
      * Prerequisitos duros para pasar a "validado", más allá de la cascada de
-     * ValidacionMasivaService: al menos un objetivo asociado, y si la respuesta
-     * es mitigar, al menos un plan de acción. Devuelve los motivos de bloqueo
-     * (vacío si puede validarse). Usado por RiesgoController::validar() y por
+     * ValidacionMasivaService: al menos un objetivo asociado que ya esté
+     * validado (o aprobado), y si la respuesta es mitigar, al menos un plan de
+     * acción también validado (o aprobado) — a ninguno de los dos alcanza con
+     * que exista, porque un objetivo o un plan en borrador no son un respaldo
+     * creíble. Devuelve los motivos de bloqueo (vacío si puede validarse).
+     * Usado por RiesgoController::validar() y por
      * ValidacionMasivaService::ejecutar().
      */
     public function motivosBloqueoValidacion(): array
     {
         $motivos = [];
 
-        if ($this->objetivos()->count() === 0) {
+        $objetivos = $this->objetivos()->with('estado')->get();
+
+        if ($objetivos->isEmpty()) {
             $motivos[] = 'El riesgo debe tener al menos un objetivo asociado para poder validarse.';
+        } elseif (! $objetivos->contains(fn ($objetivo) => in_array($objetivo->estado?->nombre, ['validado', 'aprobado']))) {
+            $motivos[] = 'El objetivo asociado debe estar validado (o aprobado) para poder validar este riesgo.';
         }
 
-        if ($this->respuesta === RespuestaRiesgo::Mitigar && $this->planesAccion()->count() === 0) {
-            $motivos[] = 'Un riesgo con respuesta "Reducir/Mitigar" debe tener al menos un plan de acción asociado para poder validarse.';
+        if ($this->respuesta === RespuestaRiesgo::Mitigar) {
+            $planes = $this->planesAccion()->with('estado')->get();
+
+            if ($planes->isEmpty()) {
+                $motivos[] = 'Un riesgo con respuesta "Reducir/Mitigar" debe tener al menos un plan de acción asociado para poder validarse.';
+            } elseif (! $planes->contains(fn ($plan) => in_array($plan->estado?->nombre, ['validado', 'aprobado']))) {
+                $motivos[] = 'El plan de acción asociado debe estar validado (o aprobado) para poder validar este riesgo.';
+            }
+        }
+
+        return $motivos;
+    }
+
+    /**
+     * Prerequisito duro para pasar a "aprobado": al menos uno de los objetivos
+     * asociados debe estar aprobado, y si la respuesta es mitigar, al menos uno
+     * de los planes de acción también — la misma exigencia de
+     * motivosBloqueoValidacion() pero un escalón más arriba. Devuelve los
+     * motivos de bloqueo (vacío si puede aprobarse). Usado por
+     * RiesgoController::aprobar() y por ValidacionMasivaService::ejecutar().
+     */
+    public function motivosBloqueoAprobacion(): array
+    {
+        $motivos = [];
+
+        $objetivos = $this->objetivos()->with('estado')->get();
+
+        if (! $objetivos->contains(fn ($objetivo) => $objetivo->estado?->nombre === 'aprobado')) {
+            $motivos[] = 'El objetivo asociado debe estar aprobado para poder aprobar este riesgo.';
+        }
+
+        if ($this->respuesta === RespuestaRiesgo::Mitigar) {
+            $planes = $this->planesAccion()->with('estado')->get();
+
+            if (! $planes->contains(fn ($plan) => $plan->estado?->nombre === 'aprobado')) {
+                $motivos[] = 'Un riesgo con respuesta "Reducir/Mitigar" debe tener su plan de acción aprobado para poder aprobarse.';
+            }
         }
 
         return $motivos;

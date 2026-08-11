@@ -42,6 +42,17 @@ class GestionControles extends Component
     /** @var array<int, array{id:int, nombre:string, mitigacion:int}> */
     public array $seleccionados = [];
 
+    /**
+     * IDs de controles asociados que no se listan: los "borrado" (rechazados,
+     * quedan en limbo — ver CLAUDE.md) y los que el usuario actual no puede ver
+     * (borrador/validado de un área que no gestiona). Se preservan en el pivot al
+     * guardar para no detacharlos silenciosamente (mismo patrón que
+     * GestionTareas::$ocultosIds).
+     *
+     * @var array<int, int>
+     */
+    public array $ocultosIds = [];
+
     /** snapshot para cancelar edición */
     private array $snapshot = [];
 
@@ -134,12 +145,18 @@ class GestionControles extends Component
      */
     public function guardar(): void
     {
-        $riesgo = Riesgo::with('controles')->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with('controles.estado')->findOrFail($this->riesgoId);
         $this->authorize('update', $riesgo);
 
         $sync = [];
         foreach ($this->seleccionados as $item) {
             $sync[(string) $item['id']] = ['mitigacion' => $item['mitigacion']];
+        }
+        // Los ocultos (borrado / no visibles) se re-agregan al sync (mitigación
+        // persistida) para no detacharlos.
+        foreach ($this->ocultosIds as $id) {
+            $antes = $riesgo->controles->firstWhere('id', $id);
+            $sync[(string) $id] = ['mitigacion' => $antes?->pivot->mitigacion];
         }
 
         $diffRel = $this->construirDiff($riesgo);
@@ -213,10 +230,15 @@ class GestionControles extends Component
      * persistidos en el riesgo y la selección en memoria. Vacío si nada cambió.
      * Lo consumen ambas ramas de guardar() (borrador y propuesta de cambio) y lo
      * pinta el historial de actualizaciones vía data['diff']['relaciones'].
+     * Compara sólo contra los controles vigentes (no ocultos, ver cargar()) para
+     * que el diff no proponga "quitar" un oculto que en realidad se preserva.
      */
     private function construirDiff(Riesgo $riesgo): array
     {
-        $antesMap = $riesgo->controles->mapWithKeys(fn ($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => $c->pivot->mitigacion]]);
+        $user = Auth::user();
+        $antesMap = $riesgo->controles
+            ->reject(fn ($c) => $c->estado?->nombre === 'borrado' || ! $user->can('view', $c))
+            ->mapWithKeys(fn ($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => $c->pivot->mitigacion]]);
         $antesIds = $antesMap->keys();
         $despuesIds = collect($this->seleccionados)->pluck('id');
 
@@ -270,25 +292,40 @@ class GestionControles extends Component
 
     private function cargar(): void
     {
-        $riesgo = Riesgo::with(['controles.estado', 'controles.area', 'planesAccion.tareas.estado', 'estado'])->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['controles.estado', 'controles.area', 'planesAccion.estado', 'planesAccion.tareas.estado', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
         $this->esBorrador = $this->estadoModelo === 'borrador';
 
-        $this->mitigacionPlanesBase = (int) $riesgo->planesAccion->sum(fn ($p) => $p->estaCompleto() ? ($p->pivot->mitigacion ?? 0) : 0);
+        // Sólo los planes aprobados y al 100% mitigan (misma regla que el accessor valor_residual).
+        $this->mitigacionPlanesBase = (int) $riesgo->planesAccion->sum(function ($p) {
+            $aporta = $p->estado?->nombre === 'aprobado' && $p->estaCompleto();
+
+            return $aporta ? ($p->pivot->mitigacion ?? 0) : 0;
+        });
 
         $user = Auth::user();
-        $this->seleccionados = $riesgo->controles->map(fn ($c) => [
-            'id' => $c->id,
-            'nombre' => $c->nombre,
-            'descripcion' => $c->descripcion,
-            'mitigacion' => $c->pivot->mitigacion ?? $c->mitigacion_default,
-            'mitigacion_default' => $c->mitigacion_default,
-            'estado' => $c->estado?->nombre ?? 'borrador',
-            'estado_color' => $c->estado?->color ?? 'gray',
-            'area' => $c->area?->nombre,
-            'puede_ver' => $user->can('view', $c),
-            'url' => route('auditoria.controles.show', $c->id),
-        ])->values()->toArray();
+
+        // Los controles "borrado" o no visibles para el usuario actual quedan fuera
+        // de la lista pero se recuerdan para preservarlos en el pivot al guardar
+        // (ver $ocultosIds y guardar()).
+        $this->ocultosIds = $riesgo->controles
+            ->filter(fn ($c) => $c->estado?->nombre === 'borrado' || ! $user->can('view', $c))
+            ->pluck('id')->all();
+
+        $this->seleccionados = $riesgo->controles
+            ->reject(fn ($c) => $c->estado?->nombre === 'borrado' || ! $user->can('view', $c))
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'nombre' => $c->nombre,
+                'descripcion' => $c->descripcion,
+                'mitigacion' => $c->pivot->mitigacion ?? $c->mitigacion_default,
+                'mitigacion_default' => $c->mitigacion_default,
+                'estado' => $c->estado?->nombre ?? 'borrador',
+                'estado_color' => $c->estado?->color ?? 'gray',
+                'area' => $c->area?->nombre,
+                'puede_ver' => true,
+                'url' => route('auditoria.controles.show', $c->id),
+            ])->values()->toArray();
     }
 
     public function render()

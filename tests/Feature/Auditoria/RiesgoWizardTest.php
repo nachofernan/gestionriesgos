@@ -4,6 +4,7 @@ namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
@@ -161,12 +162,17 @@ class RiesgoWizardTest extends TestCase
         $this->assertEquals('borrador', $riesgo->fresh()->estado->nombre);
     }
 
+    /**
+     * Un plan que sólo existe (en borrador) ya no alcanza: desde que el plan es
+     * un prerequisito bloqueante (ver PlanRequeridoParaMitigarTest), tiene que
+     * estar validado para poder validar el riesgo.
+     */
     /** @test */
-    public function se_puede_validar_un_riesgo_con_respuesta_mitigar_si_tiene_objetivo_y_plan_de_accion(): void
+    public function se_puede_validar_un_riesgo_con_respuesta_mitigar_si_tiene_objetivo_y_plan_validado(): void
     {
         $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
-        $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba']);
-        $plan = PlanAccion::factory()->create();
+        $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba', 'estado_id' => Estado::validado()->id]);
+        $plan = PlanAccion::factory()->create(['estado_id' => Estado::validado()->id]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $gerente->id,
             'respuesta' => RespuestaRiesgo::Mitigar,
@@ -181,10 +187,29 @@ class RiesgoWizardTest extends TestCase
     }
 
     /** @test */
-    public function se_puede_validar_un_riesgo_sin_mitigar_con_solo_un_objetivo(): void
+    public function un_plan_en_borrador_no_alcanza_para_validar_un_riesgo_mitigar_aunque_exista(): void
     {
         $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba']);
+        $plan = PlanAccion::factory()->create(); // borrador por defecto
+        $riesgo = Riesgo::factory()->borrador()->create([
+            'user_id' => $gerente->id,
+            'respuesta' => RespuestaRiesgo::Mitigar,
+        ]);
+        $riesgo->objetivos()->attach($objetivo);
+        $riesgo->planesAccion()->attach($plan);
+
+        $respuesta = $this->actingAs($gerente)->post(route('auditoria.riesgos.validar', $riesgo));
+
+        $respuesta->assertSessionHas('error');
+        $this->assertEquals('borrador', $riesgo->fresh()->estado->nombre);
+    }
+
+    /** @test */
+    public function se_puede_validar_un_riesgo_sin_mitigar_con_solo_un_objetivo(): void
+    {
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba', 'estado_id' => Estado::validado()->id]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $gerente->id,
             'respuesta' => RespuestaRiesgo::Aceptar,

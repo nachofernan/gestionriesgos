@@ -66,13 +66,14 @@ class ControlController extends Controller
     public function show(Control $control)
     {
         $this->authorize('view', $control);
-        // riesgos.controles.estado y riesgos.planesAccion.tareas.estado: los usa el
-        // accessor valor_residual de cada riesgo listado en la vista del control.
+        // riesgos.controles.estado, riesgos.planesAccion.estado y
+        // riesgos.planesAccion.tareas.estado: los usa el accessor valor_residual de
+        // cada riesgo listado en la vista del control.
         // riesgos filtrados por visibilidad: un borrador de otra gerencia no debe
         // aparecer como fila en "Riesgos asociados" (axioma 3 + scopeVisiblePara).
         $control->load([
             'riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
-            'riesgos.controles.estado', 'riesgos.planesAccion.tareas.estado',
+            'riesgos.controles.estado', 'riesgos.planesAccion.estado', 'riesgos.planesAccion.tareas.estado',
             'riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'user', 'area',
         ]);
 

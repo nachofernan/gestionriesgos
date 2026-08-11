@@ -38,6 +38,17 @@ class GestionObjetivos extends Component
     /** @var array<int, array{id:int, nombre:string}> */
     public array $seleccionados = [];
 
+    /**
+     * IDs de objetivos asociados que no se listan: los "borrado" (rechazados,
+     * quedan en limbo — ver CLAUDE.md) y los que el usuario actual no puede ver
+     * (borrador/validado de un área que no gestiona). Se preservan en el pivot al
+     * guardar para no detacharlos silenciosamente (mismo patrón que
+     * GestionTareas::$ocultosIds).
+     *
+     * @var array<int, int>
+     */
+    public array $ocultosIds = [];
+
     public function mount(Riesgo $riesgo): void
     {
         $this->riesgoId = $riesgo->id;
@@ -129,9 +140,13 @@ class GestionObjetivos extends Component
             return;
         }
 
-        $riesgo = Riesgo::with('objetivos')->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with('objetivos.estado')->findOrFail($this->riesgoId);
         $this->authorize('update', $riesgo);
-        $ids = collect($this->seleccionados)->pluck('id')->toArray();
+        // Los ocultos (borrado / no visibles) se re-agregan al sync para no detacharlos.
+        $ids = array_values(array_unique(array_merge(
+            collect($this->seleccionados)->pluck('id')->toArray(),
+            $this->ocultosIds
+        )));
 
         $diffRel = $this->construirDiff($riesgo);
 
@@ -204,10 +219,15 @@ class GestionObjetivos extends Component
      * y la selección en memoria. La relación objetivo-riesgo no tiene mitigación, así
      * que sólo hay altas y bajas. Vacío si nada cambió. Lo consumen ambas ramas de
      * guardar() (borrador y propuesta) y lo pinta el historial de actualizaciones.
+     * Compara sólo contra los objetivos vigentes (no ocultos, ver cargar()) para que
+     * el diff no proponga "quitar" un oculto que en realidad se preserva vía $ids.
      */
     private function construirDiff(Riesgo $riesgo): array
     {
-        $antesItems = $riesgo->objetivos->map(fn ($o) => ['id' => $o->id, 'nombre' => $o->nombre]);
+        $user = Auth::user();
+        $antesItems = $riesgo->objetivos
+            ->reject(fn ($o) => $o->estado?->nombre === 'borrado' || ! $user->can('view', $o))
+            ->map(fn ($o) => ['id' => $o->id, 'nombre' => $o->nombre]);
         $antesIds = $antesItems->pluck('id');
         $despues = collect($this->seleccionados);
 
@@ -243,19 +263,29 @@ class GestionObjetivos extends Component
         $this->esBorrador = $this->estadoModelo === 'borrador';
 
         $user = Auth::user();
-        $this->seleccionados = $riesgo->objetivos->map(fn ($o) => [
-            'id' => $o->id,
-            'nombre' => $o->nombre,
-            'descripcion' => $o->descripcion,
-            'estado' => $o->estado?->nombre ?? 'borrador',
-            'estado_color' => $o->estado?->color ?? 'gray',
-            'area' => $o->area?->nombre,
-            'fecha_objetivo' => $o->fecha_objetivo?->format('d/m/Y'),
-            'estrategico' => (bool) $o->estrategico,
-            'anticorrupcion' => (bool) $o->anticorrupcion,
-            'puede_ver' => $user->can('view', $o),
-            'url' => route('auditoria.objetivos.show', $o->id),
-        ])->values()->toArray();
+
+        // Los objetivos "borrado" o no visibles para el usuario actual quedan fuera
+        // de la lista pero se recuerdan para preservarlos en el pivot al guardar
+        // (ver $ocultosIds y guardar()).
+        $this->ocultosIds = $riesgo->objetivos
+            ->filter(fn ($o) => $o->estado?->nombre === 'borrado' || ! $user->can('view', $o))
+            ->pluck('id')->all();
+
+        $this->seleccionados = $riesgo->objetivos
+            ->reject(fn ($o) => $o->estado?->nombre === 'borrado' || ! $user->can('view', $o))
+            ->map(fn ($o) => [
+                'id' => $o->id,
+                'nombre' => $o->nombre,
+                'descripcion' => $o->descripcion,
+                'estado' => $o->estado?->nombre ?? 'borrador',
+                'estado_color' => $o->estado?->color ?? 'gray',
+                'area' => $o->area?->nombre,
+                'fecha_objetivo' => $o->fecha_objetivo?->format('d/m/Y'),
+                'estrategico' => (bool) $o->estrategico,
+                'anticorrupcion' => (bool) $o->anticorrupcion,
+                'puede_ver' => true,
+                'url' => route('auditoria.objetivos.show', $o->id),
+            ])->values()->toArray();
     }
 
     public function render()

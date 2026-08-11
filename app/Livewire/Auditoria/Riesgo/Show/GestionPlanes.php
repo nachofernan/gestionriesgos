@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
+use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
@@ -18,7 +19,9 @@ use Livewire\Component;
  * el estado resultante lo amerita (ver estadoParaActualizacion()). Emite
  * 'residual-actualizado' al cambiar la selección/mitigación para que la vista
  * recalcule el residual sin esperar a guardar; el preview contempla también la
- * mitigación ya persistida de los controles.
+ * mitigación ya persistida de los controles. Si el riesgo tiene respuesta
+ * "Reducir/Mitigar" y ya está validado/aprobado, quitar() no deja que se quede
+ * sin ningún plan que respalde ese estado (ver $exigePlan).
  */
 class GestionPlanes extends Component
 {
@@ -39,11 +42,27 @@ class GestionPlanes extends Component
 
     public string $busqueda = '';
 
+    public string $error = '';
+
+    /** Riesgo con respuesta "Reducir/Mitigar": quitar() no puede dejarlo sin plan que respalde su estado actual. */
+    public bool $exigePlan = false;
+
     /** Mitigación de los controles ya asociados, base fija del preview de residual. */
     public int $mitigacionControlesBase = 0;
 
     /** @var array<int, array{id:int, codigo:string, nombre:string, mitigacion:int, avg_avance:?int}> */
     public array $seleccionados = [];
+
+    /**
+     * IDs de planes asociados que no se listan: los "borrado" (rechazados, quedan
+     * en limbo — ver CLAUDE.md) y los que el usuario actual no puede ver
+     * (borrador/validado de un área que no gestiona). Se preservan en el pivot al
+     * guardar para no detacharlos silenciosamente (mismo patrón que
+     * GestionTareas::$ocultosIds).
+     *
+     * @var array<int, int>
+     */
+    public array $ocultosIds = [];
 
     public function mount(Riesgo $riesgo): void
     {
@@ -56,6 +75,7 @@ class GestionPlanes extends Component
     public function activarEdicion(): void
     {
         $this->editando = true;
+        $this->error = '';
     }
 
     public function cancelarEdicion(): void
@@ -64,6 +84,7 @@ class GestionPlanes extends Component
         $this->editando = false;
         $this->busqueda = '';
         $this->modalAbierto = false;
+        $this->error = '';
         $this->dispatch('residual-actualizado', valor: $this->residualActual());
     }
 
@@ -122,15 +143,39 @@ class GestionPlanes extends Component
             'url' => route('auditoria.planes.show', $plan->id),
         ];
 
+        $this->error = '';
         $this->cerrarModal();
         $this->dispatch('residual-actualizado', valor: $this->residualActual());
     }
 
+    /**
+     * Un riesgo con respuesta "Reducir/Mitigar" ya validado/aprobado no puede
+     * quedarse, tras quitar un plan, sin ninguno que respalde su estado actual
+     * (validado exige un plan validado o aprobado; aprobado exige uno aprobado
+     * — mismo requisito que Riesgo::motivosBloqueoValidacion()/
+     * motivosBloqueoAprobacion(), aplicado acá para no poder retroceder por esta
+     * vía). En borrador, o con otra respuesta, no hay restricción: recién se
+     * exige al intentar validar.
+     */
     public function quitar(int $planId): void
     {
+        if ($this->exigePlan && ! $this->esBorrador) {
+            $estadosQueRespaldan = $this->estadoModelo === 'aprobado' ? ['aprobado'] : ['validado', 'aprobado'];
+            $restantes = collect($this->seleccionados)->reject(fn ($p) => $p['id'] === $planId);
+
+            if (! $restantes->contains(fn ($p) => in_array($p['estado'], $estadosQueRespaldan, true))) {
+                $this->error = $this->estadoModelo === 'aprobado'
+                    ? 'Un riesgo aprobado con respuesta "Reducir/Mitigar" debe conservar al menos un plan de acción aprobado.'
+                    : 'Un riesgo validado con respuesta "Reducir/Mitigar" debe conservar al menos un plan de acción validado (o aprobado).';
+
+                return;
+            }
+        }
+
         $this->seleccionados = array_values(
             array_filter($this->seleccionados, fn ($p) => $p['id'] !== $planId)
         );
+        $this->error = '';
         $this->dispatch('residual-actualizado', valor: $this->residualActual());
     }
 
@@ -142,12 +187,18 @@ class GestionPlanes extends Component
      */
     public function guardar(): void
     {
-        $riesgo = Riesgo::with('planesAccion')->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with('planesAccion.estado')->findOrFail($this->riesgoId);
         $this->authorize('update', $riesgo);
 
         $sync = [];
         foreach ($this->seleccionados as $item) {
             $sync[(string) $item['id']] = ['mitigacion' => $item['mitigacion']];
+        }
+        // Los ocultos (borrado / no visibles) se re-agregan al sync (mitigación
+        // persistida) para no detacharlos.
+        foreach ($this->ocultosIds as $id) {
+            $antes = $riesgo->planesAccion->firstWhere('id', $id);
+            $sync[(string) $id] = ['mitigacion' => $antes?->pivot->mitigacion];
         }
 
         $diffRel = $this->construirDiff($riesgo);
@@ -221,10 +272,15 @@ class GestionPlanes extends Component
      * persistidos en el riesgo y la selección en memoria. Vacío si nada cambió.
      * Lo consumen ambas ramas de guardar() (borrador y propuesta de cambio) y lo
      * pinta el historial de actualizaciones vía data['diff']['relaciones'].
+     * Compara sólo contra los planes vigentes (no ocultos, ver cargar()) para que
+     * el diff no proponga "quitar" un oculto que en realidad se preserva.
      */
     private function construirDiff(Riesgo $riesgo): array
     {
-        $antesMap = $riesgo->planesAccion->mapWithKeys(fn ($p) => [$p->id => ['nombre' => $p->nombre, 'mitigacion' => $p->pivot->mitigacion]]);
+        $user = Auth::user();
+        $antesMap = $riesgo->planesAccion
+            ->reject(fn ($p) => $p->estado?->nombre === 'borrado' || ! $user->can('view', $p))
+            ->mapWithKeys(fn ($p) => [$p->id => ['nombre' => $p->nombre, 'mitigacion' => $p->pivot->mitigacion]]);
         $antesIds = $antesMap->keys();
         $despuesIds = collect($this->seleccionados)->pluck('id');
 
@@ -245,13 +301,15 @@ class GestionPlanes extends Component
 
     /**
      * Residual = valor total menos la mitigación ya persistida de los controles
-     * menos la de los planes seleccionados que estén al 100% de avance (no persiste,
-     * es sólo feedback en vivo). Un plan por debajo del 100% no descuenta nada.
+     * menos la de los planes seleccionados que estén aprobados y al 100% de avance
+     * (no persiste, es sólo feedback en vivo). Un plan validado/borrador o por
+     * debajo del 100% no descuenta nada, misma regla que
+     * Riesgo::getValorResidualAttribute.
      */
     private function residualActual(): int
     {
         $mitigacionPlanes = collect($this->seleccionados)
-            ->filter(fn ($p) => ($p['avg_avance'] ?? null) === 100)
+            ->filter(fn ($p) => ($p['estado'] ?? null) === 'aprobado' && ($p['avg_avance'] ?? null) === 100)
             ->sum('mitigacion');
 
         return max(0, $this->valorTotal - $this->mitigacionControlesBase - $mitigacionPlanes);
@@ -280,6 +338,7 @@ class GestionPlanes extends Component
         $riesgo = Riesgo::with(['planesAccion.estado', 'planesAccion.area', 'planesAccion.tareas.estado', 'controles.estado', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
         $this->esBorrador = $this->estadoModelo === 'borrador';
+        $this->exigePlan = $riesgo->respuesta === RespuestaRiesgo::Mitigar;
 
         // Sólo los controles aprobados mitigan (misma regla que el accessor valor_residual).
         $this->mitigacionControlesBase = (int) $riesgo->controles
@@ -287,25 +346,35 @@ class GestionPlanes extends Component
             ->sum(fn ($c) => $c->pivot->mitigacion ?? $c->mitigacion_default);
 
         $user = Auth::user();
-        $this->seleccionados = $riesgo->planesAccion->map(function ($p) use ($user) {
-            $vencimiento = $p->tareas->whereNotNull('fecha')->max('fecha');
 
-            return [
-                'id' => $p->id,
-                'codigo' => $p->codigo ?? '—',
-                'nombre' => $p->nombre,
-                'descripcion' => $p->descripcion,
-                'estado' => $p->estado?->nombre ?? 'borrador',
-                'estado_color' => $p->estado?->color ?? 'gray',
-                'area' => $p->area?->nombre,
-                'mitigacion' => (int) ($p->pivot->mitigacion ?? 0),
-                'avg_avance' => $p->avance,
-                'tareas_count' => $p->tareas->count(),
-                'vencimiento' => $vencimiento ? Carbon::parse($vencimiento)->format('d/m/Y') : null,
-                'puede_ver' => $user->can('view', $p),
-                'url' => route('auditoria.planes.show', $p->id),
-            ];
-        })->values()->toArray();
+        // Los planes "borrado" o no visibles para el usuario actual quedan fuera de
+        // la lista pero se recuerdan para preservarlos en el pivot al guardar (ver
+        // $ocultosIds y guardar()).
+        $this->ocultosIds = $riesgo->planesAccion
+            ->filter(fn ($p) => $p->estado?->nombre === 'borrado' || ! $user->can('view', $p))
+            ->pluck('id')->all();
+
+        $this->seleccionados = $riesgo->planesAccion
+            ->reject(fn ($p) => $p->estado?->nombre === 'borrado' || ! $user->can('view', $p))
+            ->map(function ($p) {
+                $vencimiento = $p->tareas->whereNotNull('fecha')->max('fecha');
+
+                return [
+                    'id' => $p->id,
+                    'codigo' => $p->codigo ?? '—',
+                    'nombre' => $p->nombre,
+                    'descripcion' => $p->descripcion,
+                    'estado' => $p->estado?->nombre ?? 'borrador',
+                    'estado_color' => $p->estado?->color ?? 'gray',
+                    'area' => $p->area?->nombre,
+                    'mitigacion' => (int) ($p->pivot->mitigacion ?? 0),
+                    'avg_avance' => $p->avance,
+                    'tareas_count' => $p->tareas->count(),
+                    'vencimiento' => $vencimiento ? Carbon::parse($vencimiento)->format('d/m/Y') : null,
+                    'puede_ver' => true,
+                    'url' => route('auditoria.planes.show', $p->id),
+                ];
+            })->values()->toArray();
     }
 
     public function render()

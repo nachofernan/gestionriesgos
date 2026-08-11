@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Auditoria\Tarea\Index;
 
+use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\Tarea;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Auditoria\Tarea;
-use App\Models\Auditoria\Estado;
-use App\Models\Auditoria\Area;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * Listado/búsqueda de Tareas con filtros por nombre, estado y área (con
@@ -18,10 +18,15 @@ class Search extends Component
     use WithPagination;
 
     public string $search = '';
+
     public ?int $filtroEstado = null;
+
     public ?int $filtroArea = null;
+
     public bool $mostrarHijos = true;
+
     public string $ordenarPor = 'nombre';
+
     public string $direccion = 'asc';
 
     protected $queryString = [
@@ -33,10 +38,25 @@ class Search extends Component
         'direccion' => ['except' => 'asc'],
     ];
 
-    public function updatingSearch(): void { $this->resetPage(); }
-    public function updatingFiltroEstado(): void { $this->resetPage(); }
-    public function updatingFiltroArea(): void { $this->resetPage(); }
-    public function updatingMostrarHijos(): void { $this->resetPage(); }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroEstado(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroArea(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingMostrarHijos(): void
+    {
+        $this->resetPage();
+    }
 
     public function ordenar(string $columna): void
     {
@@ -61,12 +81,20 @@ class Search extends Component
 
     public function render()
     {
+        $user = Auth::user();
+
+        // planesAccion filtrados por visibilidad: un borrador de otra gerencia no
+        // debe aparecer en la columna "Planes" del listado (axioma 1 +
+        // scopeVisiblePara). Los "borrado" tampoco, quedan en limbo.
         $query = Tarea::query()
-            ->with(['area', 'user', 'planesAccion', 'estado'])
-            ->visiblePara(Auth::user());
+            ->with([
+                'area', 'user', 'estado',
+                'planesAccion' => fn ($q) => $q->visiblePara($user)->whereNot('estado_id', Estado::borrado()->id),
+            ])
+            ->visiblePara($user);
 
         if ($this->search) {
-            $query->where('nombre', 'like', '%' . $this->search . '%');
+            $query->where('nombre', 'like', '%'.$this->search.'%');
         }
 
         if ($this->filtroEstado) {

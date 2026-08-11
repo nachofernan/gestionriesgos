@@ -42,9 +42,8 @@
                     @else
                         <span class="flex-1 text-sm font-semibold text-gray-700 truncate">{{ $plan['nombre'] }}</span>
                     @endif
-                    @if($planModel && $planModel->tareas->count())
-                        @php $avg = round($planModel->tareas->avg('porcentaje_avance')); @endphp
-                        <span class="text-xs font-extrabold shrink-0 {{ $avg === 100 ? 'text-green-600' : 'text-amber-600' }}">{{ $avg }}%</span>
+                    @if($planModel && $planModel->avance !== null)
+                        <span class="text-xs font-extrabold shrink-0 {{ $planModel->avance === 100 ? 'text-green-600' : 'text-amber-600' }}">{{ $planModel->avance }}%</span>
                     @endif
                     @php $completo = ($plan['avg_avance'] ?? null) === 100; @endphp
                     <div class="flex items-center gap-1.5 shrink-0" title="Mitigación que el plan aplica al valor residual cuando llega al 100%">
@@ -73,10 +72,15 @@
                 @if($editando)
                     <p class="text-[10px] text-gray-400 mb-1.5 -mt-1">La mitigación descuenta del valor residual sólo cuando el plan llega al 100%.</p>
                 @endif
-                @if($planModel && $planModel->tareas->count())
+                @php
+                    // La vista de riesgo sólo muestra tareas aprobadas: las validadas/borrador
+                    // son trabajo en curso que se ve en el plan, no acá (ver CLAUDE.md).
+                    $tareasAprobadas = $planModel?->tareas->filter(fn ($t) => $t->estado?->nombre === 'aprobado');
+                @endphp
+                @if($planModel && $tareasAprobadas->isNotEmpty())
                     @php $hoyPlan = now()->startOfDay(); @endphp
                     <div class="space-y-1.5 pl-1 border-t border-gray-100 pt-2 mt-1">
-                        @foreach($planModel->tareas as $tarea)
+                        @foreach($tareasAprobadas as $tarea)
                             @php
                                 $tareaVenc = $tarea->fecha && $tarea->fecha->lt($hoyPlan) && $tarea->porcentaje_avance < 100;
                             @endphp
@@ -97,12 +101,16 @@
                         @endforeach
                     </div>
                 @elseif($planModel)
-                    <p class="text-xs text-gray-400 pl-1 border-t border-gray-100 pt-2 mt-1">Sin tareas.</p>
+                    <p class="text-xs text-gray-400 pl-1 border-t border-gray-100 pt-2 mt-1">Sin tareas aprobadas.</p>
                 @endif
             </div>
         @empty
             <p class="text-sm text-gray-400 italic py-1">Sin planes de acción asociados.</p>
         @endforelse
+
+        @if($error)
+            <p class="text-xs text-red-600 font-medium">{{ $error }}</p>
+        @endif
 
         {{-- Acciones de edición --}}
         @if($editando)

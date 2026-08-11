@@ -102,11 +102,20 @@ class Search extends Component
 
     public function render()
     {
-        // controles.estado y planesAccion.tareas.estado: los necesita el accessor
-        // valor_residual, que este listado muestra y usa para ordenar.
+        $user = Auth::user();
+
+        // controles.estado, planesAccion.estado y planesAccion.tareas.estado: los
+        // necesita el accessor valor_residual, que este listado muestra y usa para ordenar.
+        // objetivos filtrados por visibilidad: un borrador de otra gerencia no debe
+        // aparecer en la columna "Objetivos" (axioma 1 + scopeVisiblePara); los
+        // "borrado" tampoco, quedan en limbo.
         $query = Riesgo::query()
-            ->with(['tipoRiesgo', 'estado', 'area', 'user', 'controles.estado', 'planesAccion.tareas.estado', 'objetivos'])
-            ->visiblePara(Auth::user())
+            ->with([
+                'tipoRiesgo', 'estado', 'area', 'user',
+                'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado',
+                'objetivos' => fn ($q) => $q->visiblePara($user)->whereNot('estado_id', Estado::borrado()->id),
+            ])
+            ->visiblePara($user)
             ->leftJoin('estados', 'estados.id', '=', 'riesgos.estado_id')
             ->select('riesgos.*');
 

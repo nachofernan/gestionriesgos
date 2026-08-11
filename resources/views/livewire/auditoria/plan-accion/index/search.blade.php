@@ -124,7 +124,8 @@
                                 @endforelse
                             </td>
                             @php
-                                $avancePlan = $plan->tareas->count() ? round($plan->tareas->avg('porcentaje_avance')) : null;
+                                // Avance = accessor del modelo (sólo promedia tareas aprobadas, ver PlanAccion::getAvanceAttribute).
+                                $avancePlan = $plan->avance;
                                 $vencPlan   = $plan->tareas->whereNotNull('fecha')->max('fecha');
                                 $hoy        = now()->startOfDay();
                                 $planVencido = $vencPlan && \Carbon\Carbon::parse($vencPlan)->lt($hoy) && ($avancePlan ?? 0) < 100;

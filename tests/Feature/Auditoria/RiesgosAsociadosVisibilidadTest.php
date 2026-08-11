@@ -3,6 +3,10 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\TipoArea;
+use App\Livewire\Auditoria\Modal\DetalleControl;
+use App\Livewire\Auditoria\Modal\DetalleObjetivo;
+use App\Livewire\Auditoria\Modal\DetallePlan;
+use App\Livewire\Auditoria\Modal\DetalleTarea;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -14,6 +18,7 @@ use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -211,6 +216,51 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($borrador->id, $ids);
     }
 
+    /** @test */
+    public function objetivo_no_expone_el_plan_borrador_de_b_en_planes_vinculados_a_un_gerente_de_a(): void
+    {
+        // "Planes de acción vinculados" en el show del objetivo se deriva de
+        // riesgo->planesAccion: un plan de otra gerencia asociado a un riesgo
+        // visible tampoco debe filtrarse ahí (ver reporte: 403 al hacer clic).
+        $objetivo = Objetivo::create([
+            'nombre' => 'Obj', 'estado_id' => $this->aprobadoId,
+            'area_id' => $this->sectC->id, 'user_id' => $this->grassi->id,
+        ]);
+        $riesgo = $this->riesgoEnB($this->aprobadoId);
+        $objetivo->riesgos()->sync([$riesgo->id]);
+        $planBorrador = PlanAccion::factory()->create(['estado_id' => $this->borradorId, 'area_id' => $this->sectC->id]);
+        $planAprobado = PlanAccion::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
+        $riesgo->planesAccion()->sync([$planBorrador->id, $planAprobado->id]);
+
+        $planIds = $this->actingAs($this->canela)
+            ->get(route('auditoria.objetivos.show', $objetivo))
+            ->assertOk()
+            ->viewData('objetivo')->riesgos->flatMap->planesAccion->pluck('id')->all();
+
+        $this->assertNotContains($planBorrador->id, $planIds);
+        $this->assertContains($planAprobado->id, $planIds);
+    }
+
+    /** @test */
+    public function objetivo_muestra_el_plan_borrador_en_planes_vinculados_al_propio_gerente_de_b(): void
+    {
+        $objetivo = Objetivo::create([
+            'nombre' => 'Obj', 'estado_id' => $this->aprobadoId,
+            'area_id' => $this->sectC->id, 'user_id' => $this->grassi->id,
+        ]);
+        $riesgo = $this->riesgoEnB($this->aprobadoId);
+        $objetivo->riesgos()->sync([$riesgo->id]);
+        $planBorrador = PlanAccion::factory()->create(['estado_id' => $this->borradorId, 'area_id' => $this->sectC->id]);
+        $riesgo->planesAccion()->sync([$planBorrador->id]);
+
+        $planIds = $this->actingAs($this->grassi)
+            ->get(route('auditoria.objetivos.show', $objetivo))
+            ->assertOk()
+            ->viewData('objetivo')->riesgos->flatMap->planesAccion->pluck('id')->all();
+
+        $this->assertContains($planBorrador->id, $planIds);
+    }
+
     // -------------------------------------------------------
     // Tarea (los riesgos cuelgan de planesAccion.riesgos)
     // -------------------------------------------------------
@@ -251,5 +301,83 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
             ->viewData('tarea')->planesAccion->flatMap->riesgos->pluck('id')->all();
 
         $this->assertContains($borrador->id, $ids);
+    }
+
+    // -------------------------------------------------------
+    // Modales de vista rápida (DetalleObjetivo/Control/Plan/Tarea)
+    // -------------------------------------------------------
+
+    /** @test */
+    public function el_modal_de_objetivo_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
+    {
+        $objetivo = Objetivo::create([
+            'nombre' => 'Obj', 'estado_id' => $this->aprobadoId,
+            'area_id' => $this->sectC->id, 'user_id' => $this->grassi->id,
+        ]);
+        $borrador = $this->riesgoEnB($this->borradorId);
+        $aprobado = $this->riesgoEnB($this->aprobadoId);
+        $objetivo->riesgos()->sync([$borrador->id, $aprobado->id]);
+
+        $ids = Livewire::actingAs($this->canela)
+            ->test(DetalleObjetivo::class)
+            ->call('abrir', $objetivo->id)
+            ->instance()->objetivo->riesgos->pluck('id')->all();
+
+        $this->assertNotContains($borrador->id, $ids);
+        $this->assertContains($aprobado->id, $ids);
+    }
+
+    /** @test */
+    public function el_modal_de_control_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
+    {
+        $control = Control::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
+        $borrador = $this->riesgoEnB($this->borradorId);
+        $aprobado = $this->riesgoEnB($this->aprobadoId);
+        $control->riesgos()->sync([$borrador->id, $aprobado->id]);
+
+        $ids = Livewire::actingAs($this->canela)
+            ->test(DetalleControl::class)
+            ->call('abrir', $control->id)
+            ->instance()->control->riesgos->pluck('id')->all();
+
+        $this->assertNotContains($borrador->id, $ids);
+        $this->assertContains($aprobado->id, $ids);
+    }
+
+    /** @test */
+    public function el_modal_de_plan_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
+    {
+        $plan = PlanAccion::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
+        $borrador = $this->riesgoEnB($this->borradorId);
+        $aprobado = $this->riesgoEnB($this->aprobadoId);
+        $plan->riesgos()->sync([$borrador->id, $aprobado->id]);
+
+        $ids = Livewire::actingAs($this->canela)
+            ->test(DetallePlan::class)
+            ->call('abrir', $plan->id)
+            ->instance()->plan->riesgos->pluck('id')->all();
+
+        $this->assertNotContains($borrador->id, $ids);
+        $this->assertContains($aprobado->id, $ids);
+    }
+
+    /** @test */
+    public function el_modal_de_tarea_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
+    {
+        $tarea = Tarea::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
+        $plan = PlanAccion::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
+        $tarea->planesAccion()->sync([$plan->id]);
+
+        $borrador = $this->riesgoEnB($this->borradorId);
+        $aprobado = $this->riesgoEnB($this->aprobadoId);
+        $plan->riesgos()->sync([$borrador->id, $aprobado->id]);
+
+        $ids = Livewire::actingAs($this->canela)
+            ->test(DetalleTarea::class)
+            ->call('abrir', $tarea->id)
+            ->instance()->tarea->planesAccion->flatMap->riesgos->pluck('id')->all();
+
+        $this->assertNotContains($borrador->id, $ids);
+        $this->assertContains($aprobado->id, $ids);
     }
 }
