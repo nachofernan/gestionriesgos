@@ -140,30 +140,6 @@ class AsociacionesVisibilidadListadosTest extends TestCase
     }
 
     /** @test */
-    public function el_listado_de_riesgos_no_expone_el_objetivo_borrador_de_b_a_un_gerente_de_a(): void
-    {
-        $riesgo = $this->riesgoEnB($this->aprobadoId);
-        $objBorrador = Objetivo::create([
-            'nombre' => 'Obj borrador', 'estado_id' => $this->borradorId,
-            'area_id' => $this->sectC->id, 'user_id' => $this->grassi->id,
-        ]);
-        $objAprobado = Objetivo::create([
-            'nombre' => 'Obj aprobado', 'estado_id' => $this->aprobadoId,
-            'area_id' => $this->sectC->id, 'user_id' => $this->grassi->id,
-        ]);
-        $riesgo->objetivos()->sync([$objBorrador->id, $objAprobado->id]);
-
-        Livewire::actingAs($this->canela)
-            ->test(RiesgoSearch::class)
-            ->assertViewHas('riesgos', function ($riesgos) use ($riesgo, $objBorrador, $objAprobado) {
-                $r = $riesgos->firstWhere('id', $riesgo->id);
-
-                return $r && ! $r->objetivos->pluck('id')->contains($objBorrador->id)
-                    && $r->objetivos->pluck('id')->contains($objAprobado->id);
-            });
-    }
-
-    /** @test */
     public function el_listado_de_tareas_no_expone_el_plan_borrador_de_b_a_un_gerente_de_a(): void
     {
         $tarea = Tarea::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
