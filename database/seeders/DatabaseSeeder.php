@@ -10,8 +10,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::create([
-            'name'     => 'Admin',
-            'email'    => 'admin@admin.com',
+            'name' => 'Admin',
+            'email' => 'admin@admin.com',
             'password' => bcrypt('password'),
         ]);
 
@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             RolSeeder::class,
             TipoRiesgoSeeder::class,
             AreaSeeder::class,
+            PeisItemSeeder::class,
             ObjetivoSeeder::class,
             RiesgoSeeder::class,
             ControlSeeder::class,

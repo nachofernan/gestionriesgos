@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
+use App\Models\Auditoria\PeisItem;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,8 +32,9 @@ class ObjetivoController extends Controller
     {
         $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
+        $peisItems = PeisItem::orderBy('nombre')->get();
 
-        return view('auditoria.objetivo.create', compact('areas', 'usuarios'));
+        return view('auditoria.objetivo.create', compact('areas', 'usuarios', 'peisItems'));
     }
 
     public function store(Request $request)
@@ -44,15 +46,22 @@ class ObjetivoController extends Controller
             'descripcion' => 'nullable|string',
             'fecha_objetivo' => 'nullable|date',
             'estrategico' => 'boolean',
-            'anticorrupcion' => 'boolean',
+            'peis' => 'boolean',
+            'peis_items' => 'required_if:peis,1|array|min:1',
+            'peis_items.*' => 'exists:peis_items,id',
             'area_id' => 'nullable|exists:areas,id',
             'user_id' => 'nullable|exists:users,id',
         ]);
         $data['estrategico'] = $request->boolean('estrategico');
-        $data['anticorrupcion'] = $request->boolean('anticorrupcion');
+        $data['peis'] = $request->boolean('peis');
 
         $data['user_id'] = $data['user_id'] ?? Auth::id();
+        $peisItemIds = $data['peis'] ? $data['peis_items'] : [];
+        unset($data['peis_items']);
+
         $objetivo = Objetivo::create($data);
+        $objetivo->peisItems()->sync($peisItemIds);
+
         $objetivo->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => 'Objetivo creado',
@@ -62,7 +71,7 @@ class ObjetivoController extends Controller
                 'descripcion' => $objetivo->descripcion,
                 'fecha_objetivo' => $objetivo->fecha_objetivo?->format('Y-m-d'),
                 'estrategico' => $objetivo->estrategico,
-                'anticorrupcion' => $objetivo->anticorrupcion,
+                'peis' => $objetivo->peis,
             ]],
         ]);
 
@@ -88,7 +97,7 @@ class ObjetivoController extends Controller
             'riesgos.planesAccion' => fn ($q) => $q->visiblePara($user)->whereNot('estado_id', Estado::borrado()->id),
             'riesgos.planesAccion.estado', 'riesgos.planesAccion.area',
             'riesgos.planesAccion.tareas.estado', 'riesgos.planesAccion.tareas.area', 'riesgos.planesAccion.tareas.user',
-            'user', 'area',
+            'user', 'area', 'peisItems',
         ]);
 
         return view('auditoria.objetivo.show', compact('objetivo'));
@@ -103,10 +112,12 @@ class ObjetivoController extends Controller
                 ->with('error', 'El objetivo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
+        $objetivo->load('peisItems');
         $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
+        $peisItems = PeisItem::orderBy('nombre')->get();
 
-        return view('auditoria.objetivo.edit', compact('objetivo', 'areas', 'usuarios'));
+        return view('auditoria.objetivo.edit', compact('objetivo', 'areas', 'usuarios', 'peisItems'));
     }
 
     public function update(Request $request, Objetivo $objetivo)
@@ -123,15 +134,21 @@ class ObjetivoController extends Controller
             'descripcion' => 'nullable|string',
             'fecha_objetivo' => 'nullable|date',
             'estrategico' => 'boolean',
-            'anticorrupcion' => 'boolean',
+            'peis' => 'boolean',
+            'peis_items' => 'required_if:peis,1|array|min:1',
+            'peis_items.*' => 'exists:peis_items,id',
             'area_id' => 'nullable|exists:areas,id',
             'user_id' => 'nullable|exists:users,id',
         ]);
         $data['estrategico'] = $request->boolean('estrategico');
-        $data['anticorrupcion'] = $request->boolean('anticorrupcion');
+        $data['peis'] = $request->boolean('peis');
+
+        $peisItemIds = $data['peis'] ? $data['peis_items'] : [];
+        unset($data['peis_items']);
 
         $original = $objetivo->only(array_keys($data));
         $objetivo->update($data);
+        $objetivo->peisItems()->sync($peisItemIds);
 
         $diff = [];
         foreach ($data as $campo => $nuevo) {

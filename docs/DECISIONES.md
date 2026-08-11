@@ -204,3 +204,42 @@ al menos uno" / "Plan de acción: seleccioná al menos uno"). 6 tests nuevos en
 ahora necesita estado validado, no sólo existir).
 
 Fuente: [changelog 2026-08-06](updates/2026-08-06.md).
+
+---
+
+## D-010 — El flag "Anticorrupción" de Objetivo pasa a ser "PEIS", con ítems obligatorios (2026-08-11)
+
+**Decisión.** El boolean `anticorrupcion` de `Objetivo` se renombra a `peis` (Plan Estratégico de
+Integridad Sostenible) — columna, modelo, controlador, Livewire y vistas, todo en el mismo golpe (sin
+migración de rename aparte: se editó directo la migración original porque el proyecto está en etapa de
+desarrollo verde, sin datos productivos que preservar). Cuando `peis` es true, el formulario de
+creación/edición despliega un checklist obligatorio (mínimo 1) de un catálogo nuevo `PeisItem`
+(tabla `peis_items` + pivot `objetivo_peis_item`, many-to-many con `Objetivo`), sembrado por
+`PeisItemSeeder` con 5 ítems fijos (PEIS 1..5) y su descripción. La selección de ítems sólo es
+editable mientras el objetivo está en borrador (create/edit); el flujo de "propuesta de cambio"
+post-validación (`ActualizacionController::storeObjetivo`) sigue el campo escalar `peis` pero no
+`peis_items`, porque ese controlador no maneja relaciones many-to-many para ningún campo todavía.
+
+**Motivo.** Pedido directo del usuario: el concepto de negocio cambia de "anticorrupción" a PEIS, y
+la nueva semántica exige que un objetivo PEIS declare qué ítems del plan cubre, no sólo el flag.
+
+**Descartado.** (1) Dejar el nombre de columna/código como `anticorrupcion` y sólo cambiar la etiqueta
+visible — se descartó por romper el axioma de nombrar el dominio en castellano de forma consistente
+(el código quedaría hablando de un concepto que ya no existe). (2) Guardar los 5 ítems como lista
+hardcodeada en PHP en vez de tabla catálogo — se descartó a favor de reusar el mismo patrón que
+`Estado`/`TipoRiesgo` (catálogo con soft deletes), que permite editar la descripción de un ítem sin
+deploy. (3) Extender ya mismo `ActualizacionController` para soportar sync de relaciones many-to-many
+y así poder proponer cambios de `peis_items` post-validación — se dejó fuera de alcance porque sería el
+primer caso de ese tipo en ese controlador y no estaba pedido; queda anotado como hueco conocido.
+
+**Efecto en cascada anotado.** Migración `2024_01_01_000000_create_modulo_auditoria.php` (columna
+renombrada + 2 tablas nuevas), `Objetivo.php` (fillable/casts/relación nueva), `PeisItem.php` (modelo
+nuevo), `PeisItemSeeder` (nuevo, registrado en `DatabaseSeeder`), `ObjetivoController` (validación
+condicional `required_if:peis,1` + sync del pivot en store/update, eager load en show/edit),
+`ActualizacionController`, `GestionObjetivos.php` (Livewire), y las vistas
+`objetivo/create|edit|show.blade.php`, `modal/detalle-objetivo.blade.php`,
+`objetivo/index/search.blade.php`. Sin tests nuevos: no existía suite de `ObjetivoController` previa y
+la regla de validación no es núcleo sagrado (no toca autorización, cálculo de riesgo ni ciclo de
+estados) — la suite completa se corrió como checkpoint por tocar el modelo y el esquema base: 296
+passed, 1 failed, y se confirmó (corriendo el mismo test contra el código previo al cambio) que la
+falla es preexistente y no la causó este trabajo — ver nota en el changelog.

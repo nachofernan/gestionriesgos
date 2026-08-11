@@ -49,7 +49,7 @@ class ActualizacionController extends Controller
     public function storeObjetivo(Request $request, Objetivo $objetivo)
     {
         $this->authorize('update', $objetivo);
-        $this->crearActualizacion($request, $objetivo, ['nombre', 'descripcion', 'fecha_objetivo', 'estrategico', 'anticorrupcion']);
+        $this->crearActualizacion($request, $objetivo, ['nombre', 'descripcion', 'fecha_objetivo', 'estrategico', 'peis']);
 
         return back()->with('ok', 'Actualización registrada.');
     }

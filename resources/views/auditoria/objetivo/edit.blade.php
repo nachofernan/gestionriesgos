@@ -46,21 +46,41 @@
                 @error('fecha_objetivo') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
             </div>
 
-            <div class="flex gap-6">
-                <label class="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-indigo-100 bg-indigo-50/50 flex-1">
-                    <input type="hidden" name="estrategico" value="0" />
-                    <input type="checkbox" name="estrategico" value="1"
-                        {{ old('estrategico', $objetivo->estrategico) ? 'checked' : '' }}
-                        class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                    <span class="text-sm font-semibold text-indigo-700">Estratégico</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-amber-100 bg-amber-50/50 flex-1">
-                    <input type="hidden" name="anticorrupcion" value="0" />
-                    <input type="checkbox" name="anticorrupcion" value="1"
-                        {{ old('anticorrupcion', $objetivo->anticorrupcion) ? 'checked' : '' }}
-                        class="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
-                    <span class="text-sm font-semibold text-amber-700">Anticorrupción</span>
-                </label>
+            <div x-data="{ peis: {{ old('peis', $objetivo->peis) ? 'true' : 'false' }} }">
+                <div class="flex gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-indigo-100 bg-indigo-50/50 flex-1">
+                        <input type="hidden" name="estrategico" value="0" />
+                        <input type="checkbox" name="estrategico" value="1"
+                            {{ old('estrategico', $objetivo->estrategico) ? 'checked' : '' }}
+                            class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                        <span class="text-sm font-semibold text-indigo-700">Estratégico</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-amber-100 bg-amber-50/50 flex-1">
+                        <input type="hidden" name="peis" value="0" />
+                        <input type="checkbox" name="peis" value="1" x-model="peis"
+                            class="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
+                        <span class="text-sm font-semibold text-amber-700">PEIS</span>
+                    </label>
+                </div>
+
+                <div x-show="peis" x-cloak
+                     class="mt-3 p-4 rounded-xl border border-amber-100 bg-amber-50/30 space-y-2.5">
+                    <p class="text-xs font-bold text-amber-700 uppercase tracking-wider">
+                        Ítems PEIS <span class="text-amber-500 font-normal normal-case">— seleccioná al menos uno *</span>
+                    </p>
+                    @foreach ($peisItems as $item)
+                        <label class="flex items-start gap-2.5 cursor-pointer">
+                            <input type="checkbox" name="peis_items[]" value="{{ $item->id }}"
+                                {{ collect(old('peis_items', $objetivo->peisItems->pluck('id')))->contains($item->id) ? 'checked' : '' }}
+                                class="mt-0.5 w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
+                            <span class="text-sm">
+                                <span class="font-semibold text-gray-700">{{ $item->nombre }}</span>
+                                <span class="text-gray-400"> — {{ $item->descripcion }}</span>
+                            </span>
+                        </label>
+                    @endforeach
+                    @error('peis_items') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">

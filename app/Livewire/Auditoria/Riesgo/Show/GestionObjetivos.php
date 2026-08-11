@@ -103,7 +103,7 @@ class GestionObjetivos extends Component
             'area' => $objetivo->area?->nombre,
             'fecha_objetivo' => $objetivo->fecha_objetivo?->format('d/m/Y'),
             'estrategico' => (bool) $objetivo->estrategico,
-            'anticorrupcion' => (bool) $objetivo->anticorrupcion,
+            'peis' => (bool) $objetivo->peis,
             'puede_ver' => Auth::user()->can('view', $objetivo),
             'url' => route('auditoria.objetivos.show', $objetivo->id),
         ];
@@ -282,7 +282,7 @@ class GestionObjetivos extends Component
                 'area' => $o->area?->nombre,
                 'fecha_objetivo' => $o->fecha_objetivo?->format('d/m/Y'),
                 'estrategico' => (bool) $o->estrategico,
-                'anticorrupcion' => (bool) $o->anticorrupcion,
+                'peis' => (bool) $o->peis,
                 'puede_ver' => true,
                 'url' => route('auditoria.objetivos.show', $o->id),
             ])->values()->toArray();

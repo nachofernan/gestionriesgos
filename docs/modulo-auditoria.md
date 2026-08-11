@@ -44,7 +44,8 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 |---|---|---|
 | `Riesgo` | `riesgos` | Entidad central. Tiene impacto, probabilidad y criticidad_alta. Calcula `valor_total` e `valor_residual` como accessors. |
 | `Control` | `controles` | Medidas de mitigación. Tiene `mitigacion_default` (1-10). El valor real se guarda en el pivot con el riesgo. |
-| `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. |
+| `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `peis` (boolean): si es true, requiere al menos un `PeisItem` asociado (ver validación en `ObjetivoController`). |
+| `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
 | `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Código secuencial automático (PA-0001, PA-0002…). |
 | `Tarea` | `tareas` | Unidad de trabajo. `fecha` casteada a `date`, `porcentaje_avance` (0-100). |
 | `Actualizacion` | `actualizaciones` | Historial de actualizaciones polimórfico. Tiene `mensaje`, `data` (JSON) y `user_id`. |
@@ -62,6 +63,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 |---|---|---|
 | `control_riesgo` | Control ↔ Riesgo | `mitigacion` (nullable, sobreescribe `mitigacion_default`) |
 | `objetivo_riesgo` | Objetivo ↔ Riesgo | — |
+| `objetivo_peis_item` | Objetivo ↔ PeisItem | — |
 | `plan_accion_riesgo` | PlanAccion ↔ Riesgo | — |
 | `plan_accion_tarea` | PlanAccion ↔ Tarea | — |
 
@@ -255,11 +257,12 @@ Orden de ejecución (respeta dependencias de FK):
 1. `EstadoRiesgoSeeder` — estados: borrador, validado, activo, mitigado, eliminado
 2. `TipoRiesgoSeeder` — categorías de riesgo
 3. `AreaSeeder` — estructura organizacional
-4. `RiesgoSeeder`
-5. `ControlSeeder`
-6. `ObjetivoSeeder`
-7. `TareaSeeder`
-8. `PlanAccionSeeder`
+4. `PeisItemSeeder` — catálogo PEIS 1..5
+5. `RiesgoSeeder`
+6. `ControlSeeder`
+7. `ObjetivoSeeder`
+8. `TareaSeeder`
+9. `PlanAccionSeeder`
 
 > `EstadoRiesgoSeeder` es el más crítico: el observer de `Riesgo` lo requiere para asignar el estado "borrador" al crear. Los tests lo seedean manualmente en `setUp()`.
 

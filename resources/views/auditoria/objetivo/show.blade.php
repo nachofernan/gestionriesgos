@@ -18,8 +18,8 @@
                     @if($objetivo->estrategico)
                         <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">Estratégico</span>
                     @endif
-                    @if($objetivo->anticorrupcion)
-                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">Anticorrupción</span>
+                    @if($objetivo->peis)
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">PEIS</span>
                     @endif
                 </div>
             </div>
@@ -82,6 +82,20 @@
                         <dd class="text-gray-700">{{ $objetivo->created_at->format('d/m/Y') }}</dd>
                     </div>
                 </dl>
+
+                @if($objetivo->peis && $objetivo->peisItems->isNotEmpty())
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <p class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Ítems PEIS</p>
+                        <ul class="space-y-1.5">
+                            @foreach($objetivo->peisItems as $item)
+                                <li class="text-sm">
+                                    <span class="font-semibold text-gray-700">{{ $item->nombre }}</span>
+                                    <span class="text-gray-400"> — {{ $item->descripcion }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
             </div>
 
             <x-auditoria.card-seccion titulo="Riesgos asociados" subtitulo="asignado desde cada riesgo">
