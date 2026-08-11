@@ -2,12 +2,14 @@
 
 namespace App\Livewire\Auditoria;
 
+use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
+use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Livewire\Component;
 
@@ -34,6 +36,23 @@ class PanelRiesgos extends Component
      */
     public bool $soloAprobados = true;
 
+    /**
+     * Filtro por tipo de riesgo (id de TipoRiesgo) y por respuesta (valor del
+     * enum RespuestaRiesgo). String sin tipar a propósito: el <select> de "Todos"
+     * manda "" y un property tipado (?int/?string) revienta el hydrate de
+     * Livewire con esa cadena vacía. "" es la marca de "sin filtro".
+     */
+    public string $filtroTipo = '';
+
+    public string $filtroRespuesta = '';
+
+    /** Limpia ambos filtros de una sola pasada (botón "Limpiar filtros"). */
+    public function limpiarFiltros(): void
+    {
+        $this->filtroTipo = '';
+        $this->filtroRespuesta = '';
+    }
+
     public function render()
     {
         $user = auth()->user();
@@ -43,6 +62,7 @@ class PanelRiesgos extends Component
         return view('livewire.auditoria.panel-riesgos', [
             'total' => $riesgos->count(),
             'celdas' => $this->celdasMatriz($riesgos),
+            'celdasResidual' => $this->celdasMatrizResidual($riesgos),
             'riesgosJs' => $this->riesgosParaJs($riesgos),
             'distCriticidad' => $this->distribucionPorCriticidad($riesgos),
             'pistaInherente' => $this->distribucionPorValor($riesgos, 'valor_total'),
@@ -51,6 +71,8 @@ class PanelRiesgos extends Component
             'exposicionResidual' => $riesgos->sum('valor_residual'),
             'pendientes' => $this->resumenPendientes($user),
             'vencimientos' => $this->resumenVencimientos($user),
+            'tipos' => TipoRiesgo::orderBy('nombre')->get(),
+            'respuestas' => RespuestaRiesgo::cases(),
         ]);
     }
 
@@ -66,7 +88,9 @@ class PanelRiesgos extends Component
 
         return Riesgo::deCascadaArea($user)
             ->whereHas('estado', fn ($q) => $q->whereIn('nombre', $estados))
-            ->with(['estado', 'tipoRiesgo', 'controles.estado', 'planesAccion.tareas.estado'])
+            ->when($this->filtroTipo !== '', fn ($q) => $q->where('tipo_riesgo_id', (int) $this->filtroTipo))
+            ->when($this->filtroRespuesta !== '', fn ($q) => $q->where('respuesta', $this->filtroRespuesta))
+            ->with(['estado', 'tipoRiesgo', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado'])
             ->get();
     }
 
@@ -84,6 +108,57 @@ class PanelRiesgos extends Component
             ->all();
     }
 
+    /**
+     * Conteo de riesgos por celda de la matriz, pero ubicados según un reparto
+     * proporcional de la mitigación entre impacto y probabilidad (el valor
+     * residual no distingue entre ambos ejes). Es sólo una simulación visual:
+     * ver repartoProporcional().
+     */
+    private function celdasMatrizResidual($riesgos): array
+    {
+        return $riesgos
+            ->groupBy(function ($r) {
+                [$impacto, $probabilidad] = $this->repartoProporcional($r);
+
+                return $impacto.'-'.$probabilidad;
+            })
+            ->map->count()
+            ->all();
+    }
+
+    /**
+     * Reparte la mitigación total (valor_total - valor_residual) proporcionalmente
+     * entre impacto y probabilidad, para poder ubicar el riesgo "después de
+     * mitigar" en la misma grilla 2D que el inherente. Cada eje se redondea al
+     * entero más cercano; si el redondeo independiente no suma exacto el
+     * valor_residual (puede pasar por ±1), el ajuste se absorbe en el eje de
+     * mayor peso (impacto en empate). Puramente visual: no es el cálculo de
+     * negocio, que sigue siendo Riesgo::getValorResidualAttribute.
+     */
+    private function repartoProporcional(Riesgo $r): array
+    {
+        $total = $r->valor_total;
+
+        if ($total === 0) {
+            return [0, 0];
+        }
+
+        $residual = $r->valor_residual;
+        $impacto = (int) round($r->impacto * $residual / $total);
+        $probabilidad = (int) round($r->probabilidad * $residual / $total);
+
+        $ajuste = $residual - ($impacto + $probabilidad);
+        if ($ajuste !== 0) {
+            if ($r->impacto >= $r->probabilidad) {
+                $impacto += $ajuste;
+            } else {
+                $probabilidad += $ajuste;
+            }
+        }
+
+        return [max(0, $impacto), max(0, $probabilidad)];
+    }
+
     /** Riesgos aplanados para el detalle client-side al hacer clic en una celda. */
     private function riesgosParaJs($riesgos): array
     {
@@ -97,7 +172,45 @@ class PanelRiesgos extends Component
             'residual' => $r->valor_residual,
             'clasificacion' => $r->clasificacion_residual['etiqueta'],
             'url' => route('auditoria.riesgos.show', $r),
+            'controles' => $this->controlesParaJs($r),
+            'planes' => $this->planesParaJs($r),
         ])->values()->all();
+    }
+
+    /**
+     * Controles del riesgo en estado aprobado, con su aporte a la mitigación,
+     * para explicar en la vista rápida por qué el residual bajó del total. Un
+     * control en borrador/validado/borrado no mitiga (ver
+     * Riesgo::getValorResidualAttribute) y por eso ni se lista: mostrarlo ahí
+     * sugeriría un descuento que no existe.
+     */
+    private function controlesParaJs(Riesgo $r): array
+    {
+        return $r->controles
+            ->filter(fn ($c) => $c->estado?->nombre === 'aprobado')
+            ->map(fn ($c) => [
+                'nombre' => $c->nombre,
+                'mitigacion' => $c->pivot->mitigacion ?? $c->mitigacion_default,
+            ])->values()->all();
+    }
+
+    /**
+     * Planes de acción del riesgo en estado aprobado, con su avance y aporte a
+     * la mitigación. Un plan en borrador/validado/borrado no puede mitigar
+     * (ver Riesgo::getValorResidualAttribute) y no se lista. Entre los
+     * aprobados, sólo "aporta" el que está al 100% de avance; se listan igual
+     * los incompletos para que se entienda que todavía no descuentan.
+     */
+    private function planesParaJs(Riesgo $r): array
+    {
+        return $r->planesAccion
+            ->filter(fn ($p) => $p->estado?->nombre === 'aprobado')
+            ->map(fn ($p) => [
+                'nombre' => $p->nombre,
+                'avance' => $p->avance,
+                'aporta' => $p->estaCompleto(),
+                'mitigacion' => $p->pivot->mitigacion ?? 0,
+            ])->values()->all();
     }
 
     /** Distribución bajo/moderado/crítico por valor residual (alimenta los KPIs). */
