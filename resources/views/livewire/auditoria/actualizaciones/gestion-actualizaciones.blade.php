@@ -341,11 +341,16 @@
                         <p class="text-xs font-semibold text-gray-500 uppercase mb-3">Cambios propuestos (opcional)</p>
                         <div class="space-y-3">
                             @foreach($camposEditables as $campo => $etiqueta)
-                                @php $esFecha = in_array($campo, $camposFecha); @endphp
+                                @php
+                                    $esFecha = in_array($campo, $camposFecha);
+                                    $rangoNumerico = $camposNumericos[$campo] ?? null;
+                                @endphp
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1">{{ $etiqueta }}</label>
-                                    <input type="{{ $esFecha ? 'date' : 'text' }}" wire:model="cambios.{{ $campo }}"
-                                           @unless($esFecha) placeholder="Nuevo valor (dejar vacío para no cambiar)" @endunless
+                                    <input type="{{ $esFecha ? 'date' : ($rangoNumerico ? 'number' : 'text') }}"
+                                           wire:model="cambios.{{ $campo }}"
+                                           @if($rangoNumerico) min="{{ $rangoNumerico['min'] }}" max="{{ $rangoNumerico['max'] }}" step="1" @endif
+                                           @unless($esFecha || $rangoNumerico) placeholder="Nuevo valor (dejar vacío para no cambiar)" @endunless
                                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50">
                                     @error('cambios.'.$campo) <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>

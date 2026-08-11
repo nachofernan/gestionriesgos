@@ -38,6 +38,9 @@ class ActualizacionController extends Controller
     public function storeControl(Request $request, Control $control)
     {
         $this->authorize('update', $control);
+        $request->validate([
+            'mitigacion_default' => 'nullable|integer|min:1|max:10',
+        ]);
         $this->crearActualizacion($request, $control, ['nombre', 'descripcion', 'mitigacion_default']);
 
         return back()->with('ok', 'Actualización registrada.');
@@ -62,6 +65,9 @@ class ActualizacionController extends Controller
     public function storeTarea(Request $request, Tarea $tarea)
     {
         $this->authorize('update', $tarea);
+        $request->validate([
+            'porcentaje_avance' => 'nullable|integer|min:0|max:100',
+        ]);
         $this->crearActualizacion($request, $tarea, ['nombre', 'descripcion', 'porcentaje_avance', 'fecha']);
 
         return back()->with('ok', 'Actualización registrada.');

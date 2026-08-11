@@ -87,9 +87,17 @@ class GestionActualizaciones extends Component
                 $reglas["cambios.$campo"] = 'date';
             }
         }
+        foreach ($this->camposNumericos() as $campo => $rango) {
+            if (($this->cambios[$campo] ?? '') !== '') {
+                $reglas["cambios.$campo"] = "integer|min:{$rango['min']}|max:{$rango['max']}";
+            }
+        }
 
         $this->validate($reglas, [
             'cambios.*.date' => 'Ingresá una fecha válida.',
+            'cambios.*.integer' => 'Ingresá un número entero.',
+            'cambios.*.min' => 'El valor mínimo es :min.',
+            'cambios.*.max' => 'El valor máximo es :max.',
         ]);
 
         $campos = collect($this->cambios)
@@ -301,6 +309,22 @@ class GestionActualizaciones extends Component
         return ['fecha', 'fecha_objetivo'];
     }
 
+    /**
+     * Campos de `camposEditables()` con rango numérico: el modal los renderiza como
+     * <input type="number" min max> y guardar() los valida contra el mismo rango.
+     * mitigacion_default de Control replica el tope de 1-10 que ya rige en su
+     * creación/edición (ControlController) y en el valor por riesgo (GestionControles).
+     * porcentaje_avance de Tarea replica el tope de 0-100 que ya rige en
+     * TareaController, ActualizacionTareaController y GestionTareas::guardarNuevaTarea().
+     */
+    private function camposNumericos(): array
+    {
+        return [
+            'mitigacion_default' => ['min' => 1, 'max' => 10],
+            'porcentaje_avance' => ['min' => 0, 'max' => 100],
+        ];
+    }
+
     public function render()
     {
         $actualizaciones = $this->resolverModelo()
@@ -313,6 +337,7 @@ class GestionActualizaciones extends Component
             'actualizaciones' => $actualizaciones,
             'camposEditables' => $this->camposEditables(),
             'camposFecha' => $this->camposFecha(),
+            'camposNumericos' => $this->camposNumericos(),
             // Resuelve tipo_riesgo_id → nombre en la entrada de creación de un riesgo
             // (una consulta liviana; para el resto de entidades queda vacío e inocuo).
             'tiposRiesgo' => TipoRiesgo::pluck('nombre', 'id'),

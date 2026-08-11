@@ -2,7 +2,7 @@
 @section('title', 'Nuevo Control')
 
 @section('content')
-<div class="max-w-2xl space-y-6">
+<div class="space-y-6">
 
     <div class="flex items-center gap-3">
         <a href="{{ route('auditoria.controles.index') }}" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -13,7 +13,8 @@
         <h1 class="text-2xl font-extrabold text-gray-900">Nuevo Control</h1>
     </div>
 
-    <form action="{{ route('auditoria.controles.store') }}" method="POST">
+    <div class="grid grid-cols-2 gap-6 items-start">
+    <form action="{{ route('auditoria.controles.store') }}" method="POST" class="flex-1 min-w-0">
         @csrf
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
 
@@ -84,6 +85,11 @@
 
         </div>
     </form>
+
+    <div class="shrink-0">
+        @include('auditoria.partials.referencia-valoracion-control')
+    </div>
+    </div>
 
 </div>
 @endsection
