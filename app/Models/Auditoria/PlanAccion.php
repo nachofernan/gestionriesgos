@@ -106,4 +106,32 @@ class PlanAccion extends Model implements HasMedia
     {
         return $this->avance === 100;
     }
+
+    /**
+     * Fecha de vencimiento del plan: la más próxima entre sus tareas todavía
+     * pendientes (`porcentaje_avance` < 100), vigentes (no "borrado"). Una vez
+     * que una tarea llega al 100% deja de contar, aunque su fecha haya quedado
+     * en el pasado. null si no hay ninguna pendiente con fecha. Consumir con
+     * `tareas.estado` eager-loaded.
+     */
+    public function getVencimientoAttribute(): ?\Illuminate\Support\Carbon
+    {
+        $fecha = $this->tareas
+            ->reject(fn ($tarea) => $tarea->estado?->nombre === 'borrado')
+            ->where('porcentaje_avance', '<', 100)
+            ->whereNotNull('fecha')
+            ->min('fecha');
+
+        return $fecha ? \Illuminate\Support\Carbon::parse($fecha) : null;
+    }
+
+    /**
+     * Un plan está vencido cuando su tarea pendiente más próxima ya pasó de
+     * fecha (ver getVencimientoAttribute). Cubierto por
+     * un_plan_esta_vencido_si_alguna_tarea_pendiente_paso_su_fecha.
+     */
+    public function getEstaVencidoAttribute(): bool
+    {
+        return $this->vencimiento !== null && $this->vencimiento->lt(now()->startOfDay());
+    }
 }

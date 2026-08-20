@@ -185,7 +185,6 @@
                             </td>
                             <td class="px-6 py-4 text-xs">
                                 @forelse($riesgo->planesAccion as $plan)
-                                    @php $vencimiento = $plan->tareas->whereNotNull('fecha')->max('fecha'); @endphp
                                     <div class="flex items-center gap-2 {{ !$loop->last ? 'mb-1' : '' }}">
                                         <button type="button"
                                                 onclick="Livewire.dispatch('ver-plan', {id: {{ $plan->id }}})"
@@ -194,8 +193,8 @@
                                             {{ $plan->avance !== null ? $plan->avance.'%' : '—' }}
                                         </button>
                                         <span class="text-gray-600 truncate">{{ $plan->nombre }}</span>
-                                        @if($vencimiento)
-                                            <span class="text-gray-400 shrink-0">{{ \Illuminate\Support\Carbon::parse($vencimiento)->format('d/m/Y') }}</span>
+                                        @if($plan->vencimiento)
+                                            <span class="{{ $plan->esta_vencido ? 'text-red-500 font-semibold' : 'text-gray-400' }} shrink-0">{{ $plan->vencimiento->format('d/m/Y') }}</span>
                                         @endif
                                     </div>
                                 @empty

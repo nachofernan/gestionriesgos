@@ -6,7 +6,6 @@ use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -126,7 +125,6 @@ class GestionPlanes extends Component
             return;
         }
 
-        $vencimiento = $plan->tareas->whereNotNull('fecha')->max('fecha');
         $this->seleccionados[] = [
             'id' => $plan->id,
             'codigo' => $plan->codigo ?? '—',
@@ -138,7 +136,7 @@ class GestionPlanes extends Component
             'mitigacion' => 0,
             'avg_avance' => $plan->avance,
             'tareas_count' => $plan->tareas->count(),
-            'vencimiento' => $vencimiento ? Carbon::parse($vencimiento)->format('d/m/Y') : null,
+            'vencimiento' => $plan->vencimiento?->format('d/m/Y'),
             'puede_ver' => Auth::user()->can('view', $plan),
             'url' => route('auditoria.planes.show', $plan->id),
         ];
@@ -357,25 +355,21 @@ class GestionPlanes extends Component
         $this->seleccionados = $riesgo->planesAccion
             ->reject(fn ($p) => $p->estado?->nombre === 'borrado' || ! $user->can('view', $p))
             ->sortBy(fn ($p) => Estado::peso($p->estado))
-            ->map(function ($p) {
-                $vencimiento = $p->tareas->whereNotNull('fecha')->max('fecha');
-
-                return [
-                    'id' => $p->id,
-                    'codigo' => $p->codigo ?? '—',
-                    'nombre' => $p->nombre,
-                    'descripcion' => $p->descripcion,
-                    'estado' => $p->estado?->nombre ?? 'borrador',
-                    'estado_color' => $p->estado?->color ?? 'gray',
-                    'area' => $p->area?->nombre,
-                    'mitigacion' => (int) ($p->pivot->mitigacion ?? 0),
-                    'avg_avance' => $p->avance,
-                    'tareas_count' => $p->tareas->count(),
-                    'vencimiento' => $vencimiento ? Carbon::parse($vencimiento)->format('d/m/Y') : null,
-                    'puede_ver' => true,
-                    'url' => route('auditoria.planes.show', $p->id),
-                ];
-            })->values()->toArray();
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'codigo' => $p->codigo ?? '—',
+                'nombre' => $p->nombre,
+                'descripcion' => $p->descripcion,
+                'estado' => $p->estado?->nombre ?? 'borrador',
+                'estado_color' => $p->estado?->color ?? 'gray',
+                'area' => $p->area?->nombre,
+                'mitigacion' => (int) ($p->pivot->mitigacion ?? 0),
+                'avg_avance' => $p->avance,
+                'tareas_count' => $p->tareas->count(),
+                'vencimiento' => $p->vencimiento?->format('d/m/Y'),
+                'puede_ver' => true,
+                'url' => route('auditoria.planes.show', $p->id),
+            ])->values()->toArray();
     }
 
     public function render()

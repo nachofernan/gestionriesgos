@@ -243,3 +243,32 @@ la regla de validación no es núcleo sagrado (no toca autorización, cálculo d
 estados) — la suite completa se corrió como checkpoint por tocar el modelo y el esquema base: 296
 passed, 1 failed, y se confirmó (corriendo el mismo test contra el código previo al cambio) que la
 falla es preexistente y no la causó este trabajo — ver nota en el changelog.
+
+---
+
+## D-011 — El vencimiento de un plan es la fecha pendiente más próxima, no la más lejana (2026-08-20)
+
+**Decisión.** `PlanAccion` gana dos accessors: `vencimiento` (la fecha más próxima entre las tareas
+todavía pendientes — `porcentaje_avance` < 100 — vigentes del plan, o `null` si no hay ninguna con
+fecha) y `esta_vencido` (`true` si esa fecha ya pasó). Una tarea que llega al 100% deja de contar para
+el vencimiento del plan aunque su fecha haya quedado en el pasado; una tarea en estado "borrado" nunca
+cuenta. Los 5 lugares que mostraban esta información (show del plan, los dos listados de Planes y
+Riesgos, y el modal de gestión de planes de un riesgo) pasan a consumir estos accessors en vez de
+recalcular a mano.
+
+**Motivo.** El cálculo anterior tomaba el `max(fecha)` entre *todas* las tareas del plan (vigentes,
+sin filtrar por avance) y sólo evaluaba si esa fecha máxima había pasado. Eso significaba que un plan
+con una tarea vencida no se marcaba como vencido si tenía otra tarea con fecha futura — la fecha
+lejana "tapaba" a la vencida. El bug lo reportó el usuario: en el listado de tareas de un plan se veía
+una tarea con el badge "Vencida" pero el plan en sí no se pintaba como vencido. La fecha que
+efectivamente determina si el plan está atrasado es la del compromiso pendiente más próximo, no la del
+más lejano.
+
+**Descartado.** Agregar una columna `fecha_limite` propia al plan — sigue siendo la solución completa
+para el aviso de inconsistencia "tarea vence después de su plan" que quedó pendiente en
+[2026-07-17 (bis)](updates/2026-07-17b.md) y anotado en el ROADMAP, pero es un cambio de esquema más
+grande y no lo pedía este bug. Este fix corrige la fórmula derivada dentro del esquema actual; el ítem
+de ROADMAP sigue abierto.
+
+Fuente: reporte directo del usuario en sesión, sin changelog largo asociado (no toca esquema,
+autorización ni ciclo de estados).

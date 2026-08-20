@@ -50,9 +50,6 @@
                 @endif
 
                 @php
-                    // Las tareas en estado "borrado" (rechazadas) no cuentan ni se muestran
-                    // en el plan; siguen siendo visibles desde el listado de Tareas.
-                    $tareasVigentes = $planAccion->tareas->reject(fn ($t) => $t->estado?->nombre === 'borrado');
                     // Avance sólo sobre tareas aprobadas (ver PlanAccion::getAvanceAttribute).
                     $avg = $planAccion->avance;
                 @endphp
@@ -68,12 +65,6 @@
                     </div>
                 @endif
 
-                @php
-                    $vencimientoPlan = $tareasVigentes->whereNotNull('fecha')->max('fecha');
-                    $hoy = now()->startOfDay();
-                    $planVencido = $vencimientoPlan && \Carbon\Carbon::parse($vencimientoPlan)->lt($hoy)
-                                   && ! $planAccion->estaCompleto();
-                @endphp
                 <dl class="space-y-3 text-sm">
                     <div class="flex justify-between">
                         <dt class="text-gray-400 font-medium">Estado</dt>
@@ -88,11 +79,11 @@
                     <div class="flex justify-between">
                         <dt class="text-gray-400 font-medium">Vencimiento</dt>
                         <dd>
-                            @if($vencimientoPlan)
-                                <span class="{{ $planVencido ? 'text-red-700 font-bold' : 'text-gray-700' }}">
-                                    {{ \Carbon\Carbon::parse($vencimientoPlan)->format('d/m/Y') }}
+                            @if($planAccion->vencimiento)
+                                <span class="{{ $planAccion->esta_vencido ? 'text-red-700 font-bold' : 'text-gray-700' }}">
+                                    {{ $planAccion->vencimiento->format('d/m/Y') }}
                                 </span>
-                                @if($planVencido)
+                                @if($planAccion->esta_vencido)
                                     <span class="ml-1.5 text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Vencido</span>
                                 @endif
                             @else

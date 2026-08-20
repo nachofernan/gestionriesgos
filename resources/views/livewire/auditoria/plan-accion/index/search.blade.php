@@ -126,9 +126,8 @@
                             @php
                                 // Avance = accessor del modelo (sólo promedia tareas aprobadas, ver PlanAccion::getAvanceAttribute).
                                 $avancePlan = $plan->avance;
-                                $vencPlan   = $plan->tareas->whereNotNull('fecha')->max('fecha');
-                                $hoy        = now()->startOfDay();
-                                $planVencido = $vencPlan && \Carbon\Carbon::parse($vencPlan)->lt($hoy) && ($avancePlan ?? 0) < 100;
+                                $vencPlan   = $plan->vencimiento;
+                                $planVencido = $plan->esta_vencido;
                             @endphp
                             <td class="px-4 py-4 text-center">
                                 @if($avancePlan !== null)
@@ -149,7 +148,7 @@
                                 @if($vencPlan)
                                     <div class="flex flex-col items-center gap-0.5">
                                         <span class="text-xs {{ $planVencido ? 'text-red-700 font-bold' : 'text-gray-600' }}">
-                                            {{ \Carbon\Carbon::parse($vencPlan)->format('d/m/Y') }}
+                                            {{ $vencPlan->format('d/m/Y') }}
                                         </span>
                                         @if($planVencido)
                                             <span class="text-[9px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded uppercase">Vencido</span>
