@@ -363,8 +363,14 @@ class RiesgoController extends Controller
         }
 
         DB::transaction(function () use ($riesgo) {
+            // reorder('id') limpia el latest() de la relación y ordena por id en vez
+            // de created_at: la columna es timestamp (precisión de 1 segundo) y dos
+            // actualizaciones seguidas pueden empatar, así que created_at solo no
+            // desempata de forma confiable. id es autoincremental y sí lo es. Acá
+            // importa que la más reciente quede aplicada al final (gana).
             $pendientes = $riesgo->actualizaciones()
                 ->where('estado_id', Estado::validado()->id)
+                ->reorder('id')
                 ->get();
 
             foreach ($pendientes as $act) {
