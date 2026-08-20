@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Ítem del catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5).
+ * Ítem del catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..11).
  * Un Objetivo marcado como `peis` debe seleccionar al menos uno (ver Objetivo::peisItems()).
  */
 class PeisItem extends Model

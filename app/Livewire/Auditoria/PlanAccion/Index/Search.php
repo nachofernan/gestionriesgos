@@ -95,7 +95,7 @@ class Search extends Component
 
         if ($this->search) {
             $query->where(function ($q) {
-                $q->where('nombre', 'like', '%'.$this->search.'%')
+                $q->where('planes_accion.nombre', 'like', '%'.$this->search.'%')
                     ->orWhere('codigo', 'like', '%'.$this->search.'%');
             });
         }
@@ -112,11 +112,16 @@ class Search extends Component
             }
         }
 
-        $query->orderBy($this->ordenarPor, $this->direccion);
+        // El estado manda siempre como criterio primario (aprobado, validado,
+        // borrador, borrado); la columna elegida por el usuario es secundaria.
+        $query->join('estados', 'estados.id', '=', 'planes_accion.estado_id')
+            ->select('planes_accion.*')
+            ->orderByRaw(Estado::ordenSql().' asc')
+            ->orderBy('planes_accion.'.$this->ordenarPor, $this->direccion);
 
         return view('livewire.auditoria.plan-accion.index.search', [
             'planes' => $query->paginate(15),
-            'estados' => Estado::all(),
+            'estados' => Estado::todosOrdenados(),
             'areas' => Area::all(),
         ]);
     }

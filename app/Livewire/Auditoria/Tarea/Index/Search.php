@@ -94,7 +94,7 @@ class Search extends Component
             ->visiblePara($user);
 
         if ($this->search) {
-            $query->where('nombre', 'like', '%'.$this->search.'%');
+            $query->where('tareas.nombre', 'like', '%'.$this->search.'%');
         }
 
         if ($this->filtroEstado) {
@@ -109,11 +109,16 @@ class Search extends Component
             }
         }
 
-        $query->orderBy($this->ordenarPor, $this->direccion);
+        // El estado manda siempre como criterio primario (aprobado, validado,
+        // borrador, borrado); la columna elegida por el usuario es secundaria.
+        $query->join('estados', 'estados.id', '=', 'tareas.estado_id')
+            ->select('tareas.*')
+            ->orderByRaw(Estado::ordenSql().' asc')
+            ->orderBy('tareas.'.$this->ordenarPor, $this->direccion);
 
         return view('livewire.auditoria.tarea.index.search', [
             'tareas' => $query->paginate(15),
-            'estados' => Estado::all(),
+            'estados' => Estado::todosOrdenados(),
             'areas' => Area::all(),
         ]);
     }

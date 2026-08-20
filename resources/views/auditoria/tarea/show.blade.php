@@ -108,7 +108,7 @@
 
             {{-- Planes de Acción --}}
             <x-auditoria.card-seccion titulo="Planes de Acción">
-                    @forelse ($tarea->planesAccion as $plan)
+                    @forelse (\App\Models\Auditoria\Estado::ordenarColeccion($tarea->planesAccion) as $plan)
                         <div class="px-5 py-4">
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -123,7 +123,7 @@
                             </div>
                             @if($plan->riesgos->count())
                                 <div class="flex flex-wrap gap-1">
-                                    @foreach($plan->riesgos as $riesgo)
+                                    @foreach(\App\Models\Auditoria\Estado::ordenarColeccion($plan->riesgos) as $riesgo)
                                         <button type="button"
                                                 onclick="Livewire.dispatch('ver-riesgo', {id: {{$riesgo->id}}})"
                                                 class="px-2 py-0.5 rounded text-[10px] font-medium bg-orange-50 text-orange-700 border border-orange-100 hover:border-orange-300 transition-colors">

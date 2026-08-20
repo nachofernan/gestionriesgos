@@ -12,23 +12,47 @@ class PeisItemSeeder extends Seeder
         $items = [
             [
                 'nombre' => 'PEIS 1',
-                'descripcion' => 'Fortalecer la cultura de integridad y transparencia en todos los niveles de la organización.',
+                'descripcion' => 'Recertificar exitosamente el SGAC de Administración Central en 2025 y 2028, y certificar Central Oscar Smith en 2028',
             ],
             [
                 'nombre' => 'PEIS 2',
-                'descripcion' => 'Prevenir, detectar y gestionar conflictos de interés en la toma de decisiones.',
+                'descripcion' => 'Mantener de manera exitosa la certificación del SGAC',
             ],
             [
                 'nombre' => 'PEIS 3',
-                'descripcion' => 'Asegurar canales de denuncia accesibles, confidenciales y libres de represalias.',
+                'descripcion' => 'Lograr una participación creciente de los colaboradores, con incremento del 10% interanual',
             ],
             [
                 'nombre' => 'PEIS 4',
-                'descripcion' => 'Promover la debida diligencia en la relación con terceros, proveedores y socios de negocio.',
+                'descripcion' => 'Capacitar para mantener cultura de integridad. Incremento del 3% interanual en capacitaciones',
             ],
             [
                 'nombre' => 'PEIS 5',
-                'descripcion' => 'Garantizar el cumplimiento normativo y la mejora continua del sistema de integridad.',
+                'descripcion' => 'Mejorar la difusión interna con incremento del 5% interanual',
+            ],
+            [
+                'nombre' => 'PEIS 6',
+                'descripcion' => 'Mejorar la difusión externa con incremento del 5% interanual',
+            ],
+            [
+                'nombre' => 'PEIS 7',
+                'descripcion' => 'Mantener vigente la normativa del SGAC con revisión del 100% al 2030',
+            ],
+            [
+                'nombre' => 'PEIS 8',
+                'descripcion' => 'Mantener adhesión al Pacto Global Argentina con presentación anual de COP',
+            ],
+            [
+                'nombre' => 'PEIS 9',
+                'descripcion' => 'Adherir a Forward Faster, avance del 20% anual en metas ODS',
+            ],
+            [
+                'nombre' => 'PEIS 10',
+                'descripcion' => 'Cumplir compromisos como miembro de directorio 2024-2026 y volver a aplicar en 2026',
+            ],
+            [
+                'nombre' => 'PEIS 11',
+                'descripcion' => 'Desarrollar e implementar iniciativas conjuntas anticorrupción',
             ],
         ];
 

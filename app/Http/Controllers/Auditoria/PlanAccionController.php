@@ -24,7 +24,11 @@ class PlanAccionController extends Controller
     {
         $planAccions = PlanAccion::with(['riesgos', 'tareas', 'user', 'area'])
             ->visiblePara(Auth::user())
-            ->latest()->paginate(20);
+            ->join('estados', 'estados.id', '=', 'planes_accion.estado_id')
+            ->select('planes_accion.*')
+            ->orderByRaw(Estado::ordenSql())
+            ->orderByDesc('planes_accion.created_at')
+            ->paginate(20);
 
         return view('auditoria.planaccion.index', compact('planAccions'));
     }
@@ -86,6 +90,7 @@ class PlanAccionController extends Controller
             'riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
             'riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'tareas.estado', 'user', 'area',
         ]);
+        $planAccion->setRelation('riesgos', Estado::ordenarColeccion($planAccion->riesgos));
 
         return view('auditoria.planaccion.show', compact('planAccion'));
     }

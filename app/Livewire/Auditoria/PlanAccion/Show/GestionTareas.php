@@ -294,6 +294,7 @@ class GestionTareas extends Component
         $user = Auth::user();
         $this->seleccionados = $plan->tareas
             ->reject(fn ($t) => $t->estado?->nombre === 'borrado')
+            ->sortBy(fn ($t) => Estado::peso($t->estado))
             ->map(fn ($t) => [
                 'id' => $t->id,
                 'nombre' => $t->nombre,
@@ -316,9 +317,12 @@ class GestionTareas extends Component
         $resultados = $this->modalAbierto
             ? Tarea::query()
                 ->visiblePara(Auth::user())
-                ->when($this->busqueda, fn ($q) => $q->where('nombre', 'like', '%'.$this->busqueda.'%'))
-                ->whereNotIn('id', $yaIds)
-                ->orderBy('nombre')
+                ->when($this->busqueda, fn ($q) => $q->where('tareas.nombre', 'like', '%'.$this->busqueda.'%'))
+                ->whereNotIn('tareas.id', $yaIds)
+                ->join('estados', 'estados.id', '=', 'tareas.estado_id')
+                ->select('tareas.*')
+                ->orderByRaw(Estado::ordenSql().' asc')
+                ->orderBy('tareas.nombre')
                 ->limit(20)
                 ->get()
             : collect();

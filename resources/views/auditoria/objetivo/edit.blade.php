@@ -47,39 +47,46 @@
             </div>
 
             <div x-data="{ peis: {{ old('peis', $objetivo->peis) ? 'true' : 'false' }} }">
-                <div class="flex gap-6">
-                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-indigo-100 bg-indigo-50/50 flex-1">
+                <div class="space-y-2.5">
+                    <label class="flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-200 bg-white cursor-pointer hover:border-indigo-200 transition-colors">
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold text-gray-800">Objetivo estratégico</span>
+                            <span class="block text-xs text-gray-400 mt-0.5">Marcalo si este objetivo es prioritario dentro de la planificación estratégica.</span>
+                        </span>
                         <input type="hidden" name="estrategico" value="0" />
                         <input type="checkbox" name="estrategico" value="1"
                             {{ old('estrategico', $objetivo->estrategico) ? 'checked' : '' }}
-                            class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                        <span class="text-sm font-semibold text-indigo-700">Estratégico</span>
+                            class="sr-only peer" />
+                        <span class="relative w-11 h-6 shrink-0 bg-gray-200 rounded-full peer-checked:bg-indigo-600 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow after:transition-transform peer-checked:after:translate-x-5"></span>
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-amber-100 bg-amber-50/50 flex-1">
+                    <label class="flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-200 bg-white cursor-pointer hover:border-amber-200 transition-colors">
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold text-gray-800">Contribuye al PEIS</span>
+                            <span class="block text-xs text-gray-400 mt-0.5">Este objetivo aporta al Plan Estratégico de Integridad Sostenible.</span>
+                        </span>
                         <input type="hidden" name="peis" value="0" />
                         <input type="checkbox" name="peis" value="1" x-model="peis"
-                            class="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
-                        <span class="text-sm font-semibold text-amber-700">PEIS</span>
+                            class="sr-only peer" />
+                        <span class="relative w-11 h-6 shrink-0 bg-gray-200 rounded-full peer-checked:bg-amber-500 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow after:transition-transform peer-checked:after:translate-x-5"></span>
                     </label>
                 </div>
 
                 <div x-show="peis" x-cloak
-                     class="mt-3 p-4 rounded-xl border border-amber-100 bg-amber-50/30 space-y-2.5">
-                    <p class="text-xs font-bold text-amber-700 uppercase tracking-wider">
-                        Ítems PEIS <span class="text-amber-500 font-normal normal-case">— seleccioná al menos uno *</span>
+                     class="mt-3 p-4 rounded-2xl border border-amber-100 bg-amber-50/30">
+                    <p class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-3">
+                        Puntos del PEIS a los que contribuye este objetivo <span class="text-amber-500 font-normal normal-case">— seleccioná al menos uno *</span>
                     </p>
-                    @foreach ($peisItems as $item)
-                        <label class="flex items-start gap-2.5 cursor-pointer">
-                            <input type="checkbox" name="peis_items[]" value="{{ $item->id }}"
-                                {{ collect(old('peis_items', $objetivo->peisItems->pluck('id')))->contains($item->id) ? 'checked' : '' }}
-                                class="mt-0.5 w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
-                            <span class="text-sm">
-                                <span class="font-semibold text-gray-700">{{ $item->nombre }}</span>
-                                <span class="text-gray-400"> — {{ $item->descripcion }}</span>
-                            </span>
-                        </label>
-                    @endforeach
-                    @error('peis_items') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                    <div class="space-y-2">
+                        @foreach ($peisItems as $item)
+                            <label class="flex items-start gap-3 p-3 rounded-xl border border-amber-100/70 bg-white cursor-pointer transition-colors hover:border-amber-300 hover:bg-amber-50/60 has-[:checked]:border-amber-400 has-[:checked]:bg-amber-50 has-[:checked]:ring-1 has-[:checked]:ring-amber-300">
+                                <input type="checkbox" name="peis_items[]" value="{{ $item->id }}"
+                                    {{ collect(old('peis_items', $objetivo->peisItems->pluck('id')))->contains($item->id) ? 'checked' : '' }}
+                                    class="mt-0.5 w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 shrink-0" />
+                                <span class="text-sm text-gray-700 leading-snug">{{ $item->descripcion }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('peis_items') <p class="text-xs text-red-500 mt-2 font-medium">{{ $message }}</p> @enderror
                 </div>
             </div>
 

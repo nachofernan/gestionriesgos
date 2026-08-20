@@ -23,7 +23,11 @@ class TareaController extends Controller
     {
         $tareas = Tarea::with(['planesAccion.riesgos', 'user', 'area'])
             ->visiblePara(Auth::user())
-            ->latest()->paginate(20);
+            ->join('estados', 'estados.id', '=', 'tareas.estado_id')
+            ->select('tareas.*')
+            ->orderByRaw(Estado::ordenSql())
+            ->orderByDesc('tareas.created_at')
+            ->paginate(20);
 
         return view('auditoria.tarea.index', compact('tareas'));
     }

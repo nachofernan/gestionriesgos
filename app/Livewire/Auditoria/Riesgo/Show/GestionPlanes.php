@@ -356,6 +356,7 @@ class GestionPlanes extends Component
 
         $this->seleccionados = $riesgo->planesAccion
             ->reject(fn ($p) => $p->estado?->nombre === 'borrado' || ! $user->can('view', $p))
+            ->sortBy(fn ($p) => Estado::peso($p->estado))
             ->map(function ($p) {
                 $vencimiento = $p->tareas->whereNotNull('fecha')->max('fecha');
 
@@ -392,11 +393,14 @@ class GestionPlanes extends Component
                 ->visiblePara(Auth::user())
                 ->whereNot('estado_id', Estado::borrado()->id)
                 ->when($this->busqueda, fn ($q) => $q->where(function ($q) {
-                    $q->where('nombre', 'like', '%'.$this->busqueda.'%')
+                    $q->where('planes_accion.nombre', 'like', '%'.$this->busqueda.'%')
                         ->orWhere('codigo', 'like', '%'.$this->busqueda.'%');
                 }))
-                ->whereNotIn('id', $yaIds)
-                ->orderBy('nombre')
+                ->whereNotIn('planes_accion.id', $yaIds)
+                ->join('estados', 'estados.id', '=', 'planes_accion.estado_id')
+                ->select('planes_accion.*')
+                ->orderByRaw(Estado::ordenSql().' asc')
+                ->orderBy('planes_accion.nombre')
                 ->limit(20)
                 ->get()
             : collect();

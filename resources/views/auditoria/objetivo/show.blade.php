@@ -15,12 +15,6 @@
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-extrabold text-gray-900">{{ $objetivo->nombre }}</h1>
                     <x-auditoria.estado-badge :estado="$objetivo->estado" />
-                    @if($objetivo->estrategico)
-                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">Estratégico</span>
-                    @endif
-                    @if($objetivo->peis)
-                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">PEIS</span>
-                    @endif
                 </div>
             </div>
         </div>
@@ -77,6 +71,19 @@
                             <dd class="text-gray-700">{{ $objetivo->user->name }}</dd>
                         </div>
                     @endif
+                    @if($objetivo->estrategico || $objetivo->peis)
+                        <div class="flex justify-between items-start">
+                            <dt class="text-gray-400 font-medium">Clasificación</dt>
+                            <dd class="flex gap-1.5 flex-wrap justify-end">
+                                @if($objetivo->estrategico)
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">Estratégico</span>
+                                @endif
+                                @if($objetivo->peis)
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">PEIS</span>
+                                @endif
+                            </dd>
+                        </div>
+                    @endif
                     <div class="flex justify-between">
                         <dt class="text-gray-400 font-medium">Fecha de creación</dt>
                         <dd class="text-gray-700">{{ $objetivo->created_at->format('d/m/Y') }}</dd>
@@ -85,12 +92,14 @@
 
                 @if($objetivo->peis && $objetivo->peisItems->isNotEmpty())
                     <div class="mt-4 pt-4 border-t border-gray-100">
-                        <p class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Ítems PEIS</p>
-                        <ul class="space-y-1.5">
+                        <p class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Contribuye al PEIS en los siguientes puntos</p>
+                        <ul class="space-y-2">
                             @foreach($objetivo->peisItems as $item)
-                                <li class="text-sm">
-                                    <span class="font-semibold text-gray-700">{{ $item->nombre }}</span>
-                                    <span class="text-gray-400"> — {{ $item->descripcion }}</span>
+                                <li class="flex items-start gap-2 text-sm text-gray-700">
+                                    <svg class="h-4 w-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span>{{ $item->descripcion }}</span>
                                 </li>
                             @endforeach
                         </ul>
@@ -137,6 +146,7 @@
                         }
                     }
                 }
+                $planesUnicos = \App\Models\Auditoria\Estado::ordenarColeccion($planesUnicos);
             @endphp
 
             @if($planesUnicos->isNotEmpty())
@@ -177,7 +187,7 @@
                         </button>
 
                         <div x-show="abierto" class="border-t border-gray-50">
-                            @forelse($plan->tareas as $tarea)
+                            @forelse(\App\Models\Auditoria\Estado::ordenarColeccion($plan->tareas) as $tarea)
                                 @php
                                     $vencida = $tarea->fecha && $tarea->fecha->lt($today) && $tarea->porcentaje_avance < 100;
                                 @endphp

@@ -23,7 +23,11 @@ class ObjetivoController extends Controller
     {
         $objetivos = Objetivo::with(['riesgos', 'user', 'area'])
             ->visiblePara(Auth::user())
-            ->latest()->paginate(20);
+            ->join('estados', 'estados.id', '=', 'objetivos.estado_id')
+            ->select('objetivos.*')
+            ->orderByRaw(Estado::ordenSql())
+            ->orderByDesc('objetivos.created_at')
+            ->paginate(20);
 
         return view('auditoria.objetivo.index', compact('objetivos'));
     }
@@ -32,7 +36,7 @@ class ObjetivoController extends Controller
     {
         $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
-        $peisItems = PeisItem::orderBy('nombre')->get();
+        $peisItems = PeisItem::orderBy('id')->get();
 
         return view('auditoria.objetivo.create', compact('areas', 'usuarios', 'peisItems'));
     }
@@ -99,6 +103,7 @@ class ObjetivoController extends Controller
             'riesgos.planesAccion.tareas.estado', 'riesgos.planesAccion.tareas.area', 'riesgos.planesAccion.tareas.user',
             'user', 'area', 'peisItems',
         ]);
+        $objetivo->setRelation('riesgos', Estado::ordenarColeccion($objetivo->riesgos));
 
         return view('auditoria.objetivo.show', compact('objetivo'));
     }
@@ -115,7 +120,7 @@ class ObjetivoController extends Controller
         $objetivo->load('peisItems');
         $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
-        $peisItems = PeisItem::orderBy('nombre')->get();
+        $peisItems = PeisItem::orderBy('id')->get();
 
         return view('auditoria.objetivo.edit', compact('objetivo', 'areas', 'usuarios', 'peisItems'));
     }

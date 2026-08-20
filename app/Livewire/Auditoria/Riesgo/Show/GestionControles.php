@@ -314,6 +314,7 @@ class GestionControles extends Component
 
         $this->seleccionados = $riesgo->controles
             ->reject(fn ($c) => $c->estado?->nombre === 'borrado' || ! $user->can('view', $c))
+            ->sortBy(fn ($c) => Estado::peso($c->estado))
             ->map(fn ($c) => [
                 'id' => $c->id,
                 'nombre' => $c->nombre,
@@ -337,9 +338,12 @@ class GestionControles extends Component
                 ->with(['estado', 'area'])
                 ->visiblePara(Auth::user())
                 ->whereNot('estado_id', Estado::borrado()->id)
-                ->when($this->busqueda, fn ($q) => $q->where('nombre', 'like', '%'.$this->busqueda.'%'))
-                ->whereNotIn('id', $yaIds)
-                ->orderBy('nombre')
+                ->when($this->busqueda, fn ($q) => $q->where('controles.nombre', 'like', '%'.$this->busqueda.'%'))
+                ->whereNotIn('controles.id', $yaIds)
+                ->join('estados', 'estados.id', '=', 'controles.estado_id')
+                ->select('controles.*')
+                ->orderByRaw(Estado::ordenSql().' asc')
+                ->orderBy('controles.nombre')
                 ->limit(20)
                 ->get()
             : collect();

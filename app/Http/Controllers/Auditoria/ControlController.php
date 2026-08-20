@@ -22,7 +22,11 @@ class ControlController extends Controller
     {
         $controles = Control::with(['riesgos', 'user', 'area'])
             ->visiblePara(Auth::user())
-            ->latest()->paginate(20);
+            ->join('estados', 'estados.id', '=', 'controles.estado_id')
+            ->select('controles.*')
+            ->orderByRaw(Estado::ordenSql())
+            ->orderByDesc('controles.created_at')
+            ->paginate(20);
 
         return view('auditoria.control.index', compact('controles'));
     }
@@ -76,6 +80,7 @@ class ControlController extends Controller
             'riesgos.controles.estado', 'riesgos.planesAccion.estado', 'riesgos.planesAccion.tareas.estado',
             'riesgos.estado', 'riesgos.tipoRiesgo', 'riesgos.area', 'user', 'area',
         ]);
+        $control->setRelation('riesgos', Estado::ordenarColeccion($control->riesgos));
 
         return view('auditoria.control.show', compact('control'));
     }

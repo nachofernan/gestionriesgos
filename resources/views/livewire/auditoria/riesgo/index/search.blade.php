@@ -40,13 +40,15 @@
             <!-- Estado -->
             <div>
                 <label class="block text-xs font-semibold text-gray-700 mb-2">Estado</label>
-                <select wire:model.live="filtroEstado"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="">Todos</option>
+                <div class="flex flex-wrap gap-x-3 gap-y-1.5 pt-1">
                     @foreach($estados as $estado)
-                        <option value="{{ $estado->id }}">{{ $estado->nombre }}</option>
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" wire:model.live="filtroEstados" value="{{ $estado->id }}"
+                                   class="w-3.5 h-3.5 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500">
+                            <span class="text-xs text-gray-600 capitalize">{{ $estado->nombre }}</span>
+                        </label>
                     @endforeach
-                </select>
+                </div>
             </div>
 
             <!-- Área -->
@@ -106,26 +108,25 @@
                                 @endif
                             </div>
                         </th>
-                        <th class="px-6 py-4 text-center">Impacto / Probabilidad</th>
-                        <th class="px-4 py-4 text-center cursor-pointer hover:bg-gray-100 transition-colors" wire:click="ordenar('valor_total')">
-                            <div class="flex items-center justify-center gap-1">
-                                Total
-                                @if($ordenarPor === 'valor_total')
-                                    <span class="text-indigo-600">{{ $direccion === 'asc' ? '↑' : '↓' }}</span>
-                                @endif
-                            </div>
-                        </th>
-                        <th class="px-4 py-4 text-center cursor-pointer hover:bg-gray-100 transition-colors" wire:click="ordenar('valor_residual')">
-                            <div class="flex items-center justify-center gap-1">
-                                Residual
-                                @if($ordenarPor === 'valor_residual')
-                                    <span class="text-indigo-600">{{ $direccion === 'asc' ? '↑' : '↓' }}</span>
-                                @endif
+                        <th class="px-4 py-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <button type="button" wire:click="ordenar('valor_total')" class="flex items-center gap-1 hover:text-indigo-600 transition-colors">
+                                    Total
+                                    @if($ordenarPor === 'valor_total')
+                                        <span class="text-indigo-600">{{ $direccion === 'asc' ? '↑' : '↓' }}</span>
+                                    @endif
+                                </button>
+                                <span class="text-gray-300">/</span>
+                                <button type="button" wire:click="ordenar('valor_residual')" class="flex items-center gap-1 hover:text-indigo-600 transition-colors">
+                                    Residual
+                                    @if($ordenarPor === 'valor_residual')
+                                        <span class="text-indigo-600">{{ $direccion === 'asc' ? '↑' : '↓' }}</span>
+                                    @endif
+                                </button>
                             </div>
                         </th>
                         <th class="px-6 py-4 text-left">Plan de acción</th>
-                        <th class="px-6 py-4 text-left">Usuario / Área</th>
-                        <th class="px-6 py-4"></th>
+                        <th class="px-6 py-4 text-left">Área</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -139,10 +140,10 @@
                                 'red'    => 'bg-red-100 text-red-700',
                             ];
                             $estadoClass = $colorMap[$riesgo->estado->color ?? ''] ?? 'bg-gray-100 text-gray-700';
-                            $badgeMap = [
-                                'verde'    => 'bg-green-100 text-green-800',
-                                'amarillo' => 'bg-yellow-100 text-yellow-800',
-                                'rojo'     => 'bg-red-100 text-red-800',
+                            $pillColorMap = [
+                                'verde'    => 'bg-green-500',
+                                'amarillo' => 'bg-yellow-500',
+                                'rojo'     => 'bg-red-500',
                             ];
                         @endphp
                         <tr class="hover:bg-indigo-50/30 transition-colors {{ $riesgo->mayor_criticidad ? 'border-l-4 border-l-red-400' : '' }}">
@@ -171,44 +172,43 @@
                                     <span class="text-xs text-gray-400">—</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-center text-gray-600">
-                                <div class="font-medium">{{ $riesgo->impacto }} <span class="text-gray-400 mx-1">/</span> {{ $riesgo->probabilidad }}</div>
-                            </td>
                             <td class="px-4 py-4 text-center">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $badgeMap[$riesgo->clasificacion_total['color']] }}">
-                                    {{ $riesgo->valor_total }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 text-center">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $badgeMap[$riesgo->clasificacion_residual['color']] }}">
-                                    {{ $riesgo->valor_residual }}
-                                </span>
+                                <div class="inline-flex items-stretch rounded-full overflow-hidden divide-x divide-white/40 shadow-sm"
+                                     title="Total: {{ $riesgo->valor_total }} · Residual: {{ $riesgo->valor_residual }}">
+                                    <span class="{{ $pillColorMap[$riesgo->clasificacion_total['color']] }} text-white text-xs font-extrabold px-3 py-1 flex items-center justify-center">
+                                        {{ $riesgo->valor_total }}
+                                    </span>
+                                    <span class="{{ $pillColorMap[$riesgo->clasificacion_residual['color']] }} text-white text-xs font-extrabold px-3 py-1 flex items-center justify-center">
+                                        {{ $riesgo->valor_residual }}
+                                    </span>
+                                </div>
                             </td>
                             <td class="px-6 py-4 text-xs">
                                 @forelse($riesgo->planesAccion as $plan)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $plan->avance === 100 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' }} {{ !$loop->last ? 'mr-1' : '' }}">
-                                        {{ $plan->avance !== null ? $plan->avance.'%' : '—' }}
-                                    </span>
+                                    @php $vencimiento = $plan->tareas->whereNotNull('fecha')->max('fecha'); @endphp
+                                    <div class="flex items-center gap-2 {{ !$loop->last ? 'mb-1' : '' }}">
+                                        <button type="button"
+                                                onclick="Livewire.dispatch('ver-plan', {id: {{ $plan->id }}})"
+                                                title="{{ $plan->nombre }}"
+                                                class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $plan->avance === 100 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' }} hover:opacity-75 transition-opacity">
+                                            {{ $plan->avance !== null ? $plan->avance.'%' : '—' }}
+                                        </button>
+                                        <span class="text-gray-600 truncate">{{ $plan->nombre }}</span>
+                                        @if($vencimiento)
+                                            <span class="text-gray-400 shrink-0">{{ \Illuminate\Support\Carbon::parse($vencimiento)->format('d/m/Y') }}</span>
+                                        @endif
+                                    </div>
                                 @empty
                                     <span class="text-gray-400">Sin plan</span>
                                 @endforelse
                             </td>
-                            <td class="px-6 py-4 text-xs">
-                                <div class="space-y-1">
-                                    <div class="text-gray-600">{{ $riesgo->user->name ?? '—' }}</div>
-                                    <div class="text-gray-500">{{ $riesgo->area->nombre ?? '—' }}</div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <a href="{{ route('auditoria.riesgos.show', $riesgo) }}"
-                                   class="text-indigo-600 hover:text-indigo-900 font-medium text-xs bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors">
-                                    Gestionar
-                                </a>
+                            <td class="px-6 py-4 text-xs text-gray-600">
+                                {{ $riesgo->area->nombre ?? '—' }}
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-gray-400 italic">
+                            <td colspan="5" class="px-6 py-12 text-center text-gray-400 italic">
                                 No hay riesgos registrados.
                             </td>
                         </tr>

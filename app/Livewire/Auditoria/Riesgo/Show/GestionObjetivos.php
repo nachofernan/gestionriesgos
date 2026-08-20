@@ -273,6 +273,7 @@ class GestionObjetivos extends Component
 
         $this->seleccionados = $riesgo->objetivos
             ->reject(fn ($o) => $o->estado?->nombre === 'borrado' || ! $user->can('view', $o))
+            ->sortBy(fn ($o) => Estado::peso($o->estado))
             ->map(fn ($o) => [
                 'id' => $o->id,
                 'nombre' => $o->nombre,
@@ -297,9 +298,12 @@ class GestionObjetivos extends Component
                 ->with(['estado', 'area'])
                 ->visiblePara(Auth::user())
                 ->whereNot('estado_id', Estado::borrado()->id)
-                ->when($this->busqueda, fn ($q) => $q->where('nombre', 'like', '%'.$this->busqueda.'%'))
-                ->whereNotIn('id', $yaIds)
-                ->orderBy('nombre')
+                ->when($this->busqueda, fn ($q) => $q->where('objetivos.nombre', 'like', '%'.$this->busqueda.'%'))
+                ->whereNotIn('objetivos.id', $yaIds)
+                ->join('estados', 'estados.id', '=', 'objetivos.estado_id')
+                ->select('objetivos.*')
+                ->orderByRaw(Estado::ordenSql().' asc')
+                ->orderBy('objetivos.nombre')
                 ->limit(20)
                 ->get()
             : collect();

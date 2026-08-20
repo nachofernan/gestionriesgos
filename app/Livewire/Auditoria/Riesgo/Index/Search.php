@@ -24,7 +24,8 @@ class Search extends Component
 
     public ?int $filtroTipo = null;
 
-    public ?int $filtroEstado = null;
+    /** @var array<int, int> IDs de estados tildados en el filtro; "borrado" arranca destildado. */
+    public array $filtroEstados = [];
 
     public ?int $filtroArea = null;
 
@@ -39,13 +40,23 @@ class Search extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'filtroTipo' => ['except' => null],
-        'filtroEstado' => ['except' => null],
+        'filtroEstados' => [],
         'filtroArea' => ['except' => null],
         'soloAlta' => ['except' => false],
         'mostrarHijos' => ['except' => true],
         'ordenarPor' => ['except' => 'estado'],
         'direccion' => ['except' => 'asc'],
     ];
+
+    /**
+     * Arranca con todos los estados tildados salvo "borrado": un riesgo borrado no
+     * interesa en el listado por defecto, pero el filtro lo deja disponible para
+     * quien lo necesite.
+     */
+    public function mount(): void
+    {
+        $this->filtroEstados = Estado::where('nombre', '!=', 'borrado')->pluck('id')->all();
+    }
 
     public function updatingSearch(): void
     {
@@ -57,7 +68,7 @@ class Search extends Component
         $this->resetPage();
     }
 
-    public function updatingFiltroEstado(): void
+    public function updatingFiltroEstados(): void
     {
         $this->resetPage();
     }
@@ -91,7 +102,7 @@ class Search extends Component
     {
         $this->search = '';
         $this->filtroTipo = null;
-        $this->filtroEstado = null;
+        $this->filtroEstados = Estado::where('nombre', '!=', 'borrado')->pluck('id')->all();
         $this->filtroArea = null;
         $this->soloAlta = false;
         $this->mostrarHijos = true;
@@ -112,7 +123,7 @@ class Search extends Component
         // "Plan de acción".
         $query = Riesgo::query()
             ->with([
-                'tipoRiesgo', 'estado', 'area', 'user',
+                'tipoRiesgo', 'estado', 'area',
                 'controles.estado',
                 'planesAccion' => fn ($q) => $q->whereNot('estado_id', Estado::borrado()->id),
                 'planesAccion.estado', 'planesAccion.tareas.estado',
@@ -131,10 +142,8 @@ class Search extends Component
             $query->where('tipo_riesgo_id', $this->filtroTipo);
         }
 
-        // Filtro por estado
-        if ($this->filtroEstado) {
-            $query->where('riesgos.estado_id', $this->filtroEstado);
-        }
+        // Filtro por estado: ningún checkbox tildado = ningún resultado, no "todos".
+        $query->whereIn('riesgos.estado_id', $this->filtroEstados ?: [0]);
 
         // Filtro por área
         if ($this->filtroArea) {
@@ -149,21 +158,26 @@ class Search extends Component
             $query->where('mayor_criticidad', true);
         }
 
+        // El estado manda siempre como criterio primario (aprobado, validado,
+        // borrador, borrado) salvo que el usuario esté ordenando explícitamente
+        // por la columna "Estado", donde el toggle asc/desc invierte ese orden.
+        $direccion = $this->direccion === 'desc' ? 'desc' : 'asc';
+
         // valor_total/valor_residual son accessors calculados en PHP, no columnas:
         // no se pueden ordenar en SQL, así que se trae todo el resultado filtrado,
-        // se ordena en memoria y se pagina a mano con Paginator.
+        // se ordena en memoria (estado primero, valor como criterio secundario) y
+        // se pagina a mano con Paginator.
         if (in_array($this->ordenarPor, ['valor_total', 'valor_residual'])) {
             $riesgos = $query->orderBy('nombre')->get();
 
-            if ($this->ordenarPor === 'valor_total') {
-                $riesgos = $riesgos->sortBy(fn ($r) => $r->valor_total, SORT_NUMERIC);
-            } else {
-                $riesgos = $riesgos->sortBy(fn ($r) => $r->valor_residual, SORT_NUMERIC);
-            }
+            $criterioValor = $this->ordenarPor === 'valor_total'
+                ? fn ($r) => $r->valor_total
+                : fn ($r) => $r->valor_residual;
 
-            if ($this->direccion === 'desc') {
-                $riesgos = $riesgos->reverse();
-            }
+            $riesgos = $riesgos->sortBy([
+                [fn ($r) => Estado::peso($r->estado), 'asc'],
+                [$criterioValor, $direccion],
+            ])->values();
 
             // Paginar manualmente
             $page = request()->query('page', 1);
@@ -178,18 +192,19 @@ class Search extends Component
                     'query' => request()->query(),
                 ]
             );
+        } elseif ($this->ordenarPor === 'estado') {
+            $query->orderByRaw(Estado::ordenSql().' '.$direccion);
+            $riesgos = $query->paginate(15);
         } else {
-            $columna = $this->ordenarPor === 'estado'
-                ? 'estados.nombre'
-                : 'riesgos.'.$this->ordenarPor;
-            $query->orderBy($columna, $this->direccion);
+            $query->orderByRaw(Estado::ordenSql().' asc')
+                ->orderBy('riesgos.'.$this->ordenarPor, $direccion);
             $riesgos = $query->paginate(15);
         }
 
         return view('livewire.auditoria.riesgo.index.search', [
             'riesgos' => $riesgos,
             'tiposRiesgo' => TipoRiesgo::all(),
-            'estados' => Estado::all(),
+            'estados' => Estado::todosOrdenados(),
             'areas' => Area::all(),
         ]);
     }

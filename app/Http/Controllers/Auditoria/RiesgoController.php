@@ -58,7 +58,11 @@ class RiesgoController extends Controller
     {
         $riesgos = Riesgo::with(['tipoRiesgo', 'estado', 'objetivos', 'user', 'area'])
             ->visiblePara(Auth::user())
-            ->latest()->paginate(20);
+            ->join('estados', 'estados.id', '=', 'riesgos.estado_id')
+            ->select('riesgos.*')
+            ->orderByRaw(Estado::ordenSql())
+            ->orderByDesc('riesgos.created_at')
+            ->paginate(20);
 
         return view('auditoria.riesgo.index', compact('riesgos'));
     }
