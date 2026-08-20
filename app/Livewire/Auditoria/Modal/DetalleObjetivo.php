@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auditoria\Modal;
 
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
@@ -30,6 +31,11 @@ class DetalleObjetivo extends Component
             'riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
             'riesgos.estado', 'riesgos.tipoRiesgo',
         ])->find($id);
+
+        if ($this->objetivo) {
+            $this->objetivo->setRelation('riesgos', Estado::ordenarColeccion($this->objetivo->riesgos));
+        }
+
         $this->abierto = (bool) $this->objetivo;
     }
 

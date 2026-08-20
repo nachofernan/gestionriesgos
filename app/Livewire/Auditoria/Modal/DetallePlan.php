@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auditoria\Modal;
 
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
@@ -27,6 +28,12 @@ class DetallePlan extends Component
             'riesgos.estado', 'riesgos.tipoRiesgo',
             'tareas.estado', 'tareas.user',
         ])->find($id);
+
+        if ($this->plan) {
+            $this->plan->setRelation('riesgos', Estado::ordenarColeccion($this->plan->riesgos));
+            $this->plan->setRelation('tareas', Estado::ordenarColeccion($this->plan->tareas));
+        }
+
         $this->abierto = (bool) $this->plan;
     }
 

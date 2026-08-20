@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auditoria\Modal;
 
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Tarea;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
@@ -29,6 +30,13 @@ class DetalleTarea extends Component
             'planesAccion.riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
             'planesAccion.riesgos.estado', 'planesAccion.riesgos.tipoRiesgo',
         ])->find($id);
+
+        if ($this->tarea) {
+            $planes = Estado::ordenarColeccion($this->tarea->planesAccion);
+            $planes->each(fn ($p) => $p->setRelation('riesgos', Estado::ordenarColeccion($p->riesgos)));
+            $this->tarea->setRelation('planesAccion', $planes);
+        }
+
         $this->abierto = (bool) $this->tarea;
     }
 

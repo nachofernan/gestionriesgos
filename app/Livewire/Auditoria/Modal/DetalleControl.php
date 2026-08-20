@@ -3,6 +3,7 @@
 namespace App\Livewire\Auditoria\Modal;
 
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Estado;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -28,6 +29,11 @@ class DetalleControl extends Component
             'riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
             'riesgos.estado', 'riesgos.tipoRiesgo',
         ])->find($id);
+
+        if ($this->control) {
+            $this->control->setRelation('riesgos', Estado::ordenarColeccion($this->control->riesgos));
+        }
+
         $this->mitigacion = $mitigacion;
         $this->abierto = (bool) $this->control;
     }

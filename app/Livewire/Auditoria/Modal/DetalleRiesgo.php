@@ -42,6 +42,16 @@ class DetalleRiesgo extends Component
             'planesAccion.estado',
             'planesAccion.tareas.estado',
         ])->find($id);
+
+        if ($this->riesgo) {
+            $this->riesgo->setRelation('controles', Estado::ordenarColeccion($this->riesgo->controles));
+            $this->riesgo->setRelation('objetivos', Estado::ordenarColeccion($this->riesgo->objetivos));
+
+            $planes = Estado::ordenarColeccion($this->riesgo->planesAccion);
+            $planes->each(fn ($p) => $p->setRelation('tareas', Estado::ordenarColeccion($p->tareas)));
+            $this->riesgo->setRelation('planesAccion', $planes);
+        }
+
         $this->abierto = (bool) $this->riesgo;
     }
 
