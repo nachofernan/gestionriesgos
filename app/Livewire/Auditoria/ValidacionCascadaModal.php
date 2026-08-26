@@ -115,22 +115,25 @@ class ValidacionCascadaModal extends Component
         $this->version++;
         $actual = $this->seleccionados[$tipoId] ?? false;
 
-        if ($actual && ! empty($this->bloqueantes)) {
+        if ($actual) {
             $item = collect($this->bloqueantes)->first(fn ($b) => $tipoId === $b['tipo'].':'.$b['id']);
-            $grupo = $item['tipo'] ?? null;
 
-            $quedarianSeleccionadosEnGrupo = collect($this->bloqueantes)
-                ->where('tipo', $grupo)
-                ->filter(function ($b) use ($tipoId) {
-                    $key = $b['tipo'].':'.$b['id'];
+            if ($item) {
+                $grupo = $item['tipo'];
 
-                    return $key !== $tipoId && ($this->seleccionados[$key] ?? false);
-                });
+                $quedarianSeleccionadosEnGrupo = collect($this->bloqueantes)
+                    ->where('tipo', $grupo)
+                    ->filter(function ($b) use ($tipoId) {
+                        $key = $b['tipo'].':'.$b['id'];
 
-            if ($quedarianSeleccionadosEnGrupo->isEmpty()) {
-                $this->error = 'Debe mantener seleccionado al menos '.$this->labelGrupo($grupo).'.';
+                        return $key !== $tipoId && ($this->seleccionados[$key] ?? false);
+                    });
 
-                return;
+                if ($quedarianSeleccionadosEnGrupo->isEmpty()) {
+                    $this->error = 'Debe mantener seleccionado al menos '.$this->labelGrupo($grupo).'.';
+
+                    return;
+                }
             }
         }
 

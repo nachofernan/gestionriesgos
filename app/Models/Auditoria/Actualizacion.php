@@ -50,6 +50,13 @@ class Actualizacion extends Model implements HasMedia
                     $actualizacion->estado_id = $borrador->id;
                 }
             }
+
+            // El default useCurrent() de la migración devuelve UTC en SQLite
+            // (no respeta APP_TIMEZONE): se fuerza acá para que quede en
+            // horario local.
+            if (! $actualizacion->created_at) {
+                $actualizacion->created_at = now();
+            }
         });
     }
 

@@ -2,6 +2,16 @@
     Fila de entidades (Riesgo/Control/Objetivo/PlanAccion/Tarea) pendientes de
     validar o aprobar. Variables esperadas: $items, $tipo, $cfg, $accion.
 --}}
+@php
+    $labelSingular = match($tipo) {
+        'riesgo'   => 'Riesgo',
+        'control'  => 'Control',
+        'objetivo' => 'Objetivo',
+        'plan'     => 'Plan de acción',
+        'tarea'    => 'Tarea',
+        default    => ucfirst($tipo),
+    };
+@endphp
 <div>
     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{{ $cfg['label'] }} ({{ $items->count() }})</h3>
     <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
@@ -12,9 +22,20 @@
 
                 <x-auditoria.estado-punto :estado="$item->estado" soloPunto x-show="!procesado" />
                 <div class="min-w-0 flex-1" :class="procesado ? 'opacity-40' : ''">
-                    <a href="{{ route($cfg['prefijo'].'.show', $item) }}" class="text-sm font-semibold text-gray-800 hover:text-indigo-600 truncate block">
+                    <button type="button"
+                            x-on:click="$dispatch('abrir-detalle-pendiente', @js([
+                                'tipo' => $labelSingular,
+                                'nombre' => $item->nombre,
+                                'descripcion' => $item->descripcion,
+                                'area' => $item->area?->nombre ?? 'Sin área',
+                                'propietario' => $item->user?->name,
+                                'estado_nombre' => $item->estado?->nombre ?? 'borrador',
+                                'estado_color' => $item->estado?->color ?? 'gray',
+                                'url' => route($cfg['prefijo'].'.show', $item),
+                            ]))"
+                            class="text-sm font-semibold text-gray-800 hover:text-indigo-600 truncate block text-left">
                         {{ $item->nombre }}
-                    </a>
+                    </button>
                     <p class="text-xs text-gray-400 mt-0.5">
                         {{ $item->area?->nombre ?? 'Sin área' }}
                         @if($item->user)

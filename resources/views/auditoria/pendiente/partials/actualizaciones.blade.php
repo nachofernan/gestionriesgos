@@ -25,6 +25,13 @@
                         <span class="text-[10px] font-bold text-gray-400 uppercase mr-1.5">{{ $labelTipo($actualizacion) }}</span>
                         {{ $actualizacion->actualizable?->nombre ?? '(elemento eliminado)' }}
                     </p>
+                    <p class="text-xs text-gray-400 mt-0.5">
+                        {{ $actualizacion->actualizable?->area?->nombre ?? 'Sin área' }}
+                        @if($actualizacion->user)
+                            &middot; {{ $actualizacion->user->name }}
+                        @endif
+                        &middot; {{ $actualizacion->created_at->diffForHumans() }}
+                    </p>
                     <p class="text-xs text-gray-500 mt-0.5 truncate">{{ $actualizacion->mensaje }}</p>
                 </div>
 

@@ -62,6 +62,7 @@
 
 </div>
 
+@include('auditoria.pendiente.partials.modal-detalle')
 @livewire('auditoria.validacion-cascada-modal')
 @livewire('auditoria.actualizaciones.accion-actualizacion-modal')
 @endsection
