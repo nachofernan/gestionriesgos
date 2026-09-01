@@ -28,30 +28,26 @@ class PeisItemSeeder extends Seeder
             ],
             [
                 'nombre' => 'PEIS 5',
-                'descripcion' => 'Mejorar la difusión interna con incremento del 5% interanual',
+                'descripcion' => 'Mejorar la difusión interna/externa con incremento del 5% interanual',
             ],
             [
                 'nombre' => 'PEIS 6',
-                'descripcion' => 'Mejorar la difusión externa con incremento del 5% interanual',
-            ],
-            [
-                'nombre' => 'PEIS 7',
                 'descripcion' => 'Mantener vigente la normativa del SGAC con revisión del 100% al 2030',
             ],
             [
-                'nombre' => 'PEIS 8',
+                'nombre' => 'PEIS 7',
                 'descripcion' => 'Mantener adhesión al Pacto Global Argentina con presentación anual de COP',
             ],
             [
-                'nombre' => 'PEIS 9',
+                'nombre' => 'PEIS 8',
                 'descripcion' => 'Adherir a Forward Faster, avance del 20% anual en metas ODS',
             ],
             [
-                'nombre' => 'PEIS 10',
+                'nombre' => 'PEIS 9',
                 'descripcion' => 'Cumplir compromisos como miembro de directorio 2024-2026 y volver a aplicar en 2026',
             ],
             [
-                'nombre' => 'PEIS 11',
+                'nombre' => 'PEIS 10',
                 'descripcion' => 'Desarrollar e implementar iniciativas conjuntas anticorrupción',
             ],
         ];
