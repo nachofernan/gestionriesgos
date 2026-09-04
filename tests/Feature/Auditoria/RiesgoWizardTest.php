@@ -12,6 +12,7 @@ use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -41,7 +42,7 @@ class RiesgoWizardTest extends TestCase
         ], $overrides);
     }
 
-    /** @test */
+    #[Test]
     public function la_pagina_de_creacion_renderiza_el_wizard(): void
     {
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -54,7 +55,7 @@ class RiesgoWizardTest extends TestCase
         $respuesta->assertSee('¿Podría generar pérdidas económicas, sanciones o multas?');
     }
 
-    /** @test */
+    #[Test]
     public function el_wizard_crea_el_riesgo_con_impacto_y_probabilidad_calculados_de_las_respuestas(): void
     {
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -68,7 +69,7 @@ class RiesgoWizardTest extends TestCase
         $this->assertEquals(3, $riesgo->impacto);      // 1+1+0+0+1
     }
 
-    /** @test */
+    #[Test]
     public function el_wizard_no_exige_objetivos_para_crear_el_riesgo(): void
     {
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -80,7 +81,7 @@ class RiesgoWizardTest extends TestCase
         $this->assertCount(0, Riesgo::firstOrFail()->objetivos);
     }
 
-    /** @test */
+    #[Test]
     public function el_historial_de_actualizaciones_se_renderiza_sin_error_tras_crear_el_riesgo(): void
     {
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -93,7 +94,7 @@ class RiesgoWizardTest extends TestCase
         $respuesta->assertStatus(200);
     }
 
-    /** @test */
+    #[Test]
     public function el_riesgo_creado_sin_area_toma_el_area_del_usuario(): void
     {
         $area = Area::create(['nombre' => 'Área de prueba']);
@@ -107,7 +108,7 @@ class RiesgoWizardTest extends TestCase
         $this->assertEquals($area->id, Riesgo::firstOrFail()->area_id);
     }
 
-    /** @test */
+    #[Test]
     public function el_area_del_creador_queda_sincronizada_como_gerencia_del_riesgo(): void
     {
         $area = Area::create(['nombre' => 'Área de prueba']);
@@ -120,7 +121,7 @@ class RiesgoWizardTest extends TestCase
         $this->assertEquals($area->id, $riesgo->areas->first()->id);
     }
 
-    /** @test */
+    #[Test]
     public function el_wizard_exige_las_cinco_respuestas_de_cada_dimension(): void
     {
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -133,7 +134,7 @@ class RiesgoWizardTest extends TestCase
         $this->assertDatabaseCount('riesgos', 0);
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_validar_un_riesgo_sin_objetivos(): void
     {
         $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -145,7 +146,7 @@ class RiesgoWizardTest extends TestCase
         $this->assertEquals('borrador', $riesgo->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_validar_un_riesgo_con_respuesta_mitigar_sin_plan_de_accion(): void
     {
         $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -167,7 +168,7 @@ class RiesgoWizardTest extends TestCase
      * un prerequisito bloqueante (ver PlanRequeridoParaMitigarTest), tiene que
      * estar validado para poder validar el riesgo.
      */
-    /** @test */
+    #[Test]
     public function se_puede_validar_un_riesgo_con_respuesta_mitigar_si_tiene_objetivo_y_plan_validado(): void
     {
         $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -186,7 +187,7 @@ class RiesgoWizardTest extends TestCase
         $this->assertEquals('validado', $riesgo->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function un_plan_en_borrador_no_alcanza_para_validar_un_riesgo_mitigar_aunque_exista(): void
     {
         $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -205,7 +206,7 @@ class RiesgoWizardTest extends TestCase
         $this->assertEquals('borrador', $riesgo->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function se_puede_validar_un_riesgo_sin_mitigar_con_solo_un_objetivo(): void
     {
         $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
@@ -221,7 +222,7 @@ class RiesgoWizardTest extends TestCase
         $this->assertEquals('validado', $riesgo->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function la_clasificacion_traduce_el_valor_a_su_etiqueta_cualitativa(): void
     {
         $this->assertEquals('bajo', Riesgo::clasificacion(0)['etiqueta']);

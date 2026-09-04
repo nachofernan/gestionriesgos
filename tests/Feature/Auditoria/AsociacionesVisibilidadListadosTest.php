@@ -7,7 +7,6 @@ use App\Livewire\Auditoria\Control\Index\Search as ControlSearch;
 use App\Livewire\Auditoria\Modal\DetalleRiesgo;
 use App\Livewire\Auditoria\Objetivo\Index\Search as ObjetivoSearch;
 use App\Livewire\Auditoria\PlanAccion\Index\Search as PlanSearch;
-use App\Livewire\Auditoria\Riesgo\Index\Search as RiesgoSearch;
 use App\Livewire\Auditoria\Tarea\Index\Search as TareaSearch;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
@@ -21,6 +20,7 @@ use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -82,7 +82,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function el_listado_de_controles_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
     {
         $control = Control::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -100,7 +100,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
             });
     }
 
-    /** @test */
+    #[Test]
     public function el_listado_de_objetivos_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
     {
         $objetivo = Objetivo::create([
@@ -121,7 +121,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
             });
     }
 
-    /** @test */
+    #[Test]
     public function el_listado_de_planes_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
     {
         $plan = PlanAccion::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -139,7 +139,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
             });
     }
 
-    /** @test */
+    #[Test]
     public function el_listado_de_tareas_no_expone_el_plan_borrador_de_b_a_un_gerente_de_a(): void
     {
         $tarea = Tarea::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -157,7 +157,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
             });
     }
 
-    /** @test */
+    #[Test]
     public function el_modal_detalle_riesgo_no_expone_el_control_borrador_de_b_a_un_gerente_de_a(): void
     {
         $riesgo = $this->riesgoEnB($this->aprobadoId);
@@ -174,7 +174,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
         $this->assertContains($ctrlAprobado->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function el_modal_detalle_riesgo_no_expone_el_control_borrado_de_nadie(): void
     {
         $riesgo = $this->riesgoEnB($this->aprobadoId);

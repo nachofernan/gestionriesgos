@@ -14,6 +14,7 @@ use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -41,7 +42,7 @@ class HistorialAsociacionBorradorTest extends TestCase
     // Registro en el historial (borrador)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function asociar_un_control_a_un_riesgo_en_borrador_registra_una_actualizacion_con_diff()
     {
         $riesgo = $this->riesgoBorrador();
@@ -65,7 +66,7 @@ class HistorialAsociacionBorradorTest extends TestCase
         $this->assertEquals(4, $agrega[0]['mitigacion']);
     }
 
-    /** @test */
+    #[Test]
     public function asociar_un_plan_a_un_riesgo_en_borrador_registra_una_actualizacion_con_diff()
     {
         $riesgo = $this->riesgoBorrador();
@@ -88,7 +89,7 @@ class HistorialAsociacionBorradorTest extends TestCase
         $this->assertEquals($plan->id, $agrega[0]['id']);
     }
 
-    /** @test */
+    #[Test]
     public function asociar_un_objetivo_a_un_riesgo_en_borrador_registra_una_actualizacion_con_diff()
     {
         $riesgo = $this->riesgoBorrador();
@@ -111,7 +112,7 @@ class HistorialAsociacionBorradorTest extends TestCase
         $this->assertEquals($objetivo->id, $agrega[0]['id']);
     }
 
-    /** @test */
+    #[Test]
     public function quitar_un_objetivo_en_borrador_registra_la_baja_en_el_historial()
     {
         $riesgo = $this->riesgoBorrador();
@@ -137,7 +138,7 @@ class HistorialAsociacionBorradorTest extends TestCase
     // Sin cambios → sin actualización
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function guardar_controles_sin_cambios_no_registra_ninguna_actualizacion()
     {
         $riesgo = $this->riesgoBorrador();
@@ -152,7 +153,7 @@ class HistorialAsociacionBorradorTest extends TestCase
         $this->assertEquals(0, $riesgo->actualizaciones()->count());
     }
 
-    /** @test */
+    #[Test]
     public function guardar_objetivos_sin_cambios_no_registra_ninguna_actualizacion()
     {
         $riesgo = $this->riesgoBorrador();
@@ -171,7 +172,7 @@ class HistorialAsociacionBorradorTest extends TestCase
     // Modales de búsqueda: no ofrecen entidades 'borrado'
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function el_modal_de_controles_no_ofrece_controles_en_estado_borrado()
     {
         $riesgo = $this->riesgoBorrador();
@@ -186,7 +187,7 @@ class HistorialAsociacionBorradorTest extends TestCase
                 && ! $r->pluck('id')->contains($borrado->id));
     }
 
-    /** @test */
+    #[Test]
     public function el_modal_de_planes_no_ofrece_planes_en_estado_borrado()
     {
         $riesgo = $this->riesgoBorrador();
@@ -201,7 +202,7 @@ class HistorialAsociacionBorradorTest extends TestCase
                 && ! $r->pluck('id')->contains($borrado->id));
     }
 
-    /** @test */
+    #[Test]
     public function el_modal_de_objetivos_no_ofrece_objetivos_en_estado_borrado()
     {
         $riesgo = $this->riesgoBorrador();

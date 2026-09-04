@@ -14,6 +14,7 @@ use App\Services\Auditoria\ValidacionMasivaService;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -70,7 +71,7 @@ class CascadaGruposIndependientesTest extends TestCase
     // Regla del modelo: Objetivo también exige estado, no sólo existencia
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function un_objetivo_en_borrador_no_alcanza_para_validar_el_riesgo_aunque_exista()
     {
         $riesgo = Riesgo::factory()->borrador()->create(['area_id' => $this->area->id, 'respuesta' => RespuestaRiesgo::Aceptar]);
@@ -83,7 +84,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $this->assertStringContainsString('objetivo asociado debe estar validado', $motivos[0]);
     }
 
-    /** @test */
+    #[Test]
     public function un_objetivo_validado_pero_no_aprobado_no_alcanza_para_aprobar_el_riesgo()
     {
         $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->area->id, 'respuesta' => RespuestaRiesgo::Aceptar]);
@@ -100,7 +101,7 @@ class CascadaGruposIndependientesTest extends TestCase
     // El bug reportado: esquivar un grupo dejando seleccionado sólo el otro
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function no_se_puede_deseleccionar_el_unico_objetivo_del_grupo_aunque_el_plan_siga_seleccionado()
     {
         [$riesgo] = $this->riesgoMitigarConObjetivoYPlanEnBorrador();
@@ -117,7 +118,7 @@ class CascadaGruposIndependientesTest extends TestCase
             ->assertSet("seleccionados.{$keyObjetivo}", true); // no se deselecciona
     }
 
-    /** @test */
+    #[Test]
     public function confirmar_bloquea_si_se_fuerza_a_dejar_un_grupo_sin_seleccion_aunque_otro_grupo_este_completo()
     {
         [$riesgo] = $this->riesgoMitigarConObjetivoYPlanEnBorrador();
@@ -142,7 +143,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $this->assertEquals('borrador', $riesgo->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function validar_desde_la_cascada_con_ambos_grupos_seleccionados_valida_los_tres()
     {
         [$riesgo, $objetivo, $plan] = $this->riesgoMitigarConObjetivoYPlanEnBorrador();
@@ -158,7 +159,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $this->assertEquals('validado', $plan->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function la_cascada_de_validacion_del_riesgo_agrupa_objetivo_y_plan_como_bloqueantes_independientes()
     {
         [$riesgo] = $this->riesgoMitigarConObjetivoYPlanEnBorrador();
@@ -176,7 +177,7 @@ class CascadaGruposIndependientesTest extends TestCase
     // uno de los dos necesita promoción todavía.
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function si_objetivo_y_plan_ya_estan_aprobados_la_cascada_de_aprobar_no_ofrece_bloqueantes()
     {
         $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->area->id, 'respuesta' => RespuestaRiesgo::Mitigar]);
@@ -202,7 +203,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $this->assertEquals('aprobado', $plan->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function si_solo_el_plan_necesita_promocion_la_cascada_de_aprobar_no_ofrece_el_objetivo_ya_aprobado()
     {
         $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->area->id, 'respuesta' => RespuestaRiesgo::Mitigar]);
@@ -217,7 +218,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $this->assertEquals(['plan'], $tipos->all());
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_deseleccionar_el_unico_plan_bloqueante_al_aprobar_aunque_el_objetivo_ya_este_aprobado()
     {
         $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->area->id, 'respuesta' => RespuestaRiesgo::Mitigar]);
@@ -249,7 +250,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $this->assertEquals('validado', $plan->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function aprobar_el_riesgo_seleccionando_el_plan_bloqueante_aprueba_ambos_sin_tocar_el_objetivo_ya_aprobado()
     {
         $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->area->id, 'respuesta' => RespuestaRiesgo::Mitigar]);
@@ -275,7 +276,7 @@ class CascadaGruposIndependientesTest extends TestCase
      * DOS grupos bloqueantes simultáneos al aprobar, nunca antes probado (los
      * tests previos de "aprobar" sólo tenían UN grupo bloqueante a la vez).
      */
-    /** @test */
+    #[Test]
     public function con_objetivo_y_plan_ambos_validados_no_se_puede_esquivar_ninguno_al_aprobar()
     {
         $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->area->id, 'respuesta' => RespuestaRiesgo::Mitigar]);
@@ -311,7 +312,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $this->assertEquals('validado', $plan->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function con_objetivo_y_plan_ambos_validados_aprobar_con_todo_seleccionado_aprueba_los_tres()
     {
         $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->area->id, 'respuesta' => RespuestaRiesgo::Mitigar]);
@@ -342,7 +343,7 @@ class CascadaGruposIndependientesTest extends TestCase
     // o se rechace, usado como sufijo del wire:key del checkbox.
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function version_se_incrementa_tanto_si_el_toggle_se_acepta_como_si_se_rechaza()
     {
         [$riesgo] = $this->riesgoMitigarConObjetivoYPlanEnBorrador();
@@ -366,7 +367,7 @@ class CascadaGruposIndependientesTest extends TestCase
             ->assertSet('version', 2);
     }
 
-    /** @test */
+    #[Test]
     public function puede_confirmar_es_false_mientras_falte_seleccion_en_algun_grupo()
     {
         [$riesgo] = $this->riesgoMitigarConObjetivoYPlanEnBorrador();

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auditoria;
 
+use App\Livewire\Auditoria\ValidacionCascadaModal;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -9,11 +10,11 @@ use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
-use App\Livewire\Auditoria\ValidacionCascadaModal;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -62,7 +63,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function control_aprobado_deja_el_valor_de_la_actualizacion_mas_reciente(): void
     {
         $control = Control::factory()->create([
@@ -94,7 +95,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
      * aprueba rápido) empatan. Ordenar solo por created_at no desempata de forma
      * confiable — tiene que ganar la de id más alto (la insertada después).
      */
-    /** @test */
+    #[Test]
     public function control_aprobado_deja_el_valor_de_la_actualizacion_mas_reciente_aunque_el_created_at_empate(): void
     {
         $control = Control::factory()->create([
@@ -132,7 +133,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
      * -> procesarTransicion(). Ese es el camino real que hay que cubrir, no sólo
      * ControlController::aprobar() (que ya no lo usa ningún botón de la UI).
      */
-    /** @test */
+    #[Test]
     public function control_aprobado_desde_el_modal_de_cascada_deja_el_valor_de_la_actualizacion_mas_reciente(): void
     {
         $control = Control::factory()->create([
@@ -158,7 +159,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
         $this->assertEquals('aprobado', $control->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function objetivo_aprobado_deja_el_nombre_de_la_actualizacion_mas_reciente(): void
     {
         $objetivo = Objetivo::create([
@@ -181,7 +182,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
         $this->assertEquals('Nombre final', $objetivo->fresh()->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function plan_de_accion_aprobado_deja_el_nombre_de_la_actualizacion_mas_reciente(): void
     {
         $plan = PlanAccion::factory()->create([
@@ -203,7 +204,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
         $this->assertEquals('Nombre final', $plan->fresh()->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function tarea_aprobada_deja_el_nombre_de_la_actualizacion_mas_reciente(): void
     {
         $tarea = Tarea::factory()->create([
@@ -225,7 +226,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
         $this->assertEquals('Nombre final', $tarea->fresh()->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function riesgo_aprobado_deja_el_nombre_de_la_actualizacion_mas_reciente(): void
     {
         $riesgo = Riesgo::factory()->validado()->create(['user_id' => $this->gerente->id]);

@@ -2,15 +2,17 @@
 
 namespace Tests\Feature\Auditoria;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
+use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use App\Models\Auditoria\TipoRiesgo;
-use App\Models\Auditoria\Objetivo;
-use App\Models\Auditoria\Control;
+use App\Models\User;
+use Database\Seeders\EstadoRiesgoSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class ModuloAuditoriaTest extends TestCase
 {
@@ -19,10 +21,10 @@ class ModuloAuditoriaTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\EstadoRiesgoSeeder::class);
+        $this->seed(EstadoRiesgoSeeder::class);
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_se_crea_con_estado_borrador_por_defecto()
     {
         $tipo = TipoRiesgo::factory()->create();
@@ -35,7 +37,7 @@ class ModuloAuditoriaTest extends TestCase
         $this->assertEquals('borrador', $riesgo->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_puede_tener_muchos_planes_de_accion()
     {
         $riesgo = Riesgo::factory()->create();
@@ -46,7 +48,7 @@ class ModuloAuditoriaTest extends TestCase
         $this->assertCount(3, $riesgo->planesAccion);
     }
 
-    /** @test */
+    #[Test]
     public function un_plan_de_accion_puede_tener_muchos_riesgos()
     {
         $plan = PlanAccion::factory()->create();
@@ -57,7 +59,7 @@ class ModuloAuditoriaTest extends TestCase
         $this->assertCount(3, $plan->riesgos);
     }
 
-    /** @test */
+    #[Test]
     public function un_plan_de_accion_puede_tener_muchas_tareas()
     {
         $plan = PlanAccion::factory()->create();
@@ -68,7 +70,7 @@ class ModuloAuditoriaTest extends TestCase
         $this->assertCount(3, $plan->tareas);
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_puede_pertenecer_a_muchos_planes()
     {
         $tarea = Tarea::factory()->create();
@@ -79,7 +81,7 @@ class ModuloAuditoriaTest extends TestCase
         $this->assertCount(3, $tarea->planesAccion);
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_tiene_fecha_y_actualizaciones()
     {
         $user = User::factory()->create();
@@ -95,13 +97,13 @@ class ModuloAuditoriaTest extends TestCase
         $this->assertEquals('Avance 1', $tarea->actualizaciones->first()->mensaje);
     }
 
-    /** @test */
+    #[Test]
     public function riesgo_tiene_codigo_y_mayor_criticidad()
     {
         $riesgo = Riesgo::factory()->create([
-            'codigo'           => 'R-TEST',
-            'impacto'          => 8,
-            'probabilidad'     => 8,
+            'codigo' => 'R-TEST',
+            'impacto' => 8,
+            'probabilidad' => 8,
             'mayor_criticidad' => true,
         ]);
 
@@ -109,7 +111,7 @@ class ModuloAuditoriaTest extends TestCase
         $this->assertTrue($riesgo->mayor_criticidad);
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_puede_tener_muchos_controles_con_mitigacion_pivot()
     {
         $riesgo = Riesgo::factory()->create();
@@ -121,7 +123,7 @@ class ModuloAuditoriaTest extends TestCase
         $this->assertEquals(5, $riesgo->controles->first()->pivot->mitigacion);
     }
 
-    /** @test */
+    #[Test]
     public function objetivo_tiene_fecha_nullable()
     {
         $objetivo = Objetivo::create([

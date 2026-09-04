@@ -16,6 +16,7 @@ use App\Policies\Auditoria\ActualizacionPolicy;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -84,7 +85,7 @@ class DobleValidacionTest extends TestCase
             ->call('guardar');
     }
 
-    /** @test */
+    #[Test]
     public function un_cambio_de_campo_no_se_aplica_hasta_que_todas_las_gerencias_validan(): void
     {
         ['riesgo' => $riesgo, 'gerA' => $gerA, 'gerB' => $gerB, 'userA' => $userA, 'userB' => $userB] = $this->riesgoCompartido();
@@ -108,7 +109,7 @@ class DobleValidacionTest extends TestCase
         $this->assertEquals('validado', $act->refresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function un_rechazo_de_una_gerencia_tumba_el_cambio(): void
     {
         ['riesgo' => $riesgo, 'userA' => $userA, 'userB' => $userB] = $this->riesgoCompartido();
@@ -124,7 +125,7 @@ class DobleValidacionTest extends TestCase
         $this->assertEquals('borrado', $act->refresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function con_una_sola_gerencia_el_cambio_se_aplica_al_instante_sin_votos(): void
     {
         $ger = $this->gerencia('Gerencia Única');
@@ -139,7 +140,7 @@ class DobleValidacionTest extends TestCase
         $this->assertCount(0, $act->validacionesGerencia);
     }
 
-    /** @test */
+    #[Test]
     public function agregar_la_segunda_gerencia_se_aplica_con_la_sola_validacion_del_proponente(): void
     {
         $gerA = $this->gerencia('Gerencia A');
@@ -158,7 +159,7 @@ class DobleValidacionTest extends TestCase
         $this->assertFalse($riesgo->actualizaciones()->where('estado_id', Estado::borrador()->id)->exists());
     }
 
-    /** @test */
+    #[Test]
     public function cambiar_gerencias_de_un_riesgo_ya_compartido_requiere_doble_validacion(): void
     {
         ['riesgo' => $riesgo, 'userA' => $userA, 'userB' => $userB] = $this->riesgoCompartido();
@@ -182,7 +183,7 @@ class DobleValidacionTest extends TestCase
         $this->assertTrue($riesgo->refresh()->areas->pluck('id')->contains($gerC->id));
     }
 
-    /** @test */
+    #[Test]
     public function no_se_pueden_cambiar_gerencias_con_una_propuesta_pendiente(): void
     {
         ['riesgo' => $riesgo, 'userA' => $userA] = $this->riesgoCompartido();
@@ -201,7 +202,7 @@ class DobleValidacionTest extends TestCase
         $this->assertFalse($riesgo->refresh()->areas->pluck('id')->contains($gerC->id));
     }
 
-    /** @test */
+    #[Test]
     public function asociar_un_control_a_un_riesgo_compartido_queda_pendiente_hasta_que_todas_validan(): void
     {
         ['riesgo' => $riesgo, 'gerA' => $gerA, 'userA' => $userA, 'userB' => $userB] = $this->riesgoCompartido();
@@ -227,7 +228,7 @@ class DobleValidacionTest extends TestCase
         $this->assertTrue($riesgo->refresh()->controles->pluck('id')->contains($control->id));
     }
 
-    /** @test */
+    #[Test]
     public function el_proponente_no_puede_validar_ni_rechazar_su_propia_propuesta(): void
     {
         ['riesgo' => $riesgo, 'userA' => $userA, 'userB' => $userB] = $this->riesgoCompartido();
@@ -245,7 +246,7 @@ class DobleValidacionTest extends TestCase
         $this->assertTrue($policy->rechazar($userB, $act));
     }
 
-    /** @test */
+    #[Test]
     public function un_gerente_de_una_gerencia_no_asociada_no_puede_validar_la_propuesta(): void
     {
         ['riesgo' => $riesgo, 'userA' => $userA] = $this->riesgoCompartido();

@@ -16,6 +16,7 @@ use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -65,7 +66,7 @@ class MitigacionPlanTest extends TestCase
     // Regla 3 — mitigación de planes al 100%
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function un_plan_al_100_descuenta_su_mitigacion_del_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
@@ -77,7 +78,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(10, $riesgo->fresh()->valor_residual); // 16 - 6
     }
 
-    /** @test */
+    #[Test]
     public function un_plan_por_debajo_del_100_no_afecta_el_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
@@ -88,7 +89,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(16, $riesgo->fresh()->valor_residual); // sin descuento
     }
 
-    /** @test */
+    #[Test]
     public function un_plan_validado_al_100_no_afecta_el_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
@@ -101,7 +102,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(16, $riesgo->fresh()->valor_residual); // validado no mitiga, aunque esté completo
     }
 
-    /** @test */
+    #[Test]
     public function al_aprobar_el_plan_completo_recien_ahi_baja_el_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
@@ -116,7 +117,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(10, $riesgo->fresh()->valor_residual); // 16 - 6
     }
 
-    /** @test */
+    #[Test]
     public function el_preview_en_vivo_de_planes_solo_cuenta_los_aprobados_al_100()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
@@ -135,7 +136,7 @@ class MitigacionPlanTest extends TestCase
             ->assertDispatched('residual-actualizado', valor: 10); // 16 - 6 (el validado no descuenta)
     }
 
-    /** @test */
+    #[Test]
     public function un_plan_sin_tareas_no_afecta_el_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]);
@@ -147,7 +148,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(16, $riesgo->fresh()->valor_residual);
     }
 
-    /** @test */
+    #[Test]
     public function la_mitigacion_del_plan_y_la_de_los_controles_aprobados_se_suman()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
@@ -160,7 +161,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(5, $riesgo->fresh()->valor_residual); // 16 - 5 - 6
     }
 
-    /** @test */
+    #[Test]
     public function el_valor_residual_nunca_baja_de_cero()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 2, 'probabilidad' => 2]); // total 4
@@ -175,7 +176,7 @@ class MitigacionPlanTest extends TestCase
     // Regla 1 — sólo mitigan los controles aprobados
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function un_control_no_aprobado_no_baja_el_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
@@ -186,7 +187,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(16, $riesgo->fresh()->valor_residual); // el borrador no mitiga
     }
 
-    /** @test */
+    #[Test]
     public function al_aprobar_el_control_recien_ahi_baja_el_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
@@ -200,7 +201,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(11, $riesgo->fresh()->valor_residual); // 16 - 5
     }
 
-    /** @test */
+    #[Test]
     public function el_preview_en_vivo_de_controles_solo_cuenta_los_aprobados()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
@@ -215,7 +216,7 @@ class MitigacionPlanTest extends TestCase
             ->assertDispatched('residual-actualizado', valor: 11); // 16 - 5 (el borrador no descuenta)
     }
 
-    /** @test */
+    #[Test]
     public function la_vista_de_riesgo_solo_lista_las_tareas_aprobadas_del_plan()
     {
         $riesgo = Riesgo::factory()->create(['estado_id' => Estado::aprobado()->id, 'impacto' => 5, 'probabilidad' => 5]);
@@ -234,7 +235,7 @@ class MitigacionPlanTest extends TestCase
             ->assertDontSee('Tarea Validada Oculta');
     }
 
-    /** @test */
+    #[Test]
     public function el_modal_de_plan_muestra_el_avance_y_el_conteo_solo_de_tareas_aprobadas()
     {
         $plan = PlanAccion::factory()->create();
@@ -250,7 +251,7 @@ class MitigacionPlanTest extends TestCase
             ->assertSee('Tarea aprobada'); // singular: 1 sola tarea aprobada, no "Tareas aprobadas"
     }
 
-    /** @test */
+    #[Test]
     public function el_listado_de_planes_muestra_el_avance_solo_de_tareas_aprobadas()
     {
         $plan = PlanAccion::factory()->create();
@@ -271,7 +272,7 @@ class MitigacionPlanTest extends TestCase
     // Regla 2 — avance por tareas aprobadas; "borrado" fuera del plan
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function una_tarea_aprobada_al_100_completa_el_plan()
     {
         $plan = $this->planCon(100);
@@ -280,7 +281,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertTrue($plan->fresh()->estaCompleto());
     }
 
-    /** @test */
+    #[Test]
     public function el_avance_del_plan_promedia_solo_las_tareas_aprobadas()
     {
         $plan = PlanAccion::factory()->create();
@@ -292,7 +293,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(100, $plan->fresh()->avance);
     }
 
-    /** @test */
+    #[Test]
     public function un_plan_sin_tareas_aprobadas_no_tiene_avance()
     {
         $plan = PlanAccion::factory()->create();
@@ -303,7 +304,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertFalse($plan->fresh()->estaCompleto());
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_en_estado_borrado_no_cuenta_para_el_avance()
     {
         $plan = PlanAccion::factory()->create();
@@ -313,7 +314,7 @@ class MitigacionPlanTest extends TestCase
         $this->assertEquals(100, $plan->fresh()->avance);
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_en_estado_borrado_no_se_muestra_en_la_gestion_de_tareas_del_plan()
     {
         $plan = PlanAccion::factory()->create();
@@ -328,7 +329,7 @@ class MitigacionPlanTest extends TestCase
             ->assertSet('ocultosIds', [$borrada->id]);
     }
 
-    /** @test */
+    #[Test]
     public function guardar_tareas_de_un_plan_borrador_preserva_las_tareas_borrado_ocultas()
     {
         $plan = PlanAccion::factory()->create(); // borrador

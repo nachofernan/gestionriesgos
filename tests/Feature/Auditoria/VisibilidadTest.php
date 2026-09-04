@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Policies\Auditoria\RiesgoPolicy;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -141,21 +142,21 @@ class VisibilidadTest extends TestCase
     // Helper: areaGerencia()
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function area_gerencia_de_empleado_devuelve_la_gerencia_padre(): void
     {
         // nacho → sectA → gerAdmin (nivel 1 bajo raíz)
         $this->assertEquals($this->gerAdmin->id, $this->nacho->areaGerencia()->id);
     }
 
-    /** @test */
+    #[Test]
     public function area_gerencia_de_gerente_es_su_propia_area(): void
     {
         // canela → gerAdmin (nivel 1 bajo raíz, ya es la gerencia)
         $this->assertEquals($this->gerAdmin->id, $this->canela->areaGerencia()->id);
     }
 
-    /** @test */
+    #[Test]
     public function area_gerencia_de_empleado_en_otra_gerencia_es_correcta(): void
     {
         $this->assertEquals($this->gerProd->id, $this->nocetti->areaGerencia()->id);
@@ -165,28 +166,28 @@ class VisibilidadTest extends TestCase
     // Scope: comité
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function comite_ve_aprobado_de_cualquier_gerencia(): void
     {
         $r = $this->riesgo($this->aprobadoId, $this->sectC);
         $this->assertContains($r->id, $this->idsVisibles($this->lucia));
     }
 
-    /** @test */
+    #[Test]
     public function comite_ve_validado_de_cualquier_gerencia(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectC);
         $this->assertContains($r->id, $this->idsVisibles($this->lucia));
     }
 
-    /** @test */
+    #[Test]
     public function comite_no_ve_borrador(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectA);
         $this->assertNotContains($r->id, $this->idsVisibles($this->lucia));
     }
 
-    /** @test */
+    #[Test]
     public function comite_no_ve_borrado(): void
     {
         $r = $this->riesgo($this->borradoId, $this->sectA);
@@ -197,35 +198,35 @@ class VisibilidadTest extends TestCase
     // Scope: gerente
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function gerente_ve_aprobado_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->aprobadoId, $this->sectC); // gerProd
         $this->assertContains($r->id, $this->idsVisibles($this->canela));
     }
 
-    /** @test */
+    #[Test]
     public function gerente_ve_validado_de_su_gerencia(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectA);
         $this->assertContains($r->id, $this->idsVisibles($this->canela));
     }
 
-    /** @test */
+    #[Test]
     public function gerente_ve_borrador_de_su_gerencia(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectB);
         $this->assertContains($r->id, $this->idsVisibles($this->canela));
     }
 
-    /** @test */
+    #[Test]
     public function gerente_ve_validado_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectC);
         $this->assertContains($r->id, $this->idsVisibles($this->canela));
     }
 
-    /** @test */
+    #[Test]
     public function gerente_no_ve_borrador_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectC);
@@ -236,21 +237,21 @@ class VisibilidadTest extends TestCase
     // Scope: empleado
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function empleado_ve_aprobado_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->aprobadoId, $this->sectC);
         $this->assertContains($r->id, $this->idsVisibles($this->nacho));
     }
 
-    /** @test */
+    #[Test]
     public function empleado_ve_validado_de_su_propia_area(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectA);
         $this->assertContains($r->id, $this->idsVisibles($this->nacho));
     }
 
-    /** @test */
+    #[Test]
     public function empleado_ve_validado_de_sector_hermano(): void
     {
         // sectB comparte padre (gerAdmin) con sectA donde está nacho
@@ -258,21 +259,21 @@ class VisibilidadTest extends TestCase
         $this->assertContains($r->id, $this->idsVisibles($this->nacho));
     }
 
-    /** @test */
+    #[Test]
     public function empleado_ve_validado_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectC);
         $this->assertContains($r->id, $this->idsVisibles($this->nacho));
     }
 
-    /** @test */
+    #[Test]
     public function empleado_ve_borrador_de_su_area(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectA);
         $this->assertContains($r->id, $this->idsVisibles($this->nacho));
     }
 
-    /** @test */
+    #[Test]
     public function empleado_no_ve_borrador_de_sector_hermano(): void
     {
         // sectB es hermano de sectA — nacho no puede ver borradores de sectB
@@ -280,7 +281,7 @@ class VisibilidadTest extends TestCase
         $this->assertNotContains($r->id, $this->idsVisibles($this->nacho));
     }
 
-    /** @test */
+    #[Test]
     public function empleado_no_ve_borrador_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectC);
@@ -291,7 +292,7 @@ class VisibilidadTest extends TestCase
     // Scope: casos borde
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function superadmin_sin_area_ve_todo_incluyendo_borradores(): void
     {
         $admin = User::factory()->create(['area_id' => null, 'rol' => 'empleado']);
@@ -303,7 +304,7 @@ class VisibilidadTest extends TestCase
         $this->assertContains($r2->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function scope_funciona_en_control_igual_que_en_riesgo(): void
     {
         $visible = $this->control($this->aprobadoId, $this->sectC);
@@ -314,7 +315,7 @@ class VisibilidadTest extends TestCase
         $this->assertNotContains($invisible->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function scope_combina_correctamente_con_filtros_adicionales(): void
     {
         $r1 = $this->riesgo($this->aprobadoId, $this->sectA);
@@ -335,7 +336,7 @@ class VisibilidadTest extends TestCase
     // Policy view()
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function policy_view_aprobado_accesible_para_todos_los_roles(): void
     {
         $r = $this->riesgo($this->aprobadoId, $this->sectC);
@@ -344,49 +345,49 @@ class VisibilidadTest extends TestCase
         $this->assertTrue($this->policy()->view($this->lucia, $r));
     }
 
-    /** @test */
+    #[Test]
     public function policy_view_borrador_bloqueado_para_comite(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectA);
         $this->assertFalse($this->policy()->view($this->lucia, $r));
     }
 
-    /** @test */
+    #[Test]
     public function policy_view_borrador_accesible_para_gerente_en_su_gerencia(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectA);
         $this->assertTrue($this->policy()->view($this->canela, $r));
     }
 
-    /** @test */
+    #[Test]
     public function policy_view_borrador_bloqueado_para_gerente_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectC); // gerProd
         $this->assertFalse($this->policy()->view($this->canela, $r));
     }
 
-    /** @test */
+    #[Test]
     public function policy_view_borrador_accesible_para_empleado_en_su_area(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectA);
         $this->assertTrue($this->policy()->view($this->nacho, $r));
     }
 
-    /** @test */
+    #[Test]
     public function policy_view_borrador_bloqueado_para_empleado_en_sector_hermano(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectB);
         $this->assertFalse($this->policy()->view($this->nacho, $r));
     }
 
-    /** @test */
+    #[Test]
     public function policy_view_validado_accesible_para_empleado_en_su_gerencia(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectB); // misma gerencia, distinto sector
         $this->assertTrue($this->policy()->view($this->nacho, $r));
     }
 
-    /** @test */
+    #[Test]
     public function policy_view_validado_accesible_para_empleado_de_otra_gerencia(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectC);
@@ -397,7 +398,7 @@ class VisibilidadTest extends TestCase
     // Policy update/validar: riesgo con más de una gerencia asociada
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function gerente_de_gerencia_adicional_asociada_puede_gestionar_el_riesgo(): void
     {
         // r pertenece originalmente a gerAdmin (sectA); se asocia también gerProd (sectC)
@@ -408,7 +409,7 @@ class VisibilidadTest extends TestCase
         $this->assertTrue($this->policy()->validar($this->grassi, $r));
     }
 
-    /** @test */
+    #[Test]
     public function gerente_sin_ninguna_gerencia_asociada_no_puede_gestionar_el_riesgo(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectA);
@@ -417,7 +418,7 @@ class VisibilidadTest extends TestCase
         $this->assertFalse($this->policy()->validar($this->grassi, $r));
     }
 
-    /** @test */
+    #[Test]
     public function scope_visible_para_incluye_borrador_por_gerencia_adicional_asociada(): void
     {
         // r es de gerAdmin (sectA); se asocia también gerProd (sectC), donde está grassi
@@ -431,7 +432,7 @@ class VisibilidadTest extends TestCase
     // Borrador de un sector no se aplana a hermanos de la misma gerencia
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function borrador_de_un_sector_no_es_visible_para_hermano_de_la_misma_gerencia(): void
     {
         // Regresión: r de sectA (gerAdmin). Tito, empleado de sectB (hermano, misma
@@ -449,7 +450,7 @@ class VisibilidadTest extends TestCase
     // HTTP: show controller
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function show_aprobado_devuelve_200_para_cualquier_usuario(): void
     {
         $r = $this->riesgo($this->aprobadoId, $this->sectC); // otra gerencia
@@ -459,7 +460,7 @@ class VisibilidadTest extends TestCase
             ->assertOk();
     }
 
-    /** @test */
+    #[Test]
     public function show_borrador_retorna_403_para_comite(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectA);
@@ -469,7 +470,7 @@ class VisibilidadTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @test */
+    #[Test]
     public function show_borrador_propio_devuelve_200_para_empleado(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectA);
@@ -479,7 +480,7 @@ class VisibilidadTest extends TestCase
             ->assertOk();
     }
 
-    /** @test */
+    #[Test]
     public function show_borrador_hermano_retorna_403_para_empleado(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectB);
@@ -489,7 +490,7 @@ class VisibilidadTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @test */
+    #[Test]
     public function show_borrador_otra_gerencia_retorna_403_para_gerente(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectC); // gerProd, canela es de gerAdmin
@@ -499,7 +500,7 @@ class VisibilidadTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @test */
+    #[Test]
     public function show_validado_otra_gerencia_devuelve_200_para_empleado(): void
     {
         $r = $this->riesgo($this->validadoId, $this->sectC);

@@ -16,6 +16,7 @@ use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -61,7 +62,7 @@ class AsociacionesOcultasTest extends TestCase
     // Controles: borrado = limbo (nunca se muestra, para nadie)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function un_control_borrado_no_aparece_en_la_gestion_de_controles_del_riesgo(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id]);
@@ -75,7 +76,7 @@ class AsociacionesOcultasTest extends TestCase
             ->assertSet('ocultosIds', [$borrado->id]);
     }
 
-    /** @test */
+    #[Test]
     public function guardar_controles_preserva_el_control_borrado_oculto_sin_detacharlo(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id]);
@@ -99,7 +100,7 @@ class AsociacionesOcultasTest extends TestCase
     // Objetivos: visibilidad — borrador ajeno no se muestra
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function un_objetivo_en_borrador_de_otra_gerencia_no_aparece_para_un_gerente_que_no_lo_gestiona(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id, 'estado_id' => Estado::aprobado()->id]);
@@ -117,7 +118,7 @@ class AsociacionesOcultasTest extends TestCase
             ->assertSet('ocultosIds', [$objetivo->id]);
     }
 
-    /** @test */
+    #[Test]
     public function el_mismo_objetivo_en_borrador_si_aparece_para_el_gerente_de_su_propia_gerencia(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id, 'estado_id' => Estado::aprobado()->id]);
@@ -134,7 +135,7 @@ class AsociacionesOcultasTest extends TestCase
             ->assertSet('seleccionados', fn ($sel) => collect($sel)->pluck('id')->contains($objetivo->id));
     }
 
-    /** @test */
+    #[Test]
     public function guardar_objetivos_preserva_el_borrador_ajeno_oculto_sin_detacharlo(): void
     {
         // Comité: el mismo actor del reporte original (ve lo público, no los
@@ -166,7 +167,7 @@ class AsociacionesOcultasTest extends TestCase
     // Planes: mismo patrón (borrado = limbo)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function un_plan_borrado_no_aparece_en_la_gestion_de_planes_del_riesgo(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id]);

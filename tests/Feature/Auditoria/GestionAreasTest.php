@@ -12,6 +12,7 @@ use App\Policies\Auditoria\RiesgoPolicy;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -55,7 +56,7 @@ class GestionAreasTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function agregar_una_gerencia_la_suma_a_los_seleccionados(): void
     {
         $areaOriginal = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
@@ -72,7 +73,7 @@ class GestionAreasTest extends TestCase
         $this->assertTrue($riesgo->refresh()->areas->pluck('id')->contains($areaNueva->id));
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_quitar_la_unica_gerencia_asociada(): void
     {
         $area = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
@@ -89,7 +90,7 @@ class GestionAreasTest extends TestCase
         $this->assertCount(1, $riesgo->refresh()->areas);
     }
 
-    /** @test */
+    #[Test]
     public function crear_un_riesgo_en_subarea_asocia_el_area_puntual_y_su_gerencia(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
@@ -103,7 +104,7 @@ class GestionAreasTest extends TestCase
         $this->assertTrue($ids->contains($gerencia->id));
     }
 
-    /** @test */
+    #[Test]
     public function la_seccion_solo_muestra_la_gerencia_no_el_area_puntual(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
@@ -116,7 +117,7 @@ class GestionAreasTest extends TestCase
             ->assertSet('seleccionados', [['id' => $gerencia->id, 'nombre' => $gerencia->nombre]]);
     }
 
-    /** @test */
+    #[Test]
     public function el_empleado_creador_conserva_acceso_a_su_borrador_en_subarea(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
@@ -130,7 +131,7 @@ class GestionAreasTest extends TestCase
         $this->assertTrue((new RiesgoPolicy)->update($empleado, $riesgo));
     }
 
-    /** @test */
+    #[Test]
     public function guardar_una_gerencia_nueva_preserva_el_area_puntual_oculta(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
@@ -152,7 +153,7 @@ class GestionAreasTest extends TestCase
         $this->assertTrue($ids->contains($gerenciaDos->id));
     }
 
-    /** @test */
+    #[Test]
     public function el_buscador_de_agregar_no_devuelve_areas_que_no_son_gerencia(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
@@ -172,7 +173,7 @@ class GestionAreasTest extends TestCase
     // Bloqueo: compartir sólo con el riesgo validado y sólo gerente
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function gestionar_gerencias_requiere_gerente_y_riesgo_validado(): void
     {
         $area = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
@@ -194,7 +195,7 @@ class GestionAreasTest extends TestCase
         $this->assertFalse($policy->gestionarGerencias($empleado, $validado));
     }
 
-    /** @test */
+    #[Test]
     public function puede_gestionar_refleja_estado_y_rol_en_el_componente(): void
     {
         $area = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);

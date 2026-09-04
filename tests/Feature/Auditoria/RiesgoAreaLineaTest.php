@@ -8,6 +8,7 @@ use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -50,7 +51,7 @@ class RiesgoAreaLineaTest extends TestCase
         ], $overrides);
     }
 
-    /** @test */
+    #[Test]
     public function el_select_de_area_solo_ofrece_el_area_propia_y_sus_subareas(): void
     {
         $respuesta = $this->actingAs($this->usuario)->get(route('auditoria.riesgos.create'));
@@ -61,7 +62,7 @@ class RiesgoAreaLineaTest extends TestCase
         $respuesta->assertDontSee('Gerencia Hermana');
     }
 
-    /** @test */
+    #[Test]
     public function se_puede_crear_un_riesgo_en_una_subarea_propia(): void
     {
         $respuesta = $this->actingAs($this->usuario)
@@ -71,7 +72,7 @@ class RiesgoAreaLineaTest extends TestCase
         $this->assertEquals($this->subarea->id, Riesgo::firstOrFail()->area_id);
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_crear_un_riesgo_en_un_area_hermana(): void
     {
         // Sólo alcanzable manipulando el form: el select ya no ofrece el área.
@@ -83,7 +84,7 @@ class RiesgoAreaLineaTest extends TestCase
         $this->assertDatabaseCount('riesgos', 0);
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_mover_un_riesgo_a_un_area_hermana_al_editarlo(): void
     {
         $riesgo = Riesgo::factory()->borrador()->create([
@@ -101,7 +102,7 @@ class RiesgoAreaLineaTest extends TestCase
         $this->assertEquals($this->gerencia->id, $riesgo->fresh()->area_id);
     }
 
-    /** @test */
+    #[Test]
     public function editar_un_riesgo_conserva_su_area_aunque_quede_fuera_de_la_linea_del_usuario(): void
     {
         // El riesgo vive en la gerencia hermana pero el usuario puede gestionarlo

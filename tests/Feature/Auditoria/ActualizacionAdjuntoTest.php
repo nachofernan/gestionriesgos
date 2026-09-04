@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -66,7 +67,7 @@ class ActualizacionAdjuntoTest extends TestCase
     // Subida vía GestionActualizaciones
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function crear_una_actualizacion_con_archivo_lo_adjunta_a_la_coleccion(): void
     {
         $objetivo = $this->objetivo($this->sectA);
@@ -86,7 +87,7 @@ class ActualizacionAdjuntoTest extends TestCase
         $this->assertSame('evidencia.pdf', $actualizacion->getFirstMedia('adjuntos')->file_name);
     }
 
-    /** @test */
+    #[Test]
     public function rechaza_un_archivo_de_tipo_no_permitido(): void
     {
         $objetivo = $this->objetivo($this->sectA);
@@ -107,7 +108,7 @@ class ActualizacionAdjuntoTest extends TestCase
     // Descarga controlada por ruta
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function usuario_con_permiso_de_ver_descarga_el_adjunto(): void
     {
         $objetivo = $this->objetivo($this->sectA); // validado → visible para todos
@@ -119,7 +120,7 @@ class ActualizacionAdjuntoTest extends TestCase
             ->assertOk();
     }
 
-    /** @test */
+    #[Test]
     public function usuario_sin_permiso_de_ver_recibe_403(): void
     {
         // Objetivo en borrador de otra gerencia: no es público y nacho no gestiona sectC.
@@ -132,7 +133,7 @@ class ActualizacionAdjuntoTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @test */
+    #[Test]
     public function un_media_que_no_pertenece_a_la_actualizacion_da_404(): void
     {
         $actualizacionA = $this->actualizacionConAdjunto($this->objetivo($this->sectA));

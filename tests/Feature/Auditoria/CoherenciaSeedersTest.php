@@ -5,6 +5,7 @@ namespace Tests\Feature\Auditoria;
 use App\Models\Auditoria\PlanAccion;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -24,7 +25,7 @@ class CoherenciaSeedersTest extends TestCase
         'aprobado' => ['validado', 'aprobado'],
     ];
 
-    /** @test */
+    #[Test]
     public function ningun_plan_tiene_tareas_incompatibles_con_su_estado()
     {
         $this->seed(DatabaseSeeder::class);

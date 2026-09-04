@@ -18,6 +18,7 @@ use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -83,7 +84,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
     // GestionTareas (mutación sobre el PlanAccion)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function gestion_tareas_guardar_devuelve_403_para_gerente_de_otra_gerencia(): void
     {
         $plan = $this->planValidadoProd();
@@ -94,7 +95,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @test */
+    #[Test]
     public function gestion_tareas_guardar_nueva_tarea_devuelve_403_para_gerente_de_otra_gerencia(): void
     {
         $plan = $this->planValidadoProd();
@@ -106,7 +107,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @test */
+    #[Test]
     public function gestion_tareas_guardar_no_devuelve_403_para_gerente_que_gestiona(): void
     {
         $plan = $this->planValidadoProd();
@@ -121,7 +122,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
     // GestionControles (mutación sobre el Riesgo)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function gestion_controles_guardar_devuelve_403_para_gerente_de_otra_gerencia(): void
     {
         $riesgo = $this->riesgoValidadoProd();
@@ -132,7 +133,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @test */
+    #[Test]
     public function gestion_controles_guardar_no_devuelve_403_para_gerente_que_gestiona(): void
     {
         $riesgo = $this->riesgoValidadoProd();
@@ -147,7 +148,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
     // GestionPlanes (mutación sobre el Riesgo)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function gestion_planes_guardar_devuelve_403_para_gerente_de_otra_gerencia(): void
     {
         $riesgo = $this->riesgoValidadoProd();
@@ -158,7 +159,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @test */
+    #[Test]
     public function gestion_planes_guardar_no_devuelve_403_para_gerente_que_gestiona(): void
     {
         $riesgo = $this->riesgoValidadoProd();
@@ -173,7 +174,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
     // GestionObjetivos (mutación sobre el Riesgo)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function gestion_objetivos_guardar_devuelve_403_para_gerente_de_otra_gerencia(): void
     {
         $riesgo = $this->riesgoValidadoProd();
@@ -187,7 +188,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @test */
+    #[Test]
     public function gestion_objetivos_guardar_no_devuelve_403_para_gerente_que_gestiona(): void
     {
         $riesgo = $this->riesgoValidadoProd();
@@ -205,7 +206,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
     // que el historial usa para rotularla "Cambios aplicados" y no "propuestos".
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function una_asociacion_de_controles_aplicada_en_el_acto_queda_marcada_como_activada(): void
     {
         $riesgo = $this->riesgoValidadoProd();

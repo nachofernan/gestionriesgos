@@ -19,6 +19,7 @@ use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -108,7 +109,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
     // Plan de acción
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function plan_publico_de_b_no_expone_su_riesgo_borrador_a_un_gerente_de_a(): void
     {
         $plan = PlanAccion::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -122,7 +123,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($aprobado->id, $ids, 'El aprobado de B sí debe aparecer para un gerente de A.');
     }
 
-    /** @test */
+    #[Test]
     public function plan_publico_de_b_muestra_su_riesgo_borrador_al_propio_gerente_de_b(): void
     {
         $plan = PlanAccion::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -138,7 +139,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
     // Control
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function control_publico_de_b_no_expone_su_riesgo_borrador_a_un_gerente_de_a(): void
     {
         $control = Control::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -155,7 +156,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($aprobado->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function control_publico_de_b_muestra_su_riesgo_borrador_al_propio_gerente_de_b(): void
     {
         $control = Control::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -174,7 +175,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
     // Objetivo
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function objetivo_publico_de_b_no_expone_su_riesgo_borrador_a_un_gerente_de_a(): void
     {
         $objetivo = Objetivo::create([
@@ -196,7 +197,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($aprobado->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function objetivo_publico_de_b_muestra_su_riesgo_borrador_al_propio_gerente_de_b(): void
     {
         $objetivo = Objetivo::create([
@@ -216,7 +217,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($borrador->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function objetivo_no_expone_el_plan_borrador_de_b_en_planes_vinculados_a_un_gerente_de_a(): void
     {
         // "Planes de acción vinculados" en el show del objetivo se deriva de
@@ -241,7 +242,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($planAprobado->id, $planIds);
     }
 
-    /** @test */
+    #[Test]
     public function objetivo_muestra_el_plan_borrador_en_planes_vinculados_al_propio_gerente_de_b(): void
     {
         $objetivo = Objetivo::create([
@@ -265,7 +266,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
     // Tarea (los riesgos cuelgan de planesAccion.riesgos)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function tarea_publica_de_b_no_expone_el_riesgo_borrador_de_su_plan_a_un_gerente_de_a(): void
     {
         $tarea = Tarea::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -285,7 +286,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($aprobado->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function tarea_publica_de_b_muestra_el_riesgo_borrador_de_su_plan_al_propio_gerente_de_b(): void
     {
         $tarea = Tarea::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -307,7 +308,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
     // Modales de vista rápida (DetalleObjetivo/Control/Plan/Tarea)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function el_modal_de_objetivo_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
     {
         $objetivo = Objetivo::create([
@@ -327,7 +328,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($aprobado->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function el_modal_de_control_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
     {
         $control = Control::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -344,7 +345,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($aprobado->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function el_modal_de_plan_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
     {
         $plan = PlanAccion::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);
@@ -361,7 +362,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->assertContains($aprobado->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function el_modal_de_tarea_no_expone_el_riesgo_borrador_de_b_a_un_gerente_de_a(): void
     {
         $tarea = Tarea::factory()->create(['estado_id' => $this->aprobadoId, 'area_id' => $this->sectC->id]);

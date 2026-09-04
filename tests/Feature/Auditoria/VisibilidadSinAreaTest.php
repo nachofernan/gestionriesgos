@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Policies\Auditoria\ObjetivoPolicy;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -100,7 +101,7 @@ class VisibilidadSinAreaTest extends TestCase
     // Caso reportado: el creador ve su propio borrador sin área
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function creador_ve_en_el_listado_su_borrador_sin_area(): void
     {
         $o = $this->objetivo($this->borradorId, $this->nacho);
@@ -109,7 +110,7 @@ class VisibilidadSinAreaTest extends TestCase
         $this->assertContains($o->id, $ids);
     }
 
-    /** @test */
+    #[Test]
     public function gerente_del_responsable_ve_y_gestiona_el_borrador_sin_area(): void
     {
         // canela es gerente de gerA, ancestro de sectA1 donde está nacho
@@ -120,7 +121,7 @@ class VisibilidadSinAreaTest extends TestCase
         $this->assertTrue($this->policy()->update($this->canela, $o));
     }
 
-    /** @test */
+    #[Test]
     public function gerente_sin_relacion_con_el_responsable_no_ve_ni_gestiona_el_borrador_sin_area(): void
     {
         // grassi (gerB) no tiene ninguna relación de jerarquía con nacho (sectA1, gerA)
@@ -132,7 +133,7 @@ class VisibilidadSinAreaTest extends TestCase
         $this->assertFalse($this->policy()->update($this->grassi, $o));
     }
 
-    /** @test */
+    #[Test]
     public function comite_no_ve_borrador_sin_area(): void
     {
         $o = $this->objetivo($this->borradorId, $this->nacho);
@@ -142,7 +143,7 @@ class VisibilidadSinAreaTest extends TestCase
         $this->assertFalse($this->policy()->view($this->lucia, $o));
     }
 
-    /** @test */
+    #[Test]
     public function validado_sin_area_es_publico_para_todos(): void
     {
         $o = $this->objetivo($this->validadoId, $this->nacho);
@@ -155,7 +156,7 @@ class VisibilidadSinAreaTest extends TestCase
     // Regresión: mismo patrón en Control, PlanAccion y Tarea
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function control_sin_area_sigue_el_mismo_patron(): void
     {
         $c = Control::create([
@@ -171,7 +172,7 @@ class VisibilidadSinAreaTest extends TestCase
         $this->assertNotContains($c->id, Control::visiblePara($this->grassi)->pluck('id')->toArray());
     }
 
-    /** @test */
+    #[Test]
     public function plan_accion_sin_area_sigue_el_mismo_patron(): void
     {
         $p = PlanAccion::create([
@@ -187,7 +188,7 @@ class VisibilidadSinAreaTest extends TestCase
         $this->assertNotContains($p->id, PlanAccion::visiblePara($this->grassi)->pluck('id')->toArray());
     }
 
-    /** @test */
+    #[Test]
     public function tarea_sin_area_sigue_el_mismo_patron(): void
     {
         $t = Tarea::create([

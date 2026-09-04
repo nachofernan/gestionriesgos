@@ -12,6 +12,7 @@ use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -53,7 +54,7 @@ class PanelRiesgosTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function el_gerente_ve_solo_los_riesgos_de_su_cascada_no_los_de_otra_gerencia(): void
     {
         $propio = $this->crearRiesgo('aprobado', $this->gerAdmin);
@@ -66,7 +67,7 @@ class PanelRiesgosTest extends TestCase
                 && ! collect($js)->pluck('codigo')->contains($ajeno->codigo));
     }
 
-    /** @test */
+    #[Test]
     public function una_subarea_de_la_propia_gerencia_si_entra_al_panel(): void
     {
         $subArea = Area::create(['nombre' => 'Contaduría', 'area_padre_id' => $this->gerAdmin->id]);
@@ -78,7 +79,7 @@ class PanelRiesgosTest extends TestCase
             ->assertViewHas('riesgosJs', fn ($js) => collect($js)->pluck('codigo')->contains($propio->codigo));
     }
 
-    /** @test */
+    #[Test]
     public function el_comite_ve_los_riesgos_de_todas_las_gerencias(): void
     {
         $comiteUser = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
@@ -90,7 +91,7 @@ class PanelRiesgosTest extends TestCase
             ->assertViewHas('total', 2);
     }
 
-    /** @test */
+    #[Test]
     public function el_panel_nunca_incluye_borradores_ni_apagando_el_toggle(): void
     {
         $this->crearRiesgo('borrador', $this->gerAdmin);
@@ -101,7 +102,7 @@ class PanelRiesgosTest extends TestCase
             ->assertViewHas('total', 0);
     }
 
-    /** @test */
+    #[Test]
     public function el_toggle_solo_aprobados_encendido_deja_fuera_los_validados(): void
     {
         $this->crearRiesgo('aprobado', $this->gerAdmin);
@@ -116,7 +117,7 @@ class PanelRiesgosTest extends TestCase
         $componente->set('soloAprobados', false)->assertViewHas('total', 2);
     }
 
-    /** @test */
+    #[Test]
     public function el_riel_residual_refleja_la_mitigacion_de_un_control_aprobado(): void
     {
         $riesgo = $this->crearRiesgo('aprobado', $this->gerAdmin, 5, 5); // valor_total = 10

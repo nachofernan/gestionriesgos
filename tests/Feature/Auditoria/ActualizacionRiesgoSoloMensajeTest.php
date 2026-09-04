@@ -12,6 +12,7 @@ use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -41,7 +42,7 @@ class ActualizacionRiesgoSoloMensajeTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function el_modal_de_actualizacion_de_un_riesgo_no_ofrece_campos_editables(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
@@ -55,7 +56,7 @@ class ActualizacionRiesgoSoloMensajeTest extends TestCase
             ->assertSet('cambios', []);
     }
 
-    /** @test */
+    #[Test]
     public function una_actualizacion_de_riesgo_crea_solo_el_mensaje_sin_tocar_impacto_ni_probabilidad(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);

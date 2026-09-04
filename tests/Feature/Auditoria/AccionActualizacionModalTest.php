@@ -2,15 +2,16 @@
 
 namespace Tests\Feature\Auditoria;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Livewire;
-use Tests\TestCase;
-use App\Models\User;
+use App\Livewire\Auditoria\Actualizaciones\AccionActualizacionModal;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
-use App\Livewire\Auditoria\Actualizaciones\AccionActualizacionModal;
+use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 /**
  * Cubre el modal liviano de Pendientes para validar/aprobar/rechazar una
@@ -22,8 +23,11 @@ class AccionActualizacionModalTest extends TestCase
     use RefreshDatabase;
 
     private Area $gerAdmin;
+
     private Area $sectA;
+
     private User $canela; // gerente gerAdmin
+
     private User $lucia;  // comité
 
     protected function setUp(): void
@@ -31,34 +35,34 @@ class AccionActualizacionModalTest extends TestCase
         parent::setUp();
         $this->seed(EstadoRiesgoSeeder::class);
 
-        $comite         = Area::create(['nombre' => 'Comité', 'area_padre_id' => null]);
+        $comite = Area::create(['nombre' => 'Comité', 'area_padre_id' => null]);
         $this->gerAdmin = Area::create(['nombre' => 'Ger. Admin', 'area_padre_id' => $comite->id]);
-        $this->sectA    = Area::create(['nombre' => 'Sector A', 'area_padre_id' => $this->gerAdmin->id]);
+        $this->sectA = Area::create(['nombre' => 'Sector A', 'area_padre_id' => $this->gerAdmin->id]);
 
         $this->canela = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerAdmin->id]);
-        $this->lucia  = User::factory()->create(['rol' => 'comite',  'area_id' => $comite->id]);
+        $this->lucia = User::factory()->create(['rol' => 'comite',  'area_id' => $comite->id]);
     }
 
     private function objetivoConActualizacion(int $estadoObjetivo, int $estadoActualizacion): array
     {
         $objetivo = Objetivo::create([
-            'nombre'    => 'Objetivo original',
+            'nombre' => 'Objetivo original',
             'estado_id' => $estadoObjetivo,
-            'area_id'   => $this->sectA->id,
-            'user_id'   => $this->canela->id,
+            'area_id' => $this->sectA->id,
+            'user_id' => $this->canela->id,
         ]);
 
         $actualizacion = $objetivo->actualizaciones()->create([
-            'user_id'   => $this->canela->id,
-            'mensaje'   => 'Propongo cambiar el nombre',
+            'user_id' => $this->canela->id,
+            'mensaje' => 'Propongo cambiar el nombre',
             'estado_id' => $estadoActualizacion,
-            'data'      => ['tipo' => 'cambio', 'campos' => ['nombre' => 'Objetivo nuevo']],
+            'data' => ['tipo' => 'cambio', 'campos' => ['nombre' => 'Objetivo nuevo']],
         ]);
 
         return [$objetivo, $actualizacion];
     }
 
-    /** @test */
+    #[Test]
     public function el_gerente_puede_validar_una_actualizacion_de_su_area_desde_el_modal(): void
     {
         [$objetivo, $actualizacion] = $this->objetivoConActualizacion(Estado::aprobado()->id, Estado::borrador()->id);
@@ -74,7 +78,7 @@ class AccionActualizacionModalTest extends TestCase
         $this->assertEquals('validado', $actualizacion->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function el_comite_puede_aprobar_una_actualizacion_validada_y_se_aplican_los_cambios(): void
     {
         [$objetivo, $actualizacion] = $this->objetivoConActualizacion(Estado::validado()->id, Estado::validado()->id);
@@ -90,7 +94,7 @@ class AccionActualizacionModalTest extends TestCase
         $this->assertEquals('Objetivo nuevo', $objetivo->fresh()->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function rechazar_marca_la_actualizacion_como_borrada_sin_tocar_la_entidad(): void
     {
         [$objetivo, $actualizacion] = $this->objetivoConActualizacion(Estado::aprobado()->id, Estado::borrador()->id);
@@ -105,7 +109,7 @@ class AccionActualizacionModalTest extends TestCase
         $this->assertEquals('Objetivo original', $objetivo->fresh()->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function un_gerente_de_otra_area_no_puede_abrir_el_modal_para_validar(): void
     {
         [, $actualizacion] = $this->objetivoConActualizacion(Estado::aprobado()->id, Estado::borrador()->id);

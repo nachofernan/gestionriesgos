@@ -5,6 +5,7 @@ namespace Tests\Feature\Auditoria;
 use App\Enums\Auditoria\TipoArea;
 use App\Models\Auditoria\Area;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -16,7 +17,7 @@ class AreaTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function es_gerencia_es_true_solo_para_areas_marcadas(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia', 'area_padre_id' => null, 'tipo' => TipoArea::Gerencia]);
@@ -26,7 +27,7 @@ class AreaTest extends TestCase
         $this->assertFalse($sector->esGerencia());
     }
 
-    /** @test */
+    #[Test]
     public function gerencia_de_un_area_marcada_es_ella_misma(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia', 'area_padre_id' => null, 'tipo' => TipoArea::Gerencia]);
@@ -34,7 +35,7 @@ class AreaTest extends TestCase
         $this->assertEquals($gerencia->id, $gerencia->gerencia()->id);
     }
 
-    /** @test */
+    #[Test]
     public function gerencia_sube_varios_niveles_hasta_la_primera_marcada(): void
     {
         $comite = Area::create(['nombre' => 'Comité', 'area_padre_id' => null, 'tipo' => TipoArea::Gerencia]);
@@ -46,7 +47,7 @@ class AreaTest extends TestCase
         $this->assertEquals($gerencia->id, $sector->gerencia()->id);
     }
 
-    /** @test */
+    #[Test]
     public function gerencia_del_comite_raiz_marcado_es_si_mismo(): void
     {
         $comite = Area::create(['nombre' => 'Comité', 'area_padre_id' => null, 'tipo' => TipoArea::Gerencia]);
@@ -54,7 +55,7 @@ class AreaTest extends TestCase
         $this->assertEquals($comite->id, $comite->gerencia()->id);
     }
 
-    /** @test */
+    #[Test]
     public function gerencia_devuelve_null_si_ningun_ancestro_esta_marcado(): void
     {
         $raiz = Area::create(['nombre' => 'Raíz', 'area_padre_id' => null]);

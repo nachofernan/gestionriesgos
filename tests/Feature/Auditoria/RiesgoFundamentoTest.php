@@ -8,6 +8,8 @@ use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -47,11 +49,8 @@ class RiesgoFundamentoTest extends TestCase
         ];
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider respuestasQueExigenFundamento
-     */
+    #[Test]
+    #[DataProvider('respuestasQueExigenFundamento')]
     public function no_se_puede_crear_un_riesgo_sin_fundamento_si_la_respuesta_lo_exige(string $respuestaRiesgo): void
     {
         $respuesta = $this->actingAs($this->usuario)
@@ -61,11 +60,8 @@ class RiesgoFundamentoTest extends TestCase
         $this->assertDatabaseCount('riesgos', 0);
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider respuestasQueExigenFundamento
-     */
+    #[Test]
+    #[DataProvider('respuestasQueExigenFundamento')]
     public function se_crea_el_riesgo_con_fundamento_si_la_respuesta_lo_exige(string $respuestaRiesgo): void
     {
         $respuesta = $this->actingAs($this->usuario)->post(route('auditoria.riesgos.store'), $this->datosWizard([
@@ -77,7 +73,7 @@ class RiesgoFundamentoTest extends TestCase
         $this->assertEquals('El costo de mitigarlo supera al impacto esperado.', Riesgo::firstOrFail()->fundamento);
     }
 
-    /** @test */
+    #[Test]
     public function mitigar_no_exige_fundamento(): void
     {
         $respuesta = $this->actingAs($this->usuario)
@@ -87,7 +83,7 @@ class RiesgoFundamentoTest extends TestCase
         $this->assertNull(Riesgo::firstOrFail()->fundamento);
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_sin_respuesta_no_exige_fundamento(): void
     {
         $respuesta = $this->actingAs($this->usuario)
@@ -97,7 +93,7 @@ class RiesgoFundamentoTest extends TestCase
         $this->assertNull(Riesgo::firstOrFail()->fundamento);
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_editar_un_riesgo_dejando_sin_fundamento_una_respuesta_que_lo_exige(): void
     {
         $riesgo = Riesgo::factory()->borrador()->create([
@@ -115,7 +111,7 @@ class RiesgoFundamentoTest extends TestCase
         $this->assertEquals(RespuestaRiesgo::Mitigar, $riesgo->fresh()->respuesta);
     }
 
-    /** @test */
+    #[Test]
     public function el_fundamento_queda_registrado_en_el_historial_al_editarlo(): void
     {
         $riesgo = Riesgo::factory()->borrador()->create([

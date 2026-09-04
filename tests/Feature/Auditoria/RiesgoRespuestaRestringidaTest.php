@@ -9,6 +9,7 @@ use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Database\Seeders\TipoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -53,7 +54,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
         ], $overrides);
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_crear_un_riesgo_de_corrupcion_con_respuesta_compartir(): void
     {
         $respuesta = $this->actingAs($this->usuario)
@@ -63,7 +64,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
         $this->assertDatabaseCount('riesgos', 0);
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_crear_un_riesgo_de_corrupcion_con_respuesta_aceptar(): void
     {
         $respuesta = $this->actingAs($this->usuario)
@@ -73,7 +74,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
         $this->assertDatabaseCount('riesgos', 0);
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_de_corrupcion_admite_mitigar_y_evitar(): void
     {
         $respuesta = $this->actingAs($this->usuario)->post(route('auditoria.riesgos.store'), $this->datosWizard([
@@ -85,7 +86,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
         $this->assertEquals(RespuestaRiesgo::Evitar, Riesgo::firstOrFail()->respuesta);
     }
 
-    /** @test */
+    #[Test]
     public function un_tipo_sin_restriccion_sigue_admitiendo_compartir(): void
     {
         $respuesta = $this->actingAs($this->usuario)->post(route('auditoria.riesgos.store'), $this->datosWizard([
@@ -98,7 +99,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
         $this->assertEquals(RespuestaRiesgo::Compartir, Riesgo::firstOrFail()->respuesta);
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_pasar_un_riesgo_compartido_a_tipo_corrupcion_al_editarlo(): void
     {
         $riesgo = Riesgo::factory()->borrador()->create([
@@ -117,7 +118,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
         $this->assertEquals($this->operacional->id, $riesgo->fresh()->tipo_riesgo_id);
     }
 
-    /** @test */
+    #[Test]
     public function el_seeder_marca_corrupcion_como_tipo_restringido(): void
     {
         TipoRiesgo::query()->forceDelete();

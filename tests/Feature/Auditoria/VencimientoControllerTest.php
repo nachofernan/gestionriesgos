@@ -9,6 +9,7 @@ use App\Models\Auditoria\Tarea;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -48,7 +49,7 @@ class VencimientoControllerTest extends TestCase
         ], $attrs));
     }
 
-    /** @test */
+    #[Test]
     public function las_tareas_se_agrupan_por_tramo_segun_su_fecha_de_vencimiento(): void
     {
         $vencida = $this->crearTarea(['nombre' => 'Tarea vencida', 'fecha' => today()->subDays(5)]);
@@ -63,7 +64,7 @@ class VencimientoControllerTest extends TestCase
         $response->assertViewHas('enPlazo', fn ($items) => $items->pluck('id')->all() === [$enPlazo->id]);
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_que_vence_hoy_cuenta_como_por_vencer_y_no_como_vencida(): void
     {
         $hoy = $this->crearTarea(['fecha' => today()]);
@@ -74,7 +75,7 @@ class VencimientoControllerTest extends TestCase
         $response->assertViewHas('porVencer', fn ($items) => $items->pluck('id')->all() === [$hoy->id]);
     }
 
-    /** @test */
+    #[Test]
     public function el_limite_de_treinta_dias_separa_por_vencer_de_en_plazo(): void
     {
         $borde = $this->crearTarea(['fecha' => today()->addDays(30)]);
@@ -86,7 +87,7 @@ class VencimientoControllerTest extends TestCase
         $response->assertViewHas('enPlazo', fn ($items) => $items->pluck('id')->all() === [$pasado->id]);
     }
 
-    /** @test */
+    #[Test]
     public function las_vencidas_se_ordenan_de_la_mas_atrasada_a_la_menos(): void
     {
         $reciente = $this->crearTarea(['fecha' => today()->subDays(2)]);
@@ -97,7 +98,7 @@ class VencimientoControllerTest extends TestCase
         $response->assertViewHas('vencidas', fn ($items) => $items->pluck('id')->all() === [$antigua->id, $reciente->id]);
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_terminada_al_cien_por_ciento_no_figura_aunque_este_vencida(): void
     {
         $this->crearTarea(['nombre' => 'Tarea terminada', 'fecha' => today()->subDays(5), 'porcentaje_avance' => 100]);
@@ -108,7 +109,7 @@ class VencimientoControllerTest extends TestCase
         $response->assertDontSee('Tarea terminada');
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_en_borrador_no_figura_porque_todavia_no_es_un_compromiso(): void
     {
         $this->crearTarea([
@@ -122,7 +123,7 @@ class VencimientoControllerTest extends TestCase
         $response->assertViewHas('vencidas', fn ($items) => $items->isEmpty());
     }
 
-    /** @test */
+    #[Test]
     public function las_tareas_sin_fecha_se_listan_aparte_y_no_como_vencidas(): void
     {
         $sinFecha = $this->crearTarea(['nombre' => 'Tarea sin fecha', 'fecha' => null]);
@@ -134,7 +135,7 @@ class VencimientoControllerTest extends TestCase
         $response->assertSee('Sin vencimiento definido');
     }
 
-    /** @test */
+    #[Test]
     public function la_fila_de_la_tarea_muestra_el_plan_al_que_pertenece(): void
     {
         $tarea = $this->crearTarea(['fecha' => today()->subDays(3)]);
@@ -151,7 +152,7 @@ class VencimientoControllerTest extends TestCase
             ->assertSee('Plan de contingencia');
     }
 
-    /** @test */
+    #[Test]
     public function un_borrador_de_otra_gerencia_no_se_filtra_en_el_listado(): void
     {
         $this->crearTarea([
@@ -166,7 +167,7 @@ class VencimientoControllerTest extends TestCase
             ->assertDontSee('Borrador ajeno');
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_aprobada_de_otra_gerencia_no_aparece_pese_a_ser_publica(): void
     {
         $ajena = $this->crearTarea([
@@ -181,7 +182,7 @@ class VencimientoControllerTest extends TestCase
         $response->assertDontSee('Vencimiento ajeno');
     }
 
-    /** @test */
+    #[Test]
     public function una_subarea_de_la_propia_gerencia_si_aparece(): void
     {
         $subArea = Area::create(['nombre' => 'Contaduría', 'area_padre_id' => $this->gerAdmin->id]);
@@ -197,7 +198,7 @@ class VencimientoControllerTest extends TestCase
         $response->assertSee('Vencimiento de subárea');
     }
 
-    /** @test */
+    #[Test]
     public function el_comite_ve_los_vencimientos_de_cualquier_gerencia(): void
     {
         $comiteUser = User::factory()->create(['rol' => 'comite', 'area_id' => null]);

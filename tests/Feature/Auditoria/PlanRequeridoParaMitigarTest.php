@@ -15,6 +15,7 @@ use App\Services\Auditoria\ValidacionMasivaService;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -68,7 +69,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     // Reglas del modelo
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function un_riesgo_mitigar_con_plan_en_borrador_no_puede_validarse_aunque_el_plan_exista()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -81,7 +82,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertStringContainsString('debe estar validado', $motivos[0]);
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_mitigar_con_plan_validado_puede_validarse()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -91,7 +92,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertEmpty($riesgo->motivosBloqueoValidacion());
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_mitigar_sin_ningun_plan_no_puede_validarse()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -102,7 +103,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertStringContainsString('al menos un plan de acción', $motivos[0]);
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_mitigar_con_plan_validado_pero_no_aprobado_no_puede_aprobarse()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -116,7 +117,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertStringContainsString('plan de acción aprobado', $motivos[0]);
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_mitigar_con_plan_aprobado_puede_aprobarse()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -127,7 +128,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertEmpty($riesgo->motivosBloqueoAprobacion());
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_con_respuesta_distinta_de_mitigar_no_exige_plan_para_validar_ni_aprobar()
     {
         $riesgo = Riesgo::factory()->validado()->create([
@@ -151,7 +152,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     // Controlador (camino feliz + caso feo)
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function el_controlador_bloquea_validar_un_riesgo_mitigar_con_plan_en_borrador()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -165,7 +166,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertEquals('borrador', $riesgo->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function el_controlador_bloquea_aprobar_un_riesgo_mitigar_con_plan_solo_validado()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -180,7 +181,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertEquals('validado', $riesgo->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function el_controlador_permite_aprobar_un_riesgo_mitigar_con_plan_ya_aprobado()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -199,7 +200,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     // Cascada: el plan es bloqueante del riesgo, no al revés
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function la_cascada_de_validacion_del_riesgo_ofrece_el_plan_como_bloqueante()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -212,7 +213,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertContains('plan', $tiposBloqueantes);
     }
 
-    /** @test */
+    #[Test]
     public function validar_el_riesgo_desde_la_cascada_seleccionando_el_plan_valida_ambos()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -229,7 +230,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertEquals('validado', $plan->fresh()->estado->nombre);
     }
 
-    /** @test */
+    #[Test]
     public function la_cascada_de_validacion_del_plan_ya_no_ofrece_el_riesgo_como_bloqueante()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -241,7 +242,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->assertEmpty($analisis['bloqueantes']);
     }
 
-    /** @test */
+    #[Test]
     public function validar_el_plan_directamente_no_exige_ni_toca_el_estado_del_riesgo()
     {
         $riesgo = $this->riesgoMitigarConObjetivo(); // riesgo queda en borrador
@@ -263,7 +264,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     // el avance de estado, no que te lo saquen estando ya validado/aprobado).
     // -------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function un_riesgo_aprobado_mitigar_no_puede_quitar_su_unico_plan_aprobado()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -279,7 +280,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
             ->assertSet('seleccionados', fn ($sel) => collect($sel)->pluck('id')->contains($plan->id));
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_validado_mitigar_no_puede_quitar_su_unico_plan_validado()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -295,7 +296,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
             ->assertSet('seleccionados', fn ($sel) => collect($sel)->pluck('id')->contains($plan->id));
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_validado_mitigar_puede_quitar_un_plan_en_borrador_si_otro_lo_respalda()
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
@@ -312,7 +313,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
             ->assertSet('seleccionados', fn ($sel) => ! collect($sel)->pluck('id')->contains($borrador->id));
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_mitigar_en_borrador_puede_quedarse_sin_planes_desde_gestion_planes()
     {
         $riesgo = $this->riesgoMitigarConObjetivo(); // borrador
@@ -327,7 +328,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
             ->assertSet('seleccionados', []);
     }
 
-    /** @test */
+    #[Test]
     public function un_riesgo_aprobado_con_respuesta_distinta_de_mitigar_puede_quedarse_sin_planes()
     {
         $riesgo = Riesgo::factory()->aprobado()->create([

@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Auditoria;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
+use App\Models\User;
+use Database\Seeders\EstadoRiesgoSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 /**
  * Cubre que impacto/probabilidad de un riesgo dejaron de editarse a mano en
@@ -21,23 +23,23 @@ class RiesgoRecalcularTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\EstadoRiesgoSeeder::class);
+        $this->seed(EstadoRiesgoSeeder::class);
     }
 
-    /** @test */
+    #[Test]
     public function editar_un_riesgo_no_modifica_impacto_ni_probabilidad_aunque_se_envien(): void
     {
-        $user   = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create([
-            'user_id'  => $user->id,
-            'impacto'  => 5,
+            'user_id' => $user->id,
+            'impacto' => 5,
             'probabilidad' => 4,
         ]);
 
         $this->actingAs($user)->put(route('auditoria.riesgos.update', $riesgo), [
-            'nombre'         => 'Nombre actualizado',
-            'impacto'        => 10,
-            'probabilidad'   => 10,
+            'nombre' => 'Nombre actualizado',
+            'impacto' => 10,
+            'probabilidad' => 10,
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
         ]);
 
@@ -47,10 +49,10 @@ class RiesgoRecalcularTest extends TestCase
         $this->assertEquals(4, $riesgo->probabilidad);
     }
 
-    /** @test */
+    #[Test]
     public function la_pagina_de_recalcular_renderiza_el_wizard_de_preguntas(): void
     {
-        $user   = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create(['user_id' => $user->id]);
 
         $respuesta = $this->actingAs($user)->get(route('auditoria.riesgos.recalcular', $riesgo));
@@ -59,10 +61,10 @@ class RiesgoRecalcularTest extends TestCase
         $respuesta->assertSee('¿Este riesgo ya ocurrió en el pasado en esta área o similares?');
     }
 
-    /** @test */
+    #[Test]
     public function recalcular_actualiza_impacto_y_probabilidad_segun_las_respuestas(): void
     {
-        $user   = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $user->id,
             'impacto' => 0,
@@ -71,7 +73,7 @@ class RiesgoRecalcularTest extends TestCase
 
         $this->actingAs($user)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
-            'impacto_respuestas'      => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
         ]);
 
         $riesgo->refresh();
@@ -79,10 +81,10 @@ class RiesgoRecalcularTest extends TestCase
         $this->assertEquals(3, $riesgo->impacto);
     }
 
-    /** @test */
+    #[Test]
     public function recalcular_deja_registro_del_cambio_en_el_historial(): void
     {
-        $user   = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $user->id,
             'impacto' => 0,
@@ -91,7 +93,7 @@ class RiesgoRecalcularTest extends TestCase
 
         $this->actingAs($user)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
-            'impacto_respuestas'      => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
         ]);
 
         $actualizacion = $riesgo->actualizaciones()->first();
@@ -100,10 +102,10 @@ class RiesgoRecalcularTest extends TestCase
         $this->assertEquals(3, $actualizacion->data['diff']['campos']['impacto']['despues']);
     }
 
-    /** @test */
+    #[Test]
     public function no_se_puede_recalcular_un_riesgo_ya_validado(): void
     {
-        $user   = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $riesgo = Riesgo::factory()->validado()->create(['user_id' => $user->id]);
 
         $respuesta = $this->actingAs($user)->get(route('auditoria.riesgos.recalcular', $riesgo));

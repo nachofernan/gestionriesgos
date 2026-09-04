@@ -7,6 +7,7 @@ use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Tarea;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -32,7 +33,7 @@ class VencimientoPlanTest extends TestCase
         ], $attrs));
     }
 
-    /** @test */
+    #[Test]
     public function un_plan_esta_vencido_si_alguna_tarea_pendiente_paso_su_fecha(): void
     {
         $plan = PlanAccion::factory()->create();
@@ -46,7 +47,7 @@ class VencimientoPlanTest extends TestCase
         $this->assertTrue($plan->vencimiento->isSameDay($vencida->fecha));
     }
 
-    /** @test */
+    #[Test]
     public function el_vencimiento_del_plan_es_la_fecha_pendiente_mas_proxima_no_la_mas_lejana(): void
     {
         $plan = PlanAccion::factory()->create();
@@ -60,7 +61,7 @@ class VencimientoPlanTest extends TestCase
         $this->assertTrue($plan->vencimiento->isSameDay($cercana->fecha));
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_al_100_con_fecha_pasada_no_vence_el_plan(): void
     {
         $plan = PlanAccion::factory()->create();
@@ -73,7 +74,7 @@ class VencimientoPlanTest extends TestCase
         $this->assertNull($plan->vencimiento);
     }
 
-    /** @test */
+    #[Test]
     public function una_tarea_borrada_no_cuenta_para_el_vencimiento_del_plan(): void
     {
         $plan = PlanAccion::factory()->create();
@@ -86,7 +87,7 @@ class VencimientoPlanTest extends TestCase
         $this->assertNull($plan->vencimiento);
     }
 
-    /** @test */
+    #[Test]
     public function un_plan_sin_tareas_con_fecha_no_esta_vencido(): void
     {
         $plan = PlanAccion::factory()->create();
