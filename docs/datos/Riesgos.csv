@@ -1,0 +1,194 @@
+﻿id;codigo;nombre;descripcion;impacto;probabilidad;respuesta;fundamento;tipo_riesgo_id;area_id;user_id;mayor_criticidad
+1;;Sumnistro de combustible;Falta de Planificación y coordinación para anticipar el suministro;10;10;mitigar;;1;CYDC;Doncheff;NO
+2;;Reemplazo a combustible propio;Gestión inadecuada o deficiente en del reemplazo del combustible de CAMMESA por combustible propio;10;10;mitigar;;1;CYDC;Doncheff;NO
+3;;Gestión de contratos de suministro;Incumplimientos o ineficiencias en la Gestión de contratos de suministro de combustibles ;10;10;mitigar;;1;CYDC;Doncheff;NO
+4;;Migración de datos;Inconsistencia o pérdida de datos durante el proceso de migración tecnológica entre los medidores/sistemas anteriores y la nueva plataforma modernizada;6;6;mitigar;;1;CYDS;Doncheff;NO
+5;;Lectura SMEC;Fallas de sincronismo, daño físico o discrepancias en la lectura del SMEC. Pérdida de datos por fallas de comunicación en el medidor, descalibración de los equipos, o la falta de detección a tiempo de alarmas del sistema de medición;10;10;mitigar;;1;CYDS;Doncheff;NO
+6;;SMEC analógico a moderno;Vulnerabilidad ante accesos no autorizados o alteración digital de datos al pasar de un sistema SMEC analógica/aislado a uno moderno y conectado a redes TCP/IP, como protocolo de transporte sobre una red física dedicada;3;3;mitigar;;1;CYDS;Doncheff;NO
+7;;Mensajes equívocos;Falla o distorsión en la cadena de mandos (mensajes equívocos). Errores en la interpretación de las instrucciones de despacho de CAMMESA o demoras en la retransmisión interna de los mensajes. ;6;6;mitigar;;1;CYDG;Doncheff;NO
+8;;Problemas con información;Asimetría o falta de oportunidad en la información. No reportar en los tiempos establecidos por los procedimientos las indisponibilidades, limitaciones técnicas o fallas en las unidades generadoras de BAESA;6;6;mitigar;;1;CYDG;Doncheff;NO
+9;;Conectividad con sistemas CAMMESA;Pérdida de conectividad con los sistemas de CAMMESA. Caída de los sistemas de adquisición de datos (SCADA), del sistema de mensajería obligatoria o de las líneas telefónicas prioritarias. ;6;6;mitigar;;1;CYDG;Doncheff;NO
+10;;Declaración CVP;Inconsistencias u obsolescencia en la Declaración de Costos Variables de Producción (CVP) y gestión de combustibles. Errores en el cálculo o retrasos en la declaración de costos bajo las nuevas reglas competitivas del despacho al Spot de la Res. 400/2025;3;3;mitigar;;1;CYDE;Doncheff;NO
+11;;Control DTE;Aceptación de Liquidaciones de CAMMESA con errores no detectados. No contrastar los Documentos de Transacciones Económicas con los registros reales de disponibilidad, potencia contratada y despacho de BAESA;3;3;mitigar;;1;CYDE;Doncheff;NO
+12;;Discrepancias en información GOC-EE;Falta de oportunidad o discrepancias en la información de indisponibilidad. Desalineación entre las novedades reportadas por el COG (despacho técnico) y las penalizaciones procesadas por Economía Energética;3;3;mitigar;;1;CYDE;Doncheff;NO
+13;;Soborno en certifiaciones;Riesgo de soborno para adecuar certificación / califiación del proveedor. (desde ADM CENTRAL);1;8;mitigar;;7;PRO;Grassi;NO
+14;;Direccionamiento de pliegos ;Riesgo de corrupción en las contrataciones por el direccionamiento desde el pliego de condiciones o los terminos de referencia ;8;5;mitigar ;;7;PRO;Grassi;NO
+15;;Tareas incompletas por encuadres sindicales;Riesgo de no completar o extender tareas por las encuadres sindicales del personal de las centrales;5;6;mitigar ;;1;PRO;Grassi;NO
+16;;OC urgentes fuera de tiempo;Riesgo de pérdida económica debido a indisp. de máquinas a causa de ineficacia en el proceso de compras de urgencia . 010 No contar con las OC en tiempo y forma ;3;4;mitigar ;;1;PRO;Grassi;NO
+17;;Adecuación de almacenes;Riesgo de pérdida de activos por ausencia de un proceso de administración de almacenes;3;4;mitigar;;1;PRO;Grassi;NO
+18;;Riesgo de mala estatregia Despacho;Riesgo de asignar erróneamente recursos para mantenimientos y/o realizar una mala estrategia de despacho;6;4;mitigar;;1;PRO;Grassi;NO
+19;;Pérdida de información ;Riesgo de Pérdida de información ;4;6;mitigar;;1;PRO;Grassi;NO
+20;;Ocupacion casas de Necochea;Riesgo patrimonial por ocupación de casas Necochea;5;7;mitigar;;3;GAL;Langus;NO
+21;;Participacion desde el inicio;Riesgo de no participar de los temas desde el inicio lo que no permite abordar su tratamiento preventivo;6;1;mitigar;;1;GAL;Langus;NO
+22;;firma digital/electronica;COVID. Riesgo de no contar con firma digital/electrónica;5;1;mitigar;;1;GAL;Langus;NO
+23;;Confidencialidad de la informacion;Riesgo de falta de confidencialidad de la información de temas tratados en directorio;8;1;mitigar;;1;GAL;Langus;NO
+24;;Incumplimiento de plazos;Riesgo de incumplimientos de plazo judiciales y administrativos;6;2;mitigar;;3;GAL;Langus;NO
+26;;Acuerdo de pago con distribuidores;Riesgo de no arribar a un acuerdo de pago con las Distribuidoras de energía eléctrica por facturas impagas en concepto del cargo Sobrecosto de Generación Local impuesto por la Res. MIVySP Nº 16/2005 y sus modificatorias y prórrogas;7;2;mitigar;;3;GAL;Langus;NO
+27;;Consultas;Riesgo de no consultar o no obtener respuesta a las consultas efectuadas a las áreas técnicas (temática de orden jurídico y técnico);6;2;mitigar;;3;GAL;Langus;NO
+28;;Desconocimiento del derecho;Riesgo de interpretar o aplicar erróneamente el derecho por desconocimiento de la legislación vigente, doctrina y/o jurisprudencia;6;2;mitigar;;3;GAL;Langus;NO
+29;;Control y cuidado de documentos;Riesgo de extravío o pérdida por no contar con mecanismos que permitan el control y cuidados de los documentos e información que se encuentra en custodia;4;3;mitigar;;3;GAL;Langus;NO
+30;;Cumplimiento de oficios;Riesgo de presentación extemporánea, cumplimiento defectuoso o falta de cumplimiento de oficios judiciales ;4;2;mitigar;;3;GAL;Langus;NO
+32;;Falta de criterio al interior de GAL;Riesgo de falta de unificación de criterio profesional por temas consultados por la Gerencia;3;2;mitigar;;3;GAL;Langus;NO
+34;;Extorsion por opinion legal;Riesgo de extorsión o chantaje (amenazas) a quien debe dictaminar para que direccione la opinión legal en favor de algún interés en particular.  ;5;6;mitigar;;7;GAL;Langus;NO
+35;;Colusion por sentencia;"Riesgo de colusión que puede darse entre parte actora y demandada para obtener una sentencia condenatoria para la empresa y luego repartirse las sumas de condena entre las partes, entre funcionarios y/o empleados de la Sociedad para ""crear"" deliberadamente juicios contra la empresa y entre empleados/funcionarios de la empresa y de las cooperativas para estafar a la empresa";5;4;mitigar;;7;GAL;Langus;NO
+36;;Trafico de influencias;Riesgo de incurrir en tráfico de influencias por intermedio de funcionarios, empleados o terceros que actúen en nombre de la Empresa a fin de obtener un determinado fallo judicial o el dictado del acto administrativo que se requiere, recibiendo un beneficio o ventaja a quien ofrece su influencia.;4;2;mitigar;;7;GAL;Langus;NO
+37;;Extorsion por funcionarios;Riesgo de ser extorsionados por funcionarios o empleados de la Administración pública en los distintos niveles (nacional, provincial y municipal), entes reguladores, autoridades administrativas o funcionarios judiciales para el dictado del acto administrativo que se requiere en la tramitación de que se trate.;2;3;mitigar;;7;GAL;Langus;NO
+38;;Soborno a operadores de justicia;Riesgo de soborno de funcionarios y/o empleados de la empresa dirigido a los distintos operadores de justicia para asegurar un pronunciamiento positivo para la empresa u obtener el dictado de un acto administrativo, o bien para direccionar la opinión legal en beneficio de algún interés en particular;3;2;mitigar;;7;GAL;Langus;NO
+39;;Soborno a funcionarios y empleados;Riesgo de soborno a funcionarios a funcionarios y empleados de la empresa para perfeccionar contratos con cláusulas que beneficien al contratista, o bien violar el deber de confidencialidad establecido en detrimento de los intereses de la empresa;2;1;mitigar;;7;GAL;Langus;NO
+40;;Errores en liquidación de haberes;Inexactitud en cálculos de salarios que puede generar reclamos y pérdida de confianza;8;3;mitigar;;1;RRHH;Pasquale;NO
+41;;Manipulación de datos y falta de trazabilidad.;Alteración de informacion que afecta tanto la liquidacion de haberes. Manipular la informacion para beneficios de los empleados.;8;3;mitigar;;7;RRHH;Pasquale;NO
+42;; Interrupción de procesos críticos (liquidación, nómina);Fallas técnicas o conflictos que paralice el trabajo del area de liquidacion de haberes.;9;9;mitigar;;1;RRHH;Pasquale;NO
+43;;Rotación de personal clave - area liquidacion de haberes;Pérdida de talento crítico que afecta la operación en el area de Liquidacion de Haberes;9;9;mitigar;;1;RRHH;Pasquale;NO
+44;;Acceso y uso indebido de información personal o salarial;Filtración divulgación o utilización no autorizada de datos sensibles de la nómina para ejercer presión obtener ventajas particulares o generar beneficios indebidos externos.;9;2;mitigar;;7;RRHH;Pasquale;NO
+45;;Conflictos gremiales / medidas de fuerza;Paralización del area de liquidacion de haberes por conflictos laborales.;9;2;mitigar;;1;RRHH;Pasquale;NO
+46;; Sesgo en la contratacion y busquedas internas;Personal sin competencias necesarias para cumplir objetivos. O personal que siendo competente, se elija para obtener un beneficio externo.;7;2;mitigar;;7;RRHH;Pasquale;NO
+47;;Vinculos sindicales que alteren la decision objetiva;Relaciones sindicales que promuevan la arbitrariedad, la omision y / o discrecionalidad;10;3;mitigar;;7;RRHH;Pasquale;NO
+48;; Multas o sanciones por organismos que regulan en materia de RRHH derivadas en incumplimientos normativos;Riesgo de sanciones legales y pérdida de habilitaciones;3;3;mitigar;;3;RRHH;Pasquale;NO
+49;;Pago de haberes a personas ajenas a la nómina.;Inclusión errónea o fraudulenta de personas que no prestan servicios efectivos en la empresa dentro del proceso de liquidación de sueldos.;8;2;mitigar;;7;RRHH;Pasquale;NO
+50;;Manejo inadecuado de fondos;Transferencias sin autorización, doble firma, o documentación incompleta;10;2;mitigar;;7;GAYFFT;Biasi;NO
+51;;Pago a proveedores sin respaldo;Falta de documentación, pagos duplicados;9;4;mitigar;;7;GAYFFT;Biasi;NO
+52;;Concentración de funciones;Una persona controla pagos, registros y conciliaciones;5;4;mitigar;;6;GAYFFT;Biasi;NO
+53;;Perdida de Capital por malas elecciones de instrumentos financieros.;No contar con fondos disponibles para el afrontar las obligaciones de la empresa, perdidas de capital por inversiones riesgosas. ;8;7;mitigar;;6;GAYFFT;Biasi;NO
+54;;Omisión o retraso en el pago de obligaciones contractuales.;No pagar obligaciones autorizadas por los sectores correspondientees;9;8;mitigar;;6;GAYFFT;Biasi;NO
+55;;Incumplimiento de normativas legales o fiscales en operaciones financieras.;Retener mal o pagar a CBU diferente a la razón social ;8;7;mitigar;;1;GAYFFT;Biasi;NO
+56;;Fraude tributario;Manipulación deliberada de declaraciones, pagos o compensaciones.;9;4;mitigar;;7;GAYFFI;Biasi;NO
+57;;Errores en la determinación de impuestos IVA;Liquidación incorrecta de IVA.  No utilización de exenciones, créditos fiscales o incentivos disponibles.;5;6;mitigar;;1;GAYFFI;Biasi;NO
+58;;Errores en la determinación de impuestos IIBB;Liquidación incorrecta de IIBB. No utilización de saldos a favor. ;6;4;mitigar;;1;GAYFFI;Biasi;NO
+59;;Errores en la determinación de impuestos Ganancias;Liquidación incorrecta de GANANCIAS. No utilización de saldos a favor, quebrantos disponibles, impuesto a débitos y créditos, etc.  ;9;5;mitigar;;1;GAYFFI;Biasi;NO
+60;;Errores en la determinación de Retenciones y Percepciones;Liquidación de retenciones y percepciones como agente de retención en el pago a proveedores.;5;9;mitigar;;1;GAYFFI;Biasi;NO
+61;;Errores en al determinación del impuestos de sellos. ;Liquidación de impuesto de sellos;5;6;mitigar;;1;GAYFFI;Biasi;NO
+62;;Presentaciones y pagos  fuera de término ;Omisión o atraso en declaraciones juradas y regímenes informativos. Incumplimiento en el pago de impuestos. ;7;5;mitigar;;1;GAYFFI;Biasi;NO
+63;;Cambios normativos no detectados;Modificaciones legales que impacten en la determinación o pago de impuestos. Pérdida de Beneficios fiscales ;5;8;mitigar;;1;GAYFFI;Biasi;NO
+64;;Errores en el registro y elaboración contable;Riesgo de elaborar balances falsos agravados e informes falsos. Ocultamiento de información financiera, Realizar estados contables, sin tener en cuenta normas contables acutalizadas. Omisión o incorrecto devengamiento de gastos e ingresos.;10;4;mitigar;;7;GAYFFC;Biasi;NO
+65;;Demoras o deficiencias en la información contable que afectan el cumplimiento de plazos y la calidad de los reportes;La falta de información oportuna y completa (por ejemplo, retraso en asientos de sueldos o DTE) afecta el cierre mensual, la elaboración de reportes analizados y el cumplimiento de los plazos legales para la presentación de estados contables, generando posibles sanciones u observaciones de organismos de control y trabas para trámites de importación o rendición de cuentas.;9;7;mitigar;;1;GAYFFC;Biasi;NO
+66;;Omisión de altas, bajas o transferencias de activos;Ingresos de Solpes sin la nomenclatura de activo fijo, bajas de bienes sin el aviso a contable, transferencias de bienes en almacen sin el registro en SAP ;5;6;mitigar;;1;GAYFFC;Biasi;NO
+67;;Falta de conciliación sados contable y saldos reales ;Existe el riesgo de que no se realicen conciliaciones periódicas y precisas entre los saldos contables registrados en los sistemas y los saldos reales (bancarios, de activos u otros), lo cual puede generar errores no detectados, como duplicaciones u omisiones en las registraciones.;7;6;mitigar;;1;GAYFFC;Biasi;NO
+68;;Vencimiento de pólizas sin renovación a tiempo.;Perdida de cobertura ante diferentes eventos por contar con polizas vencidas. ;7;8;mitigar;;1;GAYFFC;Biasi;NO
+69;;Falta de alineación entre el presupuesto y los objetivos estratégicos;Asignación ineficiente de recursos, pérdida de foco organizacional;3;8;mitigar;;estrategico;GAYFFP;Biasi;NO
+70;;Errores en la carga o consolidación del presupuesto;Reportes inexactos, decisiones basadas en datos incorrectos;4;4;mitigar;;1;GAYFFP;Biasi;NO
+71;;Desvíos significativos no detectados a tiempo;Sobrecostos o subejecución presupuestaria y falta de medidas correctivas oportunas;4;9;mitigar;;1;GAYFFP;Biasi;NO
+72;;Falta de confiabilidad o claridad en los informes;Pérdida de confianza de la gerencia y otras áreas;3;7;mitigar;;1;GAYFFP;Biasi;NO
+73;;Dependencia excesiva de una persona para elaborar presupuestos y reportes;Riesgo de continuidad, errores por sobrecarga;3;8;mitigar;;1;GAYFFP;Biasi;NO
+74;;Contrataciones fuera de los procedimientos establecidos;Adquisiciones urgentes o por excepción sin respaldo, lo que debilita la trazabilidad y aumenta el riesgo de fraude o favoritismo;9;7;aceptar;;7;GAYFAC;Berri;NO
+75;;Convivencia entre compradores y solicitantes sin validación externa;Falta de control cruzado permite que el mismo sector defina, seleccione y adjudique proveedores, sin supervisión;5;5;mitigar;;7;GAYFAC;Berri;NO
+76;;Selección de proveedores sin criterios objetivos documentados;Elección informal o por referencias sin validación técnica, económica o documental;9;2;mitigar;;1;GAYFAC;Berri;NO
+77;;Falta de evaluación periódica de proveedores activos;No se revisa desempeño, lo que genera repetición de fallas o dependencia de proveedores ineficientes;7;6;mitigar;;1;GAYFAC;Berri;NO
+78;;Ordenes de Compra incompletas ;Contratos sin firmar o sin cláusulas claves donde se determine las condiciones técnicas y comerciales y que expone a la empresa ante conflictos legales;8;6;aceptar;;1;GAYFAC;Berri;NO
+79;;Concentración de compras en pocos proveedores;Alta dependencia, menor competencia, y riesgo de acuerdos informales;4;5;mitigar;;7;GAYFAC;Berri;NO
+80;;Falta de trazabilidad en las decisiones de adjudicación;No queda evidencia clara del porqué se adjudicó a un proveedor específico;7;2;mitigar;;1;GAYFAC;Berri;NO
+81;;Registro inadecuado o tardío de facturas;Riesgo de no registrar facturas en tiempo y forma, generando moras, pagos duplicados o perjuicios a proveedores;6;7;mitigar;;1;GAYFACP;Berri;NO
+82;;Falta de trazabilidad o respaldo en comprobantes;Riesgo de que las facturas no cuenten con el sustento necesario (Certificación de Servicios/Entrega de Material), afectando la transparencia. Carga de Facturas por FI sin las autorizaciones correspondientes. ;5;5;mitigar;;1;GAYFACP;Berri;NO
+83;;Falta de segregación de funciones en carga y aprobación;Riesgo de que la misma persona registre, apruebe y libere pagos sin revisión externa;4;4;aceptar;;1;GAYFACP;Berri;NO
+84;;Falta de Documentación al momento de la carga en Sistema;Riesgo de que no se pueda justificar el gasto o responder ante auditorías o reclamos legales;6;7;aceptar;;3;GAYFACP;Berri;NO
+85;;Gestión deficiente de la cuenta corriente de proveedores;Riesgo de realizar pagos anticipados sin la debida documentación respaldatoria o con información incompleta o desactualizada en la cuenta corriente del proveedor, lo que puede generar inconsistencias contables, dificultades en la conciliación, errores en los pagos y riesgos de incumplimiento normativo o contractual.;4;6;aceptar;;1;GAYFACP;Berri;NO
+86;;Pagos deshonestos en gestiones aduaneras;Existe el riesgo de que ofrezcamos o terceros e intermediarios ofrezcan en nuestro nombre pagos deshonestos para la realización de trámites;6;7;aceptar;;7;GAYFACE;Berri;NO
+87;;Incumplimiento de normativas aduaneras;Riesgo de ingresar un producto diferente a lo declarado por el proveedor, incumpliendo normativa vigente.;7;7;aceptar;;1;GAYFACE;Berri;NO
+88;;Costos logísticos elevados o no planificados;Riesgo de abonar costos excesivos en materia de flete por partir las entregas y no hacer una planificación adecuada en cuanto a tiempo vs costos.;4;8;aceptar;;6;GAYFACE;Berri;NO
+89;;Pérdida o extravío de documentación;Falta de control sobre la documentación de comercio exterior que puede afectar la trazabilidad, auditorías o generar problemas legales.;4;4;aceptar;;1;GAYFACE;Berri;NO
+90;;Prestación deficiente de servicios tercerizados de comercio exterior;Riesgo de que los proveedores o terceros encargados de tareas críticas como despachos aduaneros, transporte internacional o servicios logísticos no cumplan con los plazos, calidad esperada o normativa vigente, generando demoras, sobrecostos o incumplimientos legales.;5;6;aceptar;;1;GAYFACE;Berri;NO
+91;;Baja disponibilidad operativa de la flota por fallas en los mantenimientos;Las tareas de mantenimiento no se ejecutan en tiempo y forma, lo que reduce la disponibilidad de los vehículos para operaciones críticas.;2;5;aceptar;;1;GAYFAA;Berri;NO
+92;;Uso indebido o desvío de recursos (combustible/multas);Riesgo de uso personal de combustible, carga no autorizada o falta de registro de infracciones.;4;7;aceptar;;1;GAYFAA;Berri;NO
+93;;Falta de coordinación con el administrador del inmueble;Demoras en la resolución de los problemas edilicios por depender de un tercero para ejectuarlo. ;4;4;aceptar;;1;GAYFAA;Berri;NO
+94;;Fallas en la asignación de vehiculos;Retrasos, traslados innecesarios o mal uso de recursos por falta de planificación.;3;8;aceptar;;1;GAYFAA;Berri;NO
+95;;Ineficiencia en la gestión de siniestros;Retrasos en la comunicación de siniestros a la aseguradora y falta de seguimiento;6;6;aceptar;;1;GAYFAA;Berri;NO
+96;;Fuga de informacion terceros - Acceso Indebido ;Falta de gestión de usuarios, contraseñas débiles, permisos mal asignados;5;6;aceptar;;3;GAYFS;Aieta;NO
+97;;Pérdida de datos críticos;Ausencia de backups o fallas en su ejecución;7;7;aceptar;;1;GAYFS;Aieta;NO
+98;;Ataques cibernéticos (malware, phishing, ransomware);Falta de concientización, antivirus desactualizado, vulnerabilidades sin parchear;8;8;aceptar;;1;GAYFS;Aieta;NO
+99;;Caidas de sistemas criticos E Infraestructura ;Mantenimiento inadecuado, falta de redundancia;7;9;aceptar;;1;GAYFS;Aieta;NO
+100;;Implementacion de sistemas sin analisis;Falta de evaluación técnica o económica previa;2;5;aceptar;;1;GAYFS;Aieta;NO
+101;;Baja adopción de nuevas herramientas tecnológicas;Existe la posibilidad de que los usuarios no incorporen ni utilicen adecuadamente las nuevas herramientas tecnológicas implementadas por la organización. Esto puede deberse a resistencia al cambio, falta de capacitación, hábitos arraigados o desconocimiento de los beneficios esperados. Como consecuencia, se limita la eficiencia operativa, se desaprovechan funcionalidades clave y se retrasa la transformación digital planificada.;5;5;aceptar;;1;GAYFS;Aieta;NO
+102;;Inventario de equipos desactualizado;Falta de registro o control físico;3;6;aceptar;;1;GAYFS;Aieta;NO
+103;;Obsolescencia tecnológica;Renovación no planificada;7;4;aceptar;;1;GAYFS;Aieta;NO
+104;;Uso indebido de activos (hardware/software);Falta de políticas de uso o monitoreo;5;6;aceptar;;3;GAYFS;Aieta;NO
+105;;Incumplimiento de Seguridad e Higiene;Incumplimiento de la normativa por ausencia de un Sistema de Gestión en Seguridad e Higiene, falta de procedimientos y/o actualizaciones y falta de controles;8;8;mitigar;;5;MASHS;Uva;NO
+106;;Riesgo edilicio para las personas;Riesgo para las personas por el estado edilicio general de la Central 9 de Julio;8;7;mitigar;;5;MASHS;Uva;NO
+107;;No uso de EPP;Exposición de la salud e integridad física por el no uso de Elementos de Protección Personal (EPP);8;6;mitigar;;5;MASHS;Uva;NO
+108;;Uso incorrecto de herramientas manuales;Lesiones por utilización incorrecta de las herramientas manuales;7;7;mitigar;;5;MASHS;Uva;NO
+109;;Regalos vinculados a contrataciones;Recibir y entregar regalos, antes o con posterioridad a tramitar contrataciones o servicios, de parte de aquellos interesados en que se les otorgue la adjudicación ;3;3;mitigar;;7;MASHS;Uva;NO
+110;;Lobby indebido;Que por tratativas propias o a través de intermediarios se consiga la resolución rápida de un trámite presentado ante un Organismo o el permiso para hacer una tarea que sin él no se podría ejecutar (Lobby);3;3;mitigar;;7;MASHS;Uva;NO
+111;;Incumplimiento de medidas por COVID-19;COVID. No poder garantizar la seguridad del personal.;;;mitigar;;5;MASHS;Uva;NO
+112;;Incendio por derrame de hidrocarburos;Incendio por derrame de combustible de los tanques de almacenamiento de hidrocarburos;7;5;mitigar;;5;MASHS;Uva;NO
+113;;Derrumbe de muros de contención;Desprendimiento y derrumbe de muros de contención;10;2;mitigar;;5;MASHS;Uva;NO
+114;;Lesiones por posturas y movimientos repetitivos;Agotamiento corporal por posturas de trabajo inadecuadas con exposición a movimientos repetitivos;6;6;mitigar;;5;MASHS;Uva;NO
+115;;Exposición a agentes químicos;Exposición a agentes químicos existentes en la aislación térmica de las calderas y sus cañerías;8;4;mitigar;;5;MASHS;Uva;NO
+116;;Contaminación del agua potable;Afectación en la salud del personal por no realización de análisis bacteriológico y físico-químico del agua potable para el consumo e higiene de los trabajadores;7;4;mitigar;;5;MASHS;Uva;NO
+117;;Caídas por falta de orden y limpieza;Caída por ausencia de orden y limpieza en el espacio de trabajo;6;4;mitigar;;5;MASHS;Uva;NO
+118;;Incumplimiento de monitoreos y mediciones;No lograr cumplir con los monitoreos-mediciones establecidos por organismos de control OPDS, ENRE, ETC. ;5;5;mitigar;;3;MASHMA;Torres;NO
+119;;Incumplimiento por extensión de vida útil de calderas;Incumplimiento de la normativa vigente en Seguridad e Higiene y Normativa OPDS por falta de tratamiento en la extensión de la Vida útil de las Calderas.;10;5;mitigar;;3;MASHMA;Torres;NO
+120;;Ruidos molestos a la comunidad;Incumplimiento por ruidos molestos- Molestias a los vecinos;6;9;mitigar;;3;MASHMA;Torres;NO
+121;;Incumplimiento de normativa vigente;Incumplimiento de la normativa vigente;7;7;mitigar;;3;MASHMA;Torres;NO
+122;;Interrupción de la cadena de suministro de combustible;Riesgo de insuficiencia en la cadena de suministro de comb. Cambios climáticos severos que afecten la act. Necesidad de adaptación a nuevas pol. pcas y norm. ambiental;6;6;mitigar;;3;MASHMA;Torres;NO
+123;;Incumplimiento de planes para la recertificación del SGA;Riesgo de no poder concretar todos los planes necesarios antes de la recertificación del SGA. Falta de control del sistema documental;8;6;mitigar;;3;MASHMA;Torres;NO
+124;;Falta de Seguro Ambiental;Incumplimiento de la Ley General de Ambiente y demás normativas por ausencia de un Seguro Ambiental .;2;2;mitigar;;3;MASHMA;Torres;NO
+125;;Derrame de hidrocarburos en el predio;No lograr mitigar el riesgo de derrame de hidrocarburos dentro del predio de las centrales;9;4;mitigar;;4;MASHMA;Torres;NO
+126;;Emisiones gaseosas de fuentes fijas;Emisiones gaseosas de fuentes fijas por combustión de fuel oíl / gas oíl;8;5;mitigar;;3;MASHMA;Torres;NO
+127;;Falta de recursos para el SGA;No contar con los recursos para la contratación de servicios necesarios para el correcto desarrollo del SGA (recursos economicos, de personal, tecnologicos);9;4;mitigar;;4;MASHMA;Torres;NO
+128;;Consumo de agua potable para generación de vapor;Uso de agua potable en Caldera para generación de Vapor (SE ADECUO EL IMP Y LA PROBABILIDAD SEGUN ACORDADO EN ACTA Nº 1);6;6;mitigar;;4;MASHMA;Torres;NO
+129;;Pérdida de certificación ISO 14001;No poder desarrollar la tarea de Generación por la perdida de la certificación ISO  14001;10;1;mitigar;;6;MASHMA;Torres;NO
+130;;Ruidos por soplado de calderas;Generación de Ruidos por soplado con vapor de las Calderas;8;3;mitigar;;4;MASHMA;Torres;NO
+131;;Falta de combustible para generación eléctrica;No contar con el combustible fósil en combustión para la generación electrica ;7;4;mitigar;;6;MASHMA;Torres;NO
+132;;Incendio/explosión por fuga de gas externa;Incendio/ explosión por fuga de gas en Estación de servicio vecina;9;2;mitigar;;4;MASHMA;Torres;NO
+133;;Incumplimiento de programas de gestión ambiental;No cumplir con los programas anuales de Auditorias, capacitación y Planes de gestión ambiental. ;8;2;mitigar;;1;MASHMA;Torres;NO
+134;;Falta de movilidad y viáticos;No contar con los recursos de movilidad- Viáticos para el traslado del personal para el desarrollo de las tareas (Ej.: el programa de auditorias programadas);5;5;mitigar;;1;MASHMA;Torres;NO
+135;;Fuga de gases comprimidos;Explosión - Fuga de gases comprimidos envasados;7;2;mitigar;;4;MASHMA;Torres;NO
+136;;Uso indebido de bienes de la empresa;Sustraer o usar bienes materiales o instalaciones de la empresa para fines privados;3;4;mitigar;;7;MASHMA;Torres;NO
+137;;Incentivo indebido para obtener licencias;Existe el riesgo de que nosotros ofrezcamos, o que un tercero que actúa en nuestro nombre ofrezca, un incentivo indebido para obtener o retener una licencia clave;2;2;mitigar;;7;MASHMA;Torres;NO
+138;;Beneficios indebidos vinculados a la función pública;Pedir o recibir beneficios indebidos por las funciones desempeñadas, a cambio de favores  del funcionario público;3;3;mitigar;;7;MASHMA;Torres;NO
+139;;Uso indebido de información y contactos;Usar con fines privados la información o contactos obtenidos por la función desempeñada;2;2;mitigar;;7;MASHMA;Torres;NO
+140;;Falsificación de información ante organismos de control;Riesgo de falsificar datos presentados a organismos de control.;4;1;mitigar;;7;MASHMA;Torres;NO
+141;;Influencia indebida mediante regalos;Existe el riesgo de que un regalo único o una serie de regalos con el tiempo ejerzan una influencia sobre el receptor de los mismos;3;3;mitigar;;7;MASHMA;Torres;NO
+142;;Incumplimiento de objetivos por COVID-19;COVID. No poder cumplir con los objetivos y metas del año 2020 por motivo de la pandemia COVID-19;;;mitigar;;1;MASHMA;Torres;NO
+143;;Incumplimiento de contrataciones por COVID-19;COVID. No poder cumplir con la contratación de las tareas del presupuesto 2020, pudiendo provocar incurrir en posibles incumplimientos legales.;;;mitigar;;1;MASHMA;Torres;NO
+144;;Procedimientos ambiguos o sin trazabilidad;Diseño de procedimientos ambiguos o sin trazabilidad;;;mitigar;;1;OYM;Stefanelli;NO
+145;;Auditorías internas deficientes;Omisión o superficialidad en auditorias internas;;;mitigar;;3;OYM;Stefanelli;NO
+146;;Falta de control documental;Gestión documental sin control de versiones ni acceso restringido; ; ;mitigar;;3;OYM;Stefanelli;NO
+147;;Falta de revisión anticorrupción de procesos críticos;Falla de revision de procesos criticos con enfoque anticorrupción;;;mitigar;;1;OYM;Stefanelli;NO
+148;;Capacitación no documentada;Capacitación informal o no documentada;;;mitigar;;1;OYM;Stefanelli;NO
+149;;Plan de auditoría no basado en riesgos de corrupción identificados o con omisión de áreas o procesos de alto riesgo (1);"Cobertura, afecta la planificación estratégica y el alcance. Planes con cobertura parcial, dejando fuera áreas o procesos críticos o controles deficientes, aumentando el riesgo de ""puntos ciegos"" y otorgando una falsa sensación de seguridad. ";6;3;mitigar;;1;UAI;Castiglioni;NO
+150;;Plan de auditoría incompleto al cierre o que se limiten a una revisión documental (checklist), sin realizar entrevistas en profundidad, análisis de datos o pruebas de recorrido de transacciones  (2);Cumplimiento, afecta la ejecución y metodología. Riesgo de que existan procesos / áreas sin recibir auditorías en un período mayor a 1 año. Riesgo de no detectar operación o esquemas de corrupcion por no dejar rastro documental habitual. Auditoría predecible y eludible;4;5;mitigar;;1;UAI;Castiglioni;NO
+151;;Recibir presiones e intimidaciones por el organo de gobierno,la alta direccion, FCAC o gerencias (3);Riesgo de recibir presiones, e intimadaciones por la alta gerencia, FCAC o gerencias para omitir, minimizar o modificar el objeto de una auditoría, su alcance, o hallazgo de indicio de corrupción.  ;4;3;mitigar;;1;UAI;Castiglioni;NO
+152;;Falta de información precisa y actualizada de los hallazgos (4);La ausencia de información sobre los hallazgos no permitiría ideantificar los focos de mejora y riesgo, ignorando las áreas/ gerencias con mayor concentración de hallazgos, lo que originaría una asignanción de recursos inadecuada e ineficiente a la hora de planificar las auditorías;4;3;mitigar;;1;UAI;Castiglioni;NO
+153;;Cambios en Órgano de Gobierno/Alta Dirección;Cambios de los integrantes del Órgano de Gobierno y/o Alta Dirección, que pueda afectar al apoyo hacia la implementación de los elementos del Programa de Integridad y facilitar actos de corrupción;7;8;mitigar;;7;FC;Mercapidez;NO
+154;;Fondos públicos en campañas políticas;Riesgo de usar fondos públicos al efectuar aportes personales a campañas políticas.;4;8;mitigar;;7;FC;Mercapidez;NO
+155;;Uso indebido donaciones realizadas;Riesgo de donar a entidades que hagan uso indebido de la donación.;4;2;mitigar;;7;FC;Mercapidez;NO
+156;;Riesgo de no poder realizar el seguimiento y relevamiento mediático de acontecimientos  en los que pudiera estar involucrada la empresa, en la medida en que los gerentes y/o responsables de área no informen a Prensa.;Riesgo de no poder realizar el seguimiento y relevamiento mediático de acontecimientos  en los que pudiera estar involucrada la empresa, en la medida en que los gerentes y/o responsables de área no informen a Prensa.;6;7;mitigar;;1;PRE;Aversa;NO
+157;;Riesgo de no poder gestionar la organización de eventos por no contar con Misiones y Funciones documentadas y aprobadas por el Directorio.                                              ;Riesgo de no poder gestionar la organización de eventos por no contar con Misiones y Funciones documentadas y aprobadas por el Directorio.                                              ;5;5;mitigar;;1;PRE;Aversa;NO
+158;;Riesgo de cumplimiento del objetivo, por no contar con procedimientos administrativos-contables para tal efecto. ;Riesgo de cumplimiento del objetivo, por no contar con procedimientos administrativos-contables para tal efecto. ;5;5;mitigar;;1;PRE;Aversa;NO
+159;;Riesgo de perder la periodicidad en las comunicaciones que repercute negativamente en la imagen que el empleado proyecta sobre la empresa.;Riesgo de perder la periodicidad en las comunicaciones que repercute negativamente en la imagen que el empleado proyecta sobre la empresa.;5;5;mitigar;;1;PRE;Aversa;NO
+160;;Retraso en la implementacion de los planes de acción asociados a No Conformidades ;Retraso en la implementacion de los planes de acción asociados a No Conformidades ;1;6;mitigar;;1;UAI;Castiglioni;NO
+161;;Recurrencia de la No conformidad por acciones correctivas implementadas ineficaces;;3;5;mitigar;;1;UAI;Castiglioni;NO
+162;;Recursos Humanos con conocimientos y habilidades insuficientes en el marco legal anticorrupcion;;4;4;mitigar;;1;UAI;Castiglioni;NO
+163;;Recursos humanos limitados en la ejecución de las auditorías;;4;3;mitigar;;1;UAI;Castiglioni;NO
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;
+;;;;;;;;;;;

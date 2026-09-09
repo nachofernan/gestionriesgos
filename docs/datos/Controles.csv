@@ -1,0 +1,174 @@
+﻿id;nombre;descripcion;mitigacion_default;area_id;user_id
+1;Listados de pagos por SAP por vencimiento  -  Cruce del Listado de SAP con la propuesta de pago cargada en los bancos para pagos manuales y automaticos.;Listados de pagos por SAP por vencimiento  -  Cruce del Listado de SAP con la propuesta de pago cargada en los bancos para pagos manuales y automaticos.;;GAYFFT;Biasi
+2;Verificación de Documentación;Verificación de Documentación;;GAYFFT;Biasi
+3;Doble Firma en los pagos;Doble Firma en los pagos;;GAYFFT;Biasi
+4;Subida Automatica de propuestas de pagos;Subida Automatica de propuestas de pagos;;GAYFFT;Biasi
+5;Cruce del Listado de SAP con la propuesta de pago cargada en los bancos para pagos manuales y automaticos.;Cruce del Listado de SAP con la propuesta de pago cargada en los bancos para pagos manuales y automaticos.;;GAYFFT;Biasi
+6;Verificar factura de pago, importe, moneda, proveedor coincida con lo cargado. ;Verificar factura de pago, importe, moneda, proveedor coincida con lo cargado. ;;GAYFFT;Biasi
+7;Segregación de funciones;Segregación de funciones;;GAYFFT;Biasi
+8;Proyección financiera del area de presupuesto ;Proyección financiera del area de presupuesto ;;GAYFFT;Biasi
+9;Control con la situación financiera diaria;Control con la situación financiera diaria;;GAYFFT;Biasi
+10;Politica de Inversiones;Politica de Inversiones;;GAYFFT;Biasi
+11;Aprobaciones;Aprobaciones;;GAYFFT;Biasi
+12;Listado de vecimientos por SAP;Listado de vecimientos por SAP;;GAYFFT;Biasi
+13;Proyecciones financieras mensuales cronograma de vencimiento tesoreria;Proyecciones financieras mensuales cronograma de vencimiento tesoreria;;GAYFFT;Biasi
+14;No realizar pagos antes de la validación mensual de impuestos;No realizar pagos antes de la validación mensual de impuestos;;GAYFFT;Biasi
+15;Carga de proveedores en SAP por solapa;Carga de proveedores en SAP por solapa;;GAYFFT;Biasi
+16;Solo es cargado por Jefe de Tesoreria o Coordinador financiera;Solo es cargado por Jefe de Tesoreria o Coordinador financiera;;GAYFFT;Biasi
+17;Validación de CBU en interbanking;Validación de CBU en interbanking;;GAYFFT;Biasi
+18;Las declaraciones juradas se presentan con el respaldo que brindan los mayores contables los cuales se conforman de documentos registrados por sectores independientes a Impuestos. En cuanto a los pagos, se cuenta con una separación estricta de perfiles. El usuario que confecciona las DDJJ no posee permisos para autorizar el pago ni modificar los datos maestros bancarios.;Las declaraciones juradas se presentan con el respaldo que brindan los mayores contables los cuales se conforman de documentos registrados por sectores independientes a Impuestos. En cuanto a los pagos, se cuenta con una separación estricta de perfiles. El usuario que confecciona las DDJJ no posee permisos para autorizar el pago ni modificar los datos maestros bancarios.;;GAYFFI;Biasi
+19;La liquidación de IVA se realiza con los mayores contables de respaldo de las cuentas crédito fiscal, débito fiscal, percepcionenes, retenciones y crédito fiscal de contribuciones patronales. Además, para determinar los datos de venta (débito fiscal), los mismos se importan de ARCA (los cuales deben coincidir con mayor contable).;La liquidación de IVA se realiza con los mayores contables de respaldo de las cuentas crédito fiscal, débito fiscal, percepcionenes, retenciones y crédito fiscal de contribuciones patronales. Además, para determinar los datos de venta (débito fiscal), los mismos se importan de ARCA (los cuales deben coincidir con mayor contable).;;GAYFFI;Biasi
+20;Dicha liquidación se trabaja en conjunto con un estudio externo por lo que el riesgo de liquidar incorrectamente disminuye. Para la liquidación, se tiene en cuenta el Sumas y Saldos informado por Contabilidad por lo que los datos son extraídos del mismo. ;Dicha liquidación se trabaja en conjunto con un estudio externo por lo que el riesgo de liquidar incorrectamente disminuye. Para la liquidación, se tiene en cuenta el Sumas y Saldos informado por Contabilidad por lo que los datos son extraídos del mismo. ;;GAYFFI;Biasi
+21;Dicha liquidación se trabaja en conjunto con un estudio externo por lo que el riesgo de liquidar incorrectamente disminuye. Para la liquidación, se tiene en cuenta el Sumas y Saldos informado por Contabilidad por lo que los datos son extraídos del mismo. ;Dicha liquidación se trabaja en conjunto con un estudio externo por lo que el riesgo de liquidar incorrectamente disminuye. Para la liquidación, se tiene en cuenta el Sumas y Saldos informado por Contabilidad por lo que los datos son extraídos del mismo. ;;GAYFFI;Biasi
+22;"Control retenciones IIBB: a partir de 2026, con la transacción en SAP ""ARBA - Retenciones 122R"" se empezó a controlar el importe retenido de cada proveedor previo a la presentación ante ARBA. En caso de que haya inconsistencia, ARBA emite una notificación. En conclusión, esto es posible gracias a la actualización de ARBA y la rápida adecuación del uso del ERP en favor a esto. Para retenciones SUSS, GANANCIAS e IVA si bien no hay un control que detecte inmediatamente en ARCA, Impuestos actualiza mensualmente el padron de indicadores de retención y controla posteriormente. Control reciente implementado a partir de fines 2025: revisión de indicadores de retención en partidas abiertas y coordinación con Cuentas a Pagar en caso de necesitar corrección. Además, al momemento de liquidar las retenciones en ARCA/ARBA, Impuestos controla los importes con los mayores contables. Por último, para aseguar una adecuada actualización de padrones, Impuestos controla mensualemente todas las retenciones de los pagos durante los primeros 3 días hábiles.";"Control retenciones IIBB: a partir de 2026, con la transacción en SAP ""ARBA - Retenciones 122R"" se empezó a controlar el importe retenido de cada proveedor previo a la presentación ante ARBA. En caso de que haya inconsistencia, ARBA emite una notificación. En conclusión, esto es posible gracias a la actualización de ARBA y la rápida adecuación del uso del ERP en favor a esto. Para retenciones SUSS, GANANCIAS e IVA si bien no hay un control que detecte inmediatamente en ARCA, Impuestos actualiza mensualmente el padron de indicadores de retención y controla posteriormente. Control reciente implementado a partir de fines 2025: revisión de indicadores de retención en partidas abiertas y coordinación con Cuentas a Pagar en caso de necesitar corrección. Además, al momemento de liquidar las retenciones en ARCA/ARBA, Impuestos controla los importes con los mayores contables. Por último, para aseguar una adecuada actualización de padrones, Impuestos controla mensualemente todas las retenciones de los pagos durante los primeros 3 días hábiles.";;GAYFFI;Biasi
+23;Impuestos controla mensualmente el mayor contable con el informe enviado por la Bolsa de Comercio de la ciudad de La Plata que actúa como liquidador y pagador del impuesto. Esto asegura un doble control para evitar omisión del mencionado impuestos. Si bien BAESA se encuentra extenta en el impuesto de sellos, al retenerle a los proveedores por la parte corriespondiente, desde Impuestos se controla el informe recibido mencionado anteriormente. ;Impuestos controla mensualmente el mayor contable con el informe enviado por la Bolsa de Comercio de la ciudad de La Plata que actúa como liquidador y pagador del impuesto. Esto asegura un doble control para evitar omisión del mencionado impuestos. Si bien BAESA se encuentra extenta en el impuesto de sellos, al retenerle a los proveedores por la parte corriespondiente, desde Impuestos se controla el informe recibido mencionado anteriormente. ;;GAYFFI;Biasi
+24;Tablero de Control de Vencimientos: Uso de un calendario fiscal coordinado con Tesorería para garantizar la disponibilidad de fondos específicos para el pago de impuestos.;Tablero de Control de Vencimientos: Uso de un calendario fiscal coordinado con Tesorería para garantizar la disponibilidad de fondos específicos para el pago de impuestos.;;GAYFFI;Biasi
+25;El sector tiene acceso a ERREPAR para informarse de las novedades impositivas. Además, el estudio externo de asesoramiento informa actualizaciones recientes. ;El sector tiene acceso a ERREPAR para informarse de las novedades impositivas. Además, el estudio externo de asesoramiento informa actualizaciones recientes. ;;GAYFFI;Biasi
+26;Auditorías internas, Auditoria externas con firmas de reconocida trayectoria que cumplan con normas de auditorias internacionales. Segregación de funciones entre quien aprueba y quien registra.  Analisis Mensuales. ;Auditorías internas, Auditoria externas con firmas de reconocida trayectoria que cumplan con normas de auditorias internacionales. Segregación de funciones entre quien aprueba y quien registra.  Analisis Mensuales. ;;GAYFFC;Biasi
+27;Calendario contable;Calendario contable;;GAYFFC;Biasi
+28;mail recordatporios a las areas.;mail recordatporios a las areas.;;GAYFFC;Biasi
+29;Automatización de Reportes;Automatización de Reportes;;GAYFFC;Biasi
+30;Procedimiento formal de gestión de activos. ;Procedimiento formal de gestión de activos. ;;GAYFFC;Biasi
+31;Conciliación entre registros fisicos y contables;Conciliación entre registros fisicos y contables;;GAYFFC;Biasi
+32;Conciliación automatica SAP, conciliaciones diarias. ;Conciliación automatica SAP, conciliaciones diarias. ;;GAYFFC;Biasi
+33;Verificación diaria con sector de cuentas a pagar de las pólizas recibidas.;Verificación diaria con sector de cuentas a pagar de las pólizas recibidas.;;GAYFFC;Biasi
+34;Mail recordatorio a todas las areas del envío de las polizas contratadas.;Mail recordatorio a todas las areas del envío de las polizas contratadas.;;GAYFFC;Biasi
+35;Reuniones interáreas, revisión cruzada del presupuesto.;Reuniones interáreas, revisión cruzada del presupuesto.;;GAYFFP;Biasi
+36;Automatización con ERP;Automatización con ERP;;GAYFFP;Biasi
+37;controles por oposición;controles por oposición;;GAYFFP;Biasi
+38;revisión por terceros;revisión por terceros;;GAYFFP;Biasi
+39;Tableros de control;Tableros de control;;GAYFFP;Biasi
+40;informes periódicos;informes periódicos;;GAYFFP;Biasi
+41;alarmas por umbrales.;alarmas por umbrales.;;GAYFFP;Biasi
+42;Capacitación;Capacitación;;GAYFFP;Biasi
+43;formatos estándar;formatos estándar;;GAYFFP;Biasi
+44;revisión de consistencia;revisión de consistencia;;GAYFFP;Biasi
+45;Manual de procesos;Manual de procesos;;GAYFFP;Biasi
+46;backups operativos;backups operativos;;GAYFFP;Biasi
+47;Validación obligatoria de procedimiento de compra;Validación obligatoria de procedimiento de compra;;GAYFAC;Berri
+48;Registro digital de todas las contrataciones;Registro digital de todas las contrataciones;;GAYFAC;Berri
+49;Auditoría interna de excepciones;Auditoría interna de excepciones;;GAYFAC;Berri
+50;Segregación de funciones;Segregación de funciones;;GAYFAC;Berri
+51;Comité de evaluación;Comité de evaluación;;GAYFAC;Berri
+52;Revisión por área legal o auditoría en contrataciones mayores;Revisión por área legal o auditoría en contrataciones mayores;;GAYFAC;Berri
+53;Matriz de evaluación objetiva con puntajes;Matriz de evaluación objetiva con puntajes;;GAYFAC;Berri
+54;Registro de fundamentos en el expediente;Registro de fundamentos en el expediente;;GAYFAC;Berri
+55;Sistema de evaluación anual;Sistema de evaluación anual;;GAYFAC;Berri
+56;Encuestas internas de desempeño;Encuestas internas de desempeño;;GAYFAC;Berri
+57;Penalidades por incumplimientos;Penalidades por incumplimientos;;GAYFAC;Berri
+58;Control documental previo a adjudicación;Control documental previo a adjudicación;;GAYFAC;Berri
+59;Revisión legal obligatoria;Revisión legal obligatoria;;GAYFAC;Berri
+60;Alertas de vencimiento;Alertas de vencimiento;;GAYFAC;Berri
+61;Política de diversificación;Política de diversificación;;GAYFAC;Berri
+62;Registro de proveedores ampliado.;Registro de proveedores ampliado.;;GAYFAC;Berri
+63;Licitaciones abiertas;Licitaciones abiertas;;GAYFAC;Berri
+64;Actas de evaluación obligatorias;Actas de evaluación obligatorias;;GAYFAC;Berri
+65;Comité evaluador interdisciplinario;Comité evaluador interdisciplinario;;GAYFAC;Berri
+66;Validación documental automática. Control cruzado dentro del area de cuentas a pagar entre la recepción de las facturas y los certificados emitidos por las areas operativas. ;Validación documental automática. Control cruzado dentro del area de cuentas a pagar entre la recepción de las facturas y los certificados emitidos por las areas operativas. ;;GAYFACP;Berri
+67;Control cruzado dentro del area de cuentas a pagar entre la recepción de las facturas y los certificados emitidos por las areas operativas.;Control cruzado dentro del area de cuentas a pagar entre la recepción de las facturas y los certificados emitidos por las areas operativas.;;GAYFACP;Berri
+68;Flujo de aprobación obligatorio;Flujo de aprobación obligatorio;;GAYFACP;Berri
+69;digitalización de documentos;digitalización de documentos;;GAYFACP;Berri
+70;controles cruzados;controles cruzados;;GAYFACP;Berri
+71;Separación de funciones;Separación de funciones;;GAYFACP;Berri
+72;doble aprobación;doble aprobación;;GAYFACP;Berri
+73;auditoría de movimientos;auditoría de movimientos;;GAYFACP;Berri
+74;Digitalización obligatoria;Digitalización obligatoria;;GAYFACP;Berri
+75;registro diario;registro diario;;GAYFACP;Berri
+76;Control de ingreso físico;Control de ingreso físico;;GAYFACP;Berri
+77;Conciliación mensual con proveedores, tablero compartido con Tesorería;Conciliación mensual con proveedores, tablero compartido con Tesorería;;GAYFACP;Berri
+78;Tablero compartido con Tesorería;Tablero compartido con Tesorería;;GAYFACP;Berri
+79;Contrato Marco con Pauta generales y tarifarias por conceptos de pago.;Contrato Marco con Pauta generales y tarifarias por conceptos de pago.;;GAYFACE;Berri
+80;Trazabilidad y registro en SAP.;Trazabilidad y registro en SAP.;;GAYFACE;Berri
+81;Acordar toma de contenido con el despachante en aquellas que contemplen un volumen importante en cantidad de productos.;Acordar toma de contenido con el despachante en aquellas que contemplen un volumen importante en cantidad de productos.;4;GAYFACE;Berri
+82;Revisión de la orden de compra en función al plazo de entrega y cantidad de entregas pactadas. ;Revisión de la orden de compra en función al plazo de entrega y cantidad de entregas pactadas. ;4;GAYFACE;Berri
+83;El resguardo de la documentación se realiza a través del sistema SAP, complementado con un control cruzado junto al despachante de aduana. Dentro de los honorarios abonados a dicho proveedor, se incluye específicamente el servicio de conservación y resguardo de la documentación respaldatoria.;El resguardo de la documentación se realiza a través del sistema SAP, complementado con un control cruzado junto al despachante de aduana. Dentro de los honorarios abonados a dicho proveedor, se incluye específicamente el servicio de conservación y resguardo de la documentación respaldatoria.;7;GAYFACE;Berri
+84;Armado de ET  y SOLPED - Cruce al momento de certificar que lo ejecutado cumpla con lo solicitado ;Armado de ET  y SOLPED - Cruce al momento de certificar que lo ejecutado cumpla con lo solicitado ;5;GAYFACE;Berri
+85;Programación y seguimiento de mantenimiento preventivo, control de estado vehicular;Programación y seguimiento de mantenimiento preventivo, control de estado vehicular;4;GAYFAA;Berri
+86;Carga mediante tarjetas nominadas, conciliación mensual, reportes de desvíos;Carga mediante tarjetas nominadas, conciliación mensual, reportes de desvíos;;GAYFAA;Berri
+87;conciliación mensual;conciliación mensual;;GAYFAA;Berri
+88;control de estado vehicular;control de estado vehicular;;GAYFAA;Berri
+89;Reuniones periódicas;Reuniones periódicas;;GAYFAA;Berri
+90; plan de mantenimiento conjunto; plan de mantenimiento conjunto;;GAYFAA;Berri
+91;designación de responsables;designación de responsables;;GAYFAA;Berri
+92;Agenda compartida;Agenda compartida;;GAYFAA;Berri
+93;planificación diaria/semanal;planificación diaria/semanal;;GAYFAA;Berri
+94;comunicación anticipada 48hs;comunicación anticipada 48hs;;GAYFAA;Berri
+95;Centralización de reclamos con la aseguradora - Seguimiento via mail  y por la pagina de la aseguradora;Centralización de reclamos con la aseguradora - Seguimiento via mail  y por la pagina de la aseguradora;4;GAYFAA;Berri
+96;Políticas de seguridad informática, ABM de usuarios, doble factor de autenticación, revisión de accesos periódica;Políticas de seguridad informática, ABM de usuarios, doble factor de autenticación, revisión de accesos periódica;;GAYFS;Aieta
+97;ABM de usuarios;ABM de usuarios;;GAYFS;Aieta
+98;doble factor de autenticación;doble factor de autenticación;;GAYFS;Aieta
+99;revisión de accesos periódica;revisión de accesos periódica;;GAYFS;Aieta
+100;Política de respaldo y recuperación;Política de respaldo y recuperación;;GAYFS;Aieta
+101;pruebas periódicas de restauración;pruebas periódicas de restauración;;GAYFS;Aieta
+102;almacenamiento en nube segura;almacenamiento en nube segura;;GAYFS;Aieta
+103;Firewall;Firewall;;GAYFS;Aieta
+104;antivirus;antivirus;;GAYFS;Aieta
+105;capacitación en ciberseguridad;capacitación en ciberseguridad;;GAYFS;Aieta
+106;Mantenimiento preventivo, servidores redundantes, monitoreo 24/7;Mantenimiento preventivo, servidores redundantes, monitoreo 24/7;;GAYFS;Aieta
+107;servidores redundantes;servidores redundantes;;GAYFS;Aieta
+108;monitoreo 24/7;monitoreo 24/7;;GAYFS;Aieta
+109;Comité de Compras;Comité de Compras;;GAYFS;Aieta
+110; Eevaluación de ROI; Eevaluación de ROI;;GAYFS;Aieta
+111;Pruebas Pilotos;Pruebas Pilotos;;GAYFS;Aieta
+112;Capacitaciones, feedback continuo;Capacitaciones, feedback continuo;;GAYFS;Aieta
+113;feedback continuo;feedback continuo;;GAYFS;Aieta
+114;Sistema de inventario;Sistema de inventario;;GAYFS;Aieta
+115;etiquetado;etiquetado;;GAYFS;Aieta
+116;revisión anual;revisión anual;;GAYFS;Aieta
+117;Presupuesto Anual ;Presupuesto Anual ;;GAYFS;Aieta
+118;Feedbacj usuario;Feedbacj usuario;;GAYFS;Aieta
+119;Disponibilidad de los servicios;Disponibilidad de los servicios;;GAYFS;Aieta
+120;Políticas de uso;Políticas de uso;;GAYFS;Aieta
+121;monitoreo de red;monitoreo de red;;GAYFS;Aieta
+122;control de descargas;control de descargas;;GAYFS;Aieta
+123;Metodología documentada para la planificación de auditorías basada en: la matríz de corrupción, la matriz de correspondencia ISO37001-Procesos de la empresa, macroproceso y mapas de procesos, organigramas y Check list 37001 aplicado a auditorias.;Metodología documentada para la planificación de auditorías basada en: la matríz de corrupción, la matriz de correspondencia ISO37001-Procesos de la empresa, macroproceso y mapas de procesos, organigramas y Check list 37001 aplicado a auditorias.;6;UAI;Castiglioni
+124;Análisis del Plan Anual por los auditores líderes;Análisis del Plan Anual por los auditores líderes;6;UAI;Castiglioni
+125;Revision del Plan Anual por la Oficial de Transparencia;Revision del Plan Anual por la Oficial de Transparencia;6;UAI;Castiglioni
+126;Aprobacion del Plan Anual por Directorio;Aprobacion del Plan Anual por Directorio;5;UAI;Castiglioni
+127;Seguimiento del Plan Anual por los auditores líderes;Seguimiento del Plan Anual por los auditores líderes;6;UAI;Castiglioni
+128;Elaboracion del Programa de trabajo en base a la LMD y Checklist 37001 aplicado a auditorías. ;Elaboracion del Programa de trabajo en base a la LMD y Checklist 37001 aplicado a auditorías. ;9;UAI;Castiglioni
+129;Utilizacion del software IDEA para definición de tamaño de muestra y su extracción y ejecucion de procedimientos de auditoría de ser posible. ;Utilizacion del software IDEA para definición de tamaño de muestra y su extracción y ejecucion de procedimientos de auditoría de ser posible. ;5;UAI;Castiglioni
+130;Capacitaciones del PI. Codigo de Ética y Conducta;Capacitaciones del PI. Codigo de Ética y Conducta;7;UAI;Castiglioni
+131;Manual de Auditoría Interna;Manual de Auditoría Interna;0;UAI;Castiglioni
+132;Asistencia de 2 auditores al menos a las reuniones de apertura y cierre;Asistencia de 2 auditores al menos a las reuniones de apertura y cierre;7;UAI;Castiglioni
+133;Línea Ética;Línea Ética;9;UAI;Castiglioni
+134;Actualización periódica de la Planilla General - Seguimiento de las acciones correctivas propuestas ;Actualización periódica de la Planilla General - Seguimiento de las acciones correctivas propuestas ;8;UAI;Castiglioni
+135;Debida diligencia reforzada perfiles de riesgo colaboradores baesa;Debida diligencia reforzada perfiles de riesgo colaboradores baesa;;FC;Mercapidez
+136;Debida diligencia donaciones;Debida diligencia donaciones;;FC;Mercapidez
+137;Debida diligencia simplificada;Debida diligencia simplificada;;FC;Mercapidez
+138; accesos restringidos por perfil; accesos restringidos por perfil;;FC;Mercapidez
+139; cifrado de archivos; cifrado de archivos;;FC;Mercapidez
+140; Minutas contables de asientos de devengamiento con doble firma; Minutas contables de asientos de devengamiento con doble firma;;FC;Mercapidez
+141; Pol. de integridad en la selecc. de cont. y proveedores; Pol. de integridad en la selecc. de cont. y proveedores;;FC;Mercapidez
+142; Política y Procedimiento DDJJ conflicto de intereses colaboradores; Política y Procedimiento DDJJ conflicto de intereses colaboradores;;FC;Mercapidez
+143;Actas / minutas de reuniones;Actas / minutas de reuniones;;FC;Mercapidez
+144;Analisis Mensuales;Analisis Mensuales;;FC;Mercapidez
+145;Audiencia vista de causa: asisten al menos dos profesionales e imparte lineamientos para el acuerdo de conciliación la Gerenta de Asuntos Legales.;Audiencia vista de causa: asisten al menos dos profesionales e imparte lineamientos para el acuerdo de conciliación la Gerenta de Asuntos Legales.;;FC;Mercapidez
+146;Auditorías internas;Auditorías internas;;FC;Mercapidez
+147;Capacitaciones.;Capacitaciones.;;FC;Mercapidez
+148;Código de Ética y conducta;Código de Ética y conducta;;FC;Mercapidez
+149;Comité de evaluación;Comité de evaluación;;FC;Mercapidez
+150;Comunicación por medios formales;Comunicación por medios formales;;FC;Mercapidez
+151;Contrato Marco con pautas generales y tarifarias por conceptos de pago;Contrato Marco con pautas generales y tarifarias por conceptos de pago;;FC;Mercapidez
+152;Contratos respaldados por orden de compra con controles asociados al proceso de contratación de distintas Gerencias/Áreas (control por oposición);Contratos respaldados por orden de compra con controles asociados al proceso de contratación de distintas Gerencias/Áreas (control por oposición);;FC;Mercapidez
+153;Control Gerente general de la conciliación mensual de haberes (determinación diferencias con liquidación anterioir y justificación) con Orden de pago y liquidación empleados.;Control Gerente general de la conciliación mensual de haberes (determinación diferencias con liquidación anterioir y justificación) con Orden de pago y liquidación empleados.;;FC;Mercapidez
+154;Controles automáticos de entrada de datos.Perfiles de acceso al sistema de liquidación de sueldos.;Controles automáticos de entrada de datos.Perfiles de acceso al sistema de liquidación de sueldos.;;FC;Mercapidez
+155;controles de acceso estrictos;controles de acceso estrictos;;FC;Mercapidez
+156;Cruce del Listado de SAP con la propuesta de pago cargada en los bancos para pagos manuales y automaticos.;Cruce del Listado de SAP con la propuesta de pago cargada en los bancos para pagos manuales y automaticos.;;FC;Mercapidez
+157;Cumplir con el instructivo de Certificación de Recepción de Materiales,Obras y Servicios al recibir un material de un proveedor;Cumplir con el instructivo de Certificación de Recepción de Materiales,Obras y Servicios al recibir un material de un proveedor;;FC;Mercapidez
+158;DDJJ personal de riesgo;DDJJ personal de riesgo;;FC;Mercapidez
+159;Manuales normalizados con codificación y referencias cruzadas;Manuales normalizados con codificación y referencias cruzadas;8;OYM;Stefanelli
+160;Plan anual de auditorías con criterios SGAC;Plan anual de auditorías con criterios SGAC;8;OYM;Stefanelli
+161;Sistema documental con control de versiones y accesos;Sistema documental con control de versiones y accesos;8;OYM;Stefanelli
+162;Matriz de procesos críticos con evaluación de vulnerabilidades;Matriz de procesos críticos con evaluación de vulnerabilidades;5;OYM;Stefanelli
+163;Programa de capacitación formal con registro de asistencia;Programa de capacitación formal con registro de asistencia;5;OYM;Stefanelli
+164;Aprobacion de los informes por Directorio, que incluyen las NC, sus planes de acción y fechas comprometidas;;7;UAI;Castiglioni
+165;Correo recordatorio 15 días antes del vencimiento del plazo comprometido;;0;UAI;Castiglioni
+166;Revision anual por la FCAC, la Alta Dirección y el Órgano de Gobierno;;8;UAI;Castiglioni
+167;Capacitación continua y obligatoria en PI de acuerdo al Plan Anual de Capacitaciones de la empresa ;;6;UAI;Castiglioni
+168;Participar en una auditoría del PI en el año;;0;UAI;Castiglioni
+169;Cumplir con la antigüedad en auditoria interna para la categoría;;6;UAI;Castiglioni
+170;Evaluaciones de desempeño como equipo auditor del PI;;6;UAI;Castiglioni
+171;Supervision de Auditores Lideres de los hallazgos y conformidades;;9;UAI;Castiglioni
+172;Revisión por pares ;;7;UAI;Castiglioni
+173;Mentoría y apoyo interno (auditores  experimentados guian a los jóvenes en el proceso de auditoría);;7;UAI;Castiglioni
