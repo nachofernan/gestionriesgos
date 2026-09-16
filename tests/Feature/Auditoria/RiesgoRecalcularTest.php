@@ -41,6 +41,7 @@ class RiesgoRecalcularTest extends TestCase
             'impacto' => 10,
             'probabilidad' => 10,
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
+            'respuesta' => 'mitigar',
         ]);
 
         $riesgo->refresh();

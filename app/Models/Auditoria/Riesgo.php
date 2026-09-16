@@ -22,8 +22,8 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * asociados; `clasificacion_total`/`clasificacion_residual` traducen esos
  * valores a bajo/moderado/critico (ver clasificacion()). `respuesta` es la
  * estrategia frente al riesgo (mitigar/evitar/compartir/aceptar, ver
- * RespuestaRiesgo) y `fundamento` justifica esa elección: es obligatorio para
- * las respuestas que no reducen el riesgo (ver RespuestaRiesgo::exigenFundamento()).
+ * RespuestaRiesgo) y `fundamento` justifica esa elección: es obligatorio sólo
+ * para compartir y aceptar (ver RespuestaRiesgo::exigenFundamento()).
  * Ciclo de vida de estado borrador → validado → aprobado/borrado.
  */
 class Riesgo extends Model implements HasMedia

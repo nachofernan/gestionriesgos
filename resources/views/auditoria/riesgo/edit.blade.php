@@ -77,7 +77,7 @@
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Respuesta</label>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Respuesta *</label>
                 <select name="respuesta" x-model="respuesta"
                     class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('respuesta') border-red-300 @enderror">
                     <option value="">— Seleccionar respuesta —</option>
@@ -93,7 +93,10 @@
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fundamento <span x-show="exigeFundamento" x-cloak>*</span></label>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-2 transition-colors"
+                    :class="exigeFundamento ? 'text-red-600' : 'text-gray-500'">
+                    Fundamento <span x-show="exigeFundamento" x-cloak>*</span>
+                </label>
                 <textarea name="fundamento" rows="3"
                     class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('fundamento') border-red-300 @enderror"
                     placeholder="Por qué se eligió esta respuesta frente al riesgo...">{{ old('fundamento', $riesgo->fundamento) }}</textarea>

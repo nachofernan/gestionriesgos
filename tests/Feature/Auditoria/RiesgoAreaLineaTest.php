@@ -48,6 +48,7 @@ class RiesgoAreaLineaTest extends TestCase
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
             'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'respuesta' => 'mitigar',
         ], $overrides);
     }
 
@@ -117,6 +118,7 @@ class RiesgoAreaLineaTest extends TestCase
             'nombre' => 'Nombre nuevo',
             'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
             'area_id' => $this->hermana->id,
+            'respuesta' => 'mitigar',
         ]);
 
         $respuesta->assertSessionHasNoErrors();

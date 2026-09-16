@@ -272,3 +272,52 @@ de ROADMAP sigue abierto.
 
 Fuente: reporte directo del usuario en sesión, sin changelog largo asociado (no toca esquema,
 autorización ni ciclo de estados).
+
+---
+
+## D-012 — "Evitar" deja de exigir fundamento (2026-09-15)
+
+**Decisión.** `RespuestaRiesgo::exigenFundamento()` pasa de `[Compartir, Aceptar, Evitar]` a
+`[Compartir, Aceptar]`. Un riesgo con respuesta "Evitar" ya no requiere justificar la elección con
+texto en `fundamento`; se comporta igual que "Mitigar" en ese sentido.
+
+**Motivo.** Decisión directa de negocio del usuario en sesión, sin justificación adicional registrada
+más allá de que "Evitar" no debería forzar ese campo.
+
+**Descartado.** Ninguna alternativa evaluada; es un cambio acotado de una línea en el enum, sin tocar
+esquema (`fundamento` ya era `nullable`) ni el resto del ciclo de vida del riesgo.
+
+Fuente: reporte directo del usuario en sesión, sin changelog largo asociado (no toca esquema,
+autorización ni ciclo de estados).
+
+---
+
+## D-013 — `respuesta` pasa a ser obligatoria al crear/editar un riesgo (2026-09-15)
+
+**Decisión.** `RiesgoController::reglaRespuesta()` cambia su regla de `nullable` a `required`, tanto en
+`store()` como en `update()`. Ya no se puede crear ni editar (en borrador) un riesgo sin elegir una
+`respuesta`. El esquema no cambia: la columna sigue `nullable` a nivel DB, sólo se endurece la
+validación HTTP.
+
+**Motivo.** El usuario notó que `respuesta` era opcional al crear un riesgo, y que además
+`Riesgo::motivosBloqueoValidacion()`/`motivosBloqueoAprobacion()` no la exigían tampoco — un riesgo
+podía llegar a `aprobado` con `respuesta = null`, saltándose en silencio todas las reglas que dependen
+de ella (fundamento, el plan de acción obligatorio para "mitigar"). Se evaluó exigirla recién al
+validar (mismo patrón que `objetivos`, ver comentario en `RiesgoController::store()`), pero se optó
+por exigirla ya desde la creación: a diferencia de objetivos, `respuesta` es una decisión que el
+usuario ya toma en el mismo paso 4 del wizard, no algo que se resuelve después.
+
+**Cascada.** Rompía 6 tests que construían el payload del wizard sin `respuesta` esperando éxito:
+5 en `RiesgoWizardTest` y 1 en `RiesgoAreaLineaTest` (ambos con un `datosWizard()` que ahora
+default-ea `respuesta: mitigar`), más `RiesgoFundamentoTest::un_riesgo_sin_respuesta_no_exige_fundamento`,
+reemplazado por `no_se_puede_crear_un_riesgo_sin_elegir_respuesta` (ya no existe el caso "sin
+respuesta"). Los labels "Respuesta" en `create.blade.php`/`edit.blade.php` suman un asterisco estático,
+igual que "Nombre".
+
+**Descartado.** Exigir `respuesta` recién al salir de `borrador` (agregarla a
+`motivosBloqueoValidacion()`), dejándola opcional en el form — el patrón que ya usa `objetivos`. Se
+descartó porque el wizard ya la pide en el mismo paso que el resto de los datos de creación; no hay
+razón de negocio para permitir un borrador sin respuesta todavía elegida.
+
+Fuente: reporte directo del usuario en sesión, sin changelog largo asociado (toca el ciclo de estados
+por el hueco en la validación, pero el cambio en sí es una regla HTTP de una línea).

@@ -6,6 +6,14 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-15 (bis)** — `respuesta` pasa a ser obligatoria al crear/editar un riesgo: hasta ahora un
+  riesgo podía llegar a `aprobado` con `respuesta = null`, saltándose en silencio fundamento y el plan
+  de acción obligatorio para "mitigar" (`motivosBloqueoValidacion()` tampoco la exigía). 6 tests
+  ajustados (`RiesgoWizardTest`, `RiesgoAreaLineaTest`, `RiesgoFundamentoTest`). Ver
+  [D-013](DECISIONES.md#d-013).
+- **2026-09-15** — "Evitar" deja de exigir `fundamento` al crear/editar un riesgo: `RespuestaRiesgo::exigenFundamento()`
+  pasa de `[Compartir, Aceptar, Evitar]` a `[Compartir, Aceptar]`, se comporta igual que "Mitigar". Ver
+  [D-012](DECISIONES.md#d-012).
 - **2026-09-04** — [Actualización de Laravel 11 a 13](updates/2026-09-04.md): framework subido en dos
   saltos (11→12→13) sin conflictos de dependencias (Livewire, Breeze y Spatie Media Library ya
   declaraban compatibilidad). `config/session.php` y `config/cache.php` alineados con el esqueleto

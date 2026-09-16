@@ -22,6 +22,7 @@ use Illuminate\Validation\Rule;
 class RiesgoController extends Controller
 {
     private const MENSAJES_RESPUESTA = [
+        'respuesta.required' => 'Debe elegir una respuesta frente al riesgo.',
         'respuesta.not_in' => 'Un riesgo de este tipo no puede compartirse ni aceptarse como respuesta.',
         'fundamento.required_if' => 'Debe fundamentar por qué se eligió esta respuesta frente al riesgo.',
     ];
@@ -38,14 +39,15 @@ class RiesgoController extends Controller
     }
 
     /**
-     * Reglas para `respuesta` según el tipo elegido: un TipoRiesgo con
-     * `restringe_respuesta` (Corrupción) no admite las respuestas de
+     * Reglas para `respuesta` según el tipo elegido: obligatoria siempre (ver
+     * D-012, docs/DECISIONES.md); un TipoRiesgo con `restringe_respuesta`
+     * (Corrupción) además no admite las respuestas de
      * RespuestaRiesgo::restringidas(). El `disabled` del select en el form es
      * sólo la ayuda visual; el corte real es este.
      */
     private function reglaRespuesta(mixed $tipoRiesgoId): array
     {
-        $reglas = ['nullable', Rule::enum(RespuestaRiesgo::class)];
+        $reglas = ['required', Rule::enum(RespuestaRiesgo::class)];
 
         if (TipoRiesgo::whereKey($tipoRiesgoId)->value('restringe_respuesta')) {
             $reglas[] = Rule::notIn(array_column(RespuestaRiesgo::restringidas(), 'value'));

@@ -13,9 +13,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * `fundamento` es texto libre, obligatorio sólo cuando la respuesta al riesgo no
- * lo reduce por sí misma (compartir, aceptar, evitar) y por lo tanto hay que
- * justificarla. Ver RespuestaRiesgo::exigenFundamento().
+ * `fundamento` es texto libre, obligatorio sólo cuando la respuesta al riesgo
+ * exige justificarse (compartir, aceptar). Ver RespuestaRiesgo::exigenFundamento().
  */
 class RiesgoFundamentoTest extends TestCase
 {
@@ -45,7 +44,6 @@ class RiesgoFundamentoTest extends TestCase
         return [
             'compartir' => ['compartir'],
             'aceptar' => ['aceptar'],
-            'evitar' => ['evitar'],
         ];
     }
 
@@ -84,13 +82,23 @@ class RiesgoFundamentoTest extends TestCase
     }
 
     #[Test]
-    public function un_riesgo_sin_respuesta_no_exige_fundamento(): void
+    public function evitar_no_exige_fundamento(): void
+    {
+        $respuesta = $this->actingAs($this->usuario)
+            ->post(route('auditoria.riesgos.store'), $this->datosWizard(['respuesta' => 'evitar']));
+
+        $respuesta->assertSessionHasNoErrors();
+        $this->assertNull(Riesgo::firstOrFail()->fundamento);
+    }
+
+    #[Test]
+    public function no_se_puede_crear_un_riesgo_sin_elegir_respuesta(): void
     {
         $respuesta = $this->actingAs($this->usuario)
             ->post(route('auditoria.riesgos.store'), $this->datosWizard());
 
-        $respuesta->assertSessionHasNoErrors();
-        $this->assertNull(Riesgo::firstOrFail()->fundamento);
+        $respuesta->assertSessionHasErrors('respuesta');
+        $this->assertDatabaseCount('riesgos', 0);
     }
 
     #[Test]

@@ -15,7 +15,7 @@ enum RespuestaRiesgo: string
             self::Mitigar => 'Reducir / Mitigar',
             self::Evitar => 'Evitar',
             self::Compartir => 'Compartir',
-            self::Aceptar => 'Aceptar',
+            self::Aceptar => 'Aceptar / Monitorear',
         };
     }
 
@@ -37,16 +37,16 @@ enum RespuestaRiesgo: string
     }
 
     /**
-     * Respuestas que exigen `fundamento` en el Riesgo: las que no reducen el
-     * riesgo por sí mismas y necesitan justificarse (compartir, aceptar,
-     * evitar). Mitigar queda afuera: se justifica con su plan de acción, que ya
-     * es obligatorio para validar (ver Riesgo::motivosBloqueoValidacion()).
+     * Respuestas que exigen `fundamento` en el Riesgo: compartir y aceptar.
+     * Mitigar queda afuera porque se justifica con su plan de acción, que ya es
+     * obligatorio para validar (ver Riesgo::motivosBloqueoValidacion()). Evitar
+     * queda afuera por decisión de negocio (ver docs/DECISIONES.md).
      *
      * @return array<int, self>
      */
     public static function exigenFundamento(): array
     {
-        return [self::Compartir, self::Aceptar, self::Evitar];
+        return [self::Compartir, self::Aceptar];
     }
 
     public function exigeFundamento(): bool
