@@ -321,3 +321,50 @@ razón de negocio para permitir un borrador sin respuesta todavía elegida.
 
 Fuente: reporte directo del usuario en sesión, sin changelog largo asociado (toca el ciclo de estados
 por el hueco en la validación, pero el cambio en sí es una regla HTTP de una línea).
+
+---
+
+## D-014 — Un riesgo se edita durante toda su vida; trazabilidad estructurada; mensajes sin ciclo (2026-09-22)
+
+**Decisión.** Tres cambios relacionados sobre el ciclo de Actualizaciones, decididos juntos en la
+misma charla:
+
+1. **Reemplaza a D-004.** `camposEditables('riesgo')` deja de estar vacío: nombre, descripción,
+   `respuesta`, `fundamento` y `tipo_riesgo_id` son editables vía el modal de Actualizaciones en
+   cualquier estado del riesgo (incluido `aprobado`), no sólo en `borrador`. El wizard de
+   impacto/probabilidad (`recalcular()`/`recalcularStore()`) también deja de estar duro a "sólo
+   borrador": disponible en cualquier estado salvo `aprobado`, y nunca para el comité.
+2. **El `estado` del riesgo nunca retrocede** por un cambio de campo posterior a su creación. Lo que
+   entra al ciclo borrador→validado→aprobado es cada propuesta de cambio (`Actualizacion` tipo
+   `'cambio'`), no el riesgo mismo. El estado inicial de una propuesta depende de quién la crea
+   (`Actualizacion::estadoInicialParaCambio()`, ya existía como `estadoParaActualizacion()` privado en
+   `GestionActualizaciones` para el resto de las entidades, ahora extraído y reusado también por
+   `RiesgoController::recalcularStore()`): empleado arranca en borrador, gerente o comité saltean el
+   borrador y arrancan validado, comité sobre una entidad ya aprobada arranca directo en aprobado. La
+   doble validación de un riesgo multigerencia (D-003) no se toca: sigue mandando sin excepción por
+   encima de esta regla.
+3. **Trazabilidad estructurada de validar/aprobar/rechazar.** Se agregan columnas
+   `validado_por_id`/`validado_en`, `aprobado_por_id`/`aprobado_en`, `rechazado_por_id`/`rechazado_en`
+   tanto en `riesgos` (ciclo de vida propio del riesgo) como en `actualizaciones` (cada propuesta o
+   mensaje individual). Antes lo único que existía era un nombre suelto en `data['activated_by']`
+   (sin `user_id` ni timestamp), y `marcarRechazada()` ni siquiera recibía el usuario.
+4. **Un mensaje puro (sin cambios de campo) no entra al ciclo de validación.** Se guarda con
+   `estado_id = null` y `data = null`: no aparece en Pendientes, no ofrece validar/aprobar/rechazar,
+   no bloquea otras operaciones por "propuesta pendiente". Antes `GestionActualizaciones::guardar()`
+   igual le asignaba `data['tipo']='cambio'` y un estado por rol.
+
+**Motivo.** El usuario anotó dos huecos ("Riesgo puede modificar su tipo de respuesta" y "las
+actualizaciones de mensajes no se validan") que, charlados, resultaron ser la misma pregunta de fondo:
+separar "dejar un mensaje" de "proponer un cambio", y dejar de tratar la edición de un riesgo como
+algo limitado a su ventana de borrador. Además, no había forma de saber quién validó o aprobó algo más
+allá de leer un mensaje en texto libre — un hueco real de auditoría en un sistema que se llama así.
+
+**Descartado.** Que el `estado` del riesgo retroceda cuando alguien de menor jerarquía lo edita (la
+formulación inicial del pedido); se descartó porque chocaba con el axioma de que un borrador es
+siempre mono-gerencia (D-003) y porque el usuario aclaró en la charla que la baja de estado es de la
+propuesta de cambio, no del riesgo.
+
+Fuente: sesión 2026-09-22, sin changelog largo asociado — el detalle vive en los mensajes de commit de
+cada uno de los 4 pasos (`feat(auditoria): trazabilidad estructurada...`, `fix(auditoria): un mensaje
+sin cambios de campo...`, `feat(auditoria): riesgo editable durante todo su ciclo de vida...`,
+`feat(auditoria): wizard de recalcular disponible fuera de borrador`).

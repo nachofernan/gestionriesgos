@@ -6,6 +6,19 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-22** — Un riesgo se edita durante toda su vida, no sólo en `borrador`: nombre, descripción,
+  `respuesta`, `fundamento` y `tipo_riesgo_id` son editables vía el modal de Actualizaciones en
+  cualquier estado (reemplaza a [D-004](DECISIONES.md#d-004)), y el wizard de recálculo de
+  impacto/probabilidad queda disponible en cualquier estado salvo `aprobado` (nunca para el comité).
+  El `estado` del riesgo mismo nunca retrocede: lo que entra al ciclo borrador→validado→aprobado es
+  cada propuesta de cambio, arrancando según el rol de quien la crea
+  (`Actualizacion::estadoInicialParaCambio()`, extraído del privado `GestionActualizaciones::estadoParaActualizacion()`
+  para reusarlo también en `recalcularStore()`); la doble validación de un riesgo multigerencia
+  ([D-003](DECISIONES.md#d-003)) no se toca. Se agrega trazabilidad estructurada de quién valida/aprueba/rechaza
+  (`validado_por_id`/`_en`, `aprobado_por_id`/`_en`, `rechazado_por_id`/`_en` en `riesgos` y en
+  `actualizaciones`, antes sólo un nombre suelto en `data['activated_by']`). Un mensaje sin cambios de
+  campo deja de entrar al ciclo de validación (`estado_id`/`data` quedan `null`: no aparece en
+  Pendientes ni ofrece validar/aprobar/rechazar). Ver [D-014](DECISIONES.md#d-014). 332 passed.
 - **2026-09-15 (bis)** — `respuesta` pasa a ser obligatoria al crear/editar un riesgo: hasta ahora un
   riesgo podía llegar a `aprobado` con `respuesta = null`, saltándose en silencio fundamento y el plan
   de acción obligatorio para "mitigar" (`motivosBloqueoValidacion()` tampoco la exigía). 6 tests
