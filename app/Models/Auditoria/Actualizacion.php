@@ -112,6 +112,28 @@ class Actualizacion extends Model implements HasMedia
         return $this->belongsTo(Estado::class, 'estado_id');
     }
 
+    /**
+     * Estado inicial de una propuesta de cambio según el rol de quien la crea,
+     * relativo al estado de la entidad editada: comité editando algo ya aprobado
+     * arranca directamente aprobado (se aplica al toque); gerente o comité en
+     * cualquier otro caso saltean el borrador y arrancan validado; el resto
+     * arranca en borrador. La usan GestionActualizaciones::guardar() (cambios de
+     * campo genéricos) y RiesgoController::recalcularStore() (wizard de
+     * recálculo de impacto/probabilidad), para no duplicar la regla.
+     */
+    public static function estadoInicialParaCambio(User $usuario, ?string $estadoEntidad): int
+    {
+        if ($estadoEntidad === 'aprobado' && $usuario->esComite()) {
+            return Estado::aprobado()->id;
+        }
+
+        if ($usuario->esGerente() || $usuario->esComite()) {
+            return Estado::validado()->id;
+        }
+
+        return Estado::borrador()->id;
+    }
+
     public function validacionesGerencia(): HasMany
     {
         return $this->hasMany(ValidacionGerencia::class);

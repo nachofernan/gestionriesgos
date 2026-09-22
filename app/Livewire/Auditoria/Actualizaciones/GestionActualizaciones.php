@@ -215,24 +215,9 @@ class GestionActualizaciones extends Component
         $this->cerrarModal();
     }
 
-    /**
-     * Regla de negocio: el comité editando una entidad ya aprobada genera la
-     * actualización directamente en estado aprobado; gerente o comité en cualquier
-     * otro caso saltean el borrador y van a validado; el resto arranca en borrador.
-     */
     private function estadoParaActualizacion(): int
     {
-        $user = Auth::user();
-
-        if ($this->estadoModelo === 'aprobado' && $user->esComite()) {
-            return Estado::aprobado()->id;
-        }
-
-        if ($user->esGerente() || $user->esComite()) {
-            return Estado::validado()->id;
-        }
-
-        return Estado::borrador()->id;
+        return Actualizacion::estadoInicialParaCambio(Auth::user(), $this->estadoModelo);
     }
 
     /**

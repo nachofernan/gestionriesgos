@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Controller;
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
@@ -210,13 +211,30 @@ class RiesgoController extends Controller
         return redirect()->route('auditoria.riesgos.show', $riesgo)->with('ok', 'Riesgo actualizado.');
     }
 
+    /**
+     * Motivo por el que no se puede recalcular impacto/probabilidad ahora mismo
+     * (null si puede). Disponible en cualquier estado salvo aprobado, y nunca
+     * para el comité (su rol es aprobar, no reevaluar impacto/probabilidad).
+     */
+    private function motivoBloqueoRecalculo(Riesgo $riesgo): ?string
+    {
+        if ($riesgo->estado?->nombre === 'aprobado') {
+            return 'El riesgo ya fue aprobado: el impacto y la probabilidad no pueden recalcularse.';
+        }
+
+        if (Auth::user()->esComite()) {
+            return 'El comité no puede recalcular impacto y probabilidad.';
+        }
+
+        return null;
+    }
+
     public function recalcular(Riesgo $riesgo)
     {
         $this->authorize('update', $riesgo);
 
-        if ($riesgo->estado?->nombre !== 'borrador') {
-            return redirect()->route('auditoria.riesgos.show', $riesgo)
-                ->with('error', 'El riesgo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
+        if ($motivo = $this->motivoBloqueoRecalculo($riesgo)) {
+            return redirect()->route('auditoria.riesgos.show', $riesgo)->with('error', $motivo);
         }
 
         $preguntas = config('riesgo_preguntas');
@@ -226,17 +244,21 @@ class RiesgoController extends Controller
 
     /**
      * Vuelve a pasar el wizard de preguntas (mismo cálculo que store()) para
-     * recalcular impacto/probabilidad de un riesgo ya creado, en vez de
-     * permitir cargarlos a mano en update(). Registra el cambio como una
-     * Actualizacion de tipo 'edicion' con diff, igual que update().
+     * recalcular impacto/probabilidad de un riesgo ya creado, en vez de permitir
+     * cargarlos a mano en update(). En borrador se aplica directo (log tipo
+     * 'edicion', igual que update(): el riesgo todavía no fue validado por
+     * nadie). Fuera de borrador es una propuesta de cambio más: sigue la misma
+     * doble validación de un riesgo multigerencia y el mismo arranque de estado
+     * según el rol de quien la crea que GestionActualizaciones::guardar()
+     * (Actualizacion::estadoInicialParaCambio()), para no crear un segundo
+     * camino con reglas distintas.
      */
     public function recalcularStore(Request $request, Riesgo $riesgo)
     {
         $this->authorize('update', $riesgo);
 
-        if ($riesgo->estado?->nombre !== 'borrador') {
-            return redirect()->route('auditoria.riesgos.show', $riesgo)
-                ->with('error', 'El riesgo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
+        if ($motivo = $this->motivoBloqueoRecalculo($riesgo)) {
+            return redirect()->route('auditoria.riesgos.show', $riesgo)->with('error', $motivo);
         }
 
         $data = $request->validate([
@@ -258,31 +280,62 @@ class RiesgoController extends Controller
         $suma = $nuevos['impacto'] + $nuevos['probabilidad'];
         $nuevos['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
 
-        $riesgo->update($nuevos);
-
         $diff = [];
         foreach ($nuevos as $campo => $valor) {
             if ($original[$campo] != $valor) {
                 $diff[$campo] = ['antes' => $original[$campo], 'despues' => $valor];
             }
         }
+
         if (! empty($diff)) {
-            $riesgo->actualizaciones()->create([
-                'user_id' => Auth::id(),
-                'mensaje' => 'Impacto y probabilidad recalculados',
-                'estado_id' => Estado::borrador()->id,
-                'data' => [
-                    'tipo' => 'edicion',
-                    'diff' => ['campos' => $diff],
-                    'respuestas' => [
-                        'probabilidad' => $probabilidadRespuestas,
-                        'impacto' => $impactoRespuestas,
-                    ],
-                ],
-            ]);
+            $respuestas = ['probabilidad' => $probabilidadRespuestas, 'impacto' => $impactoRespuestas];
+
+            if ($riesgo->estado?->nombre === 'borrador') {
+                $riesgo->update($nuevos);
+                $riesgo->actualizaciones()->create([
+                    'user_id' => Auth::id(),
+                    'mensaje' => 'Impacto y probabilidad recalculados',
+                    'estado_id' => Estado::borrador()->id,
+                    'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff], 'respuestas' => $respuestas],
+                ]);
+            } else {
+                $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
+                $estadoId = $dobleValidacion
+                    ? Estado::borrador()->id
+                    : Actualizacion::estadoInicialParaCambio(Auth::user(), $riesgo->estado?->nombre);
+
+                $aplicar = ! $dobleValidacion && $estadoId === Estado::validado()->id
+                    && $riesgo->estado?->nombre === 'validado';
+
+                DB::transaction(function () use ($riesgo, $nuevos, $diff, $respuestas, $estadoId, $aplicar, $dobleValidacion) {
+                    $data = ['tipo' => 'cambio', 'campos' => $nuevos, 'diff' => ['campos' => $diff], 'respuestas' => $respuestas];
+                    if ($aplicar) {
+                        $data['activated_by'] = Auth::user()->name;
+                    }
+
+                    $actualizacion = $riesgo->actualizaciones()->create([
+                        'user_id' => Auth::id(),
+                        'mensaje' => 'Impacto y probabilidad recalculados',
+                        'estado_id' => $estadoId,
+                        'data' => $data,
+                    ]);
+
+                    if ($aplicar) {
+                        $riesgo->update($nuevos);
+                    }
+
+                    if ($dobleValidacion) {
+                        $actualizacion->registrarVoto(Auth::user(), true);
+                    }
+                });
+            }
         }
 
-        return redirect()->route('auditoria.riesgos.edit', $riesgo)->with('ok', 'Impacto y probabilidad recalculados.');
+        $redirect = $riesgo->fresh()->estado?->nombre === 'borrador'
+            ? redirect()->route('auditoria.riesgos.edit', $riesgo)
+            : redirect()->route('auditoria.riesgos.show', $riesgo);
+
+        return $redirect->with('ok', 'Impacto y probabilidad recalculados.');
     }
 
     public function destroy(Riesgo $riesgo)
