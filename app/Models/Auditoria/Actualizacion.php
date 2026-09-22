@@ -38,6 +38,12 @@ class Actualizacion extends Model implements HasMedia
         'mensaje',
         'data',
         'estado_id',
+        'validado_por_id',
+        'validado_en',
+        'aprobado_por_id',
+        'aprobado_en',
+        'rechazado_por_id',
+        'rechazado_en',
     ];
 
     protected static function booted()
@@ -63,6 +69,9 @@ class Actualizacion extends Model implements HasMedia
     protected $casts = [
         'data' => 'array',
         'created_at' => 'datetime',
+        'validado_en' => 'datetime',
+        'aprobado_en' => 'datetime',
+        'rechazado_en' => 'datetime',
     ];
 
     public function registerMediaCollections(): void
@@ -78,6 +87,21 @@ class Actualizacion extends Model implements HasMedia
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function validadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validado_por_id');
+    }
+
+    public function aprobadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'aprobado_por_id');
+    }
+
+    public function rechazadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rechazado_por_id');
     }
 
     public function estado(): BelongsTo
@@ -157,7 +181,11 @@ class Actualizacion extends Model implements HasMedia
     public function marcarValidada(User $usuario): void
     {
         DB::transaction(function () use ($usuario) {
-            $this->update(['estado_id' => Estado::validado()->id]);
+            $this->update([
+                'estado_id' => Estado::validado()->id,
+                'validado_por_id' => $usuario->id,
+                'validado_en' => now(),
+            ]);
 
             if ($this->actualizable?->estado?->nombre === 'validado') {
                 $this->update(['data' => array_merge($this->data ?? [], ['activated_by' => $usuario->name])]);
@@ -172,15 +200,21 @@ class Actualizacion extends Model implements HasMedia
         DB::transaction(function () use ($usuario) {
             $this->update([
                 'estado_id' => Estado::aprobado()->id,
+                'aprobado_por_id' => $usuario->id,
+                'aprobado_en' => now(),
                 'data' => array_merge($this->data ?? [], ['activated_by' => $usuario->name]),
             ]);
             $this->fresh()->aplicarCambios();
         });
     }
 
-    public function marcarRechazada(): void
+    public function marcarRechazada(User $usuario): void
     {
-        $this->update(['estado_id' => Estado::borrado()->id]);
+        $this->update([
+            'estado_id' => Estado::borrado()->id,
+            'rechazado_por_id' => $usuario->id,
+            'rechazado_en' => now(),
+        ]);
     }
 
     /**

@@ -45,10 +45,19 @@ class Riesgo extends Model implements HasMedia
         'estado_id',
         'user_id',
         'area_id',
+        'validado_por_id',
+        'validado_en',
+        'aprobado_por_id',
+        'aprobado_en',
+        'rechazado_por_id',
+        'rechazado_en',
     ];
 
     protected $casts = [
         'respuesta' => RespuestaRiesgo::class,
+        'validado_en' => 'datetime',
+        'aprobado_en' => 'datetime',
+        'rechazado_en' => 'datetime',
     ];
 
     protected $appends = ['valor_total', 'valor_residual', 'clasificacion_total', 'clasificacion_residual'];
@@ -151,6 +160,21 @@ class Riesgo extends Model implements HasMedia
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function validadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validado_por_id');
+    }
+
+    public function aprobadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'aprobado_por_id');
+    }
+
+    public function rechazadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rechazado_por_id');
     }
 
     public function area(): BelongsTo

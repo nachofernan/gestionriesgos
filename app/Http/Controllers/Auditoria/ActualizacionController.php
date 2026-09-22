@@ -104,7 +104,7 @@ class ActualizacionController extends Controller
     public function rechazar(Actualizacion $actualizacion)
     {
         $this->authorize('rechazar', $actualizacion);
-        $actualizacion->marcarRechazada();
+        $actualizacion->marcarRechazada(Auth::user());
 
         return back()->with('ok', 'Actualización rechazada.');
     }

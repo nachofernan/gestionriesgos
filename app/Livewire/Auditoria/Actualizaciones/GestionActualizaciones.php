@@ -244,7 +244,7 @@ class GestionActualizaciones extends Component
             $actualizacion->registrarVoto(Auth::user(), false);
         }
 
-        $actualizacion->marcarRechazada();
+        $actualizacion->marcarRechazada(Auth::user());
     }
 
     private function resolverModelo(): Model

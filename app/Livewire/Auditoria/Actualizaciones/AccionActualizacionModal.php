@@ -56,7 +56,7 @@ class AccionActualizacionModal extends Component
         match ($this->accion) {
             'validar'  => $actualizacion->marcarValidada(Auth::user()),
             'aprobar'  => $actualizacion->marcarAprobada(Auth::user()),
-            'rechazar' => $actualizacion->marcarRechazada(),
+            'rechazar' => $actualizacion->marcarRechazada(Auth::user()),
         };
 
         $this->abierto = false;

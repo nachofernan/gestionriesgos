@@ -334,7 +334,11 @@ class RiesgoController extends Controller
             return back()->with('error', implode(' ', $motivos));
         }
 
-        $riesgo->update(['estado_id' => Estado::validado()->id]);
+        $riesgo->update([
+            'estado_id' => Estado::validado()->id,
+            'validado_por_id' => Auth::id(),
+            'validado_en' => now(),
+        ]);
 
         $riesgo->actualizaciones()
             ->where('estado_id', Estado::borrador()->id)
@@ -380,7 +384,11 @@ class RiesgoController extends Controller
                 $act->update(['estado_id' => Estado::aprobado()->id]);
             }
 
-            $riesgo->update(['estado_id' => Estado::aprobado()->id]);
+            $riesgo->update([
+                'estado_id' => Estado::aprobado()->id,
+                'aprobado_por_id' => Auth::id(),
+                'aprobado_en' => now(),
+            ]);
             $this->logAprobado($riesgo, 'Aprobado por '.Auth::user()->name);
         });
 
@@ -391,7 +399,11 @@ class RiesgoController extends Controller
     {
         $this->authorize('rechazar', $riesgo);
 
-        $riesgo->update(['estado_id' => Estado::borrado()->id]);
+        $riesgo->update([
+            'estado_id' => Estado::borrado()->id,
+            'rechazado_por_id' => Auth::id(),
+            'rechazado_en' => now(),
+        ]);
         $this->logAprobado($riesgo, 'Rechazado por '.Auth::user()->name);
 
         return back()->with('ok', 'Riesgo rechazado.');
