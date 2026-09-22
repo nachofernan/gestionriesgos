@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auditoria\Actualizaciones;
 
+use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -10,6 +11,7 @@ use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use App\Models\Auditoria\TipoRiesgo;
+use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -93,18 +95,44 @@ class GestionActualizaciones extends Component
             }
         }
 
+        $model = $this->resolverModelo();
+
+        // respuesta/fundamento de un riesgo comparten la misma regla de negocio que
+        // el form clásico (Riesgo::reglaRespuesta()/reglaFundamento()): obligatoria
+        // siempre que se proponga, restringida según tipo_riesgo_id (el propuesto en
+        // este mismo cambio si también se está tocando, si no el actual del riesgo),
+        // y fundamento exigido si la respuesta elegida lo requiere.
+        if ($this->modelType === 'riesgo') {
+            if (($this->cambios['respuesta'] ?? '') !== '') {
+                $tipoRiesgoId = ($this->cambios['tipo_riesgo_id'] ?? '') !== ''
+                    ? $this->cambios['tipo_riesgo_id']
+                    : $model->tipo_riesgo_id;
+                // reglaRespuesta() empieza con 'required': acá no aplica porque el
+                // campo es opcional (vacío = no se propone cambiarlo); se descarta esa
+                // entrada y se deja el resto (enum + restricción por tipo de riesgo).
+                $reglas['cambios.respuesta'] = array_slice(Riesgo::reglaRespuesta($tipoRiesgoId), 1);
+            }
+            if (($this->cambios['tipo_riesgo_id'] ?? '') !== '') {
+                $reglas['cambios.tipo_riesgo_id'] = 'exists:tipos_riesgo,id';
+            }
+            $exigenFundamento = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
+            $reglas['cambios.fundamento'] = ['nullable', 'string', 'required_if:cambios.respuesta,'.implode(',', $exigenFundamento)];
+        }
+
         $this->validate($reglas, [
             'cambios.*.date' => 'Ingresá una fecha válida.',
             'cambios.*.integer' => 'Ingresá un número entero.',
             'cambios.*.min' => 'El valor mínimo es :min.',
             'cambios.*.max' => 'El valor máximo es :max.',
+            'cambios.respuesta.required' => 'Debe elegir una respuesta frente al riesgo.',
+            'cambios.respuesta.not_in' => 'Un riesgo de este tipo no puede compartirse ni aceptarse como respuesta.',
+            'cambios.fundamento.required_if' => 'Debe fundamentar por qué se eligió esta respuesta frente al riesgo.',
         ]);
 
         $campos = collect($this->cambios)
             ->filter(fn ($v) => $v !== null && $v !== '')
             ->toArray();
 
-        $model = $this->resolverModelo();
         $this->authorize('update', $model);
 
         if (empty($campos)) {
@@ -131,6 +159,12 @@ class GestionActualizaciones extends Component
             $diff = [];
             foreach ($campos as $campo => $nuevo) {
                 $antes = $model->$campo;
+                // respuesta castea a RespuestaRiesgo (BackedEnum): sin esto, comparar
+                // el enum contra el string crudo del select nunca da igual y el diff
+                // mostraría "cambio" aunque se reeligiera el mismo valor.
+                if ($antes instanceof BackedEnum) {
+                    $antes = $antes->value;
+                }
                 if ($antes != $nuevo) {
                     $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
                 }
@@ -272,18 +306,20 @@ class GestionActualizaciones extends Component
      * Campos editables por tipo de entidad: gobierna qué inputs se renderizan en
      * el modal. No es una whitelist server-side: guardar() escribe lo que venga en
      * la propiedad pública `cambios`, así que este listado acota la UI, no lo que
-     * el componente podría llegar a escribir. La doble validación de cambios de
-     * campos de un riesgo compartido sigue viva por debajo aunque el modal ya no
-     * exponga esos campos ('riesgo' => []); se re-expondrá cuando se resuelva el
-     * mecanismo pendiente para nombre/descripción.
+     * el componente podría llegar a escribir.
      */
     private function camposEditables(): array
     {
         return match ($this->modelType) {
-            // Un riesgo se actualiza solo con mensaje + adjunto: impacto y probabilidad
-            // son calculados por el wizard de creación/recálculo (no se tipean a mano),
-            // y nombre/descripción quedan pendientes de resolverse por otro mecanismo.
-            'riesgo' => [],
+            // Impacto y probabilidad quedan afuera: se calculan con el wizard de
+            // recálculo (RiesgoController::recalcular()), no se tipean a mano acá.
+            'riesgo' => [
+                'nombre' => 'Nombre',
+                'descripcion' => 'Descripción',
+                'respuesta' => 'Respuesta',
+                'fundamento' => 'Fundamento',
+                'tipo_riesgo_id' => 'Tipo de riesgo',
+            ],
             'control' => [
                 'nombre' => 'Nombre',
                 'descripcion' => 'Descripción',
@@ -335,6 +371,25 @@ class GestionActualizaciones extends Component
         ];
     }
 
+    /**
+     * Campos de `camposEditables()` que se renderizan como <select>, con sus
+     * opciones (valor => etiqueta). `respuesta` y `tipo_riesgo_id` son los únicos
+     * hoy, ambos exclusivos de Riesgo.
+     */
+    private function camposSelect(): array
+    {
+        if ($this->modelType !== 'riesgo') {
+            return [];
+        }
+
+        return [
+            'respuesta' => collect(RespuestaRiesgo::cases())
+                ->mapWithKeys(fn ($caso) => [$caso->value => $caso->label()])
+                ->toArray(),
+            'tipo_riesgo_id' => TipoRiesgo::orderBy('nombre')->pluck('nombre', 'id')->toArray(),
+        ];
+    }
+
     public function render()
     {
         $actualizaciones = $this->resolverModelo()
@@ -348,6 +403,7 @@ class GestionActualizaciones extends Component
             'camposEditables' => $this->camposEditables(),
             'camposFecha' => $this->camposFecha(),
             'camposNumericos' => $this->camposNumericos(),
+            'camposSelect' => $this->camposSelect(),
             // Resuelve tipo_riesgo_id → nombre en la entrada de creación de un riesgo
             // (una consulta liviana; para el resto de entidades queda vacío e inocuo).
             'tiposRiesgo' => TipoRiesgo::pluck('nombre', 'id'),

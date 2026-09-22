@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Auditoria;
 
-use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
@@ -27,34 +26,8 @@ class RiesgoController extends Controller
         'fundamento.required_if' => 'Debe fundamentar por qué se eligió esta respuesta frente al riesgo.',
     ];
 
-    /**
-     * Regla para `fundamento`: obligatorio sólo si la respuesta elegida lo exige
-     * (ver RespuestaRiesgo::exigenFundamento()); libre y opcional en el resto.
-     */
-    private function reglaFundamento(): array
-    {
-        $exigen = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
-
-        return ['nullable', 'string', 'required_if:respuesta,'.implode(',', $exigen)];
-    }
-
-    /**
-     * Reglas para `respuesta` según el tipo elegido: obligatoria siempre (ver
-     * D-012, docs/DECISIONES.md); un TipoRiesgo con `restringe_respuesta`
-     * (Corrupción) además no admite las respuestas de
-     * RespuestaRiesgo::restringidas(). El `disabled` del select en el form es
-     * sólo la ayuda visual; el corte real es este.
-     */
-    private function reglaRespuesta(mixed $tipoRiesgoId): array
-    {
-        $reglas = ['required', Rule::enum(RespuestaRiesgo::class)];
-
-        if (TipoRiesgo::whereKey($tipoRiesgoId)->value('restringe_respuesta')) {
-            $reglas[] = Rule::notIn(array_column(RespuestaRiesgo::restringidas(), 'value'));
-        }
-
-        return $reglas;
-    }
+    // reglaRespuesta()/reglaFundamento() viven en Riesgo (ver ahí): las consume
+    // también GestionActualizaciones::guardar() para no duplicar la regla.
 
     public function index()
     {
@@ -99,8 +72,8 @@ class RiesgoController extends Controller
             'impacto_respuestas' => 'required|array|size:5',
             'impacto_respuestas.*' => 'required|integer|min:0|max:2',
             'mayor_criticidad' => 'boolean',
-            'respuesta' => $this->reglaRespuesta($request->input('tipo_riesgo_id')),
-            'fundamento' => $this->reglaFundamento(),
+            'respuesta' => Riesgo::reglaRespuesta($request->input('tipo_riesgo_id')),
+            'fundamento' => Riesgo::reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => 'nullable|exists:areas,id',
             'objetivos' => 'nullable|array',
@@ -200,8 +173,8 @@ class RiesgoController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'mayor_criticidad' => 'boolean',
-            'respuesta' => $this->reglaRespuesta($request->input('tipo_riesgo_id')),
-            'fundamento' => $this->reglaFundamento(),
+            'respuesta' => Riesgo::reglaRespuesta($request->input('tipo_riesgo_id')),
+            'fundamento' => Riesgo::reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => ['nullable', 'exists:areas,id', Rule::in($areasPermitidas)],
         ], self::MENSAJES_RESPUESTA + [

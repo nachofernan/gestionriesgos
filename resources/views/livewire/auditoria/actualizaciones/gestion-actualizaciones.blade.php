@@ -347,14 +347,25 @@
                                 @php
                                     $esFecha = in_array($campo, $camposFecha);
                                     $rangoNumerico = $camposNumericos[$campo] ?? null;
+                                    $opcionesSelect = $camposSelect[$campo] ?? null;
                                 @endphp
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1">{{ $etiqueta }}</label>
-                                    <input type="{{ $esFecha ? 'date' : ($rangoNumerico ? 'number' : 'text') }}"
-                                           wire:model="cambios.{{ $campo }}"
-                                           @if($rangoNumerico) min="{{ $rangoNumerico['min'] }}" max="{{ $rangoNumerico['max'] }}" step="1" @endif
-                                           @unless($esFecha || $rangoNumerico) placeholder="Nuevo valor (dejar vacío para no cambiar)" @endunless
-                                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50">
+                                    @if($opcionesSelect)
+                                        <select wire:model="cambios.{{ $campo }}"
+                                                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50">
+                                            <option value="">Dejar sin cambiar</option>
+                                            @foreach($opcionesSelect as $valor => $label)
+                                                <option value="{{ $valor }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <input type="{{ $esFecha ? 'date' : ($rangoNumerico ? 'number' : 'text') }}"
+                                               wire:model="cambios.{{ $campo }}"
+                                               @if($rangoNumerico) min="{{ $rangoNumerico['min'] }}" max="{{ $rangoNumerico['max'] }}" step="1" @endif
+                                               @unless($esFecha || $rangoNumerico) placeholder="Nuevo valor (dejar vacío para no cambiar)" @endunless
+                                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50">
+                                    @endif
                                     @error('cambios.'.$campo) <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                             @endforeach

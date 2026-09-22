@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\Rule;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -391,5 +392,34 @@ class Riesgo extends Model implements HasMedia
         }
 
         return $motivos;
+    }
+
+    /**
+     * Reglas de validación para `respuesta` según el tipo de riesgo elegido:
+     * obligatoria siempre (ver D-012, docs/DECISIONES.md); un TipoRiesgo con
+     * `restringe_respuesta` (Corrupción) además no admite
+     * RespuestaRiesgo::restringidas(). Única fuente de verdad: la consumen
+     * RiesgoController::store/update y GestionActualizaciones::guardar() (cambio
+     * de respuesta sobre un riesgo ya validado/aprobado) para no duplicar la regla.
+     *
+     * @return array<int, mixed>
+     */
+    public static function reglaRespuesta(mixed $tipoRiesgoId): array
+    {
+        $reglas = ['required', Rule::enum(RespuestaRiesgo::class)];
+
+        if (TipoRiesgo::whereKey($tipoRiesgoId)->value('restringe_respuesta')) {
+            $reglas[] = Rule::notIn(array_column(RespuestaRiesgo::restringidas(), 'value'));
+        }
+
+        return $reglas;
+    }
+
+    /** Ver reglaRespuesta(): `fundamento` es obligatorio sólo para las respuestas de RespuestaRiesgo::exigenFundamento(). */
+    public static function reglaFundamento(): array
+    {
+        $exigen = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
+
+        return ['nullable', 'string', 'required_if:respuesta,'.implode(',', $exigen)];
     }
 }
