@@ -115,7 +115,10 @@
                         <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-gray-800">{{ $actualizacion->mensaje }}</p>
                         <div class="flex items-center flex-wrap gap-2 mt-1">
-                            <x-auditoria.estado-badge :estado="$actualizacion->estado" size="sm" />
+                            {{-- Mensaje puro (sin cambios de campo): no tiene ciclo de validación, no lleva badge de estado. --}}
+                            @if($actualizacion->estado)
+                                <x-auditoria.estado-badge :estado="$actualizacion->estado" size="sm" />
+                            @endif
                             @if($actualizacion->user)
                                 <span class="text-xs text-gray-500">{{ $actualizacion->user->name }}</span>
                             @endif

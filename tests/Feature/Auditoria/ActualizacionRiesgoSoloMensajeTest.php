@@ -73,9 +73,9 @@ class ActualizacionRiesgoSoloMensajeTest extends TestCase
         $actualizacion = Actualizacion::latest('id')->first();
         $this->assertNotNull($actualizacion);
         $this->assertEquals('Novedad sin cambios de campos', $actualizacion->mensaje);
-        $this->assertEquals('cambio', $actualizacion->data['tipo']);
-        $this->assertArrayNotHasKey('campos', $actualizacion->data);
-        $this->assertArrayNotHasKey('diff', $actualizacion->data);
+        // Mensaje puro: sin cambios de campo, no entra al ciclo de validación.
+        $this->assertNull($actualizacion->data);
+        $this->assertNull($actualizacion->estado_id);
 
         // El riesgo queda intacto: ningún campo se editó desde el modal.
         $riesgo->refresh();

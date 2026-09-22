@@ -107,58 +107,68 @@ class GestionActualizaciones extends Component
         $model = $this->resolverModelo();
         $this->authorize('update', $model);
 
-        // Un riesgo con dos o más gerencias no aplica un cambio de una: la propuesta
-        // nace pendiente (borrador) y necesita el voto de todas las gerencias (ver
-        // Riesgo::cambioRequiereDobleValidacion()). El comité queda afuera: es la
-        // cúspide y valida solo, sin depender de las gerencias.
-        $dobleValidacion = $model instanceof Riesgo
-            && $model->cambioRequiereDobleValidacion(Auth::user());
-
-        $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
-
-        $diff = [];
-        foreach ($campos as $campo => $nuevo) {
-            $antes = $model->$campo;
-            if ($antes != $nuevo) {
-                $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
-            }
-        }
-
-        $data = ['tipo' => 'cambio'];
-        if (! empty($campos)) {
-            $data['campos'] = $campos;
-            if (! empty($diff)) {
-                $data['diff'] = ['campos' => $diff];
-            }
-        }
-
-        $actualizacion = DB::transaction(function () use ($model, $campos, $estadoId, $data, $dobleValidacion) {
-            $aplicar = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
-
-            $dataFinal = empty($campos) ? ['tipo' => 'cambio'] : $data;
-            if ($aplicar && ! empty($campos)) {
-                $dataFinal['activated_by'] = Auth::user()->name;
-            }
-
+        if (empty($campos)) {
+            // Mensaje puro (con o sin adjunto, sin cambios de campo): se escribe y
+            // punto, sin pasar por el ciclo borrador→validado→aprobado. estado_id
+            // null es justamente lo que hace que no aparezca en Pendientes ni ofrezca
+            // acciones de validar/aprobar/rechazar (ver ActualizacionPolicy).
             $actualizacion = $model->actualizaciones()->create([
                 'user_id' => Auth::id(),
                 'mensaje' => $this->mensaje,
-                'estado_id' => $estadoId,
-                'data' => $dataFinal,
+                'estado_id' => null,
+                'data' => null,
             ]);
+        } else {
+            // Un riesgo con dos o más gerencias no aplica un cambio de una: la propuesta
+            // nace pendiente (borrador) y necesita el voto de todas las gerencias (ver
+            // Riesgo::cambioRequiereDobleValidacion()). El comité queda afuera: es la
+            // cúspide y valida solo, sin depender de las gerencias.
+            $dobleValidacion = $model instanceof Riesgo
+                && $model->cambioRequiereDobleValidacion(Auth::user());
 
-            if ($aplicar && ! empty($campos)) {
-                $model->update($campos);
+            $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
+
+            $diff = [];
+            foreach ($campos as $campo => $nuevo) {
+                $antes = $model->$campo;
+                if ($antes != $nuevo) {
+                    $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
+                }
             }
 
-            // El proponente vota a favor por su propia gerencia al crear la propuesta.
-            if ($dobleValidacion) {
-                $actualizacion->registrarVoto(Auth::user(), true);
+            $data = ['tipo' => 'cambio', 'campos' => $campos];
+            if (! empty($diff)) {
+                $data['diff'] = ['campos' => $diff];
             }
 
-            return $actualizacion;
-        });
+            $actualizacion = DB::transaction(function () use ($model, $campos, $estadoId, $data, $dobleValidacion) {
+                $aplicar = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
+                    || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
+
+                $dataFinal = $data;
+                if ($aplicar) {
+                    $dataFinal['activated_by'] = Auth::user()->name;
+                }
+
+                $actualizacion = $model->actualizaciones()->create([
+                    'user_id' => Auth::id(),
+                    'mensaje' => $this->mensaje,
+                    'estado_id' => $estadoId,
+                    'data' => $dataFinal,
+                ]);
+
+                if ($aplicar) {
+                    $model->update($campos);
+                }
+
+                // El proponente vota a favor por su propia gerencia al crear la propuesta.
+                if ($dobleValidacion) {
+                    $actualizacion->registrarVoto(Auth::user(), true);
+                }
+
+                return $actualizacion;
+            });
+        }
 
         // El attach de medios no es transaccional (mueve archivos en disco), así que
         // va después del commit, sobre la actualización ya persistida.

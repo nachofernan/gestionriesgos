@@ -48,9 +48,12 @@ class Actualizacion extends Model implements HasMedia
 
     protected static function booted()
     {
-        // Requiere que exista el estado "borrador" (ver EstadoRiesgoSeeder).
+        // Requiere que exista el estado "borrador" (ver EstadoRiesgoSeeder). Si el
+        // creador pasó `estado_id` explícitamente (aunque sea null, como hace un
+        // mensaje puro sin ciclo de validación: ver GestionActualizaciones::guardar()),
+        // se respeta tal cual — el default sólo aplica cuando ni se mencionó la clave.
         static::creating(function ($actualizacion) {
-            if (! $actualizacion->estado_id) {
+            if (! array_key_exists('estado_id', $actualizacion->getAttributes())) {
                 $borrador = Estado::borrador();
                 if ($borrador) {
                     $actualizacion->estado_id = $borrador->id;
