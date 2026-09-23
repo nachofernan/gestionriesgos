@@ -17,10 +17,12 @@ use Livewire\Component;
  * como una Actualizacion (propuesta de cambio) que se aplica de inmediato sólo si
  * el estado resultante lo amerita (ver estadoParaActualizacion()). Emite
  * 'residual-actualizado' al cambiar la selección/mitigación para que la vista
- * recalcule el residual sin esperar a guardar; el preview contempla también la
- * mitigación ya persistida de los controles. Si el riesgo tiene respuesta
- * "Reducir/Mitigar" y ya está validado/aprobado, quitar() no deja que se quede
- * sin ningún plan que respalde ese estado (ver $exigePlan).
+ * recalcule el residual sin esperar a guardar (preview en memoria, vía Alpine,
+ * no toca DB); el preview contempla también la mitigación ya persistida de los
+ * controles. Al persistir de verdad, además dispatcha 'riesgo-actualizado' para
+ * que InfoRiesgo y GestionActualizaciones se refresquen con datos frescos. Si el
+ * riesgo tiene respuesta "Reducir/Mitigar" y ya está validado/aprobado, quitar()
+ * no deja que se quede sin ningún plan que respalde ese estado (ver $exigePlan).
  */
 class GestionPlanes extends Component
 {
@@ -214,6 +216,7 @@ class GestionPlanes extends Component
                     'estado_id' => Estado::borrador()->id,
                     'data' => ['tipo' => 'edicion', 'diff' => ['relaciones' => ['planesAccion' => $diffRel]]],
                 ]);
+                $this->dispatch('riesgo-actualizado');
             }
 
             $this->editando = false;
@@ -245,6 +248,7 @@ class GestionPlanes extends Component
                     'estado_id' => $estadoId,
                     'data' => $data,
                 ]);
+                $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Planes de acción actualizados.');
             } else {
@@ -259,6 +263,7 @@ class GestionPlanes extends Component
                     $actualizacion->registrarVoto(Auth::user(), true);
                 }
 
+                $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
             }

@@ -6,6 +6,16 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-23 (ter)** — Reactividad entre bloques hermanos en las 5 pantallas de detalle
+  (Riesgo/Control/Objetivo/Plan de Acción/Tarea): cada una gana su propio panel de Información como
+  componente Livewire (`InfoRiesgo`/`InfoControl`/`InfoObjetivo`/`InfoPlan`/`InfoTarea`) que se
+  refresca solo cuando un bloque hermano persiste un cambio, reemplazando bloques Blade estáticos que
+  quedaban desactualizados hasta recargar. `GestionActualizaciones` (genérico, reusado por las 5
+  entidades) pasa de dispatchar el evento fijo `'riesgo-actualizado'` a uno dinámico por tipo
+  (`"{modelType}-actualizado"`) — para `riesgo` da el mismo string de siempre — y reemplaza un
+  listener legacy muerto (`refrescarActualizaciones`) por uno dinámico también. Los componentes que
+  mutan relaciones (`GestionAreas`/`GestionObjetivos`/`GestionControles`/`GestionPlanes` de Riesgo,
+  `GestionTareas` de Plan) dispatchan ese evento al persistir un cambio real. 334 passed.
 - **2026-09-23 (bis)** — El historial de Actualizaciones pasa a mostrar quién validó/aprobó/rechazó
   cada entrada y cuándo (antes sólo se veía quién propuso el cambio, aunque el dato ya existía en el
   modelo desde [D-014](DECISIONES.md#d-014)), y qué gerencias ya votaron a favor en una propuesta con

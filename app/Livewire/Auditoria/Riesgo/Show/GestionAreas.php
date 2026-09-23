@@ -24,7 +24,8 @@ use Livewire\Component;
  * el riesgo está en borrador, sincroniza directo; si no, la asociación queda como
  * una Actualizacion (propuesta de cambio) que se aplica de inmediato sólo si el
  * estado resultante lo amerita (ver estadoParaActualizacion()), igual que
- * GestionObjetivos/GestionControles.
+ * GestionObjetivos/GestionControles. Dispatcha 'riesgo-actualizado' al persistir
+ * un cambio real, para que InfoRiesgo y GestionActualizaciones se refresquen solos.
  */
 class GestionAreas extends Component
 {
@@ -193,6 +194,7 @@ class GestionAreas extends Component
                 'estado_id' => $estadoId,
                 'data' => $data,
             ]);
+            $this->dispatch('riesgo-actualizado');
             $this->cancelarEdicion();
             session()->flash('ok', 'Gerencias actualizadas.');
         } else {
@@ -208,6 +210,7 @@ class GestionAreas extends Component
                 $actualizacion->registrarVoto(Auth::user(), true);
             }
 
+            $this->dispatch('riesgo-actualizado');
             $this->cancelarEdicion();
             session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
         }

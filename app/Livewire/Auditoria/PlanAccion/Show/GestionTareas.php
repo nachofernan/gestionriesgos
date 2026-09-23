@@ -14,6 +14,8 @@ use Livewire\Component;
  * la asociación queda como una Actualizacion (propuesta de cambio) que se aplica
  * de inmediato sólo si el estado resultante lo amerita (ver estadoParaActualizacion()).
  * También permite crear una tarea nueva sobre la marcha (guardarNuevaTarea()).
+ * Dispatcha 'plan-actualizado' al persistir un cambio real, para que InfoPlan y
+ * GestionActualizaciones (bloques hermanos en la misma pantalla) se refresquen solos.
  */
 class GestionTareas extends Component
 {
@@ -207,6 +209,7 @@ class GestionTareas extends Component
 
         if ($this->esBorrador) {
             $plan->tareas()->sync($ids);
+            $this->dispatch('plan-actualizado');
             $this->editando = false;
             $this->creandoTarea = false;
             session()->flash('ok', 'Tareas actualizadas.');
@@ -246,6 +249,7 @@ class GestionTareas extends Component
                     'estado_id' => $estadoId,
                     'data' => $data,
                 ]);
+                $this->dispatch('plan-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Tareas actualizadas.');
             } else {
@@ -255,6 +259,7 @@ class GestionTareas extends Component
                     'estado_id' => $estadoId,
                     'data' => $data,
                 ]);
+                $this->dispatch('plan-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
             }

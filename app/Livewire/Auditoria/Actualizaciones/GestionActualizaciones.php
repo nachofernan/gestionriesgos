@@ -15,6 +15,7 @@ use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -46,7 +47,19 @@ class GestionActualizaciones extends Component
     /** Adjuntos temporales de Livewire para la actualización que se está creando. */
     public array $archivos = [];
 
-    protected $listeners = ['refrescarActualizaciones' => '$refresh'];
+    /**
+     * Otros bloques hermanos de la misma pantalla (GestionAreas/Objetivos/
+     * Controles/Planes/Tareas, y este mismo componente en sus propias acciones
+     * de validar/aprobar, ver dispatch() más abajo) avisan con
+     * "{tipo}-actualizado" cuando persisten un cambio real sobre la entidad; acá
+     * no hace falta más que escucharlo para que el historial se re-renderice
+     * fresco (ver render(), que ya consulta la DB de cero en cada llamada). El
+     * placeholder `{modelType}` lo resuelve Livewire contra la propiedad pública
+     * del mismo nombre, así cada instancia escucha sólo el evento de su propia
+     * entidad (riesgo-actualizado / control-actualizado / etc.).
+     */
+    #[On('{modelType}-actualizado')]
+    public function refrescar(): void {}
 
     public function mount(string $modelType, int $modelId): void
     {
@@ -175,6 +188,13 @@ class GestionActualizaciones extends Component
                 $data['diff'] = ['campos' => $diff];
             }
 
+            // Misma fórmula que decide $aplicar dentro de la transacción: se repite
+            // acá (afuera) porque sólo depende de datos ya en memoria, para poder
+            // decidir el dispatch de 'riesgo-actualizado' una vez confirmada la
+            // transacción, sin depender de una variable local al closure.
+            $aplicarInmediato = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
+                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
+
             $actualizacion = DB::transaction(function () use ($model, $campos, $estadoId, $data, $dobleValidacion) {
                 $aplicar = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
                     || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
@@ -202,6 +222,13 @@ class GestionActualizaciones extends Component
 
                 return $actualizacion;
             });
+
+            // Sólo si el cambio se aplicó al modelo (no si quedó como propuesta
+            // pendiente): les avisa a Info* y a otros bloques hermanos que la
+            // entidad cambió de verdad, no que alguien lo está por proponer.
+            if ($aplicarInmediato) {
+                $this->dispatch("{$this->modelType}-actualizado");
+            }
         }
 
         // El attach de medios no es transaccional (mueve archivos en disco), así que
@@ -237,12 +264,17 @@ class GestionActualizaciones extends Component
             $actualizacion->registrarVoto(Auth::user(), true);
             if ($actualizacion->todasLasGerenciasValidaron()) {
                 $actualizacion->marcarValidada(Auth::user());
+                $this->dispatch("{$this->modelType}-actualizado");
             }
 
             return;
         }
 
         $actualizacion->marcarValidada(Auth::user());
+        // marcarValidada() sólo aplica los cambios si la entidad ya estaba
+        // "validado" (ver Actualizacion::marcarValidada) — se dispatcha igual sin
+        // distinguir ese caso: un re-render de más en Info* no rompe nada.
+        $this->dispatch("{$this->modelType}-actualizado");
     }
 
     public function cancelarActualizacion(int $actualizacionId): void
@@ -258,6 +290,7 @@ class GestionActualizaciones extends Component
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('aprobar', $actualizacion);
         $actualizacion->marcarAprobada(Auth::user());
+        $this->dispatch("{$this->modelType}-actualizado");
     }
 
     /**

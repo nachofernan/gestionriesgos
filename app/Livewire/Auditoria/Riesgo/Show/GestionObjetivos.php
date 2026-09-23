@@ -14,7 +14,9 @@ use Livewire\Component;
  * asociado — quitar() y guardar() lo validan. Si el riesgo está en borrador,
  * sincroniza directo; si no, la asociación queda como una Actualizacion
  * (propuesta de cambio) que se aplica de inmediato sólo si el estado resultante
- * lo amerita (ver estadoParaActualizacion()).
+ * lo amerita (ver estadoParaActualizacion()). Dispatcha 'riesgo-actualizado' al
+ * persistir un cambio real, para que InfoRiesgo y GestionActualizaciones (bloques
+ * hermanos en la misma pantalla) se refresquen solos.
  */
 class GestionObjetivos extends Component
 {
@@ -163,6 +165,7 @@ class GestionObjetivos extends Component
                     'estado_id' => Estado::borrador()->id,
                     'data' => ['tipo' => 'edicion', 'diff' => ['relaciones' => ['objetivos' => $diffRel]]],
                 ]);
+                $this->dispatch('riesgo-actualizado');
             }
 
             $this->editando = false;
@@ -194,6 +197,7 @@ class GestionObjetivos extends Component
                     'estado_id' => $estadoId,
                     'data' => $data,
                 ]);
+                $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Objetivos actualizados.');
             } else {
@@ -208,6 +212,7 @@ class GestionObjetivos extends Component
                     $actualizacion->registrarVoto(Auth::user(), true);
                 }
 
+                $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
             }

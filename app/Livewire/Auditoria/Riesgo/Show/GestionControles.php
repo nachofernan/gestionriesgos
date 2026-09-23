@@ -15,7 +15,11 @@ use Livewire\Component;
  * como una Actualizacion (propuesta de cambio) que se aplica de inmediato sólo si
  * el estado resultante lo amerita (ver estadoParaActualizacion()). Emite
  * 'residual-actualizado' cada vez que cambia la selección para que la vista
- * recalcule el valor residual del riesgo sin esperar a guardar.
+ * recalcule el valor residual del riesgo sin esperar a guardar (preview en
+ * memoria, vía Alpine, no toca DB). Al persistir de verdad, además dispatcha
+ * 'riesgo-actualizado' para que InfoRiesgo y GestionActualizaciones (bloques
+ * hermanos) se refresquen con datos frescos — son dos eventos distintos a
+ * propósito: uno es preview efímero, el otro es "esto ya se guardó".
  */
 class GestionControles extends Component
 {
@@ -174,6 +178,7 @@ class GestionControles extends Component
                     'estado_id' => Estado::borrador()->id,
                     'data' => ['tipo' => 'edicion', 'diff' => ['relaciones' => ['controles' => $diffRel]]],
                 ]);
+                $this->dispatch('riesgo-actualizado');
             }
 
             $this->editando = false;
@@ -205,6 +210,7 @@ class GestionControles extends Component
                     'estado_id' => $estadoId,
                     'data' => $data,
                 ]);
+                $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Controles actualizados.');
             } else {
@@ -219,6 +225,7 @@ class GestionControles extends Component
                     $actualizacion->registrarVoto(Auth::user(), true);
                 }
 
+                $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
             }
