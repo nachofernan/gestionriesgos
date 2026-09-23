@@ -4,11 +4,12 @@ Aplicación web para la gestión del ciclo completo de auditoría de riesgos: id
 
 ## Stack
 
-- **Laravel 11** / PHP 8.2
+- **Laravel 13** / PHP 8.3
 - **Livewire 4** — componentes reactivos (búsqueda, gestión de relaciones)
 - **Alpine.js** — interactividad liviana (modales, acordeones)
 - **Tailwind CSS**
 - **Spatie Media Library** — adjuntos en modelos
+- **barryvdh/laravel-dompdf** — exportación de reportes a PDF
 - **MySQL** (XAMPP en desarrollo)
 
 ## Flujo central
@@ -75,6 +76,7 @@ Los permisos se basan en una jerarquía de áreas. Un gerente gestiona su área 
 ## Documentación
 
 - [`docs/modulo-auditoria.md`](docs/modulo-auditoria.md) — arquitectura completa, modelos, rutas, componentes Livewire y tests.
+- [`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md) — manual de usuario.
 - [`docs/DECISIONES.md`](docs/DECISIONES.md) — bitácora de decisiones de diseño y arquitectura, con el motivo de cada una.
 - [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — índice cronológico de cambios significativos.
 - [`docs/updates/`](docs/updates/) — detalle de cada cambio por fecha.

@@ -289,7 +289,7 @@ screenshot con el detalle que vio.
 
 ## Stack
 
-- **Laravel 11** + **PHP 8.2**
+- **Laravel 13** + **PHP 8.3**
 - **Livewire 4** para componentes reactivos
 - **Alpine.js** para interactividad frontend liviana (modales, acordeones, toggles)
 - **Tailwind CSS** para estilos
