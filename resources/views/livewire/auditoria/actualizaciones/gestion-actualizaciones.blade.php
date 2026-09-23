@@ -127,8 +127,31 @@
                             </span>
                         </div>
 
-                        {{-- Doble validación: gerencias que todavía no votaron a favor --}}
+                        {{-- Trazabilidad de validación/aprobación/rechazo: quién y cuándo, no solo quién propuso --}}
+                        @if($actualizacion->validado_por_id)
+                            <p class="text-[11px] text-gray-500">
+                                Validado por {{ $actualizacion->validadoPor?->name }} — {{ $actualizacion->validado_en?->format('d/m/Y H:i') }}
+                            </p>
+                        @endif
+                        @if($actualizacion->aprobado_por_id)
+                            <p class="text-[11px] text-gray-500">
+                                Aprobado por {{ $actualizacion->aprobadoPor?->name }} — {{ $actualizacion->aprobado_en?->format('d/m/Y H:i') }}
+                            </p>
+                        @endif
+                        @if($actualizacion->rechazado_por_id)
+                            <p class="text-[11px] text-red-500">
+                                Rechazado por {{ $actualizacion->rechazadoPor?->name }} — {{ $actualizacion->rechazado_en?->format('d/m/Y H:i') }}
+                            </p>
+                        @endif
+
+                        {{-- Doble validación: gerencias que ya votaron a favor y las que faltan --}}
                         @if($actualizacion->estado?->nombre === 'borrador' && $actualizacion->requiereDobleValidacion())
+                            @php $votosAFavor = $actualizacion->validacionesGerencia()->where('aprueba', true)->with(['area', 'user'])->get(); @endphp
+                            @foreach($votosAFavor as $voto)
+                                <p class="text-[11px] text-gray-500">
+                                    {{ $voto->area->nombre }} validó ({{ $voto->user->name }} — {{ $voto->created_at?->format('d/m/Y H:i') }})
+                                </p>
+                            @endforeach
                             @php $gerenciasPendientes = $actualizacion->gerenciasPendientes(); @endphp
                             @if($gerenciasPendientes->isNotEmpty())
                                 <p class="mt-1 text-[11px] font-semibold text-amber-600">

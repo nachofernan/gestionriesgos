@@ -387,7 +387,7 @@ class GestionActualizaciones extends Component
     {
         $actualizaciones = $this->resolverModelo()
             ->actualizaciones()
-            ->with(['user', 'estado', 'media'])
+            ->with(['user', 'estado', 'media', 'validadoPor', 'aprobadoPor', 'rechazadoPor'])
             ->latest('created_at')
             ->get();
 

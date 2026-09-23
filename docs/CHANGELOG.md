@@ -6,6 +6,10 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-23 (bis)** — El historial de Actualizaciones pasa a mostrar quién validó/aprobó/rechazó
+  cada entrada y cuándo (antes sólo se veía quién propuso el cambio, aunque el dato ya existía en el
+  modelo desde [D-014](DECISIONES.md#d-014)), y qué gerencias ya votaron a favor en una propuesta con
+  doble validación (antes sólo se veían las pendientes).
 - **2026-09-23** — Impacto/probabilidad de un riesgo ahora también se editan vía el modal de
   Actualizaciones (no sólo con el wizard de recálculo), mismo rango 0-10 y mismo ciclo de
   validación/doble-validación que cualquier otro campo. Ver [D-015](DECISIONES.md#d-015).
