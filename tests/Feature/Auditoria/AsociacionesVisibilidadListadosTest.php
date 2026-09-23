@@ -92,6 +92,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
 
         Livewire::actingAs($this->canela)
             ->test(ControlSearch::class)
+            ->set('filtroArea', null) // ampliado a "Todas": el control es de Sector C, fuera de la cascada de Canela
             ->assertViewHas('controles', function ($controles) use ($control, $borrador, $aprobado) {
                 $c = $controles->firstWhere('id', $control->id);
 
@@ -113,6 +114,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
 
         Livewire::actingAs($this->canela)
             ->test(ObjetivoSearch::class)
+            ->set('filtroArea', null) // ampliado a "Todas": el objetivo es de Sector C, fuera de la cascada de Canela
             ->assertViewHas('objetivos', function ($objetivos) use ($objetivo, $borrador, $aprobado) {
                 $o = $objetivos->firstWhere('id', $objetivo->id);
 
@@ -131,6 +133,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
 
         Livewire::actingAs($this->canela)
             ->test(PlanSearch::class)
+            ->set('filtroArea', null) // ampliado a "Todas": el plan es de Sector C, fuera de la cascada de Canela
             ->assertViewHas('planes', function ($planes) use ($plan, $borrador, $aprobado) {
                 $p = $planes->firstWhere('id', $plan->id);
 
@@ -149,6 +152,7 @@ class AsociacionesVisibilidadListadosTest extends TestCase
 
         Livewire::actingAs($this->canela)
             ->test(TareaSearch::class)
+            ->set('filtroArea', null) // ampliado a "Todas": la tarea es de Sector C, fuera de la cascada de Canela
             ->assertViewHas('tareas', function ($tareas) use ($tarea, $planBorrador, $planAprobado) {
                 $t = $tareas->firstWhere('id', $tarea->id);
 

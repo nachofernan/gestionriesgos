@@ -56,6 +56,10 @@ class Search extends Component
     public function mount(): void
     {
         $this->filtroEstados = Estado::where('nombre', '!=', 'borrado')->pluck('id')->all();
+
+        if ($area = Auth::user()->area) {
+            $this->filtroArea = $area->id;
+        }
     }
 
     public function updatingSearch(): void
@@ -103,7 +107,7 @@ class Search extends Component
         $this->search = '';
         $this->filtroTipo = null;
         $this->filtroEstados = Estado::where('nombre', '!=', 'borrado')->pluck('id')->all();
-        $this->filtroArea = null;
+        $this->filtroArea = Auth::user()->area?->id;
         $this->soloAlta = false;
         $this->mostrarHijos = true;
         $this->ordenarPor = 'estado';

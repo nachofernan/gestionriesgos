@@ -38,6 +38,13 @@ class Search extends Component
         'direccion' => ['except' => 'asc'],
     ];
 
+    public function mount(): void
+    {
+        if ($area = Auth::user()->area) {
+            $this->filtroArea = $area->id;
+        }
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -72,7 +79,7 @@ class Search extends Component
     {
         $this->search = '';
         $this->filtroEstado = null;
-        $this->filtroArea = null;
+        $this->filtroArea = Auth::user()->area?->id;
         $this->mostrarHijos = true;
         $this->ordenarPor = 'nombre';
         $this->direccion = 'asc';
