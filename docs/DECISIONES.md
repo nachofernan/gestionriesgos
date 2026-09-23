@@ -368,3 +368,29 @@ Fuente: sesión 2026-09-22, sin changelog largo asociado — el detalle vive en 
 cada uno de los 4 pasos (`feat(auditoria): trazabilidad estructurada...`, `fix(auditoria): un mensaje
 sin cambios de campo...`, `feat(auditoria): riesgo editable durante todo su ciclo de vida...`,
 `feat(auditoria): wizard de recalcular disponible fuera de borrador`).
+
+---
+
+## D-015 — Impacto y probabilidad también se editan vía Actualizaciones, no solo por el wizard (2026-09-23)
+
+**Decisión.** El modal de Actualizaciones de un riesgo (`GestionActualizaciones::camposEditables('riesgo')`)
+suma `impacto` y `probabilidad` a la lista de campos editables, con el mismo rango 0-10 que ya rige la
+suma de las 5 preguntas del wizard (cada una 0-2, ver `camposNumericos()`). El ciclo es idéntico al de
+cualquier otro campo: propuesta con diff antes/después, doble validación si el riesgo es multigerencia,
+aplicación inmediata o pendiente según rol/estado, sin cambios en esa lógica. Actualiza el axioma 5 de
+`CLAUDE.md` ("impacto y probabilidad no se cargan a mano"): deja de ser absoluto, pero conserva su
+espíritu — el valor sigue siendo un entero 0-10 por dimensión, nunca texto libre ni fuera de rango.
+
+**Motivo.** El wizard de recálculo obliga a repetir las 5 preguntas completas para corregir un solo
+número mal cargado. Vía Actualizaciones se gana una corrección puntual con el mismo ciclo de
+validación/auditoría que ya rige nombre/descripción/respuesta/fundamento/tipo de riesgo (D-014), sin la
+fricción de rehacer todo el cuestionario.
+
+**Descartado.** Un rango distinto a 0-10, o una validación separada de la de `camposNumericos()` — se
+descartó por ser el mismo tope que ya rige en la creación y por mantener un solo lugar que gobierna
+tanto el input como la regla de validación de todos los campos numéricos editables vía este modal.
+
+**No cambia.** El wizard (`recalcular()`/`recalcularStore()`) sigue existiendo tal cual, para el alta y
+para "recalcular" completo repitiendo las 5 preguntas. Esta vía es adicional, no un reemplazo.
+
+Fuente: sesión 2026-09-23, con el usuario presente.

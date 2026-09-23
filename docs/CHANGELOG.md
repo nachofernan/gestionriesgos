@@ -6,6 +6,9 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-23** — Impacto/probabilidad de un riesgo ahora también se editan vía el modal de
+  Actualizaciones (no sólo con el wizard de recálculo), mismo rango 0-10 y mismo ciclo de
+  validación/doble-validación que cualquier otro campo. Ver [D-015](DECISIONES.md#d-015).
 - **2026-09-22** — Un riesgo se edita durante toda su vida, no sólo en `borrador`: nombre, descripción,
   `respuesta`, `fundamento` y `tipo_riesgo_id` son editables vía el modal de Actualizaciones en
   cualquier estado (reemplaza a [D-004](DECISIONES.md#d-004)), y el wizard de recálculo de

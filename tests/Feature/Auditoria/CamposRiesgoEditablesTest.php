@@ -18,10 +18,11 @@ use Tests\TestCase;
 
 /**
  * Un riesgo puede editarse durante toda su vida (no sólo en borrador) a través
- * del modal de Actualizaciones: nombre, descripción, respuesta, fundamento y
- * tipo de riesgo. Impacto/probabilidad quedan afuera (van por el wizard de
- * recálculo). Reemplaza la decisión anterior de que el modal de un riesgo sólo
- * admitía mensaje + adjunto (ver docs/DECISIONES.md).
+ * del modal de Actualizaciones: nombre, descripción, respuesta, fundamento, tipo
+ * de riesgo, impacto y probabilidad (estos dos últimos con el mismo ciclo de
+ * validación que el resto, sin necesidad de repetir el wizard — ver D-015).
+ * Reemplaza la decisión anterior de que el modal de un riesgo sólo admitía
+ * mensaje + adjunto (ver docs/DECISIONES.md).
  */
 class CamposRiesgoEditablesTest extends TestCase
 {
@@ -58,7 +59,55 @@ class CamposRiesgoEditablesTest extends TestCase
             ->call('abrirModal')
             ->assertViewHas('camposEditables', fn ($campos) => array_keys($campos) === [
                 'nombre', 'descripcion', 'respuesta', 'fundamento', 'tipo_riesgo_id',
+                'impacto', 'probabilidad',
             ]);
+    }
+
+    #[Test]
+    public function el_comite_puede_proponer_un_cambio_de_impacto_y_probabilidad_sobre_un_riesgo_aprobado(): void
+    {
+        $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
+        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $riesgo = Riesgo::factory()->aprobado()->create([
+            'area_id' => $gerencia->id,
+            'impacto' => 4,
+            'probabilidad' => 3,
+            'respuesta' => RespuestaRiesgo::Aceptar,
+            'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
+        ]);
+
+        Livewire::actingAs($comite)
+            ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
+            ->call('abrirModal')
+            ->set('mensaje', 'Corrijo impacto y probabilidad')
+            ->set('cambios.impacto', 7)
+            ->set('cambios.probabilidad', 8)
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        // Comité sobre un riesgo aprobado: se aplica al toque (mismo criterio que
+        // cualquier otro campo, ver estadoInicialParaCambio()).
+        $riesgo->refresh();
+        $this->assertEquals(7, $riesgo->impacto);
+        $this->assertEquals(8, $riesgo->probabilidad);
+        $this->assertEquals(15, $riesgo->valor_total);
+        $this->assertEquals(15, $riesgo->valor_residual);
+    }
+
+    #[Test]
+    public function no_admite_un_impacto_o_probabilidad_fuera_de_rango_0_10(): void
+    {
+        $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+        $riesgo = $this->riesgoValidado($gerencia);
+
+        Livewire::actingAs($gerente)
+            ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
+            ->call('abrirModal')
+            ->set('mensaje', 'Impacto fuera de rango')
+            ->set('cambios.impacto', 11)
+            ->call('guardar')
+            ->assertHasErrors('cambios.impacto');
     }
 
     #[Test]

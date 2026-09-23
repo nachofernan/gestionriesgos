@@ -296,14 +296,18 @@ class GestionActualizaciones extends Component
     private function camposEditables(): array
     {
         return match ($this->modelType) {
-            // Impacto y probabilidad quedan afuera: se calculan con el wizard de
-            // recálculo (RiesgoController::recalcular()), no se tipean a mano acá.
+            // Impacto y probabilidad se proponen igual que cualquier otro campo (mismo
+            // ciclo de validación/doble-validación, ver camposNumericos()): corregir un
+            // valor puntual no obliga a repetir las 5 preguntas del wizard de recálculo
+            // (RiesgoController::recalcular()), que sigue existiendo sin cambios. Ver D-015.
             'riesgo' => [
                 'nombre' => 'Nombre',
                 'descripcion' => 'Descripción',
                 'respuesta' => 'Respuesta',
                 'fundamento' => 'Fundamento',
                 'tipo_riesgo_id' => 'Tipo de riesgo',
+                'impacto' => 'Impacto',
+                'probabilidad' => 'Probabilidad',
             ],
             'control' => [
                 'nombre' => 'Nombre',
@@ -347,12 +351,16 @@ class GestionActualizaciones extends Component
      * creación/edición (ControlController) y en el valor por riesgo (GestionControles).
      * porcentaje_avance de Tarea replica el tope de 0-100 que ya rige en
      * TareaController, ActualizacionTareaController y GestionTareas::guardarNuevaTarea().
+     * impacto/probabilidad de Riesgo replican el tope 0-10 que ya rige la suma de las
+     * 5 preguntas del wizard (cada una 0-2) — ver RiesgoController::store()/recalcularStore().
      */
     private function camposNumericos(): array
     {
         return [
             'mitigacion_default' => ['min' => 1, 'max' => 10],
             'porcentaje_avance' => ['min' => 0, 'max' => 100],
+            'impacto' => ['min' => 0, 'max' => 10],
+            'probabilidad' => ['min' => 0, 'max' => 10],
         ];
     }
 
