@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -23,6 +25,8 @@ use Livewire\Component;
  */
 class GestionControles extends Component
 {
+    use PropuestasEnBloque;
+
     public int $riesgoId;
 
     public int $valorTotal = 0;
@@ -68,6 +72,18 @@ class GestionControles extends Component
         $this->cargar();
     }
 
+    /**
+     * Otro bloque (o el historial) cambió el riesgo: se recarga lo vigente, salvo
+     * que el usuario esté editando, para no pisarle lo que tiene a medio armar.
+     */
+    #[On('riesgo-actualizado')]
+    public function refrescar(): void
+    {
+        if (! $this->editando) {
+            $this->cargar();
+        }
+    }
+
     public function activarEdicion(): void
     {
         $this->editando = true;
@@ -96,6 +112,10 @@ class GestionControles extends Component
 
     public function actualizarMitigacion(int $controlId, int $valor): void
     {
+        if ($this->elementoConPropuesta('controles', $controlId)) {
+            return;
+        }
+
         foreach ($this->seleccionados as &$item) {
             if ($item['id'] === $controlId) {
                 $item['mitigacion'] = max(0, min(10, $valor));
@@ -107,6 +127,10 @@ class GestionControles extends Component
 
     public function agregar(int $controlId): void
     {
+        if ($this->elementoConPropuesta('controles', $controlId)) {
+            return;
+        }
+
         if (collect($this->seleccionados)->contains('id', $controlId)) {
             return;
         }
@@ -135,6 +159,10 @@ class GestionControles extends Component
 
     public function quitar(int $controlId): void
     {
+        if ($this->elementoConPropuesta('controles', $controlId)) {
+            return;
+        }
+
         $this->seleccionados = array_values(
             array_filter($this->seleccionados, fn ($c) => $c['id'] !== $controlId)
         );
@@ -188,7 +216,8 @@ class GestionControles extends Component
             // Riesgo compartido entre gerencias: el cambio no se aplica de una,
             // nace pendiente y el proponente vota a favor por su gerencia (ver
             // Riesgo::cambioRequiereDobleValidacion()).
-            $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
+            $modo = $this->modoCambio($riesgo);
+            $dobleValidacion = $modo === 'doble';
             $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 
             $data = ['tipo' => 'cambio', 'relaciones' => ['controles' => ['sync' => $sync]]];
@@ -196,8 +225,7 @@ class GestionControles extends Component
                 $data['diff'] = ['relaciones' => ['controles' => $diffRel]];
             }
 
-            $aplicarAhora = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
+            $aplicarAhora = $modo === 'directo';
 
             if ($aplicarAhora) {
                 // El cambio se aplica en el acto: se marca activated_by para que el
@@ -214,16 +242,8 @@ class GestionControles extends Component
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Controles actualizados.');
             } else {
-                $actualizacion = $riesgo->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => 'Propuesta de cambio en controles de mitigación',
-                    'estado_id' => $estadoId,
-                    'data' => $data,
-                ]);
-
-                if ($dobleValidacion) {
-                    $actualizacion->registrarVoto(Auth::user(), true);
-                }
+                // Fuera del modo directo, cada alta/baja/cambio es su propia propuesta.
+                $this->proponerPorElemento($riesgo, 'controles', $diffRel, $estadoId, $dobleValidacion, 'control');
 
                 $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
@@ -245,7 +265,9 @@ class GestionControles extends Component
         $user = Auth::user();
         $antesMap = $riesgo->controles
             ->reject(fn ($c) => $c->estado?->nombre === 'borrado' || ! $user->can('view', $c))
-            ->mapWithKeys(fn ($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => $c->pivot->mitigacion]]);
+            // Mismo valor efectivo que muestra cargar() y descuenta valor_residual: sin el
+            // fallback, un pivot en null se leía como "cambió a N" aunque nadie lo tocara.
+            ->mapWithKeys(fn ($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => (int) ($c->pivot->mitigacion ?? $c->mitigacion_default)]]);
         $antesIds = $antesMap->keys();
         $despuesIds = collect($this->seleccionados)->pluck('id');
 
@@ -258,7 +280,7 @@ class GestionControles extends Component
                 ->map(fn ($v, $k) => ['id' => $k, 'nombre' => $v['nombre']])
                 ->values()->toArray(),
             'cambia' => collect($this->seleccionados)
-                ->filter(fn ($c) => $antesIds->contains($c['id']) && $antesMap[$c['id']]['mitigacion'] !== $c['mitigacion'])
+                ->filter(fn ($c) => $antesIds->contains($c['id']) && $antesMap[$c['id']]['mitigacion'] !== (int) $c['mitigacion'])
                 ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion_antes' => $antesMap[$c['id']]['mitigacion'], 'mitigacion_despues' => $c['mitigacion']])
                 ->values()->toArray(),
         ], fn ($a) => ! empty($a));
@@ -301,6 +323,7 @@ class GestionControles extends Component
     {
         $riesgo = Riesgo::with(['controles.estado', 'controles.area', 'planesAccion.estado', 'planesAccion.tareas.estado', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
+        $this->valorTotal = $riesgo->valor_total;
         $this->esBorrador = $this->estadoModelo === 'borrador';
 
         // Sólo los planes aprobados y al 100% mitigan (misma regla que el accessor valor_residual).
@@ -338,7 +361,10 @@ class GestionControles extends Component
 
     public function render()
     {
-        $yaIds = collect($this->seleccionados)->pluck('id');
+        $riesgoVista = Riesgo::with(['areas', 'controles.estado'])->findOrFail($this->riesgoId);
+        $propuestas = $this->propuestasDe($riesgoVista, 'controles');
+        $bloqueados = $this->idsConPropuesta($propuestas, 'controles');
+        $yaIds = collect($this->seleccionados)->pluck('id')->merge($bloqueados);
 
         $resultados = $this->modalAbierto
             ? Control::query()
@@ -356,6 +382,12 @@ class GestionControles extends Component
             : collect();
 
         return view('livewire.auditoria.riesgo.show.gestion-controles', [
+            'modo' => $this->modoCambio($riesgoVista),
+            'gerencias' => $this->nombresGerencias($riesgoVista),
+            'bloqueados' => $bloqueados,
+            'propuestas' => $propuestas,
+            'marcas' => $this->marcasDe($propuestas, 'controles'),
+            'diffEnCurso' => $this->editando ? $this->construirDiff($riesgoVista) : [],
             'resultados' => $resultados,
         ]);
     }

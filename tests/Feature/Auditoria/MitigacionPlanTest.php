@@ -162,6 +162,25 @@ class MitigacionPlanTest extends TestCase
     }
 
     #[Test]
+    public function el_desglose_de_mitigacion_separa_controles_y_planes_y_cuadra_con_el_residual()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $riesgo->controles()->attach([
+            $this->controlAprobado()->id => ['mitigacion' => 5],
+            Control::factory()->create(['estado_id' => Estado::borrador()->id])->id => ['mitigacion' => 3],
+        ]);
+        $riesgo->planesAccion()->attach([
+            $this->planCon(100)->id => ['mitigacion' => 6],
+            $this->planCon(50)->id => ['mitigacion' => 4],
+        ]);
+
+        $riesgo = $riesgo->fresh();
+        $this->assertEquals(5, $riesgo->mitigacion_controles); // el control en borrador no cuenta
+        $this->assertEquals(6, $riesgo->mitigacion_planes);    // el plan al 50% no cuenta
+        $this->assertEquals(5, $riesgo->valor_residual);       // 16 - 5 - 6
+    }
+
+    #[Test]
     public function el_valor_residual_nunca_baja_de_cero()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 2, 'probabilidad' => 2]); // total 4

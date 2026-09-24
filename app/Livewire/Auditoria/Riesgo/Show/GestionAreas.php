@@ -3,11 +3,13 @@
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
 use App\Enums\Auditoria\TipoArea;
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -29,7 +31,7 @@ use Livewire\Component;
  */
 class GestionAreas extends Component
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, PropuestasEnBloque;
 
     public int $riesgoId;
 
@@ -53,6 +55,18 @@ class GestionAreas extends Component
     {
         $this->riesgoId = $riesgo->id;
         $this->cargar();
+    }
+
+    /**
+     * Otro bloque (o el historial) cambió el riesgo: se recarga lo vigente, salvo
+     * que el usuario esté editando, para no pisarle lo que tiene a medio armar.
+     */
+    #[On('riesgo-actualizado')]
+    public function refrescar(): void
+    {
+        if (! $this->editando) {
+            $this->cargar();
+        }
     }
 
     public function activarEdicion(): void
@@ -158,7 +172,8 @@ class GestionAreas extends Component
         // una: nace pendiente y necesita el voto de todas. Pasar de 1 a 2 gerencias
         // no cuenta (el padrón previo es una sola), así que la primera vez se aplica
         // con la sola validación del proponente. El comité queda afuera de la regla.
-        $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
+        $modo = $this->modoCambio($riesgo);
+        $dobleValidacion = $modo === 'doble';
 
         $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 
@@ -180,8 +195,7 @@ class GestionAreas extends Component
             $data['diff'] = ['relaciones' => ['areas' => $diffRel]];
         }
 
-        $aplicarAhora = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
-            || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
+        $aplicarAhora = $modo === 'directo';
 
         if ($aplicarAhora) {
             // El cambio se aplica en el acto: se marca activated_by para que el
@@ -262,7 +276,14 @@ class GestionAreas extends Component
                 ->get()
             : collect();
 
+        $riesgo = Riesgo::with('areas')->findOrFail($this->riesgoId);
+        $propuestas = $this->propuestasDe($riesgo, 'areas');
+
         return view('livewire.auditoria.riesgo.show.gestion-areas', [
+            'modo' => $this->modoCambio($riesgo),
+            'gerencias' => $this->nombresGerencias($riesgo),
+            'propuestas' => $propuestas,
+            'marcas' => $this->marcasDe($propuestas, 'areas'),
             'resultados' => $resultados,
         ]);
     }

@@ -3,16 +3,18 @@
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
 use App\Models\Auditoria\Riesgo;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Panel de "Información" de un Riesgo (valor total, residual, impacto,
- * probabilidad, estado, criticidad, etc.). Antes era Blade estático dentro de
- * riesgo/show.blade.php; se extrae a su propio componente para poder
- * refrescarse solo cuando cualquier otro bloque de la pantalla (Áreas,
- * Objetivos, Controles, Planes, Actualizaciones) persiste un cambio sobre el
- * riesgo — ver el evento 'riesgo-actualizado' que esos componentes dispatchan.
+ * Tarjeta de "Valor" de riesgo/show: impacto + probabilidad = total, menos lo
+ * que descuentan controles y planes (accessors mitigacion_controles /
+ * mitigacion_planes del modelo) = residual. Se refresca sola con
+ * 'riesgo-actualizado' (lo emiten el resto de los bloques al persistir) y,
+ * mientras se editan Controles o Planes, muestra el residual proyectado que
+ * esos bloques emiten con 'residual-actualizado' (Alpine, sin tocar la DB).
+ * Los datos descriptivos del riesgo viven en FichaRiesgo.
  */
 class InfoRiesgo extends Component
 {
@@ -34,6 +36,7 @@ class InfoRiesgo extends Component
     {
         $riesgo = Riesgo::with([
             'controles.estado',
+            'planesAccion.estado',
             'planesAccion.tareas.estado',
             'tipoRiesgo',
             'area',
@@ -41,8 +44,14 @@ class InfoRiesgo extends Component
             'estado',
         ])->findOrFail($this->riesgoId);
 
+        // Propuestas pendientes que moverían el valor (impacto/probabilidad), para avisarlo acá.
+        $propuestasValor = $riesgo->actualizaciones()->propuestasPendientes('campos')->get()
+            ->filter(fn ($p) => isset($p->data['diff']['campos']['impacto']) || isset($p->data['diff']['campos']['probabilidad']));
+
         return view('livewire.auditoria.riesgo.show.info-riesgo', [
             'riesgo' => $riesgo,
+            'puedeActualizar' => Auth::user()->can('update', $riesgo),
+            'propuestasValor' => $propuestasValor,
         ]);
     }
 }

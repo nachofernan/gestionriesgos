@@ -6,6 +6,13 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-24** — Rediseño de riesgo/show (rama `rediseno/riesgo-show`, base para el resto de las
+  pantallas de detalle): cada bloque muestra lo vigente arriba y lo propuesto abajo, y las propuestas
+  se resuelven desde su tarjeta. Objetivos, Controles y Planes proponen un cambio por elemento
+  (`agregar`/`detach`/`actualizar`) en vez de un `sync` del bloque, y un elemento con una propuesta
+  pendiente queda bloqueado. La Ficha se edita en el bloque. Las notas pasan a la Conversación, fuera
+  de la Actividad. El comité puede rechazar una propuesta validada, y hay accessors de desglose del
+  residual. 362 passed. Ver [D-016](DECISIONES.md#d-016) y [detalle](updates/2026-09-24.md).
 - **2026-09-23 (ter)** — Reactividad entre bloques hermanos en las 5 pantallas de detalle
   (Riesgo/Control/Objetivo/Plan de Acción/Tarea): cada una gana su propio panel de Información como
   componente Livewire (`InfoRiesgo`/`InfoControl`/`InfoObjetivo`/`InfoPlan`/`InfoTarea`) que se

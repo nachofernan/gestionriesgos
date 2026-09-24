@@ -134,6 +134,109 @@ class Actualizacion extends Model implements HasMedia
         return Estado::borrador()->id;
     }
 
+    /**
+     * Nota suelta sobre la entidad (mensaje, con o sin adjuntos que se agregan
+     * después): estado_id null la deja fuera del ciclo borrador→validado→aprobado,
+     * así no aparece en Pendientes ni ofrece validar/rechazar (ver
+     * ActualizacionPolicy). La usan GestionActualizaciones y ConversacionRiesgo.
+     * Quien llama ya autorizó 'update' sobre la entidad.
+     */
+    public static function registrarNota(Model $entidad, User $usuario, string $mensaje): self
+    {
+        return $entidad->actualizaciones()->create([
+            'user_id' => $usuario->id,
+            'mensaje' => $mensaje,
+            'estado_id' => null,
+            'data' => null,
+        ]);
+    }
+
+    /**
+     * Registra un cambio de campos sobre la entidad. Nace en el estado que le toca
+     * al rol (estadoInicialParaCambio()), o en borrador con el voto a favor del
+     * proponente si el riesgo es compartido (Riesgo::cambioRequiereDobleValidacion());
+     * se aplica en el acto si nace aprobado, o validado sobre una entidad validada.
+     * Guarda el diff (antes → después) que pintan el historial y las tarjetas de
+     * propuesta. Sale de GestionActualizaciones::guardar() para que también lo use
+     * FichaRiesgo. Quien llama ya validó los campos y autorizó 'update'.
+     * Tests: un_empleado_edita_la_ficha_y_queda_propuesta_solo_con_los_campos_que_cambiaron,
+     * en_un_riesgo_compartido_la_ficha_propone_con_el_voto_del_proponente.
+     */
+    public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos): self
+    {
+        $estadoEntidad = $entidad->estado?->nombre;
+        $dobleValidacion = $entidad instanceof Riesgo && $entidad->cambioRequiereDobleValidacion($usuario);
+        $estadoId = $dobleValidacion ? Estado::borrador()->id : static::estadoInicialParaCambio($usuario, $estadoEntidad);
+
+        $diff = [];
+        foreach ($campos as $campo => $nuevo) {
+            $antes = $entidad->$campo;
+            // respuesta castea a RespuestaRiesgo (BackedEnum): sin esto, comparar
+            // el enum contra el string crudo del select nunca da igual y el diff
+            // mostraría "cambio" aunque se reeligiera el mismo valor.
+            if ($antes instanceof \BackedEnum) {
+                $antes = $antes->value;
+            }
+            if ($antes != $nuevo) {
+                $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
+            }
+        }
+
+        $data = ['tipo' => 'cambio', 'campos' => $campos];
+        if (! empty($diff)) {
+            $data['diff'] = ['campos' => $diff];
+        }
+
+        $aplicar = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
+            || ($estadoId === Estado::validado()->id && $estadoEntidad === 'validado'));
+        if ($aplicar) {
+            $data['activated_by'] = $usuario->name;
+        }
+
+        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $campos, $estadoId, $data, $aplicar, $dobleValidacion) {
+            $actualizacion = $entidad->actualizaciones()->create([
+                'user_id' => $usuario->id,
+                'mensaje' => $mensaje,
+                'estado_id' => $estadoId,
+                'data' => $data,
+            ]);
+
+            if ($aplicar) {
+                $entidad->update($campos);
+            }
+
+            if ($dobleValidacion) {
+                $actualizacion->registrarVoto($usuario, true);
+            }
+
+            return $actualizacion;
+        });
+    }
+
+    /**
+     * Propuestas de cambio que todavía no se aplicaron a su entidad: tipo
+     * "cambio", en borrador (espera validación) o validada sin `activated_by`
+     * (espera al comité). Con `$parte` se acota a las que tocan esa parte de la
+     * entidad: una relación ('objetivos', 'controles', 'planesAccion', 'areas') o
+     * 'campos'. Lo consumen los bloques de riesgo/show para mostrar lo propuesto
+     * debajo de lo vigente. Solo lectura.
+     * Test: propuestas_pendientes_incluye_solo_cambios_sin_aplicar_y_filtra_por_parte.
+     */
+    public function scopePropuestasPendientes($query, ?string $parte = null)
+    {
+        $query->where('data->tipo', 'cambio')
+            ->whereNull('data->activated_by')
+            ->whereIn('estado_id', [Estado::borrador()->id, Estado::validado()->id]);
+
+        if ($parte === 'campos') {
+            $query->whereJsonContainsKey('data->diff->campos');
+        } elseif ($parte) {
+            $query->whereJsonContainsKey("data->diff->relaciones->{$parte}");
+        }
+
+        return $query;
+    }
+
     public function validacionesGerencia(): HasMany
     {
         return $this->hasMany(ValidacionGerencia::class);
@@ -283,7 +386,28 @@ class Actualizacion extends Model implements HasMedia
                 if (isset($ops['detach'])) {
                     $model->$relacion()->detach($ops['detach']);
                 }
+                static::aplicarOperacionesPorElemento($model, $relacion, $ops);
             }
+        }
+    }
+
+    /**
+     * Operaciones puntuales sobre un solo elemento de la relación, las que generan
+     * las propuestas por elemento de riesgo/show (ver PropuestasEnBloque): 'agregar'
+     * [id => pivot] asocia sin duplicar si ya estaba, y 'actualizar' [id => pivot]
+     * cambia sólo el pivot (la mitigación). A diferencia de 'sync', no pisan al resto
+     * del bloque, así dos propuestas sobre elementos distintos no se contradicen.
+     * También la llama RiesgoController::aplicarCambiosActualizacion().
+     * Tests: validar_una_propuesta_aplica_solo_su_elemento_y_rechazar_otra_no_toca_nada,
+     * un_cambio_de_mitigacion_propuesto_solo_toca_el_pivot_de_ese_control.
+     */
+    public static function aplicarOperacionesPorElemento(Model $model, string $relacion, array $ops): void
+    {
+        if (isset($ops['agregar'])) {
+            $model->$relacion()->syncWithoutDetaching($ops['agregar']);
+        }
+        foreach ($ops['actualizar'] ?? [] as $id => $pivot) {
+            $model->$relacion()->updateExistingPivot($id, $pivot);
         }
     }
 }

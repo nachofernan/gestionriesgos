@@ -70,7 +70,9 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 ### Accessors calculados en Riesgo
 
 - **`valor_total`**: `impacto + probabilidad` (0–20)
-- **`valor_residual`**: `valor_total − Σ mitigaciones de controles` (mínimo 0). Usa `pivot->mitigacion` si está definida, sino `mitigacion_default` del control.
+- **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control.
+- **`mitigacion_planes`**: Σ `pivot->mitigacion` de los planes **aprobados y al 100%** de avance.
+- **`valor_residual`**: `valor_total − mitigacion_controles − mitigacion_planes` (mínimo 0).
 
 ---
 
@@ -163,12 +165,26 @@ Patrón común para manejar relaciones many-to-many con edición inline:
 ```
 app/Livewire/Auditoria/
 ├── Riesgo/Show/
+│   ├── Concerns/PropuestasEnBloque.php — modo de cambio, propuestas pendientes y propuesta por elemento
+│   ├── ResumenPropuestas.php   — banner con las propuestas pendientes del riesgo
+│   ├── FichaRiesgo.php         — datos propios del riesgo, editables en el bloque
+│   ├── InfoRiesgo.php          — tarjeta Valor: total, desglose de mitigación, residual
+│   ├── GestionAreas.php        — gerencias del riesgo
 │   ├── GestionControles.php    — maneja controles de un riesgo (con mitigacion editable)
 │   ├── GestionObjetivos.php    — maneja objetivos de un riesgo (mínimo 1 requerido)
-│   └── GestionPlanes.php       — maneja planes de acción de un riesgo
+│   ├── GestionPlanes.php       — maneja planes de acción de un riesgo
+│   └── ConversacionRiesgo.php  — notas y archivos del riesgo
+├── Actualizaciones/
+│   └── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (riesgo/show)
 └── PlanAccion/Show/
     └── GestionTareas.php       — maneja tareas de un plan
 ```
+
+**riesgo/show (rediseño, ver [D-016](DECISIONES.md#d-016) y [updates/2026-09-24](updates/2026-09-24.md)):**
+cada bloque muestra arriba lo vigente y abajo las propuestas pendientes que lo afectan, que se
+resuelven desde su tarjeta (evento `resolver-actualizacion` → `GestionActualizaciones`). Fuera de
+borrador y del modo directo, Objetivos/Controles/Planes generan una propuesta por elemento
+(`agregar` / `detach` / `actualizar`), no un `sync` del bloque.
 
 **Patrón de estos componentes:**
 1. `mount(Entidad $entidad)` — carga los items ya asociados en `$seleccionados`
@@ -233,9 +249,19 @@ resources/views/
     ├── riesgo/
     │   ├── index/search.blade.php
     │   └── show/
+    │       ├── partials/{boton-editar, barra-edicion}.blade.php
+    │       ├── resumen-propuestas.blade.php
+    │       ├── ficha-riesgo.blade.php
+    │       ├── info-riesgo.blade.php
+    │       ├── gestion-areas.blade.php
     │       ├── gestion-controles.blade.php
     │       ├── gestion-objetivos.blade.php
-    │       └── gestion-planes.blade.php
+    │       ├── gestion-planes.blade.php
+    │       └── conversacion-riesgo.blade.php
+    ├── actualizaciones/
+    │   ├── gestion-actualizaciones.blade.php           # variante 'completa'
+    │   ├── gestion-actualizaciones-timeline.blade.php  # variante 'timeline'
+    │   └── partials/{modal-nueva, actividad-modal}.blade.php
     ├── control/index/search.blade.php
     ├── objetivo/index/search.blade.php
     ├── plan-accion/
@@ -245,6 +271,10 @@ resources/views/
 ```
 
 Las vistas `show.blade.php` de Riesgo y PlanAccion embeben los componentes de gestión con `@livewire(...)`.
+
+Componentes Blade del rediseño de riesgo/show (`resources/views/components/auditoria/`):
+`bloque-riesgo` (contenedor vigente/propuesto), `propuesta-pendiente` (tarjeta de una propuesta, con
+sus acciones en `auditoria/partials/propuesta-acciones`), `modal-buscar` y `spinner`.
 
 ---
 

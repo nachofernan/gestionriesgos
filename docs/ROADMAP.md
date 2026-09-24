@@ -18,6 +18,11 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 
 ## En curso / recién cerrado
 
+- [ ] **Rediseño de las pantallas de detalle** (rama `rediseno/riesgo-show`), ver [D-016](DECISIONES.md#d-016) y [updates/2026-09-24](updates/2026-09-24.md).
+  - [x] riesgo/show: bloques con lo vigente arriba y lo propuesto abajo, una propuesta por elemento, Ficha editable en el bloque, Conversación separada de la Actividad (2026-09-24).
+  - [ ] Revisar Gerencias (sigue proponiéndose en bloque) y cómo se comporta un riesgo multigerencia en el diseño nuevo.
+  - [ ] Replicar en control/show, objetivo/show, planaccion/show y tarea/show. Antes, decidir si `PropuestasEnBloque`, `bloque-riesgo` y `propuesta-pendiente` se generalizan o se copian, y mantener una sola instancia de `GestionActualizaciones` por pantalla (escucha `resolver-actualizacion` a nivel global).
+
 - [x] **Dashboard con gráficos y KPIs — primer pase** (2026-07-23) — ver [changelog](updates/2026-07-23.md). `PanelRiesgos`: panel de lectura con mapa de calor (impacto×probabilidad, riesgo inherente), dos rieles de cubitos 0-20 que comparan inherente vs residual, KPIs por criticidad residual y accesos a Pendientes/Vencimientos. El filtro de cascada quedó extraído a `Riesgo::scopeDeCascadaArea` reusable, como estaba previsto; toggle "solo aprobados" encendido por defecto; landing redirige al panel; se eliminó el `Dashboard` viejo de scaffolding. Continuación posible: más gráficos (tendencia, por tipo de riesgo) y migrar Vencimientos al mismo scope.
 - [x] **Wizard de creación de riesgo con impacto/probabilidad calculados** (2026-07-03) — ver [changelog](updates/2026-07-03.md). Impacto/probabilidad dejan de cargarse a mano; objetivo y plan de acción pasan a ser requisito de validación, no de creación.
 - [x] **Impacto/probabilidad ya no editables en la edición** (2026-07-03) — ver [changelog](updates/2026-07-03c.md). Sólo se recalculan repitiendo el wizard de preguntas, nunca cargándolos directo.
@@ -44,4 +49,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-08-20.*
+*Última revisión: 2026-09-24.*

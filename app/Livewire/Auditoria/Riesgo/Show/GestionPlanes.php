@@ -3,10 +3,12 @@
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -26,6 +28,8 @@ use Livewire\Component;
  */
 class GestionPlanes extends Component
 {
+    use PropuestasEnBloque;
+
     public int $riesgoId;
 
     public int $valorTotal = 0;
@@ -73,6 +77,18 @@ class GestionPlanes extends Component
         $this->cargar();
     }
 
+    /**
+     * Otro bloque (o el historial) cambió el riesgo: se recarga lo vigente, salvo
+     * que el usuario esté editando, para no pisarle lo que tiene a medio armar.
+     */
+    #[On('riesgo-actualizado')]
+    public function refrescar(): void
+    {
+        if (! $this->editando) {
+            $this->cargar();
+        }
+    }
+
     public function activarEdicion(): void
     {
         $this->editando = true;
@@ -107,6 +123,10 @@ class GestionPlanes extends Component
      */
     public function actualizarMitigacion(int $planId, int $valor): void
     {
+        if ($this->elementoConPropuesta('planesAccion', $planId)) {
+            return;
+        }
+
         foreach ($this->seleccionados as &$item) {
             if ($item['id'] === $planId) {
                 $item['mitigacion'] = max(0, min(20, $valor));
@@ -118,6 +138,10 @@ class GestionPlanes extends Component
 
     public function agregar(int $planId): void
     {
+        if ($this->elementoConPropuesta('planesAccion', $planId)) {
+            return;
+        }
+
         if (collect($this->seleccionados)->contains('id', $planId)) {
             return;
         }
@@ -159,6 +183,10 @@ class GestionPlanes extends Component
      */
     public function quitar(int $planId): void
     {
+        if ($this->elementoConPropuesta('planesAccion', $planId)) {
+            return;
+        }
+
         if ($this->exigePlan && ! $this->esBorrador) {
             $estadosQueRespaldan = $this->estadoModelo === 'aprobado' ? ['aprobado'] : ['validado', 'aprobado'];
             $restantes = collect($this->seleccionados)->reject(fn ($p) => $p['id'] === $planId);
@@ -226,7 +254,8 @@ class GestionPlanes extends Component
             // Riesgo compartido entre gerencias: el cambio no se aplica de una,
             // nace pendiente y el proponente vota a favor por su gerencia (ver
             // Riesgo::cambioRequiereDobleValidacion()).
-            $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
+            $modo = $this->modoCambio($riesgo);
+            $dobleValidacion = $modo === 'doble';
             $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 
             $data = ['tipo' => 'cambio', 'relaciones' => ['planesAccion' => ['sync' => $sync]]];
@@ -234,8 +263,7 @@ class GestionPlanes extends Component
                 $data['diff'] = ['relaciones' => ['planesAccion' => $diffRel]];
             }
 
-            $aplicarAhora = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
+            $aplicarAhora = $modo === 'directo';
 
             if ($aplicarAhora) {
                 // El cambio se aplica en el acto: se marca activated_by para que el
@@ -252,16 +280,8 @@ class GestionPlanes extends Component
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Planes de acción actualizados.');
             } else {
-                $actualizacion = $riesgo->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => 'Propuesta de cambio en planes de acción asociados',
-                    'estado_id' => $estadoId,
-                    'data' => $data,
-                ]);
-
-                if ($dobleValidacion) {
-                    $actualizacion->registrarVoto(Auth::user(), true);
-                }
+                // Fuera del modo directo, cada alta/baja/cambio es su propia propuesta.
+                $this->proponerPorElemento($riesgo, 'planesAccion', $diffRel, $estadoId, $dobleValidacion, 'plan de acción');
 
                 $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
@@ -283,7 +303,8 @@ class GestionPlanes extends Component
         $user = Auth::user();
         $antesMap = $riesgo->planesAccion
             ->reject(fn ($p) => $p->estado?->nombre === 'borrado' || ! $user->can('view', $p))
-            ->mapWithKeys(fn ($p) => [$p->id => ['nombre' => $p->nombre, 'mitigacion' => $p->pivot->mitigacion]]);
+            // Mismo valor efectivo que muestra cargar(): ver GestionControles::construirDiff().
+            ->mapWithKeys(fn ($p) => [$p->id => ['nombre' => $p->nombre, 'mitigacion' => (int) ($p->pivot->mitigacion ?? 0)]]);
         $antesIds = $antesMap->keys();
         $despuesIds = collect($this->seleccionados)->pluck('id');
 
@@ -296,7 +317,7 @@ class GestionPlanes extends Component
                 ->map(fn ($v, $k) => ['id' => $k, 'nombre' => $v['nombre']])
                 ->values()->toArray(),
             'cambia' => collect($this->seleccionados)
-                ->filter(fn ($p) => $antesIds->contains($p['id']) && $antesMap[$p['id']]['mitigacion'] !== $p['mitigacion'])
+                ->filter(fn ($p) => $antesIds->contains($p['id']) && $antesMap[$p['id']]['mitigacion'] !== (int) $p['mitigacion'])
                 ->map(fn ($p) => ['id' => $p['id'], 'nombre' => $p['nombre'], 'mitigacion_antes' => $antesMap[$p['id']]['mitigacion'], 'mitigacion_despues' => $p['mitigacion']])
                 ->values()->toArray(),
         ], fn ($a) => ! empty($a));
@@ -340,6 +361,7 @@ class GestionPlanes extends Component
     {
         $riesgo = Riesgo::with(['planesAccion.estado', 'planesAccion.area', 'planesAccion.tareas.estado', 'controles.estado', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
+        $this->valorTotal = $riesgo->valor_total;
         $this->esBorrador = $this->estadoModelo === 'borrador';
         $this->exigePlan = $riesgo->respuesta === RespuestaRiesgo::Mitigar;
 
@@ -379,7 +401,10 @@ class GestionPlanes extends Component
 
     public function render()
     {
-        $yaIds = collect($this->seleccionados)->pluck('id');
+        $riesgoVista = Riesgo::with(['areas', 'planesAccion.estado'])->findOrFail($this->riesgoId);
+        $propuestas = $this->propuestasDe($riesgoVista, 'planesAccion');
+        $bloqueados = $this->idsConPropuesta($propuestas, 'planesAccion');
+        $yaIds = collect($this->seleccionados)->pluck('id')->merge($bloqueados);
 
         $planesConTareas = PlanAccion::with(['tareas.estado', 'tareas.area', 'tareas.user'])
             ->whereIn('id', $yaIds)
@@ -405,6 +430,12 @@ class GestionPlanes extends Component
             : collect();
 
         return view('livewire.auditoria.riesgo.show.gestion-planes', [
+            'modo' => $this->modoCambio($riesgoVista),
+            'gerencias' => $this->nombresGerencias($riesgoVista),
+            'bloqueados' => $bloqueados,
+            'propuestas' => $propuestas,
+            'marcas' => $this->marcasDe($propuestas, 'planesAccion'),
+            'diffEnCurso' => $this->editando ? $this->construirDiff($riesgoVista) : [],
             'planesConTareas' => $planesConTareas,
             'resultados' => $resultados,
         ]);

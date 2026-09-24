@@ -33,9 +33,21 @@ class ActualizacionPolicy
             && $actualizacion->estado?->nombre === 'validado';
     }
 
-    /** Igual que validar(): gerente que gestione la entidad, sólo en borrador y si su gerencia no votó. */
+    /**
+     * Igual que validar(): gerente que gestione la entidad, sólo en borrador y si su
+     * gerencia no votó (el comité, con area_id null, ya entra por acá: esGerente() y
+     * gestiona toda área). Además el comité puede rechazar la propuesta ya validada
+     * que espera su aprobación, simétrico con aprobar(): sobre lo que le llega,
+     * aprueba o rechaza.
+     * Tests: comite_puede_rechazar_una_actualizacion_validada_que_espera_su_aprobacion,
+     * el_comite_rechaza_una_propuesta_ya_votada_por_todas_las_gerencias_sin_dejar_voto.
+     */
     public function rechazar(User $user, Actualizacion $actualizacion): bool
     {
+        if ($user->esComite() && $actualizacion->estado?->nombre === 'validado') {
+            return true;
+        }
+
         return $user->esGerente()
             && $this->gestionaEntidad($user, $actualizacion)
             && $actualizacion->estado?->nombre === 'borrador'

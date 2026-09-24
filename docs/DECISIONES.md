@@ -394,3 +394,81 @@ tanto el input como la regla de validación de todos los campos numéricos edita
 para "recalcular" completo repitiendo las 5 preguntas. Esta vía es adicional, no un reemplazo.
 
 Fuente: sesión 2026-09-23, con el usuario presente.
+
+---
+
+## D-016 — riesgo/show rediseñado: lo vigente arriba, lo propuesto abajo, una propuesta por elemento (2026-09-24)
+
+**Estado.** En desarrollo en la rama `rediseno/riesgo-show`. Esta entrada registra lo que hay hasta
+ahora; el diseño se acepta como base para replicarlo en el resto de las pantallas de detalle
+(Control / Objetivo / Plan de Acción / Tarea). Lo que todavía no se revisó está en *Abierto*, al final.
+
+**Decisión.**
+
+1. **Pantalla.** Encabezado (código, estado, "Compartido", "Mayor criticidad", acciones de estado y
+   eliminar en un menú), banner de propuestas pendientes (`ResumenPropuestas`), columna principal con
+   la Ficha, los bloques Planes / Controles / Objetivos en pestañas y la Conversación, y un lateral
+   fijo con Valor (`InfoRiesgo`), Gerencias y Actividad. Las pestañas son JS plano, no Alpine: un
+   `x-data` alrededor de los componentes deja sus `wire:*` sin enganchar. Se ocultan con `hidden` y
+   no con `@if`, así los tres siguen montados y escuchando eventos. Con un bloque en edición no se
+   puede cambiar de pestaña.
+2. **Lo vigente arriba, lo propuesto abajo.** Cada bloque (`x-auditoria.bloque-riesgo`) muestra lo
+   que hoy forma parte del riesgo y, debajo y aparte, las propuestas que todavía no se aplicaron
+   (`Actualizacion::scopePropuestasPendientes`). Cada propuesta se resuelve desde su tarjeta
+   (`x-auditoria.propuesta-pendiente`): la tarjeta dispara `resolver-actualizacion`, que atiende
+   `GestionActualizaciones`, y ahí se autoriza y se registra el voto. Las propuestas ya no se
+   resuelven desde el historial. Mientras se edita, el bloque avisa qué va a pasar al guardar
+   (`directo` / `propuesta` / `doble`, en `PropuestasEnBloque::modoCambio()`), con la misma regla que
+   usa `guardar()`, para que el aviso y el guardado no se contradigan.
+3. **Una propuesta por elemento** en Objetivos, Controles y Planes. Fuera del modo directo, cada alta,
+   baja o cambio de mitigación es su propia `Actualizacion`, con una operación puntual (`agregar` /
+   `detach` / `actualizar`) que aplica `Actualizacion::aplicarOperacionesPorElemento()`. En borrador
+   y en el modo directo se sigue usando el `sync` del bloque.
+4. **Una propuesta pendiente por elemento.** Un elemento de una relación, o un campo de la Ficha, que
+   ya tiene una propuesta pendiente no se puede volver a proponer ni tocar en el bloque hasta que esa
+   propuesta se resuelva.
+5. **Ficha editable en el bloque.** Fuera de borrador, los datos propios del riesgo se editan en la
+   Ficha, incluidos impacto y probabilidad (en línea con D-015). Se manda sólo lo que cambió, a
+   `Actualizacion::registrarCambioCampos()`, lógica que antes estaba dentro de
+   `GestionActualizaciones::guardar()` y ahora comparten los dos. En borrador se sigue editando con el
+   formulario completo.
+6. **Las notas se separan del historial.** `ConversacionRiesgo` junta los mensajes (notas sin ciclo,
+   D-014, ahora creadas con `Actualizacion::registrarNota()`) y todos los archivos adjuntos del riesgo.
+   La Actividad (`GestionActualizaciones` en variante `timeline`) muestra sólo el historial de
+   cambios, de solo lectura. Su modal de detalle sí incluye las notas, filtrables. La variante
+   `completa` queda como estaba para las otras pantallas.
+7. **El comité puede rechazar una propuesta ya validada que espera su aprobación**
+   (`ActualizacionPolicy::rechazar`). Es simétrico con `aprobar`: sobre lo que le llega, el comité
+   aprueba o rechaza. En un riesgo compartido no deja voto en `validacion_gerencia`, porque no tiene
+   gerencia. Toca autorización, así que lleva sus tests.
+8. **Desglose del residual en el modelo.** Los accessors `mitigacion_controles` y `mitigacion_planes`
+   separan lo que descuenta cada lado, y `valor_residual` se calcula a partir de ellos. La tarjeta
+   Valor muestra el desglose sin recalcularlo (axioma 2).
+9. **Reactividad.** Validar (aunque falten votos), rechazar y retirar una propuesta ahora disparan
+   `riesgo-actualizado`, para que la tarjeta se redibuje. Los bloques de relaciones escuchan ese
+   evento y se recargan, salvo que estén en edición, para no pisar lo que el usuario tiene a medio
+   armar.
+
+**Motivo.** Con la propuesta de bloque entero no se podía decidir elemento por elemento: un control
+había que validarlo y otro no, pero la propuesta los llevaba juntos. Además, cambiar un elemento
+arrastraba todo el bloque, y un cambio posterior no mostraba lo que ya se había propuesto antes. Poner
+lo propuesto debajo de lo vigente, en el mismo bloque, hace visible en todo momento qué es el riesgo
+hoy y qué está en discusión.
+
+**Descartado.** Seguir con una sola propuesta por bloque (`sync` de la relación completa), por lo
+dicho en *Motivo*.
+
+**Abierto** (no decidido; se retoma en la rama):
+
+- **Gerencias** sigue proponiéndose como bloque (`sync`), y todavía no se revisó cómo se comporta un
+  riesgo multigerencia en el diseño nuevo.
+- `GestionActualizaciones` escucha `resolver-actualizacion` a nivel global. Con dos instancias en la
+  misma pantalla, la acción se ejecutaría dos veces. Hoy hay una sola por pantalla; al replicar el
+  diseño hay que mantenerlo así o acotar el evento.
+- `PropuestasEnBloque`, `bloque-riesgo` y `propuesta-pendiente` están escritos para Riesgo (namespace
+  `Riesgo\Show\Concerns`, firmas con `Riesgo`, textos "del riesgo"). Si se generalizan o se copian
+  para las otras entidades se decide al replicar.
+- Las propuestas de bloque creadas antes del rediseño siguen apareciendo y aplicándose: la tarjeta
+  lista todos sus elementos.
+
+Fuente: sesión 2026-09-24. Detalle en [updates/2026-09-24.md](updates/2026-09-24.md).

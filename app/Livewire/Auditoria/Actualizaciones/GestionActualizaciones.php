@@ -11,10 +11,8 @@ use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use App\Models\Auditoria\TipoRiesgo;
-use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -40,6 +38,26 @@ class GestionActualizaciones extends Component
 
     public bool $modalAbierto = false;
 
+    /**
+     * Cómo se pinta el historial: 'completa' (lista con el detalle de cada
+     * entrada y el modal de nueva actualización, la de siempre) o 'timeline'
+     * (línea de tiempo de sólo lectura para la columna lateral de riesgo/show: las
+     * propuestas se resuelven en su bloque y las notas viven en la Conversación).
+     */
+    public string $variante = 'completa';
+
+    /** Variante 'timeline': modal con el detalle completo de la actividad. */
+    public bool $actividadAbierta = false;
+
+    /** Variante 'timeline': filtro del modal (todo/cambios/pendientes/rechazadas/notas/adjuntos). */
+    public string $filtroActividad = 'todo';
+
+    /** Variante 'timeline': parte tocada por la que se filtra el modal (campos/areas/objetivos/…) o '' para todas. */
+    public string $parteActividad = '';
+
+    /** Variante 'timeline': entrada resaltada al abrir el modal desde el lateral. */
+    public ?int $focoActividad = null;
+
     public string $mensaje = '';
 
     public array $cambios = [];
@@ -61,10 +79,11 @@ class GestionActualizaciones extends Component
     #[On('{modelType}-actualizado')]
     public function refrescar(): void {}
 
-    public function mount(string $modelType, int $modelId): void
+    public function mount(string $modelType, int $modelId, string $variante = 'completa'): void
     {
         $this->modelType = $modelType;
         $this->modelId = $modelId;
+        $this->variante = $variante;
         $modelo = $this->resolverModelo();
         $this->estadoModelo = $modelo->estado?->nombre ?? '';
         $this->puedeActualizar = Auth::user()->can('update', $modelo);
@@ -82,11 +101,44 @@ class GestionActualizaciones extends Component
         $this->modalAbierto = false;
     }
 
+    public function abrirActividad(?int $id = null): void
+    {
+        $this->reset(['filtroActividad', 'parteActividad']);
+        $this->focoActividad = $id;
+        $this->actividadAbierta = true;
+        if ($id) {
+            $this->js("setTimeout(() => document.getElementById('act-det-{$id}')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50)");
+        }
+    }
+
+    public function cerrarActividad(): void
+    {
+        $this->actividadAbierta = false;
+        $this->focoActividad = null;
+    }
+
     /**
-     * Crea la Actualizacion con los cambios propuestos. El estado con el que nace
-     * (borrador/validado/aprobado) depende del rol de quien la crea — ver
-     * estadoParaActualizacion() — y si nace ya validada/aprobada sobre una entidad
-     * que corresponde, los cambios se aplican al modelo en el mismo paso.
+     * Resuelve una propuesta desde la tarjeta que la muestra dentro de su bloque
+     * (Objetivos/Controles/Planes/Gerencias/Ficha en riesgo/show). No tiene lógica
+     * propia: delega en los métodos de abajo, que son los que autorizan y manejan
+     * el voto de la doble validación.
+     * Test: resolver_desde_la_tarjeta_pasa_por_la_autorizacion_de_cada_accion.
+     */
+    #[On('resolver-actualizacion')]
+    public function resolver(int $id, string $accion): void
+    {
+        match ($accion) {
+            'validar' => $this->validarActualizacion($id),
+            'aprobar' => $this->aprobarActualizacion($id),
+            'rechazar' => $this->rechazarActualizacion($id),
+            'cancelar' => $this->cancelarActualizacion($id),
+        };
+    }
+
+    /**
+     * Valida el formulario y crea la Actualizacion: una nota si no trae cambios de
+     * campo, o un cambio de campos (Actualizacion::registrarCambioCampos(), que
+     * decide el estado inicial, la doble validación y si se aplica en el acto).
      */
     public function guardar(): void
     {
@@ -149,86 +201,12 @@ class GestionActualizaciones extends Component
         $this->authorize('update', $model);
 
         if (empty($campos)) {
-            // Mensaje puro (con o sin adjunto, sin cambios de campo): se escribe y
-            // punto, sin pasar por el ciclo borrador→validado→aprobado. estado_id
-            // null es justamente lo que hace que no aparezca en Pendientes ni ofrezca
-            // acciones de validar/aprobar/rechazar (ver ActualizacionPolicy).
-            $actualizacion = $model->actualizaciones()->create([
-                'user_id' => Auth::id(),
-                'mensaje' => $this->mensaje,
-                'estado_id' => null,
-                'data' => null,
-            ]);
+            $actualizacion = Actualizacion::registrarNota($model, Auth::user(), $this->mensaje);
         } else {
-            // Un riesgo con dos o más gerencias no aplica un cambio de una: la propuesta
-            // nace pendiente (borrador) y necesita el voto de todas las gerencias (ver
-            // Riesgo::cambioRequiereDobleValidacion()). El comité queda afuera: es la
-            // cúspide y valida solo, sin depender de las gerencias.
-            $dobleValidacion = $model instanceof Riesgo
-                && $model->cambioRequiereDobleValidacion(Auth::user());
-
-            $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
-
-            $diff = [];
-            foreach ($campos as $campo => $nuevo) {
-                $antes = $model->$campo;
-                // respuesta castea a RespuestaRiesgo (BackedEnum): sin esto, comparar
-                // el enum contra el string crudo del select nunca da igual y el diff
-                // mostraría "cambio" aunque se reeligiera el mismo valor.
-                if ($antes instanceof BackedEnum) {
-                    $antes = $antes->value;
-                }
-                if ($antes != $nuevo) {
-                    $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
-                }
-            }
-
-            $data = ['tipo' => 'cambio', 'campos' => $campos];
-            if (! empty($diff)) {
-                $data['diff'] = ['campos' => $diff];
-            }
-
-            // Misma fórmula que decide $aplicar dentro de la transacción: se repite
-            // acá (afuera) porque sólo depende de datos ya en memoria, para poder
-            // decidir el dispatch de 'riesgo-actualizado' una vez confirmada la
-            // transacción, sin depender de una variable local al closure.
-            $aplicarInmediato = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
-
-            $actualizacion = DB::transaction(function () use ($model, $campos, $estadoId, $data, $dobleValidacion) {
-                $aplicar = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
-                    || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
-
-                $dataFinal = $data;
-                if ($aplicar) {
-                    $dataFinal['activated_by'] = Auth::user()->name;
-                }
-
-                $actualizacion = $model->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => $this->mensaje,
-                    'estado_id' => $estadoId,
-                    'data' => $dataFinal,
-                ]);
-
-                if ($aplicar) {
-                    $model->update($campos);
-                }
-
-                // El proponente vota a favor por su propia gerencia al crear la propuesta.
-                if ($dobleValidacion) {
-                    $actualizacion->registrarVoto(Auth::user(), true);
-                }
-
-                return $actualizacion;
-            });
-
-            // Sólo si el cambio se aplicó al modelo (no si quedó como propuesta
-            // pendiente): les avisa a Info* y a otros bloques hermanos que la
-            // entidad cambió de verdad, no que alguien lo está por proponer.
-            if ($aplicarInmediato) {
-                $this->dispatch("{$this->modelType}-actualizado");
-            }
+            $actualizacion = Actualizacion::registrarCambioCampos($model, Auth::user(), $this->mensaje, $campos);
+            // Se avisa haya aplicado o no: si quedó como propuesta pendiente, en
+            // riesgo/show la Ficha la muestra debajo de lo vigente.
+            $this->dispatch("{$this->modelType}-actualizado");
         }
 
         // El attach de medios no es transaccional (mueve archivos en disco), así que
@@ -240,11 +218,6 @@ class GestionActualizaciones extends Component
         }
 
         $this->cerrarModal();
-    }
-
-    private function estadoParaActualizacion(): int
-    {
-        return Actualizacion::estadoInicialParaCambio(Auth::user(), $this->estadoModelo);
     }
 
     /**
@@ -264,8 +237,9 @@ class GestionActualizaciones extends Component
             $actualizacion->registrarVoto(Auth::user(), true);
             if ($actualizacion->todasLasGerenciasValidaron()) {
                 $actualizacion->marcarValidada(Auth::user());
-                $this->dispatch("{$this->modelType}-actualizado");
             }
+            // Aunque falten votos, la tarjeta de la propuesta tiene que mostrar el nuevo.
+            $this->dispatch("{$this->modelType}-actualizado");
 
             return;
         }
@@ -283,6 +257,8 @@ class GestionActualizaciones extends Component
         $this->authorize('cancelar', $actualizacion);
 
         $actualizacion->update(['estado_id' => Estado::borrado()->id]);
+        // No cambia la entidad, pero la propuesta tiene que desaparecer de su bloque.
+        $this->dispatch("{$this->modelType}-actualizado");
     }
 
     public function aprobarActualizacion(int $actualizacionId): void
@@ -307,6 +283,7 @@ class GestionActualizaciones extends Component
         }
 
         $actualizacion->marcarRechazada(Auth::user());
+        $this->dispatch("{$this->modelType}-actualizado");
     }
 
     private function resolverModelo(): Model
@@ -420,12 +397,30 @@ class GestionActualizaciones extends Component
     {
         $actualizaciones = $this->resolverModelo()
             ->actualizaciones()
-            ->with(['user', 'estado', 'media', 'validadoPor', 'aprobadoPor', 'rechazadoPor'])
+            ->with(['user.area', 'estado', 'media', 'validadoPor', 'aprobadoPor', 'rechazadoPor', 'validacionesGerencia.area', 'validacionesGerencia.user'])
             ->latest('created_at')
+            ->latest('id')
             ->get();
 
-        return view('livewire.auditoria.actualizaciones.gestion-actualizaciones', [
+        // La línea de tiempo es el historial de cambios: las notas sueltas viven en
+        // la Conversación del riesgo (ConversacionRiesgo), no acá. El modal de
+        // detalle sí las incluye (filtrables), por eso se guarda la lista entera.
+        $todas = $actualizaciones;
+        if ($this->variante === 'timeline') {
+            $actualizaciones = $actualizaciones->reject(fn ($a) => $a->estado_id === null && empty($a->data))->values();
+        }
+
+        $vista = $this->variante === 'timeline'
+            ? 'livewire.auditoria.actualizaciones.gestion-actualizaciones-timeline'
+            : 'livewire.auditoria.actualizaciones.gestion-actualizaciones';
+
+        return view($vista, [
             'actualizaciones' => $actualizaciones,
+            'todas' => $todas,
+            // La línea de tiempo marca las propuestas todavía sin aplicar (misma regla que los bloques).
+            'pendientesIds' => $this->variante === 'timeline'
+                ? $this->resolverModelo()->actualizaciones()->propuestasPendientes()->pluck('id')
+                : collect(),
             'camposEditables' => $this->camposEditables(),
             'camposFecha' => $this->camposFecha(),
             'camposNumericos' => $this->camposNumericos(),

@@ -290,17 +290,33 @@ class Riesgo extends Model implements HasMedia
      */
     public function getValorResidualAttribute(): int
     {
-        $mitigacionControles = $this->controles
+        return max(0, $this->valor_total - $this->mitigacion_controles - $this->mitigacion_planes);
+    }
+
+    /**
+     * Parte del residual que descuentan los controles: sólo los aprobados, con la
+     * mitigación del pivot (o mitigacion_default del control). Separada de
+     * valor_residual para que la ficha pueda mostrar el desglose sin recalcularlo.
+     * Test: el_desglose_de_mitigacion_separa_controles_y_planes_y_cuadra_con_el_residual.
+     */
+    public function getMitigacionControlesAttribute(): int
+    {
+        return (int) $this->controles
             ->filter(fn ($control) => $control->estado?->nombre === 'aprobado')
             ->sum(fn ($control) => $control->pivot->mitigacion ?? $control->mitigacion_default);
+    }
 
-        $mitigacionPlanes = $this->planesAccion->sum(function ($plan) {
+    /**
+     * Parte del residual que descuentan los planes: sólo los aprobados y al 100%
+     * de avance, con la mitigación del pivot. Ver getMitigacionControlesAttribute().
+     */
+    public function getMitigacionPlanesAttribute(): int
+    {
+        return (int) $this->planesAccion->sum(function ($plan) {
             $aporta = $plan->estado?->nombre === 'aprobado' && $plan->estaCompleto();
 
             return $aporta ? ($plan->pivot->mitigacion ?? 0) : 0;
         });
-
-        return max(0, $this->valor_total - $mitigacionControles - $mitigacionPlanes);
     }
 
     /**

@@ -206,6 +206,24 @@ class ActualizacionPermisoTest extends TestCase
         $this->assertFalse($this->policy()->rechazar($this->canela, $actualizacion));
     }
 
+    #[Test]
+    public function comite_puede_rechazar_una_actualizacion_validada_que_espera_su_aprobacion(): void
+    {
+        $objetivo = $this->objetivo($this->sectC);
+        $actualizacion = $this->actualizacion($objetivo, $this->validadoId);
+
+        $this->assertTrue($this->policy()->rechazar($this->lucia, $actualizacion));
+    }
+
+    #[Test]
+    public function comite_no_puede_rechazar_una_actualizacion_ya_aprobada(): void
+    {
+        $objetivo = $this->objetivo($this->sectC);
+        $actualizacion = $this->actualizacion($objetivo, $this->aprobadoId);
+
+        $this->assertFalse($this->policy()->rechazar($this->lucia, $actualizacion));
+    }
+
     // -------------------------------------------------------
     // Policy: aprobar (comité)
     // -------------------------------------------------------

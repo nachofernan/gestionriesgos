@@ -520,6 +520,7 @@ class RiesgoController extends Controller
                 if (isset($ops['detach'])) {
                     $model->$relacion()->detach($ops['detach']);
                 }
+                Actualizacion::aplicarOperacionesPorElemento($model, $relacion, $ops);
             }
         }
     }

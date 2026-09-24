@@ -247,6 +247,35 @@ class DobleValidacionTest extends TestCase
     }
 
     #[Test]
+    public function el_comite_rechaza_una_propuesta_ya_votada_por_todas_las_gerencias_sin_dejar_voto(): void
+    {
+        ['riesgo' => $riesgo, 'userA' => $userA, 'userB' => $userB] = $this->riesgoCompartido();
+        $riesgo->update(['estado_id' => Estado::aprobado()->id]);
+        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+
+        // Votan las dos gerencias: sobre un riesgo aprobado queda validada, esperando al comité.
+        $this->proponerCambioNombre($userA, $riesgo, 'Nuevo Nombre');
+        $act = $riesgo->actualizaciones()->latest('created_at')->first();
+        Livewire::actingAs($userB)
+            ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
+            ->call('validarActualizacion', $act->id);
+        $this->assertEquals('validado', $act->refresh()->estado->nombre);
+
+        Livewire::actingAs($comite)
+            ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
+            ->call('rechazarActualizacion', $act->id)
+            ->assertDispatched('riesgo-actualizado');
+
+        $act->refresh();
+        $this->assertEquals('borrado', $act->estado->nombre);
+        $this->assertEquals($comite->id, $act->rechazado_por_id);
+        $this->assertEquals('Original', $riesgo->refresh()->nombre);
+        // El comité no tiene gerencia: no suma un voto en contra al padrón.
+        $this->assertCount(2, $act->validacionesGerencia);
+        $this->assertTrue($act->validacionesGerencia->every(fn ($v) => $v->aprueba));
+    }
+
+    #[Test]
     public function un_gerente_de_una_gerencia_no_asociada_no_puede_validar_la_propuesta(): void
     {
         ['riesgo' => $riesgo, 'userA' => $userA] = $this->riesgoCompartido();

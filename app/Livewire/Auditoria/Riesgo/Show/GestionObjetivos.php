@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Riesgo;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -20,6 +22,8 @@ use Livewire\Component;
  */
 class GestionObjetivos extends Component
 {
+    use PropuestasEnBloque;
+
     public int $riesgoId;
 
     public bool $modalAbierto = false;
@@ -58,6 +62,18 @@ class GestionObjetivos extends Component
         $this->cargar();
     }
 
+    /**
+     * Otro bloque (o el historial) cambió el riesgo: se recarga lo vigente, salvo
+     * que el usuario esté editando, para no pisarle lo que tiene a medio armar.
+     */
+    #[On('riesgo-actualizado')]
+    public function refrescar(): void
+    {
+        if (! $this->editando) {
+            $this->cargar();
+        }
+    }
+
     public function activarEdicion(): void
     {
         $this->editando = true;
@@ -87,6 +103,10 @@ class GestionObjetivos extends Component
 
     public function agregar(int $objetivoId): void
     {
+        if ($this->elementoConPropuesta('objetivos', $objetivoId)) {
+            return;
+        }
+
         if (collect($this->seleccionados)->contains('id', $objetivoId)) {
             return;
         }
@@ -116,6 +136,10 @@ class GestionObjetivos extends Component
 
     public function quitar(int $objetivoId): void
     {
+        if ($this->elementoConPropuesta('objetivos', $objetivoId)) {
+            return;
+        }
+
         if (count($this->seleccionados) <= 1) {
             $this->error = 'El riesgo debe tener al menos un objetivo asociado.';
 
@@ -175,7 +199,8 @@ class GestionObjetivos extends Component
             // Riesgo compartido entre gerencias: el cambio no se aplica de una,
             // nace pendiente y el proponente vota a favor por su gerencia (ver
             // Riesgo::cambioRequiereDobleValidacion()).
-            $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
+            $modo = $this->modoCambio($riesgo);
+            $dobleValidacion = $modo === 'doble';
             $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
 
             $data = ['tipo' => 'cambio', 'relaciones' => ['objetivos' => ['sync' => $ids]]];
@@ -183,8 +208,7 @@ class GestionObjetivos extends Component
                 $data['diff'] = ['relaciones' => ['objetivos' => $diffRel]];
             }
 
-            $aplicarAhora = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado'));
+            $aplicarAhora = $modo === 'directo';
 
             if ($aplicarAhora) {
                 // El cambio se aplica en el acto: se marca activated_by para que el
@@ -201,16 +225,8 @@ class GestionObjetivos extends Component
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Objetivos actualizados.');
             } else {
-                $actualizacion = $riesgo->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => 'Propuesta de cambio en objetivos asociados',
-                    'estado_id' => $estadoId,
-                    'data' => $data,
-                ]);
-
-                if ($dobleValidacion) {
-                    $actualizacion->registrarVoto(Auth::user(), true);
-                }
+                // Fuera del modo directo, cada alta/baja/cambio es su propia propuesta.
+                $this->proponerPorElemento($riesgo, 'objetivos', $diffRel, $estadoId, $dobleValidacion, 'objetivo');
 
                 $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
@@ -296,7 +312,10 @@ class GestionObjetivos extends Component
 
     public function render()
     {
-        $yaIds = collect($this->seleccionados)->pluck('id');
+        $riesgoVista = Riesgo::with(['areas', 'objetivos.estado'])->findOrFail($this->riesgoId);
+        $propuestas = $this->propuestasDe($riesgoVista, 'objetivos');
+        $bloqueados = $this->idsConPropuesta($propuestas, 'objetivos');
+        $yaIds = collect($this->seleccionados)->pluck('id')->merge($bloqueados);
 
         $resultados = $this->modalAbierto
             ? Objetivo::query()
@@ -314,6 +333,12 @@ class GestionObjetivos extends Component
             : collect();
 
         return view('livewire.auditoria.riesgo.show.gestion-objetivos', [
+            'modo' => $this->modoCambio($riesgoVista),
+            'gerencias' => $this->nombresGerencias($riesgoVista),
+            'bloqueados' => $bloqueados,
+            'propuestas' => $propuestas,
+            'marcas' => $this->marcasDe($propuestas, 'objetivos'),
+            'diffEnCurso' => $this->editando ? $this->construirDiff($riesgoVista) : [],
             'resultados' => $resultados,
         ]);
     }
