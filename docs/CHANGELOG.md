@@ -6,7 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
-- **2026-09-24** — Rediseño de riesgo/show (rama `rediseno/riesgo-show`, base para el resto de las
+- **2026-09-24** — Rediseño de riesgo/show (integrado en `main`, base para el resto de las
   pantallas de detalle): cada bloque muestra lo vigente arriba y lo propuesto abajo, y las propuestas
   se resuelven desde su tarjeta. Objetivos, Controles y Planes proponen un cambio por elemento
   (`agregar`/`detach`/`actualizar`) en vez de un `sync` del bloque, y un elemento con una propuesta

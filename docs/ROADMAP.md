@@ -18,7 +18,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 
 ## En curso / recién cerrado
 
-- [ ] **Rediseño de las pantallas de detalle** (rama `rediseno/riesgo-show`), ver [D-016](DECISIONES.md#d-016) y [updates/2026-09-24](updates/2026-09-24.md).
+- [ ] **Rediseño de las pantallas de detalle** (riesgo/show ya en `main`), ver [D-016](DECISIONES.md#d-016) y [updates/2026-09-24](updates/2026-09-24.md).
   - [x] riesgo/show: bloques con lo vigente arriba y lo propuesto abajo, una propuesta por elemento, Ficha editable en el bloque, Conversación separada de la Actividad (2026-09-24).
   - [ ] Revisar Gerencias (sigue proponiéndose en bloque) y cómo se comporta un riesgo multigerencia en el diseño nuevo.
   - [ ] Replicar en control/show, objetivo/show, planaccion/show y tarea/show. Antes, decidir si `PropuestasEnBloque`, `bloque-riesgo` y `propuesta-pendiente` se generalizan o se copian, y mantener una sola instancia de `GestionActualizaciones` por pantalla (escucha `resolver-actualizacion` a nivel global).

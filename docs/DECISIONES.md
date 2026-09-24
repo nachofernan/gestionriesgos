@@ -399,8 +399,8 @@ Fuente: sesión 2026-09-23, con el usuario presente.
 
 ## D-016 — riesgo/show rediseñado: lo vigente arriba, lo propuesto abajo, una propuesta por elemento (2026-09-24)
 
-**Estado.** En desarrollo en la rama `rediseno/riesgo-show`. Esta entrada registra lo que hay hasta
-ahora; el diseño se acepta como base para replicarlo en el resto de las pantallas de detalle
+**Estado.** Integrado en `main` (se desarrolló en la rama `rediseno/riesgo-show`, ya borrada). Esta
+entrada registra lo que hay hasta ahora; el diseño se acepta como base para replicarlo en el resto de las pantallas de detalle
 (Control / Objetivo / Plan de Acción / Tarea). Lo que todavía no se revisó está en *Abierto*, al final.
 
 **Decisión.**
@@ -458,7 +458,7 @@ hoy y qué está en discusión.
 **Descartado.** Seguir con una sola propuesta por bloque (`sync` de la relación completa), por lo
 dicho en *Motivo*.
 
-**Abierto** (no decidido; se retoma en la rama):
+**Abierto** (no decidido; se retoma al replicar el diseño):
 
 - **Gerencias** sigue proponiéndose como bloque (`sync`), y todavía no se revisó cómo se comporta un
   riesgo multigerencia en el diseño nuevo.
