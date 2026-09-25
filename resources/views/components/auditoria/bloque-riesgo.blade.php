@@ -4,7 +4,7 @@
     ámbar punteado, lo que está en propuesta y todavía no forma parte del riesgo
     (slot `propuestas`). Mientras se edita, el borde y una franja explican qué va
     a pasar al guardar según `modo` ('directo' | 'propuesta' | 'doble').
-    `sujeto` nombra la entidad en los textos ('riesgo' | 'control').
+    `sujeto` nombra la entidad en los textos ('riesgo' | 'control' | 'objetivo' | 'tarea').
     Slots: accion (botón del encabezado), pie (barra de edición), propuestas.
 --}}
 @props([
@@ -20,6 +20,7 @@
     'sujeto' => 'riesgo',
 ])
 @php
+    [$al, $del] = $sujeto === 'tarea' ? ['a la tarea', 'de la tarea'] : ["al {$sujeto}", "del {$sujeto}"];
     $borde = match (true) {
         $editando && $modo === 'directo' => 'border-indigo-300 ring-4 ring-indigo-50',
         $editando => 'border-amber-300 ring-4 ring-amber-50',
@@ -55,7 +56,7 @@
             <span>
                 @switch($modo)
                     @case('directo')
-                        Los cambios se aplican al {{ $sujeto }} en cuanto guardes.
+                        Los cambios se aplican {{ $al }} en cuanto guardes.
                         @break
                     @case('doble')
                         <strong>Riesgo compartido.</strong> Vas a armar una propuesta: lo vigente no cambia hasta que
@@ -83,7 +84,7 @@
             <div class="border-t-2 border-dashed border-amber-200 bg-[repeating-linear-gradient(135deg,rgba(254,243,199,0.35)_0_10px,rgba(255,251,235,0.6)_10px_20px)] {{ $pad }} py-3 space-y-2">
                 <p class="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-amber-700">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                    En propuesta · todavía no forma parte del {{ $sujeto }}
+                    En propuesta · todavía no forma parte {{ $del }}
                 </p>
                 {{ $propuestas }}
             </div>

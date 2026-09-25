@@ -76,7 +76,7 @@ class TareaController extends Controller
         // planesAccion.riesgos filtrados por visibilidad: un borrador de otra
         // gerencia no debe aparecer como chip bajo su plan (axioma 3 + scopeVisiblePara).
         $tarea->load([
-            'planesAccion.estado', 'planesAccion.area',
+            'planesAccion.estado', 'planesAccion.area', 'planesAccion.tareas.estado',
             'planesAccion.riesgos' => fn ($q) => $q->visiblePara(Auth::user()),
             'planesAccion.riesgos.estado', 'planesAccion.riesgos.tipoRiesgo', 'planesAccion.riesgos.area',
             'user', 'area',

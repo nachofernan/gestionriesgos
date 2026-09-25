@@ -7,11 +7,10 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Panel de "Información" de una Tarea (avance, estado, fecha límite, etc.).
- * Antes era Blade estático dentro de tarea/show.blade.php; se extrae a su
- * propio componente para que se refresque solo cuando GestionActualizaciones
- * (el historial, en la misma pantalla) valida o aprueba un cambio — ver el
- * evento 'tarea-actualizado' que dispatcha, mismo mecanismo que InfoRiesgo.
+ * Tarjeta lateral de tarea/show: el avance como protagonista, la fecha límite
+ * con cuánto falta o hace cuánto venció, y a quién está asignada. Se refresca con
+ * 'tarea-actualizado' (FichaTarea o GestionActualizaciones aplicaron un cambio),
+ * mismo mecanismo que InfoRiesgo.
  */
 class InfoTarea extends Component
 {
@@ -32,6 +31,7 @@ class InfoTarea extends Component
         return view('livewire.auditoria.tarea.show.info-tarea', [
             'tarea' => $tarea,
             'tareaVencida' => $tarea->fecha && $tarea->fecha->lt(now()->startOfDay()) && $tarea->porcentaje_avance < 100,
+            'dias' => $tarea->fecha ? (int) now()->startOfDay()->diffInDays($tarea->fecha, false) : null,
         ]);
     }
 }

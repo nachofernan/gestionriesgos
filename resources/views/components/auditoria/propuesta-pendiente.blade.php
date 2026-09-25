@@ -36,6 +36,7 @@
         'fundamento' => 'Fundamento', 'tipo_riesgo_id' => 'Tipo de riesgo',
         'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
         'mitigacion_default' => 'Mitigación', 'fecha_objetivo' => 'Fecha objetivo',
+        'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
     ];
     $formatear = function ($campo, $valor) use ($tiposRiesgo) {
         if ($valor === null || $valor === '') {
@@ -45,6 +46,7 @@
             'tipo_riesgo_id' => $tiposRiesgo[$valor] ?? '#'.$valor,
             'respuesta' => \App\Enums\Auditoria\RespuestaRiesgo::tryFrom($valor)?->label() ?? $valor,
             'fecha_objetivo', 'fecha' => \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y'),
+            'porcentaje_avance' => $valor.'%',
             default => is_bool($valor) ? ($valor ? 'Sí' : 'No') : $valor,
         };
     };

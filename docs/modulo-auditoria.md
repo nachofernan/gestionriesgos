@@ -180,9 +180,12 @@ app/Livewire/Auditoria/
 ├── Objetivo/Show/
 │   ├── FichaObjetivo.php       — datos del objetivo, editables en el bloque
 │   └── InfoObjetivo.php        — tarjeta Fecha objetivo del lateral (clasificación y PEIS)
+├── Tarea/Show/
+│   ├── FichaTarea.php          — datos de la tarea (incluido el avance), editables en el bloque
+│   └── InfoTarea.php           — tarjeta Avance del lateral (plazo, asignada a)
 ├── Actualizaciones/
-│   ├── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (riesgo/show, control/show, objetivo/show)
-│   └── Conversacion.php        — notas y documentos de un riesgo, control u objetivo
+│   ├── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (riesgo/show, control/show, objetivo/show, tarea/show)
+│   └── Conversacion.php        — notas y documentos de un riesgo, control, objetivo o tarea
 └── PlanAccion/Show/
     └── GestionTareas.php       — maneja tareas de un plan
 ```
@@ -278,7 +281,9 @@ resources/views/
     ├── plan-accion/
     │   ├── index/search.blade.php
     │   └── show/gestion-tareas.blade.php
-    └── tarea/index/search.blade.php
+    └── tarea/
+        ├── index/search.blade.php
+        └── show/{ficha-tarea, info-tarea}.blade.php
 ```
 
 Las vistas `show.blade.php` de Riesgo y PlanAccion embeben los componentes de gestión con `@livewire(...)`.

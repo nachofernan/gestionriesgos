@@ -6,6 +6,10 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-25** — tarea/show pasa al mismo diseño. La ficha se edita en el bloque (nombre,
+  descripción, fecha límite y avance, por el ciclo de Actualizaciones: un avance propuesto no mueve el
+  plan ni el residual hasta aplicarse). Los planes muestran su avance y sus riesgos, y el lateral
+  destaca el avance y el plazo. `bloque-riesgo` usa el artículo femenino para la tarea.
 - **2026-09-25** — objetivo/show pasa al mismo diseño. La ficha se edita en el bloque (nombre,
   descripción y fecha objetivo). Riesgos asociados y planes vinculados son bloques de sólo lectura, y
   el lateral destaca la fecha objetivo con cuánto falta o hace cuánto venció. El diff de un cambio de

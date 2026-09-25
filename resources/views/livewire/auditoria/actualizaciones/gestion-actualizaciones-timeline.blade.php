@@ -9,6 +9,7 @@
         'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta', 'fundamento' => 'Fundamento',
         'tipo_riesgo_id' => 'Tipo de riesgo', 'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
         'mayor_criticidad' => 'Mayor criticidad', 'codigo' => 'Código', 'mitigacion_default' => 'Mitigación por defecto', 'fecha_objetivo' => 'Fecha objetivo',
+        'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
     ];
     $nombresPartes = ['campos' => 'Datos', 'areas' => 'Gerencias', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes'];
     $anclas = ['campos' => 'ficha', 'areas' => 'gerencias', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes'];
