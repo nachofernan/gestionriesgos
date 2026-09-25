@@ -35,7 +35,7 @@
         'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
         'fundamento' => 'Fundamento', 'tipo_riesgo_id' => 'Tipo de riesgo',
         'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
-        'mitigacion_default' => 'Mitigación',
+        'mitigacion_default' => 'Mitigación', 'fecha_objetivo' => 'Fecha objetivo',
     ];
     $formatear = function ($campo, $valor) use ($tiposRiesgo) {
         if ($valor === null || $valor === '') {
@@ -44,6 +44,7 @@
         return match ($campo) {
             'tipo_riesgo_id' => $tiposRiesgo[$valor] ?? '#'.$valor,
             'respuesta' => \App\Enums\Auditoria\RespuestaRiesgo::tryFrom($valor)?->label() ?? $valor,
+            'fecha_objetivo', 'fecha' => \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y'),
             default => is_bool($valor) ? ($valor ? 'Sí' : 'No') : $valor,
         };
     };

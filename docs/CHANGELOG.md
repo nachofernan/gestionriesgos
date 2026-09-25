@@ -6,6 +6,10 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-25** — objetivo/show pasa al mismo diseño. La ficha se edita en el bloque (nombre,
+  descripción y fecha objetivo). Riesgos asociados y planes vinculados son bloques de sólo lectura, y
+  el lateral destaca la fecha objetivo con cuánto falta o hace cuánto venció. El diff de un cambio de
+  fecha se guarda como `Y-m-d` en vez de un Carbon serializado.
 - **2026-09-25** — control/show pasa al diseño de riesgo/show: ficha editable en el bloque, riesgos
   que mitiga, conversación y actividad. Al cambiar la mitigación por defecto de un control se puede
   aplicar el nuevo valor a todos sus riesgos asociados, con una entrada en el historial de cada uno.

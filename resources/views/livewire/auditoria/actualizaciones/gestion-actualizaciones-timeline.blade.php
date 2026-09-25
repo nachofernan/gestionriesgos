@@ -1,5 +1,5 @@
 {{--
-    Variante 'timeline' del historial, para la columna lateral de riesgo/show y control/show.
+    Variante 'timeline' del historial, para la columna lateral de las pantallas de detalle rediseñadas.
     El lateral es un resumen mínimo (conteos + últimas entradas en una línea);
     todo el detalle vive en el modal de actividad (partials/actividad-modal), que
     se abre desde "Ver todo" o tocando una entrada.
@@ -8,7 +8,7 @@
     $etiquetasCampos = [
         'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta', 'fundamento' => 'Fundamento',
         'tipo_riesgo_id' => 'Tipo de riesgo', 'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
-        'mayor_criticidad' => 'Mayor criticidad', 'codigo' => 'Código', 'mitigacion_default' => 'Mitigación por defecto',
+        'mayor_criticidad' => 'Mayor criticidad', 'codigo' => 'Código', 'mitigacion_default' => 'Mitigación por defecto', 'fecha_objetivo' => 'Fecha objetivo',
     ];
     $nombresPartes = ['campos' => 'Datos', 'areas' => 'Gerencias', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes'];
     $anclas = ['campos' => 'ficha', 'areas' => 'gerencias', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes'];

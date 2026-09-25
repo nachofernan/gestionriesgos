@@ -7,12 +7,10 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Panel de "Información" de un Objetivo (estado, fecha objetivo, clasificación
- * PEIS, etc.). Antes era Blade estático dentro de objetivo/show.blade.php; se
- * extrae a su propio componente para que se refresque solo cuando
- * GestionActualizaciones (el historial, en la misma pantalla) valida o aprueba
- * un cambio — ver el evento 'objetivo-actualizado' que dispatcha, mismo
- * mecanismo que InfoRiesgo.
+ * Tarjeta lateral de objetivo/show: la fecha objetivo como protagonista (cuánto
+ * falta o hace cuánto venció), la clasificación estratégico/PEIS con sus ítems y
+ * quién lo gestiona. Se refresca con 'objetivo-actualizado' (FichaObjetivo o
+ * GestionActualizaciones aplicaron un cambio), mismo mecanismo que InfoRiesgo.
  */
 class InfoObjetivo extends Component
 {
@@ -30,8 +28,11 @@ class InfoObjetivo extends Component
     {
         $objetivo = Objetivo::with(['area', 'user', 'estado', 'peisItems'])->findOrFail($this->objetivoId);
 
+        $dias = $objetivo->fecha_objetivo ? (int) now()->startOfDay()->diffInDays($objetivo->fecha_objetivo, false) : null;
+
         return view('livewire.auditoria.objetivo.show.info-objetivo', [
             'objetivo' => $objetivo,
+            'dias' => $dias,
         ]);
     }
 }

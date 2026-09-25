@@ -1,172 +1,164 @@
-﻿@extends('layouts.auditoria')
+@extends('layouts.auditoria')
 @section('title', $objetivo->nombre)
 
 @section('content')
-<div class="space-y-6">
+@php
+    $gerencia = $objetivo->area?->gerencia();
+    $hoy = now()->startOfDay();
 
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('auditoria.objetivos.index') }}" class="text-gray-400 hover:text-gray-600 transition-colors">
+    // Planes vinculados: los de los riesgos del objetivo (ya filtrados por visibilidad
+    // en ObjetivoController::show), sin repetir.
+    $planes = \App\Models\Auditoria\Estado::ordenarColeccion(
+        $objetivo->riesgos->flatMap->planesAccion->unique('id')->values()
+    );
+@endphp
+<div class="space-y-5">
+
+    {{-- Encabezado --}}
+    <header class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div class="flex items-start gap-3 min-w-0">
+            <a href="{{ route('auditoria.objetivos.index') }}" title="Volver a objetivos"
+               class="mt-1.5 shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
                 </svg>
             </a>
-            <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="text-2xl font-extrabold text-gray-900">{{ $objetivo->nombre }}</h1>
-                    <x-auditoria.estado-badge :estado="$objetivo->estado" />
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap text-xs">
+                    <span class="font-bold text-gray-500 uppercase">Objetivo</span>
+                    <x-auditoria.estado-badge :estado="$objetivo->estado" size="sm" />
+                    @if($objetivo->estrategico)
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">Estratégico</span>
+                    @endif
+                    @if($objetivo->peis)
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">PEIS</span>
+                    @endif
                 </div>
+                <h1 class="mt-1 text-2xl sm:text-[28px] font-black tracking-tight text-gray-900 leading-tight">{{ $objetivo->nombre }}</h1>
+                <p class="mt-1 text-sm text-gray-500">
+                    {{ collect([$objetivo->area?->nombre, $gerencia && $gerencia->id !== $objetivo->area?->id ? $gerencia->nombre : null])->filter()->join(' · ') ?: 'Sin área' }}
+                </p>
             </div>
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
+
+        <div class="flex items-center gap-2 flex-wrap lg:justify-end">
             @include('auditoria.partials.estado-acciones', ['item' => $objetivo, 'routePrefix' => 'objetivos'])
-            @if($objetivo->estado?->nombre === 'borrador' || !$objetivo->estado)
-                <a href="{{ route('auditoria.objetivos.edit', $objetivo) }}"
-                   class="px-4 py-2 bg-indigo-50 text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-100 transition-colors">
-                    Editar
-                </a>
-            @endif
-            <form action="{{ route('auditoria.objetivos.destroy', $objetivo) }}" method="POST"
-                  onsubmit="return confirm('¿Eliminar este objetivo?')">
-                @csrf @method('DELETE')
-                <button type="submit"
-                    class="px-4 py-2 bg-red-50 text-red-700 text-sm font-bold rounded-xl hover:bg-red-100 transition-colors">
-                    Eliminar
-                </button>
-            </form>
-        </div>
-    </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {{-- Columna izquierda: Info + Riesgos --}}
-        <div class="space-y-4">
-            @livewire('auditoria.objetivo.show.info-objetivo', ['objetivo' => $objetivo])
-
-            <x-auditoria.card-seccion titulo="Riesgos asociados" subtitulo="asignado desde cada riesgo">
-                    @forelse ($objetivo->riesgos as $riesgo)
-                        <div class="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
-                             onclick="Livewire.dispatch('ver-riesgo', {id: {{$riesgo->id}}})">
-                            <div class="flex items-center gap-2.5 min-w-0">
-                                <x-auditoria.estado-punto :estado="$riesgo->estado" soloPunto />
-                                <div class="min-w-0">
-                                    <p class="text-sm font-semibold text-gray-800 truncate">{{ $riesgo->nombre }}</p>
-                                    <p class="text-[11px] text-gray-400 mt-0.5">{{ $riesgo->tipoRiesgo?->nombre ?? '—' }}</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <span class="text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-100 px-2 py-0.5 rounded-full">
-                                    Total: {{ $riesgo->valor_total }}
-                                </span>
-                                <span class="text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 px-2 py-0.5 rounded-full">
-                                    Res: {{ $riesgo->valor_residual }}
-                                </span>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="px-5 py-10 text-center text-gray-400 italic text-sm">
-                            Este objetivo no está asociado a ningún riesgo todavía.
-                        </div>
-                    @endforelse
-            </x-auditoria.card-seccion>
-        </div>
-
-        {{-- Columna derecha: Planes vinculados + Actualizaciones --}}
-        <div class="space-y-4">
-            @php
-                $planesUnicos = collect();
-                foreach ($objetivo->riesgos as $riesgo) {
-                    foreach ($riesgo->planesAccion as $plan) {
-                        if (!$planesUnicos->has($plan->id)) {
-                            $planesUnicos->put($plan->id, $plan);
-                        }
-                    }
-                }
-                $planesUnicos = \App\Models\Auditoria\Estado::ordenarColeccion($planesUnicos);
-            @endphp
-
-            @if($planesUnicos->isNotEmpty())
-                <x-auditoria.card-seccion titulo="Planes de acción vinculados">
-                @foreach($planesUnicos as $plan)
-                    @php $today = now()->startOfDay(); @endphp
-                    <div x-data="{ abierto: false }" class="transition-colors">
-                        <button type="button"
-                            @click="abierto = !abierto"
-                            class="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors text-left">
-                            <div class="flex items-center gap-3">
-                                <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" :class="abierto ? 'rotate-90' : ''"
-                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <x-auditoria.estado-punto :estado="$plan->estado" soloPunto />
-                                    <span class="text-sm font-semibold text-gray-800 truncate">{{ $plan->nombre }}</span>
-                                    <span class="font-mono text-[10px] text-gray-400 uppercase shrink-0">{{ $plan->codigo }}</span>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-3 shrink-0">
-                                @php
-                                    $tareasVencidas = $plan->tareas->filter(fn($t) => $t->fecha && $t->fecha->lt($today) && $t->porcentaje_avance < 100)->count();
-                                @endphp
-                                @if($tareasVencidas > 0)
-                                    <span class="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
-                                        {{ $tareasVencidas }} vencida(s)
-                                    </span>
-                                @endif
-                                <span class="text-[10px] text-gray-400">{{ $plan->tareas->count() }} tarea(s)</span>
-                                <a href="{{ route('auditoria.planes.show', $plan) }}"
-                                   class="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-colors"
-                                   @click.stop>
-                                    Ver plan
-                                </a>
-                            </div>
-                        </button>
-
-                        <div x-show="abierto" class="border-t border-gray-50">
-                            @forelse(\App\Models\Auditoria\Estado::ordenarColeccion($plan->tareas) as $tarea)
-                                @php
-                                    $vencida = $tarea->fecha && $tarea->fecha->lt($today) && $tarea->porcentaje_avance < 100;
-                                @endphp
-                                <div class="flex items-center justify-between px-9 py-2.5 hover:bg-gray-50 transition-colors cursor-pointer
-                                    {{ $vencida ? 'bg-red-50/40' : '' }}"
-                                    onclick="Livewire.dispatch('ver-tarea', {id: {{$tarea->id}}})">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-1.5 h-1.5 rounded-full shrink-0 {{ $vencida ? 'bg-red-500' : 'bg-gray-300' }}"></span>
-                                        <span class="text-sm text-gray-700 {{ $vencida ? 'font-semibold text-red-700' : '' }}">{{ $tarea->nombre }}</span>
-                                        @if($vencida)
-                                            <span class="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Vencida</span>
-                                        @endif
-                                    </div>
-                                    <div class="flex items-center gap-3 shrink-0">
-                                        @if($tarea->fecha)
-                                            <span class="text-[11px] text-gray-400">{{ $tarea->fecha->format('d/m/Y') }}</span>
-                                        @endif
-                                        <div class="flex items-center gap-1.5">
-                                            <div class="w-14 bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                                                <div class="h-1.5 rounded-full {{ $tarea->porcentaje_avance === 100 ? 'bg-green-500' : ($vencida ? 'bg-red-400' : 'bg-amber-500') }}"
-                                                     style="width: {{ $tarea->porcentaje_avance }}%"></div>
-                                            </div>
-                                            <span class="text-[10px] font-bold {{ $tarea->porcentaje_avance === 100 ? 'text-green-600' : ($vencida ? 'text-red-600' : 'text-amber-600') }}">
-                                                {{ $tarea->porcentaje_avance }}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="px-9 py-3 text-sm text-gray-400 italic">Sin tareas asociadas.</div>
-                            @endforelse
-                        </div>
-
+            @can('delete', $objetivo)
+                <div class="relative" x-data="{ abierto: false }" x-on:click.outside="abierto = false">
+                    <button type="button" x-on:click="abierto = !abierto" title="Más acciones"
+                        class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"/></svg>
+                    </button>
+                    <div x-show="abierto" x-cloak x-transition.origin.top.right
+                         class="absolute right-0 mt-2 w-44 rounded-xl bg-white border border-gray-200 shadow-lg py-1 z-30">
+                        <form action="{{ route('auditoria.objetivos.destroy', $objetivo) }}" method="POST"
+                              onsubmit="return confirm('¿Eliminar este objetivo? Esta acción no se puede deshacer.')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="w-full text-left px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+                                Eliminar objetivo
+                            </button>
+                        </form>
                     </div>
-                @endforeach
-                </x-auditoria.card-seccion>
-            @endif
+                </div>
+            @endcan
+        </div>
+    </header>
 
-            @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'objetivo', 'modelId' => $objetivo->id])
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        {{-- Qué es el objetivo, qué riesgos lo tienen y con qué planes se trabaja --}}
+        <div class="lg:col-span-8 space-y-5 order-2 lg:order-1">
+            @livewire('auditoria.objetivo.show.ficha-objetivo', ['objetivo' => $objetivo])
+
+            {{-- Sólo lectura: la asociación se gestiona desde cada riesgo, así que no hace falta Livewire. --}}
+            <x-auditoria.bloque-riesgo ancla="riesgos" titulo="Riesgos asociados" :contador="$objetivo->riesgos->count()"
+                subtitulo="La asociación se gestiona desde cada riesgo.">
+                @forelse ($objetivo->riesgos as $riesgo)
+                    <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50/60 cursor-pointer hover:border-indigo-200 hover:bg-white transition-colors"
+                         onclick="Livewire.dispatch('ver-riesgo', {id: {{ $riesgo->id }}})">
+                        <x-auditoria.estado-punto :estado="$riesgo->estado" soloPunto />
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-800 truncate">
+                                @if($riesgo->codigo) <span class="font-mono text-[11px] font-bold text-gray-400 mr-1">{{ $riesgo->codigo }}</span> @endif
+                                {{ $riesgo->nombre }}
+                            </p>
+                            <p class="text-[11px] text-gray-500 truncate">
+                                {{ collect([$riesgo->tipoRiesgo?->nombre, $riesgo->area?->nombre])->filter()->join(' · ') ?: '—' }}
+                            </p>
+                        </div>
+                        <span class="shrink-0 w-20 text-right text-xs tabular-nums text-gray-500" title="Valor total → residual">
+                            {{ $riesgo->valor_total }} → <strong class="text-gray-900">{{ $riesgo->valor_residual }}</strong>
+                        </span>
+                    </div>
+                @empty
+                    <p class="text-sm text-gray-400 italic py-2">Este objetivo no está asociado a ningún riesgo todavía.</p>
+                @endforelse
+            </x-auditoria.bloque-riesgo>
+
+            <x-auditoria.bloque-riesgo ancla="planes" titulo="Planes de acción vinculados" :contador="$planes->count()"
+                subtitulo="Los planes de los riesgos asociados.">
+                @forelse ($planes as $plan)
+                    @php
+                        $tareas = \App\Models\Auditoria\Estado::ordenarColeccion($plan->tareas);
+                        $vencidas = $tareas->filter(fn ($t) => $t->fecha && $t->fecha->lt($hoy) && $t->porcentaje_avance < 100)->count();
+                        $avance = $tareas->isNotEmpty() ? (int) round($tareas->avg('porcentaje_avance')) : 0;
+                    @endphp
+                    <div x-data="{ abierto: false }" class="rounded-xl border border-gray-100 bg-gray-50/60 overflow-hidden">
+                        <div class="flex items-center gap-3 px-3 py-2.5">
+                            <button type="button" x-on:click="abierto = !abierto" title="Ver tareas"
+                                class="shrink-0 text-gray-400 hover:text-gray-700 {{ $tareas->isEmpty() ? 'invisible' : '' }}">
+                                <svg class="h-4 w-4 transition-transform" :class="abierto && 'rotate-90'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                            <x-auditoria.estado-punto :estado="$plan->estado" soloPunto />
+                            <div class="flex-1 min-w-0">
+                                <a href="{{ route('auditoria.planes.show', $plan) }}" class="block text-sm font-semibold text-gray-800 hover:text-indigo-700 truncate">
+                                    <span class="font-mono text-[11px] font-bold text-gray-400 mr-1">{{ $plan->codigo }}</span>
+                                    {{ $plan->nombre }}
+                                </a>
+                                <p class="text-[11px] text-gray-500 truncate">
+                                    {{ $tareas->count() }} {{ $tareas->count() === 1 ? 'tarea' : 'tareas' }}
+                                    @if($vencidas > 0) · <span class="font-bold text-red-600">{{ $vencidas }} {{ $vencidas === 1 ? 'vencida' : 'vencidas' }}</span> @endif
+                                </p>
+                            </div>
+                            <div class="shrink-0 flex items-center gap-1.5" title="Avance promedio de las tareas">
+                                <div class="w-16 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                                    <div class="h-full rounded-full {{ $avance === 100 ? 'bg-green-500' : 'bg-indigo-500' }}" style="width: {{ $avance }}%"></div>
+                                </div>
+                                <span class="w-8 text-right text-[11px] font-bold tabular-nums {{ $avance === 100 ? 'text-green-700' : 'text-gray-600' }}">{{ $avance }}%</span>
+                            </div>
+                        </div>
+
+                        <ul x-show="abierto" x-cloak class="border-t border-gray-100 bg-white divide-y divide-gray-50">
+                            @foreach($tareas as $tarea)
+                                @php $vencida = $tarea->fecha && $tarea->fecha->lt($hoy) && $tarea->porcentaje_avance < 100; @endphp
+                                <li class="flex items-center gap-3 pl-10 pr-3 py-2 cursor-pointer hover:bg-gray-50 {{ $vencida ? 'bg-red-50/40' : '' }}"
+                                    onclick="Livewire.dispatch('ver-tarea', {id: {{ $tarea->id }}})">
+                                    <span class="flex-1 min-w-0 text-sm truncate {{ $vencida ? 'font-semibold text-red-700' : 'text-gray-700' }}">{{ $tarea->nombre }}</span>
+                                    @if($tarea->fecha)
+                                        <span class="shrink-0 text-[11px] tabular-nums {{ $vencida ? 'text-red-600 font-bold' : 'text-gray-400' }}">{{ $tarea->fecha->format('d/m/Y') }}</span>
+                                    @endif
+                                    <span class="shrink-0 w-9 text-right text-[11px] font-bold tabular-nums {{ $tarea->porcentaje_avance === 100 ? 'text-green-600' : ($vencida ? 'text-red-600' : 'text-amber-600') }}">{{ $tarea->porcentaje_avance }}%</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @empty
+                    <p class="text-sm text-gray-400 italic py-2">Ninguno de sus riesgos tiene planes de acción.</p>
+                @endforelse
+            </x-auditoria.bloque-riesgo>
+
+            @livewire('auditoria.actualizaciones.conversacion', ['modelType' => 'objetivo', 'modelId' => $objetivo->id])
         </div>
 
-    </div>
+        {{-- Lateral: cuándo vence, cómo se clasifica, qué pasó --}}
+        <aside class="lg:col-span-4 space-y-5 order-1 lg:order-2 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pb-2 lg:-mr-2 lg:pr-2">
+            @livewire('auditoria.objetivo.show.info-objetivo', ['objetivo' => $objetivo])
+            @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'objetivo', 'modelId' => $objetivo->id, 'variante' => 'timeline'])
+        </aside>
 
+    </div>
 </div>
+
 @livewire('auditoria.validacion-cascada-modal')
 @endsection

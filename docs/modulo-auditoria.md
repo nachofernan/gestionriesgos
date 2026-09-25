@@ -177,9 +177,12 @@ app/Livewire/Auditoria/
 │   ├── FichaControl.php        — datos del control, editables en el bloque (con propagación del default)
 │   ├── RiesgosControl.php      — riesgos que mitiga (sólo lectura)
 │   └── InfoControl.php         — tarjeta Mitigación del lateral
+├── Objetivo/Show/
+│   ├── FichaObjetivo.php       — datos del objetivo, editables en el bloque
+│   └── InfoObjetivo.php        — tarjeta Fecha objetivo del lateral (clasificación y PEIS)
 ├── Actualizaciones/
-│   ├── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (riesgo/show, control/show)
-│   └── Conversacion.php        — notas y documentos de un riesgo o control
+│   ├── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (riesgo/show, control/show, objetivo/show)
+│   └── Conversacion.php        — notas y documentos de un riesgo, control u objetivo
 └── PlanAccion/Show/
     └── GestionTareas.php       — maneja tareas de un plan
 ```
@@ -269,7 +272,9 @@ resources/views/
     ├── control/
     │   ├── index/search.blade.php
     │   └── show/{ficha-control, riesgos-control, info-control}.blade.php
-    ├── objetivo/index/search.blade.php
+    ├── objetivo/
+    │   ├── index/search.blade.php
+    │   └── show/{ficha-objetivo, info-objetivo}.blade.php
     ├── plan-accion/
     │   ├── index/search.blade.php
     │   └── show/gestion-tareas.blade.php

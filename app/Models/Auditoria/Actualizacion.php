@@ -181,6 +181,11 @@ class Actualizacion extends Model implements HasMedia
             if ($antes instanceof \BackedEnum) {
                 $antes = $antes->value;
             }
+            // Las fechas casteadas (fecha_objetivo, fecha) llegan como Carbon: se
+            // comparan y guardan en el mismo formato que manda el input date.
+            if ($antes instanceof \DateTimeInterface) {
+                $antes = $antes->format('Y-m-d');
+            }
             if ($antes != $nuevo) {
                 $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
             }

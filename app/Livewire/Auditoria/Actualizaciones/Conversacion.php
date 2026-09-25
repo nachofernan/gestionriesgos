@@ -4,6 +4,7 @@ namespace App\Livewire\Auditoria\Actualizaciones;
 
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Riesgo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -11,10 +12,10 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 
 /**
- * Espacio de trabajo de las pantallas de detalle (riesgo/show, control/show): la
- * conversación sobre la entidad (notas, que son Actualizaciones sin estado ni
- * data, ver Actualizacion::registrarNota()) y todos los archivos adjuntos a
- * cualquier actualización de la entidad en un solo lugar. Separado de la
+ * Espacio de trabajo de las pantallas de detalle (riesgo/show, control/show,
+ * objetivo/show): la conversación sobre la entidad (notas, que son
+ * Actualizaciones sin estado ni data, ver Actualizacion::registrarNota()) y todos
+ * los archivos adjuntos a cualquier actualización de la entidad en un solo lugar. Separado de la
  * Actividad (GestionActualizaciones, variante timeline), que es el historial de
  * cambios y no muestra las notas.
  */
@@ -84,6 +85,7 @@ class Conversacion extends Component
         return match ($this->modelType) {
             'riesgo' => Riesgo::findOrFail($this->modelId),
             'control' => Control::findOrFail($this->modelId),
+            'objetivo' => Objetivo::findOrFail($this->modelId),
         };
     }
 
@@ -108,7 +110,7 @@ class Conversacion extends Component
         return view('livewire.auditoria.actualizaciones.conversacion', [
             'notas' => $notas,
             'documentos' => $documentos,
-            'sujeto' => $this->modelType === 'control' ? 'del control' : 'del riesgo',
+            'sujeto' => 'del '.$this->modelType,
             'puedeEscribir' => Auth::user()->can('update', $modelo),
         ]);
     }
