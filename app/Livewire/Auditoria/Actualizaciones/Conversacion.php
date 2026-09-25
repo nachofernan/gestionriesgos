@@ -5,6 +5,7 @@ namespace App\Livewire\Auditoria\Actualizaciones;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Objetivo;
+use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,7 @@ use Livewire\WithFileUploads;
 
 /**
  * Espacio de trabajo de las pantallas de detalle (riesgo, control,
- * objetivo y tarea): la conversación sobre la entidad (notas, que son
+ * objetivo, plan y tarea): la conversación sobre la entidad (notas, que son
  * Actualizaciones sin estado ni data, ver Actualizacion::registrarNota()) y todos
  * los archivos adjuntos a cualquier actualización de la entidad en un solo lugar. Separado de la
  * Actividad (GestionActualizaciones, variante timeline), que es el historial de
@@ -88,6 +89,7 @@ class Conversacion extends Component
             'control' => Control::findOrFail($this->modelId),
             'objetivo' => Objetivo::findOrFail($this->modelId),
             'tarea' => Tarea::findOrFail($this->modelId),
+            'plan' => PlanAccion::findOrFail($this->modelId),
         };
     }
 

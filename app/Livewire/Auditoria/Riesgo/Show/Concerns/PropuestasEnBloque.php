@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Lo que comparten los bloques de riesgo/show (Ficha, Gerencias, Objetivos,
- * Controles, Planes) y de control/show (FichaControl) para mostrar debajo de lo vigente las propuestas de cambio
+ * Controles, Planes) y de las otras pantallas de detalle (Fichas, Tareas del
+ * plan) para mostrar debajo de lo vigente las propuestas de cambio
  * todavía sin aplicar, y para decirle al usuario qué va a pasar cuando guarde.
  * Requiere que el componente tenga `$estadoModelo` y `estadoParaActualizacion()`.
  */
@@ -97,9 +98,18 @@ trait PropuestasEnBloque
     /** Guarda de borde para agregar()/quitar()/actualizarMitigacion(): ver idsConPropuesta(). */
     private function elementoConPropuesta(string $relacion, int $id): bool
     {
-        $riesgo = Riesgo::findOrFail($this->riesgoId);
+        $entidad = $this->entidadDelBloque();
 
-        return in_array($id, $this->idsConPropuesta($this->propuestasDe($riesgo, $relacion), $relacion), true);
+        return in_array($id, $this->idsConPropuesta($this->propuestasDe($entidad, $relacion), $relacion), true);
+    }
+
+    /**
+     * La entidad dueña del bloque. Por defecto el riesgo de riesgo/show; los
+     * bloques de otras pantallas (GestionTareas) la redefinen.
+     */
+    private function entidadDelBloque(): Model
+    {
+        return Riesgo::findOrFail($this->riesgoId);
     }
 
     /**
@@ -110,9 +120,10 @@ trait PropuestasEnBloque
      * o rechaza por separado y no arrastra el estado del resto. Bajo doble
      * validación el proponente vota a favor de cada una.
      * Tests: un_empleado_que_agrega_y_quita_controles_genera_una_propuesta_por_elemento,
-     * en_un_riesgo_compartido_cada_propuesta_por_elemento_nace_con_el_voto_del_proponente.
+     * en_un_riesgo_compartido_cada_propuesta_por_elemento_nace_con_el_voto_del_proponente,
+     * un_empleado_que_agrega_y_quita_tareas_genera_una_propuesta_por_elemento.
      */
-    private function proponerPorElemento(Riesgo $riesgo, string $relacion, array $diffRel, int $estadoId, bool $dobleValidacion, string $sustantivo): void
+    private function proponerPorElemento(Model $entidad, string $relacion, array $diffRel, int $estadoId, bool $dobleValidacion, string $sustantivo): void
     {
         $propuestas = [];
         foreach ($diffRel['agrega'] ?? [] as $item) {
@@ -130,9 +141,9 @@ trait PropuestasEnBloque
             ];
         }
 
-        DB::transaction(function () use ($riesgo, $relacion, $propuestas, $estadoId, $dobleValidacion) {
+        DB::transaction(function () use ($entidad, $relacion, $propuestas, $estadoId, $dobleValidacion) {
             foreach ($propuestas as [$mensaje, $ops, $diff]) {
-                $actualizacion = $riesgo->actualizaciones()->create([
+                $actualizacion = $entidad->actualizaciones()->create([
                     'user_id' => Auth::id(),
                     'mensaje' => $mensaje,
                     'estado_id' => $estadoId,

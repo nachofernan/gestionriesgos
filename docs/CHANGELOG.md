@@ -6,6 +6,11 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-25** — planaccion/show pasa al mismo diseño y cierra el rediseño de las pantallas de
+  detalle. Las tareas del plan se proponen por elemento, como en riesgo/show, y una propuesta no mueve
+  el avance ni el residual hasta aplicarse. Se suman la ficha del plan, los riesgos que mitiga (se
+  refrescan al cambiar las tareas) y un lateral con el avance, si ya descuenta del residual y el
+  vencimiento. Ver [D-018](DECISIONES.md#d-018).
 - **2026-09-25** — tarea/show pasa al mismo diseño. La ficha se edita en el bloque (nombre,
   descripción, fecha límite y avance, por el ciclo de Actualizaciones: un avance propuesto no mueve el
   plan ni el residual hasta aplicarse). Los planes muestran su avance y sus riesgos, y el lateral

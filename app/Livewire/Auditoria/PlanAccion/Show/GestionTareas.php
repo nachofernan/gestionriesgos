@@ -2,23 +2,31 @@
 
 namespace App\Livewire\Auditoria\PlanAccion\Show;
 
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Tarea;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
  * Gestión de las Tareas asociadas a un Plan de Acción: patrón $seleccionados en
- * memoria → guardar(). Si el plan está en borrador, sincroniza directo; si no,
- * la asociación queda como una Actualizacion (propuesta de cambio) que se aplica
- * de inmediato sólo si el estado resultante lo amerita (ver estadoParaActualizacion()).
+ * memoria → guardar(). Mismo modelo que los bloques de riesgo/show (D-016): en
+ * borrador o en modo directo sincroniza; si el cambio queda como propuesta, cada
+ * alta o baja es su propia Actualizacion ('agregar' / 'detach'), que se valida o
+ * rechaza por separado, y una tarea con una propuesta pendiente no se puede volver
+ * a tocar hasta resolverla. Como el avance del plan sale de sus tareas, una
+ * propuesta no mueve ni el avance ni la mitigación hasta aplicarse.
  * También permite crear una tarea nueva sobre la marcha (guardarNuevaTarea()).
  * Dispatcha 'plan-actualizado' al persistir un cambio real, para que InfoPlan y
  * GestionActualizaciones (bloques hermanos en la misma pantalla) se refresquen solos.
  */
 class GestionTareas extends Component
 {
+    use PropuestasEnBloque;
+
     public int $planId;
 
     public bool $modalAbierto = false;
@@ -62,8 +70,21 @@ class GestionTareas extends Component
         $this->cargar();
     }
 
+    /**
+     * Otro bloque (o el historial) cambió el plan: se recarga lo vigente, salvo
+     * que el usuario esté editando, para no pisarle lo que tiene a medio armar.
+     */
+    #[On('plan-actualizado')]
+    public function refrescar(): void
+    {
+        if (! $this->editando) {
+            $this->cargar();
+        }
+    }
+
     public function activarEdicion(): void
     {
+        $this->authorize('update', PlanAccion::findOrFail($this->planId));
         $this->editando = true;
     }
 
@@ -158,6 +179,10 @@ class GestionTareas extends Component
 
     public function agregar(int $tareaId): void
     {
+        if ($this->elementoConPropuesta('tareas', $tareaId)) {
+            return;
+        }
+
         if (collect($this->seleccionados)->contains('id', $tareaId)) {
             return;
         }
@@ -186,84 +211,107 @@ class GestionTareas extends Component
 
     public function quitar(int $tareaId): void
     {
+        if ($this->elementoConPropuesta('tareas', $tareaId)) {
+            return;
+        }
+
         $this->seleccionados = array_values(
             array_filter($this->seleccionados, fn ($t) => $t['id'] !== $tareaId)
         );
     }
 
     /**
-     * Si el plan está en borrador, sincroniza las tareas de inmediato. Si no,
-     * arma el diff (agrega/quita) y lo guarda como Actualizacion; según el estado
-     * que le toque a esa actualización (estadoParaActualizacion()) la aplica en
-     * el momento o la deja pendiente de validación.
+     * En borrador sincroniza y deja rastro en el historial. Fuera de borrador, en
+     * modo directo sincroniza y registra el cambio ya aplicado; si no, arma una
+     * propuesta por cada tarea agregada o quitada (proponerPorElemento()).
+     * Tests: un_empleado_que_agrega_y_quita_tareas_genera_una_propuesta_por_elemento,
+     * una_tarea_propuesta_no_mueve_el_avance_del_plan_hasta_aplicarse,
+     * gestion_tareas_guardar_devuelve_403_para_gerente_de_otra_gerencia.
      */
     public function guardar(): void
     {
-        $plan = PlanAccion::findOrFail($this->planId);
+        $plan = PlanAccion::with('tareas.estado')->findOrFail($this->planId);
         $this->authorize('update', $plan);
         // Las tareas "borrado" ocultas se re-agregan al sync para no detacharlas.
         $ids = array_values(array_unique(array_merge(
             collect($this->seleccionados)->pluck('id')->toArray(),
             $this->ocultosIds
         )));
+        $diffRel = $this->construirDiff($plan);
 
         if ($this->esBorrador) {
             $plan->tareas()->sync($ids);
+            if (! empty($diffRel)) {
+                $plan->actualizaciones()->create([
+                    'user_id' => Auth::id(),
+                    'mensaje' => 'Tareas asociadas',
+                    'estado_id' => Estado::borrador()->id,
+                    'data' => ['tipo' => 'edicion', 'diff' => ['relaciones' => ['tareas' => $diffRel]]],
+                ]);
+            }
             $this->dispatch('plan-actualizado');
-            $this->editando = false;
-            $this->creandoTarea = false;
+            $this->cancelarEdicion();
+            session()->flash('ok', 'Tareas actualizadas.');
+
+            return;
+        }
+
+        if (empty($diffRel)) {
+            $this->cancelarEdicion();
+
+            return;
+        }
+
+        $estadoId = $this->estadoParaActualizacion();
+
+        if ($this->modoCambio($plan) === 'directo') {
+            // Se aplica en el acto: activated_by lo rotula "aplicado" en el historial.
+            $plan->tareas()->sync($ids);
+            $plan->actualizaciones()->create([
+                'user_id' => Auth::id(),
+                'mensaje' => 'Tareas asociadas actualizadas',
+                'estado_id' => $estadoId,
+                'data' => [
+                    'tipo' => 'cambio',
+                    'relaciones' => ['tareas' => ['sync' => $ids]],
+                    'diff' => ['relaciones' => ['tareas' => $diffRel]],
+                    'activated_by' => Auth::user()->name,
+                ],
+            ]);
             session()->flash('ok', 'Tareas actualizadas.');
         } else {
-            $estadoId = $this->estadoParaActualizacion();
-
-            // Se comparan sólo las tareas vigentes (no "borrado") para que el diff no
-            // proponga quitar las ocultas, que se preservan vía $ids.
-            $plan->load('tareas.estado');
-            $antesItems = $plan->tareas
-                ->reject(fn ($t) => $t->estado?->nombre === 'borrado')
-                ->map(fn ($t) => ['id' => $t->id, 'nombre' => $t->nombre]);
-            $antesIds = $antesItems->pluck('id');
-            $despues = collect($this->seleccionados)->map(fn ($t) => ['id' => $t['id'], 'nombre' => $t['nombre']]);
-
-            $diffRel = array_filter([
-                'agrega' => $despues->filter(fn ($t) => ! $antesIds->contains($t['id']))->values()->toArray(),
-                'quita' => $antesItems->filter(fn ($t) => ! $despues->pluck('id')->contains($t['id']))->values()->toArray(),
-            ], fn ($a) => ! empty($a));
-
-            $data = ['tipo' => 'cambio', 'relaciones' => ['tareas' => ['sync' => $ids]]];
-            if (! empty($diffRel)) {
-                $data['diff'] = ['relaciones' => ['tareas' => $diffRel]];
-            }
-
-            $aplicarAhora = $estadoId === Estado::aprobado()->id
-                || ($estadoId === Estado::validado()->id && $this->estadoModelo === 'validado');
-
-            if ($aplicarAhora) {
-                // El cambio se aplica en el acto: se marca activated_by para que el
-                // historial lo rotule "Cambios aplicados" y no "Cambios propuestos".
-                $data['activated_by'] = Auth::user()->name;
-                $plan->tareas()->sync($ids);
-                $plan->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => 'Tareas asociadas actualizadas',
-                    'estado_id' => $estadoId,
-                    'data' => $data,
-                ]);
-                $this->dispatch('plan-actualizado');
-                $this->cancelarEdicion();
-                session()->flash('ok', 'Tareas actualizadas.');
-            } else {
-                $plan->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => 'Propuesta de cambio en tareas asociadas',
-                    'estado_id' => $estadoId,
-                    'data' => $data,
-                ]);
-                $this->dispatch('plan-actualizado');
-                $this->cancelarEdicion();
-                session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
-            }
+            $this->proponerPorElemento($plan, 'tareas', $diffRel, $estadoId, false, 'tarea');
+            session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
         }
+
+        $this->dispatch('plan-actualizado');
+        $this->cancelarEdicion();
+    }
+
+    /**
+     * Diff (agrega/quita) entre las tareas vigentes del plan y la selección en
+     * memoria. Compara sólo contra las vigentes (no "borrado") para no proponer
+     * quitar las ocultas, que se preservan. Vacío si nada cambió.
+     */
+    private function construirDiff(PlanAccion $plan): array
+    {
+        $antes = $plan->tareas
+            ->reject(fn ($t) => $t->estado?->nombre === 'borrado')
+            ->map(fn ($t) => ['id' => $t->id, 'nombre' => $t->nombre]);
+        $antesIds = $antes->pluck('id');
+        $despues = collect($this->seleccionados)->map(fn ($t) => ['id' => $t['id'], 'nombre' => $t['nombre']]);
+        $despuesIds = $despues->pluck('id');
+
+        return array_filter([
+            'agrega' => $despues->reject(fn ($t) => $antesIds->contains($t['id']))->values()->toArray(),
+            'quita' => $antes->reject(fn ($t) => $despuesIds->contains($t['id']))->values()->toArray(),
+        ], fn ($a) => ! empty($a));
+    }
+
+    /** Ver PropuestasEnBloque::elementoConPropuesta(). */
+    private function entidadDelBloque(): Model
+    {
+        return PlanAccion::findOrFail($this->planId);
     }
 
     /**
@@ -317,11 +365,16 @@ class GestionTareas extends Component
 
     public function render()
     {
-        $yaIds = collect($this->seleccionados)->pluck('id');
+        $plan = PlanAccion::with('tareas.estado')->findOrFail($this->planId);
+        $propuestas = $this->propuestasDe($plan, 'tareas');
+        $bloqueados = $this->idsConPropuesta($propuestas, 'tareas');
+        $yaIds = collect($this->seleccionados)->pluck('id')->merge($bloqueados);
 
         $resultados = $this->modalAbierto
             ? Tarea::query()
+                ->with(['estado', 'area'])
                 ->visiblePara(Auth::user())
+                ->whereNot('tareas.estado_id', Estado::borrado()->id)
                 ->when($this->busqueda, fn ($q) => $q->where('tareas.nombre', 'like', '%'.$this->busqueda.'%'))
                 ->whereNotIn('tareas.id', $yaIds)
                 ->join('estados', 'estados.id', '=', 'tareas.estado_id')
@@ -333,6 +386,11 @@ class GestionTareas extends Component
             : collect();
 
         return view('livewire.auditoria.plan-accion.show.gestion-tareas', [
+            'modo' => $this->modoCambio($plan),
+            'bloqueados' => $bloqueados,
+            'propuestas' => $propuestas,
+            'marcas' => $this->marcasDe($propuestas, 'tareas'),
+            'diffEnCurso' => $this->editando ? $this->construirDiff($plan) : [],
             'resultados' => $resultados,
         ]);
     }

@@ -8,6 +8,7 @@ use App\Livewire\Auditoria\Modal\DetalleControl;
 use App\Livewire\Auditoria\Modal\DetalleObjetivo;
 use App\Livewire\Auditoria\Modal\DetallePlan;
 use App\Livewire\Auditoria\Modal\DetalleTarea;
+use App\Livewire\Auditoria\PlanAccion\Show\RiesgosPlan;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -108,12 +109,14 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
             ->viewData('riesgos')->pluck('id')->all();
     }
 
+    /** Riesgos que lista el bloque "Riesgos que mitiga" de planaccion/show (RiesgosPlan). */
     private function riesgosDelPlan(PlanAccion $plan, User $user): array
     {
-        return $this->actingAs($user)
-            ->get(route('auditoria.planes.show', $plan))
-            ->assertOk()
-            ->viewData('planAccion')->riesgos->pluck('id')->all();
+        $this->actingAs($user)->get(route('auditoria.planes.show', $plan))->assertOk();
+
+        return Livewire::actingAs($user)
+            ->test(RiesgosPlan::class, ['plan' => $plan])
+            ->viewData('riesgos')->pluck('id')->all();
     }
 
     // -------------------------------------------------------

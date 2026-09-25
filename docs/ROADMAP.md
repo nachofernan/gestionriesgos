@@ -18,13 +18,14 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 
 ## En curso / recién cerrado
 
-- [ ] **Rediseño de las pantallas de detalle** (riesgo/show ya en `main`), ver [D-016](DECISIONES.md#d-016) y [updates/2026-09-24](updates/2026-09-24.md).
+- [x] **Rediseño de las pantallas de detalle** (2026-09-24 → 2026-09-25), ver [D-016](DECISIONES.md#d-016) y [updates/2026-09-24](updates/2026-09-24.md).
   - [x] riesgo/show: bloques con lo vigente arriba y lo propuesto abajo, una propuesta por elemento, Ficha editable en el bloque, Conversación separada de la Actividad (2026-09-24).
   - [ ] Revisar Gerencias (sigue proponiéndose en bloque) y cómo se comporta un riesgo multigerencia en el diseño nuevo.
   - [x] control/show: Ficha editable en el bloque (con propagación opcional de la mitigación por defecto, [D-017](DECISIONES.md#d-017)), Riesgos que mitiga, Conversación genérica y Actividad. `PropuestasEnBloque`, `bloque-riesgo` y `propuesta-pendiente` se generalizaron (2026-09-25).
   - [x] objetivo/show: Ficha editable en el bloque, Riesgos asociados, Planes vinculados, Conversación y Actividad (2026-09-25).
   - [x] tarea/show: Ficha editable en el bloque (incluye avance), Planes de acción con sus riesgos, Conversación y Actividad (2026-09-25).
-  - [ ] Replicar en planaccion/show, manteniendo una sola instancia de `GestionActualizaciones` por pantalla (escucha `resolver-actualizacion` a nivel global).
+  - [x] planaccion/show: Ficha, Tareas con propuesta por elemento ([D-018](DECISIONES.md#d-018)), Riesgos que mitiga, Conversación y Actividad (2026-09-25).
+  - [ ] Detalles pendientes que se van a ir viendo en cada pantalla. Posible limpieza: `FichaControl`, `FichaObjetivo`, `FichaTarea` y `FichaPlan` son casi idénticas y podrían unificarse. `PropuestasEnBloque` y `bloque-riesgo` viven en el namespace de Riesgo aunque ya son compartidos. Se mantiene una sola instancia de `GestionActualizaciones` por pantalla (escucha `resolver-actualizacion` a nivel global).
 
 - [x] **Dashboard con gráficos y KPIs — primer pase** (2026-07-23) — ver [changelog](updates/2026-07-23.md). `PanelRiesgos`: panel de lectura con mapa de calor (impacto×probabilidad, riesgo inherente), dos rieles de cubitos 0-20 que comparan inherente vs residual, KPIs por criticidad residual y accesos a Pendientes/Vencimientos. El filtro de cascada quedó extraído a `Riesgo::scopeDeCascadaArea` reusable, como estaba previsto; toggle "solo aprobados" encendido por defecto; landing redirige al panel; se eliminó el `Dashboard` viejo de scaffolding. Continuación posible: más gráficos (tendencia, por tipo de riesgo) y migrar Vencimientos al mismo scope.
 - [x] **Wizard de creación de riesgo con impacto/probabilidad calculados** (2026-07-03) — ver [changelog](updates/2026-07-03.md). Impacto/probabilidad dejan de cargarse a mano; objetivo y plan de acción pasan a ser requisito de validación, no de creación.

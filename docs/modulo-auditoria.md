@@ -184,10 +184,13 @@ app/Livewire/Auditoria/
 │   ├── FichaTarea.php          — datos de la tarea (incluido el avance), editables en el bloque
 │   └── InfoTarea.php           — tarjeta Avance del lateral (plazo, asignada a)
 ├── Actualizaciones/
-│   ├── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (riesgo/show, control/show, objetivo/show, tarea/show)
-│   └── Conversacion.php        — notas y documentos de un riesgo, control, objetivo o tarea
+│   ├── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (todas las pantallas de detalle)
+│   └── Conversacion.php        — notas y documentos de cualquier entidad del ciclo
 └── PlanAccion/Show/
-    └── GestionTareas.php       — maneja tareas de un plan
+    ├── FichaPlan.php           — datos del plan, editables en el bloque
+    ├── GestionTareas.php       — tareas del plan, propuesta por elemento (D-018)
+    ├── RiesgosPlan.php         — riesgos que mitiga (sólo lectura, se refresca con las tareas)
+    └── InfoPlan.php            — tarjeta Avance del lateral (mitigación, vencimiento)
 ```
 
 **riesgo/show (rediseño, ver [D-016](DECISIONES.md#d-016) y [updates/2026-09-24](updates/2026-09-24.md)):**
@@ -280,7 +283,7 @@ resources/views/
     │   └── show/{ficha-objetivo, info-objetivo}.blade.php
     ├── plan-accion/
     │   ├── index/search.blade.php
-    │   └── show/gestion-tareas.blade.php
+    │   └── show/{ficha-plan, gestion-tareas, riesgos-plan, info-plan}.blade.php
     └── tarea/
         ├── index/search.blade.php
         └── show/{ficha-tarea, info-tarea}.blade.php

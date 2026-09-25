@@ -29,7 +29,7 @@
         ? 'A favor: '.($aFavor->pluck('area.nombre')->join(', ') ?: '—').' · Faltan: '.($faltan->join(', ') ?: '—')
         : ($esperaComite ? 'Validada por '.($propuesta->validadoPor?->name ?? 'la gerencia') : 'Pendiente de validación de un gerente');
 
-    $evento = ['objetivos' => 'ver-objetivo', 'controles' => 'ver-control', 'planesAccion' => 'ver-plan'][$parte] ?? null;
+    $evento = ['objetivos' => 'ver-objetivo', 'controles' => 'ver-control', 'planesAccion' => 'ver-plan', 'tareas' => 'ver-tarea'][$parte] ?? null;
 
     $etiquetas = [
         'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',

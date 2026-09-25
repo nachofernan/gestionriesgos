@@ -509,3 +509,31 @@ puntos que D-016 dejó abiertos:
 - La conversación pasa a ser un componente genérico, `Actualizaciones\Conversacion`.
 
 Fuente: sesión 2026-09-25. Detalle en [updates/2026-09-25.md](updates/2026-09-25.md).
+
+---
+
+## D-018 — Las tareas de un plan se proponen por elemento, como en riesgo/show (2026-09-25)
+
+**Decisión.** En planaccion/show, el bloque de Tareas adopta el modelo de D-016.
+
+- **Fuera del modo directo:** cada alta o baja de una tarea es su propia propuesta (`agregar` /
+  `detach`) y se valida, aprueba o rechaza por separado. Una tarea con una propuesta pendiente
+  queda bloqueada hasta resolverla.
+- **En borrador o en modo directo** (comité sobre un plan aprobado, o gerente/comité sobre un
+  validado), el bloque se sincroniza como antes y queda registrado en el historial.
+- **El avance no se adelanta.** El avance del plan sale de sus tareas (`PlanAccion::avance`) y su
+  mitigación cuenta recién al 100%, así que una tarea propuesta no mueve ni el avance ni el residual
+  de sus riesgos hasta aplicarse.
+
+Para esto, `PropuestasEnBloque::proponerPorElemento()` recibe cualquier `Model`, y la guarda de
+elemento bloqueado busca la entidad con `entidadDelBloque()`, que cada bloque puede redefinir.
+
+**Motivo.** Con la propuesta de bloque entero (`sync` de todas las tareas) no se podía aceptar una
+tarea y rechazar otra, y planaccion/show quedaba con un comportamiento distinto al del resto de las
+pantallas.
+
+**Descartado.** Rediseñar sólo lo visual y mantener la propuesta de bloque entero.
+
+**Con esto se cierra el rediseño de las pantallas de detalle:** riesgo, control, objetivo, tarea y
+plan comparten encabezado, ficha editable en el bloque, bloques de relaciones, conversación y
+actividad.
