@@ -403,7 +403,7 @@ class GestionActualizaciones extends Component
             ->get();
 
         // La línea de tiempo es el historial de cambios: las notas sueltas viven en
-        // la Conversación del riesgo (ConversacionRiesgo), no acá. El modal de
+        // la Conversación del riesgo (ActualizacionesConversacion), no acá. El modal de
         // detalle sí las incluye (filtrables), por eso se guarda la lista entera.
         $todas = $actualizaciones;
         if ($this->variante === 'timeline') {

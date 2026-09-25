@@ -7,7 +7,7 @@
     <header class="px-5 pt-4 flex items-end justify-between gap-3 border-b border-gray-100">
         <div class="pb-3">
             <h2 class="text-[13px] font-extrabold text-gray-900 tracking-tight">Notas y documentos</h2>
-            <p class="text-xs text-gray-500 mt-0.5">Registro de observaciones y documentación de respaldo del riesgo.</p>
+            <p class="text-xs text-gray-500 mt-0.5">Registro de observaciones y documentación de respaldo {{ $sujeto }}.</p>
         </div>
         <nav class="flex items-center gap-4 text-xs font-bold">
             <button type="button" wire:click="$set('pestana', 'mensajes')"
@@ -16,7 +16,7 @@
             </button>
             <button type="button" wire:click="$set('pestana', 'archivos')"
                 @class(['pb-3 -mb-px border-b-2 transition-colors', 'border-indigo-600 text-indigo-700' => $pestana === 'archivos', 'border-transparent text-gray-400 hover:text-gray-700' => $pestana !== 'archivos'])>
-                Documentos <span class="ml-0.5 tabular-nums font-semibold">{{ $archivosRiesgo->count() }}</span>
+                Documentos <span class="ml-0.5 tabular-nums font-semibold">{{ $documentos->count() }}</span>
             </button>
         </nav>
     </header>
@@ -126,14 +126,14 @@
     @endif
 
     @if($pestana === 'archivos')
-        @if($archivosRiesgo->isEmpty())
+        @if($documentos->isEmpty())
             <div class="py-10 text-center">
                 <p class="text-sm text-gray-500">No hay documentos todavía.</p>
                 <p class="text-xs text-gray-400 mt-1">Se adjuntan al registrar una nota y quedan todos reunidos acá.</p>
             </div>
         @else
             <ul class="divide-y divide-gray-100">
-                @foreach($archivosRiesgo as $x)
+                @foreach($documentos as $x)
                     @php
                         $media = $x['media'];
                         $ext = strtolower(pathinfo($media->file_name, PATHINFO_EXTENSION));

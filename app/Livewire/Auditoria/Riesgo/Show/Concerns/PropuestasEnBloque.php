@@ -4,13 +4,14 @@ namespace App\Livewire\Auditoria\Riesgo\Show\Concerns;
 
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Lo que comparten los bloques de riesgo/show (Ficha, Gerencias, Objetivos,
- * Controles, Planes) para mostrar debajo de lo vigente las propuestas de cambio
+ * Controles, Planes) y de control/show (FichaControl) para mostrar debajo de lo vigente las propuestas de cambio
  * todavía sin aplicar, y para decirle al usuario qué va a pasar cuando guarde.
  * Requiere que el componente tenga `$estadoModelo` y `estadoParaActualizacion()`.
  */
@@ -24,13 +25,13 @@ trait PropuestasEnBloque
      * que la vista y el guardado no puedan contradecirse.
      * Test: el_modo_de_cambio_del_bloque_depende_del_estado_el_rol_y_las_gerencias.
      */
-    private function modoCambio(Riesgo $riesgo): string
+    private function modoCambio(Model $entidad): string
     {
         if ($this->estadoModelo === 'borrador') {
             return 'directo';
         }
 
-        if ($riesgo->cambioRequiereDobleValidacion(Auth::user())) {
+        if ($entidad instanceof Riesgo && $entidad->cambioRequiereDobleValidacion(Auth::user())) {
             return 'doble';
         }
 
@@ -41,10 +42,10 @@ trait PropuestasEnBloque
         return $aplica ? 'directo' : 'propuesta';
     }
 
-    /** Propuestas pendientes del riesgo que tocan `$parte` (relación o 'campos'), la más nueva primero. */
-    private function propuestasDe(Riesgo $riesgo, string $parte): Collection
+    /** Propuestas pendientes de la entidad que tocan `$parte` (relación o 'campos'), la más nueva primero. */
+    private function propuestasDe(Model $entidad, string $parte): Collection
     {
-        return $riesgo->actualizaciones()
+        return $entidad->actualizaciones()
             ->propuestasPendientes($parte)
             ->with(['user', 'estado', 'validadoPor', 'actualizable', 'validacionesGerencia.area', 'validacionesGerencia.user'])
             ->latest('created_at')

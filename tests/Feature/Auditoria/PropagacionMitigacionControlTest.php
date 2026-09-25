@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\TipoArea;
+use App\Livewire\Auditoria\Control\Show\FichaControl;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
@@ -11,6 +12,7 @@ use App\Models\Auditoria\Riesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -205,6 +207,62 @@ class PropagacionMitigacionControlTest extends TestCase
             ])
             ->assertForbidden();
 
+        $this->assertEquals(5, $this->mitigacionEn($this->riesgoB));
+    }
+
+    #[Test]
+    public function la_ficha_del_control_propaga_la_mitigacion_si_se_tilda(): void
+    {
+        Livewire::actingAs($this->comite)
+            ->test(FichaControl::class, ['control' => $this->control])
+            ->call('activarEdicion')
+            ->set('form.mitigacion_default', 2)
+            ->assertViewHas('ocultos', 0)
+            ->assertViewHas('afectados', fn ($a) => $a->count() === 4)
+            ->set('propagar', true)
+            ->set('mensaje', 'Se revisó el control')
+            ->call('guardar')
+            ->assertHasNoErrors()
+            ->assertDispatched('control-actualizado');
+
+        $this->assertEquals(2, $this->control->fresh()->mitigacion_default);
+        $this->assertEquals(2, $this->mitigacionEn($this->riesgoB));
+    }
+
+    #[Test]
+    public function la_ficha_del_control_sin_tildar_solo_cambia_el_default(): void
+    {
+        Livewire::actingAs($this->comite)
+            ->test(FichaControl::class, ['control' => $this->control])
+            ->call('activarEdicion')
+            ->set('form.mitigacion_default', 2)
+            ->set('mensaje', 'Se revisó el control')
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $this->assertEquals(2, $this->control->fresh()->mitigacion_default);
+        $this->assertEquals(5, $this->mitigacionEn($this->riesgoB));
+    }
+
+    #[Test]
+    public function la_ficha_del_control_devuelve_403_a_un_gerente_de_otra_gerencia(): void
+    {
+        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->otraGerencia->id]);
+
+        Livewire::actingAs($ajeno)
+            ->test(FichaControl::class, ['control' => $this->control])
+            ->call('activarEdicion')
+            ->assertForbidden();
+
+        Livewire::actingAs($ajeno)
+            ->test(FichaControl::class, ['control' => $this->control])
+            ->set('form', ['nombre' => 'X', 'descripcion' => null, 'mitigacion_default' => 1])
+            ->set('propagar', true)
+            ->set('mensaje', 'Intento ajeno')
+            ->call('guardar')
+            ->assertForbidden();
+
+        $this->assertEquals(3, $this->control->fresh()->mitigacion_default);
         $this->assertEquals(5, $this->mitigacionEn($this->riesgoB));
     }
 }

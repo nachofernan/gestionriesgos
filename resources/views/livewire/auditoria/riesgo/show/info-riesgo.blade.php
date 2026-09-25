@@ -11,7 +11,7 @@
     $pctTotal = min(100, $riesgo->valor_total / $escala * 100);
     $pctResidual = min(100, $riesgo->valor_residual / $escala * 100);
 @endphp
-{{-- Este x-data es seguro porque no envuelve ningún wire:* (ver conversacion-riesgo.blade.php). --}}
+{{-- Este x-data es seguro porque no envuelve ningún wire:* (ver actualizaciones/conversacion.blade.php). --}}
 <section id="valor" class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 <div x-data="{ proyectado: null }" x-on:residual-actualizado.window="proyectado = $event.detail.valor">
 

@@ -6,6 +6,11 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-25** — control/show pasa al diseño de riesgo/show: ficha editable en el bloque, riesgos
+  que mitiga, conversación y actividad. Al cambiar la mitigación por defecto de un control se puede
+  aplicar el nuevo valor a todos sus riesgos asociados, con una entrada en el historial de cada uno.
+  La conversación pasa a ser un componente genérico. Ver [D-017](DECISIONES.md#d-017) y
+  [detalle](updates/2026-09-25.md).
 - **2026-09-24** — Rediseño de riesgo/show (integrado en `main`, base para el resto de las
   pantallas de detalle): cada bloque muestra lo vigente arriba y lo propuesto abajo, y las propuestas
   se resuelven desde su tarjeta. Objetivos, Controles y Planes proponen un cambio por elemento

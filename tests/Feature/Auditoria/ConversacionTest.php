@@ -3,10 +3,11 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\TipoArea;
+use App\Livewire\Auditoria\Actualizaciones\Conversacion;
 use App\Livewire\Auditoria\Actualizaciones\GestionActualizaciones;
-use App\Livewire\Auditoria\Riesgo\Show\ConversacionRiesgo;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
@@ -20,11 +21,11 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Conversación de riesgo/show: las notas (Actualizacion sin estado ni data, ver
+ * Conversación de riesgo/show y control/show: las notas (Actualizacion sin estado ni data, ver
  * Actualizacion::registrarNota()) viven separadas del historial de cambios. No
  * entran al ciclo de validación y la línea de tiempo de la Actividad no las muestra.
  */
-class ConversacionRiesgoTest extends TestCase
+class ConversacionTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -52,7 +53,7 @@ class ConversacionRiesgoTest extends TestCase
     public function una_nota_de_la_conversacion_no_entra_al_ciclo_de_validacion(): void
     {
         Livewire::actingAs($this->empleado)
-            ->test(ConversacionRiesgo::class, ['riesgo' => $this->riesgo])
+            ->test(Conversacion::class, ['modelType' => 'riesgo', 'modelId' => $this->riesgo->id])
             ->set('mensaje', 'Hablé con el área, lo revisan el lunes')
             ->call('enviar')
             ->assertHasNoErrors()
@@ -70,7 +71,7 @@ class ConversacionRiesgoTest extends TestCase
     public function una_nota_puede_llevar_adjuntos(): void
     {
         Livewire::actingAs($this->empleado)
-            ->test(ConversacionRiesgo::class, ['riesgo' => $this->riesgo])
+            ->test(Conversacion::class, ['modelType' => 'riesgo', 'modelId' => $this->riesgo->id])
             ->set('mensaje', 'Adjunto el acta')
             ->set('archivos', [UploadedFile::fake()->create('acta.pdf', 20, 'application/pdf')])
             ->call('enviar')
@@ -88,12 +89,34 @@ class ConversacionRiesgoTest extends TestCase
         $gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
 
         Livewire::actingAs($gerenteAjeno)
-            ->test(ConversacionRiesgo::class, ['riesgo' => $this->riesgo])
+            ->test(Conversacion::class, ['modelType' => 'riesgo', 'modelId' => $this->riesgo->id])
             ->set('mensaje', 'Nota ajena')
             ->call('enviar')
             ->assertForbidden();
 
         $this->assertCount(0, $this->riesgo->actualizaciones()->get());
+    }
+
+    #[Test]
+    public function enviar_una_nota_a_un_control_ajeno_devuelve_403(): void
+    {
+        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::aprobado()->id]);
+        $ajena = Area::create(['nombre' => 'Gerencia Ajena', 'tipo' => TipoArea::Gerencia]);
+        $gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+
+        Livewire::actingAs($gerenteAjeno)
+            ->test(Conversacion::class, ['modelType' => 'control', 'modelId' => $control->id])
+            ->set('mensaje', 'Nota ajena')
+            ->call('enviar')
+            ->assertForbidden();
+
+        Livewire::actingAs($this->empleado)
+            ->test(Conversacion::class, ['modelType' => 'control', 'modelId' => $control->id])
+            ->set('mensaje', 'Nota propia')
+            ->call('enviar')
+            ->assertHasNoErrors();
+
+        $this->assertNull($control->actualizaciones()->sole()->estado_id);
     }
 
     #[Test]

@@ -1,7 +1,7 @@
 {{--
     Modal de actividad completa (variante 'timeline'). Se incluye desde
     gestion-actualizaciones-timeline y hereda de ahí $clasificar, $etiquetasCampos,
-    $nombresPartes y $anclas. Todo con wire:*, sin x-data (ver conversacion-riesgo.blade.php).
+    $nombresPartes y $anclas. Todo con wire:*, sin x-data (ver actualizaciones/conversacion.blade.php).
 --}}
 @php
     $formatear = function (string $campo, $v) use ($tiposRiesgo) {
@@ -56,7 +56,7 @@
         {{-- Encabezado --}}
         <header class="shrink-0 px-5 sm:px-6 py-4 bg-white border-b border-gray-200 flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-lg font-black tracking-tight text-gray-900">Actividad del riesgo</h2>
+                <h2 class="text-lg font-black tracking-tight text-gray-900">Actividad del {{ $modelType === 'control' ? 'control' : 'riesgo' }}</h2>
                 <p class="text-xs text-gray-500 mt-0.5">
                     {{ $cambios->count() }} movimientos · {{ $todas->count() - $cambios->count() }} notas
                     @if($primera) · del {{ $primera->format('d/m/Y') }} al {{ $ultima->format('d/m/Y') }} @endif

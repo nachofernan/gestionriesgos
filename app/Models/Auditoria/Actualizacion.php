@@ -138,7 +138,7 @@ class Actualizacion extends Model implements HasMedia
      * Nota suelta sobre la entidad (mensaje, con o sin adjuntos que se agregan
      * después): estado_id null la deja fuera del ciclo borrador→validado→aprobado,
      * así no aparece en Pendientes ni ofrece validar/rechazar (ver
-     * ActualizacionPolicy). La usan GestionActualizaciones y ConversacionRiesgo.
+     * ActualizacionPolicy). La usan GestionActualizaciones y Conversacion.
      * Quien llama ya autorizó 'update' sobre la entidad.
      */
     public static function registrarNota(Model $entidad, User $usuario, string $mensaje): self

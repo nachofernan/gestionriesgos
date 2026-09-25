@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\TipoArea;
+use App\Livewire\Auditoria\Control\Show\RiesgosControl;
 use App\Livewire\Auditoria\Modal\DetalleControl;
 use App\Livewire\Auditoria\Modal\DetalleObjetivo;
 use App\Livewire\Auditoria\Modal\DetallePlan;
@@ -97,6 +98,16 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
     }
 
     /** IDs de la colección `riesgos` que la vista show del plan recibe para $user. */
+    /** Riesgos que lista el bloque "Riesgos que mitiga" de control/show (RiesgosControl). */
+    private function riesgosDelControl(Control $control, User $user): array
+    {
+        $this->actingAs($user)->get(route('auditoria.controles.show', $control))->assertOk();
+
+        return Livewire::actingAs($user)
+            ->test(RiesgosControl::class, ['control' => $control])
+            ->viewData('riesgos')->pluck('id')->all();
+    }
+
     private function riesgosDelPlan(PlanAccion $plan, User $user): array
     {
         return $this->actingAs($user)
@@ -147,10 +158,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $aprobado = $this->riesgoEnB($this->aprobadoId);
         $control->riesgos()->sync([$borrador->id, $aprobado->id]);
 
-        $ids = $this->actingAs($this->canela)
-            ->get(route('auditoria.controles.show', $control))
-            ->assertOk()
-            ->viewData('control')->riesgos->pluck('id')->all();
+        $ids = $this->riesgosDelControl($control, $this->canela);
 
         $this->assertNotContains($borrador->id, $ids);
         $this->assertContains($aprobado->id, $ids);
@@ -163,10 +171,7 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $borrador = $this->riesgoEnB($this->borradorId);
         $control->riesgos()->sync([$borrador->id]);
 
-        $ids = $this->actingAs($this->grassi)
-            ->get(route('auditoria.controles.show', $control))
-            ->assertOk()
-            ->viewData('control')->riesgos->pluck('id')->all();
+        $ids = $this->riesgosDelControl($control, $this->grassi);
 
         $this->assertContains($borrador->id, $ids);
     }

@@ -43,7 +43,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | Modelo | Tabla | Descripción |
 |---|---|---|
 | `Riesgo` | `riesgos` | Entidad central. Tiene impacto, probabilidad y criticidad_alta. Calcula `valor_total` e `valor_residual` como accessors. |
-| `Control` | `controles` | Medidas de mitigación. Tiene `mitigacion_default` (1-10). El valor real se guarda en el pivot con el riesgo. |
+| `Control` | `controles` | Medidas de mitigación. Tiene `mitigacion_default` (1-10). El valor real se guarda en el pivot con el riesgo. `propagarMitigacionDefault()` lleva el default a todas las asociaciones (opcional al cambiarlo, ver D-017). |
 | `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `peis` (boolean): si es true, requiere al menos un `PeisItem` asociado (ver validación en `ObjetivoController`). |
 | `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
 | `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Código secuencial automático (PA-0001, PA-0002…). Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
@@ -172,10 +172,14 @@ app/Livewire/Auditoria/
 │   ├── GestionAreas.php        — gerencias del riesgo
 │   ├── GestionControles.php    — maneja controles de un riesgo (con mitigacion editable)
 │   ├── GestionObjetivos.php    — maneja objetivos de un riesgo (mínimo 1 requerido)
-│   ├── GestionPlanes.php       — maneja planes de acción de un riesgo
-│   └── ConversacionRiesgo.php  — notas y archivos del riesgo
+│   └── GestionPlanes.php       — maneja planes de acción de un riesgo
+├── Control/Show/
+│   ├── FichaControl.php        — datos del control, editables en el bloque (con propagación del default)
+│   ├── RiesgosControl.php      — riesgos que mitiga (sólo lectura)
+│   └── InfoControl.php         — tarjeta Mitigación del lateral
 ├── Actualizaciones/
-│   └── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (riesgo/show)
+│   ├── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (riesgo/show, control/show)
+│   └── Conversacion.php        — notas y documentos de un riesgo o control
 └── PlanAccion/Show/
     └── GestionTareas.php       — maneja tareas de un plan
 ```
@@ -256,13 +260,15 @@ resources/views/
     │       ├── gestion-areas.blade.php
     │       ├── gestion-controles.blade.php
     │       ├── gestion-objetivos.blade.php
-    │       ├── gestion-planes.blade.php
-    │       └── conversacion-riesgo.blade.php
+    │       └── gestion-planes.blade.php
     ├── actualizaciones/
+    │   ├── conversacion.blade.php
     │   ├── gestion-actualizaciones.blade.php           # variante 'completa'
     │   ├── gestion-actualizaciones-timeline.blade.php  # variante 'timeline'
     │   └── partials/{modal-nueva, actividad-modal}.blade.php
-    ├── control/index/search.blade.php
+    ├── control/
+    │   ├── index/search.blade.php
+    │   └── show/{ficha-control, riesgos-control, info-control}.blade.php
     ├── objetivo/index/search.blade.php
     ├── plan-accion/
     │   ├── index/search.blade.php

@@ -472,3 +472,40 @@ dicho en *Motivo*.
   lista todos sus elementos.
 
 Fuente: sesión 2026-09-24. Detalle en [updates/2026-09-24.md](updates/2026-09-24.md).
+
+---
+
+## D-017 — La mitigación por defecto de un control puede llevarse a todos sus riesgos (2026-09-25)
+
+**Decisión.** Al cambiar `mitigacion_default` de un control aparece la opción **"aplicar también a los
+N riesgos asociados"**.
+
+1. **Opcional.** Sin tildar, cambia sólo el default: cada riesgo conserva su mitigación en el pivot,
+   como hasta ahora. Tildada, `control_riesgo.mitigacion` pasa al nuevo valor en **todas** las
+   asociaciones.
+2. **Alcance total.** Incluye los riesgos compartidos entre gerencias y los de áreas que quien cambia
+   no ve. **Se saltea la doble validación** de los riesgos compartidos: la decisión es sobre el
+   control, y la toma quien lo gestiona.
+3. **Trazable en cada riesgo.** Cada riesgo cuyo valor cambia recibe una `Actualizacion` ya aplicada
+   (`data.origen = default_control`, con el mismo diff `cambia` que una propuesta de mitigación), a
+   nombre de quien hizo efectivo el cambio. Un riesgo que ya tenía el valor nuevo no registra nada.
+4. **Viaja con la propuesta.** El pedido queda como `data.propagar_mitigacion` en la `Actualizacion`
+   del control. Si el cambio nace como propuesta, la propagación ocurre recién cuando se aplica:
+   validación, aprobación, aprobación del control o validación masiva. En borrador se hace en
+   `ControlController::update`.
+5. Las propuestas de mitigación que ya estaban pendientes en algún riesgo sobre ese control quedan
+   como están: si después se aprueban, ganan, porque se aplican más tarde.
+
+**Motivo.** Al asociar un control, el pivot guarda el valor explícito. Por eso corregir el default no
+movía ninguna asociación, y había que ir riesgo por riesgo.
+
+**Descartado.** Que la propagación sea obligatoria, porque a veces sólo se quiere cambiar el valor con
+el que se asociarán los riesgos nuevos. Excluir los riesgos compartidos, o mandarles una propuesta
+para que la voten, porque dejaría al control con valores dispares sin forma de unificarlos.
+
+**También en esta sesión.** control/show adopta el diseño de riesgo/show (D-016), y se resuelven dos
+puntos que D-016 dejó abiertos:
+- `PropuestasEnBloque` y `bloque-riesgo` se **generalizan**: firmas con `Model` y prop `sujeto`.
+- La conversación pasa a ser un componente genérico, `Actualizaciones\Conversacion`.
+
+Fuente: sesión 2026-09-25. Detalle en [updates/2026-09-25.md](updates/2026-09-25.md).

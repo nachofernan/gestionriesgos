@@ -74,7 +74,7 @@
         <div class="lg:col-span-8 space-y-5 order-2 lg:order-1">
             @livewire('auditoria.riesgo.show.ficha-riesgo', ['riesgo' => $riesgo])
             {{-- Fichas en JS plano y no Alpine: un x-data envolviendo los componentes deja sin enganchar
-                 sus wire:* (ver conversacion-riesgo.blade.php). Se ocultan con `hidden` y no con @if, para
+                 sus wire:* (ver actualizaciones/conversacion.blade.php). Se ocultan con `hidden` y no con @if, para
                  que los tres sigan montados y escuchando eventos. --}}
             <div id="fichas" class="scroll-mt-24 space-y-3">
                 @php
@@ -131,7 +131,7 @@
                     document.getElementById('fichas').scrollIntoView({ behavior: 'smooth' });
                 });
             </script>
-            @livewire('auditoria.riesgo.show.conversacion-riesgo', ['riesgo' => $riesgo])
+            @livewire('auditoria.actualizaciones.conversacion', ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
         </div>
 
         {{-- Lateral: cuánto vale, quién lo gestiona, qué pasó --}}

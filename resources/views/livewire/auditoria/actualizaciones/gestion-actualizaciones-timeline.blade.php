@@ -1,5 +1,5 @@
 {{--
-    Variante 'timeline' del historial, para la columna lateral de riesgo/show.
+    Variante 'timeline' del historial, para la columna lateral de riesgo/show y control/show.
     El lateral es un resumen mínimo (conteos + últimas entradas en una línea);
     todo el detalle vive en el modal de actividad (partials/actividad-modal), que
     se abre desde "Ver todo" o tocando una entrada.
@@ -8,7 +8,7 @@
     $etiquetasCampos = [
         'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta', 'fundamento' => 'Fundamento',
         'tipo_riesgo_id' => 'Tipo de riesgo', 'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
-        'mayor_criticidad' => 'Mayor criticidad', 'codigo' => 'Código',
+        'mayor_criticidad' => 'Mayor criticidad', 'codigo' => 'Código', 'mitigacion_default' => 'Mitigación por defecto',
     ];
     $nombresPartes = ['campos' => 'Datos', 'areas' => 'Gerencias', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes'];
     $anclas = ['campos' => 'ficha', 'areas' => 'gerencias', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes'];
@@ -39,7 +39,7 @@
     $conteo = $clasificadas->countBy('grupo');
     $visibles = 4;
 @endphp
-{{-- Sin Alpine: un x-data dejaría sin enganchar los wire:click de adentro (ver conversacion-riesgo.blade.php). --}}
+{{-- Sin Alpine: un x-data dejaría sin enganchar los wire:click de adentro (ver actualizaciones/conversacion.blade.php). --}}
 <section id="actividad" class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
     <header class="px-4 pt-4 pb-2 flex items-center justify-between">

@@ -1,25 +1,30 @@
 <?php
 
-namespace App\Livewire\Auditoria\Riesgo\Show;
+namespace App\Livewire\Auditoria\Actualizaciones;
 
 use App\Models\Auditoria\Actualizacion;
+use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Riesgo;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 /**
- * Espacio de trabajo de riesgo/show: la conversación sobre el riesgo (notas,
- * que son Actualizaciones sin estado ni data, ver Actualizacion::registrarNota())
- * y todos los archivos adjuntos a cualquier actualización del riesgo en un solo
- * lugar. Separado de la Actividad (GestionActualizaciones, variante timeline),
- * que es el historial de cambios y ya no muestra las notas.
+ * Espacio de trabajo de las pantallas de detalle (riesgo/show, control/show): la
+ * conversación sobre la entidad (notas, que son Actualizaciones sin estado ni
+ * data, ver Actualizacion::registrarNota()) y todos los archivos adjuntos a
+ * cualquier actualización de la entidad en un solo lugar. Separado de la
+ * Actividad (GestionActualizaciones, variante timeline), que es el historial de
+ * cambios y no muestra las notas.
  */
-class ConversacionRiesgo extends Component
+class Conversacion extends Component
 {
     use WithFileUploads;
 
-    public int $riesgoId;
+    public string $modelType;
+
+    public int $modelId;
 
     /** Pestaña visible: 'mensajes' | 'archivos'. */
     public string $pestana = 'mensajes';
@@ -32,28 +37,30 @@ class ConversacionRiesgo extends Component
     /** Adjuntos temporales de Livewire para la nota que se está escribiendo. */
     public array $archivos = [];
 
-    public function mount(Riesgo $riesgo): void
+    public function mount(string $modelType, int $modelId): void
     {
-        $this->riesgoId = $riesgo->id;
+        $this->modelType = $modelType;
+        $this->modelId = $modelId;
     }
 
     /**
      * Publica una nota (con adjuntos opcionales). Mismas reglas de archivo que
-     * GestionActualizaciones::guardar(). Muta: autoriza 'update' sobre el riesgo.
+     * GestionActualizaciones::guardar(). Muta: autoriza 'update' sobre la entidad.
      * Tests: una_nota_de_la_conversacion_no_entra_al_ciclo_de_validacion,
-     * enviar_una_nota_devuelve_403_a_quien_no_gestiona_el_riesgo.
+     * enviar_una_nota_devuelve_403_a_quien_no_gestiona_el_riesgo,
+     * enviar_una_nota_a_un_control_ajeno_devuelve_403.
      */
     public function enviar(): void
     {
-        $riesgo = Riesgo::findOrFail($this->riesgoId);
-        $this->authorize('update', $riesgo);
+        $modelo = $this->resolverModelo();
+        $this->authorize('update', $modelo);
 
         $this->validate([
             'mensaje' => 'required|string|min:2',
             'archivos.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
         ], ['mensaje.required' => 'Escribí algo antes de enviar.']);
 
-        $nota = Actualizacion::registrarNota($riesgo, Auth::user(), $this->mensaje);
+        $nota = Actualizacion::registrarNota($modelo, Auth::user(), $this->mensaje);
 
         // Los medios van después de crear la nota (mueven archivos en disco).
         foreach ($this->archivos as $archivo) {
@@ -72,11 +79,19 @@ class ConversacionRiesgo extends Component
         $this->archivos = array_values($this->archivos);
     }
 
+    private function resolverModelo(): Model
+    {
+        return match ($this->modelType) {
+            'riesgo' => Riesgo::findOrFail($this->modelId),
+            'control' => Control::findOrFail($this->modelId),
+        };
+    }
+
     public function render()
     {
-        $riesgo = Riesgo::findOrFail($this->riesgoId);
+        $modelo = $this->resolverModelo();
 
-        $actualizaciones = $riesgo->actualizaciones()
+        $actualizaciones = $modelo->actualizaciones()
             ->with(['user.area', 'media'])
             ->reorder('id')
             ->get();
@@ -84,16 +99,17 @@ class ConversacionRiesgo extends Component
         // Registro formal: la nota más reciente primero.
         $notas = $actualizaciones->filter(fn ($a) => $a->estado_id === null && empty($a->data))->sortByDesc('id')->values();
 
-        // Todos los archivos del riesgo, vengan de una nota o de una propuesta, el más nuevo primero.
-        $archivos = $actualizaciones
+        // Todos los archivos de la entidad, vengan de una nota o de una propuesta, el más nuevo primero.
+        $documentos = $actualizaciones
             ->flatMap(fn ($a) => $a->getMedia('adjuntos')->map(fn ($m) => ['media' => $m, 'actualizacion' => $a]))
             ->sortByDesc(fn ($x) => $x['media']->created_at)
             ->values();
 
-        return view('livewire.auditoria.riesgo.show.conversacion-riesgo', [
+        return view('livewire.auditoria.actualizaciones.conversacion', [
             'notas' => $notas,
-            'archivosRiesgo' => $archivos,
-            'puedeEscribir' => Auth::user()->can('update', $riesgo),
+            'documentos' => $documentos,
+            'sujeto' => $this->modelType === 'control' ? 'del control' : 'del riesgo',
+            'puedeEscribir' => Auth::user()->can('update', $modelo),
         ]);
     }
 }
