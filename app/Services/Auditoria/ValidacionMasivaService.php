@@ -250,7 +250,7 @@ class ValidacionMasivaService
                 ->reorder('id')
                 ->get();
             foreach ($pendientes as $act) {
-                $act->aplicarCambios();
+                $act->aplicarCambios($usuario);
                 $act->update(['estado_id' => Estado::aprobado()->id]);
             }
             $entidad->update(['estado_id' => Estado::aprobado()->id]);

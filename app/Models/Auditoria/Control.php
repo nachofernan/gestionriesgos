@@ -2,18 +2,17 @@
 
 namespace App\Models\Auditoria;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\HasVisibilityScope;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use App\Models\User;
-use App\Models\Auditoria\Area;
-use App\Models\Auditoria\Estado;
-use App\Models\Concerns\HasVisibilityScope;
 
 /**
  * Control de mitigación aplicable a uno o más Riesgo (many-to-many con
@@ -23,7 +22,7 @@ use App\Models\Concerns\HasVisibilityScope;
  */
 class Control extends Model implements HasMedia
 {
-    use SoftDeletes, HasFactory, InteractsWithMedia, HasVisibilityScope;
+    use HasFactory, HasVisibilityScope, InteractsWithMedia, SoftDeletes;
 
     protected $table = 'controles';
 
@@ -40,7 +39,7 @@ class Control extends Model implements HasMedia
     {
         // Requiere que exista el estado "borrador" (ver EstadoRiesgoSeeder).
         static::creating(function ($control) {
-            if (!$control->estado_id) {
+            if (! $control->estado_id) {
                 $borrador = Estado::borrador();
                 if ($borrador) {
                     $control->estado_id = $borrador->id;
@@ -74,5 +73,52 @@ class Control extends Model implements HasMedia
         return $this->belongsToMany(Riesgo::class, 'control_riesgo')
             ->withPivot('mitigacion')
             ->withTimestamps();
+    }
+
+    /**
+     * Lleva la mitigación por defecto (ya guardada) a todas las asociaciones con
+     * riesgos: la opción "aplicar también a los riesgos asociados" al cambiar el
+     * default. Pisa todas, incluidos riesgos compartidos y de otras gerencias, sin
+     * pasar por su doble validación (ver DECISIONES). Cada riesgo cuyo valor cambia
+     * recibe una Actualizacion ya aplicada con el mismo diff que una propuesta de
+     * mitigación, para que su historial cuente el cambio. $antes es el default
+     * previo, que vale para las asociaciones con pivot en null. La llaman
+     * Actualizacion::registrarCambioCampos()/aplicarCambios() y ControlController::update().
+     * Tests: cambiar_el_default_tildado_pisa_todas_las_asociaciones_y_baja_el_residual,
+     * la_propagacion_deja_una_actualizacion_aplicada_en_cada_riesgo_afectado.
+     */
+    public function propagarMitigacionDefault(int $antes, User $usuario): void
+    {
+        $nuevo = (int) $this->mitigacion_default;
+
+        DB::transaction(function () use ($antes, $nuevo, $usuario) {
+            foreach ($this->riesgos()->get() as $riesgo) {
+                $anterior = (int) ($riesgo->pivot->mitigacion ?? $antes);
+                if ($anterior === $nuevo) {
+                    continue;
+                }
+
+                $this->riesgos()->updateExistingPivot($riesgo->id, ['mitigacion' => $nuevo]);
+
+                $riesgo->actualizaciones()->create([
+                    'user_id' => $usuario->id,
+                    'mensaje' => "Mitigación de «{$this->nombre}»: {$anterior} → {$nuevo} (cambio del default del control)",
+                    'estado_id' => Estado::aprobado()->id,
+                    'aprobado_por_id' => $usuario->id,
+                    'aprobado_en' => now(),
+                    'data' => [
+                        'tipo' => 'cambio',
+                        'origen' => 'default_control',
+                        'activated_by' => $usuario->name,
+                        'diff' => ['relaciones' => ['controles' => ['cambia' => [[
+                            'id' => $this->id,
+                            'nombre' => $this->nombre,
+                            'mitigacion_antes' => $anterior,
+                            'mitigacion_despues' => $nuevo,
+                        ]]]]],
+                    ],
+                ]);
+            }
+        });
     }
 }

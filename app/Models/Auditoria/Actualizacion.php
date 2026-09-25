@@ -159,10 +159,14 @@ class Actualizacion extends Model implements HasMedia
      * Guarda el diff (antes → después) que pintan el historial y las tarjetas de
      * propuesta. Sale de GestionActualizaciones::guardar() para que también lo use
      * FichaRiesgo. Quien llama ya validó los campos y autorizó 'update'.
+     * $propagarMitigacion (sólo Control, cambiando mitigacion_default) marca la
+     * propuesta con 'propagar_mitigacion': cuando se aplique, el nuevo default se
+     * lleva a todos los riesgos asociados (Control::propagarMitigacionDefault()).
      * Tests: un_empleado_edita_la_ficha_y_queda_propuesta_solo_con_los_campos_que_cambiaron,
-     * en_un_riesgo_compartido_la_ficha_propone_con_el_voto_del_proponente.
+     * en_un_riesgo_compartido_la_ficha_propone_con_el_voto_del_proponente,
+     * como_propuesta_no_propaga_hasta_que_se_aplica.
      */
-    public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos): self
+    public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos, bool $propagarMitigacion = false): self
     {
         $estadoEntidad = $entidad->estado?->nombre;
         $dobleValidacion = $entidad instanceof Riesgo && $entidad->cambioRequiereDobleValidacion($usuario);
@@ -186,6 +190,9 @@ class Actualizacion extends Model implements HasMedia
         if (! empty($diff)) {
             $data['diff'] = ['campos' => $diff];
         }
+        if ($propagarMitigacion && $entidad instanceof Control && isset($diff['mitigacion_default'])) {
+            $data['propagar_mitigacion'] = true;
+        }
 
         $aplicar = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
             || ($estadoId === Estado::validado()->id && $estadoEntidad === 'validado'));
@@ -202,7 +209,11 @@ class Actualizacion extends Model implements HasMedia
             ]);
 
             if ($aplicar) {
+                $antes = $entidad->mitigacion_default;
                 $entidad->update($campos);
+                if ($data['propagar_mitigacion'] ?? false) {
+                    $entidad->propagarMitigacionDefault((int) $antes, $usuario);
+                }
             }
 
             if ($dobleValidacion) {
@@ -317,7 +328,7 @@ class Actualizacion extends Model implements HasMedia
 
             if ($this->actualizable?->estado?->nombre === 'validado') {
                 $this->update(['data' => array_merge($this->data ?? [], ['activated_by' => $usuario->name])]);
-                $this->fresh()->aplicarCambios();
+                $this->fresh()->aplicarCambios($usuario);
             }
         });
     }
@@ -332,7 +343,7 @@ class Actualizacion extends Model implements HasMedia
                 'aprobado_en' => now(),
                 'data' => array_merge($this->data ?? [], ['activated_by' => $usuario->name]),
             ]);
-            $this->fresh()->aplicarCambios();
+            $this->fresh()->aplicarCambios($usuario);
         });
     }
 
@@ -350,9 +361,13 @@ class Actualizacion extends Model implements HasMedia
      * actualiza los campos de `data['campos']` (o el objeto completo si viene en formato
      * legacy sin las claves `campos`/`relaciones`) y sincroniza las relaciones many-to-many
      * indicadas en `data['relaciones']` (sync/attach/detach). No hace nada si `data` está
-     * vacío o si el tipo de actualización no es 'cambio'.
+     * vacío o si el tipo de actualización no es 'cambio'. Si la propuesta es de un
+     * Control y lleva 'propagar_mitigacion', lleva el nuevo default a sus riesgos a
+     * nombre de $usuario (quien la hace efectiva).
+     * Tests: como_propuesta_no_propaga_hasta_que_se_aplica,
+     * aprobar_el_control_aplica_la_propagacion_de_sus_actualizaciones_pendientes.
      */
-    public function aplicarCambios(): void
+    public function aplicarCambios(?User $usuario = null): void
     {
         $data = $this->data ?? [];
         if (empty($data)) {
@@ -365,10 +380,14 @@ class Actualizacion extends Model implements HasMedia
         }
 
         $model = $this->actualizable;
+        $mitigacionAntes = $model->mitigacion_default;
 
         if (isset($data['campos']) || isset($data['relaciones'])) {
             if (! empty($data['campos'])) {
                 $model->update($data['campos']);
+            }
+            if (($data['propagar_mitigacion'] ?? false) && $model instanceof Control) {
+                $model->propagarMitigacionDefault((int) $mitigacionAntes, $usuario ?? $this->user);
             }
         } else {
             // Legacy format

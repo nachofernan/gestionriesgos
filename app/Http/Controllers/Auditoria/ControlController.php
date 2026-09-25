@@ -100,6 +100,12 @@ class ControlController extends Controller
         return view('auditoria.control.edit', compact('control', 'areas', 'usuarios'));
     }
 
+    /**
+     * Edición de un control en borrador. Con `propagar_mitigacion` tildado y el
+     * default cambiado, lleva el nuevo valor a todos los riesgos asociados
+     * (Control::propagarMitigacionDefault()).
+     * Test: editar_un_borrador_con_propagar_pisa_las_asociaciones.
+     */
     public function update(Request $request, Control $control)
     {
         $this->authorize('update', $control);
@@ -116,9 +122,15 @@ class ControlController extends Controller
             'area_id' => 'nullable|exists:areas,id',
             'user_id' => 'nullable|exists:users,id',
         ]);
+        $propagar = $request->boolean('propagar_mitigacion');
 
         $original = $control->only(array_keys($data));
-        $control->update($data);
+        DB::transaction(function () use ($control, $data, $original, $propagar) {
+            $control->update($data);
+            if ($propagar && $original['mitigacion_default'] != $data['mitigacion_default']) {
+                $control->propagarMitigacionDefault((int) $original['mitigacion_default'], Auth::user());
+            }
+        });
 
         $diff = [];
         foreach ($data as $campo => $nuevo) {
@@ -131,7 +143,11 @@ class ControlController extends Controller
                 'user_id' => Auth::id(),
                 'mensaje' => 'Borrador modificado',
                 'estado_id' => Estado::borrador()->id,
-                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
+                'data' => array_filter([
+                    'tipo' => 'edicion',
+                    'diff' => ['campos' => $diff],
+                    'propagar_mitigacion' => $propagar && isset($diff['mitigacion_default']) ?: null,
+                ]),
             ]);
         }
 
@@ -173,7 +189,10 @@ class ControlController extends Controller
 
     /**
      * Aprueba el control y aplica los cambios de todas sus actualizaciones ya
-     * validadas (creación y ediciones acumuladas) en una sola transacción.
+     * validadas (creación y ediciones acumuladas) en una sola transacción, vía
+     * Actualizacion::aplicarCambios() (que también propaga la mitigación default
+     * si la propuesta lo pidió).
+     * Test: aprobar_el_control_aplica_la_propagacion_de_sus_actualizaciones_pendientes.
      */
     public function aprobar(Control $control)
     {
@@ -191,7 +210,7 @@ class ControlController extends Controller
                 ->get();
 
             foreach ($pendientes as $act) {
-                $this->aplicarCambiosActualizacion($act, $control);
+                $act->aplicarCambios(Auth::user());
                 $act->update(['estado_id' => Estado::aprobado()->id]);
             }
 
@@ -225,43 +244,5 @@ class ControlController extends Controller
             'estado_id' => Estado::aprobado()->id,
             'data' => empty($campos) ? null : ['campos' => $campos],
         ]);
-    }
-
-    /**
-     * Aplica sobre $model los cambios guardados en `data` de una Actualizacion ya
-     * validada: actualiza `data['campos']` y sincroniza las relaciones many-to-many
-     * de `data['relaciones']` (sync/attach/detach). No hace nada si `data` está
-     * vacío o si el tipo no es 'cambio'. Duplica la lógica de
-     * ActualizacionController::aplicarCambios() para este controlador.
-     */
-    private function aplicarCambiosActualizacion($actualizacion, $model): void
-    {
-        $data = $actualizacion->data ?? [];
-        if (empty($data)) {
-            return;
-        }
-
-        $tipo = $data['tipo'] ?? null;
-        if ($tipo !== null && $tipo !== 'cambio') {
-            return;
-        }
-
-        if (! empty($data['campos'])) {
-            $model->update($data['campos']);
-        }
-
-        if (! empty($data['relaciones'])) {
-            foreach ($data['relaciones'] as $relacion => $ops) {
-                if (isset($ops['sync'])) {
-                    $model->$relacion()->sync($ops['sync']);
-                }
-                if (isset($ops['attach'])) {
-                    $model->$relacion()->attach($ops['attach']);
-                }
-                if (isset($ops['detach'])) {
-                    $model->$relacion()->detach($ops['detach']);
-                }
-            }
-        }
     }
 }
