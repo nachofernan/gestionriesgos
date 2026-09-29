@@ -51,7 +51,8 @@
                 @if($cantidadAfectados > 0)
                     <div class="col-span-6 rounded-xl border px-3 py-2.5 transition-colors {{ $propagar ? 'border-indigo-300 bg-indigo-50/60' : 'border-gray-200 bg-gray-50/60' }}">
                         <label class="flex items-start gap-2 text-sm text-gray-800 cursor-pointer">
-                            <input type="checkbox" wire:model.live="propagar" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <input type="checkbox" wire:model.live="propagar" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                x-on:click="if ($event.target.checked && !confirm(@js('Vas a llevar la mitigación de este control a '.$form['mitigacion_default'].' en '.($cantidadAfectados === 1 ? 'el riesgo asociado' : "los {$cantidadAfectados} riesgos asociados").', aunque hoy tengan otro valor.'.($esPropuesta ? ' Se aplica cuando se apruebe la propuesta.' : ' Se aplica en el acto.').' ¿Confirmás?'))) $event.preventDefault()">
                             <span>
                                 Aplicar también a {{ $cantidadAfectados === 1 ? 'el riesgo asociado' : "los {$cantidadAfectados} riesgos asociados" }}
                                 <span class="block text-[11px] text-gray-500">
@@ -80,6 +81,19 @@
                         </ul>
                     </div>
                 @endif
+
+                <div class="col-span-6">
+                    <label class="flex items-start gap-2 text-sm text-gray-800 {{ $bloq('pausado') ? 'opacity-50' : 'cursor-pointer' }}">
+                        <input type="checkbox" wire:model="form.pausado" class="mt-0.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500" @disabled($bloq('pausado'))>
+                        <span>
+                            Control pausado
+                            <span class="block text-[11px] text-gray-500">
+                                Mientras esté pausado no descuenta del valor residual de sus riesgos; conserva sus asociaciones y su mitigación.
+                                @if($esPropuesta) Se aplica cuando se apruebe la propuesta. @endif
+                            </span>
+                        </span>
+                    </label>
+                </div>
 
                 @if(!empty($bloqueados))
                     <p class="col-span-6 text-[11px] text-amber-700">Los campos grisados ya tienen una propuesta pendiente: se pueden volver a tocar cuando se resuelva.</p>

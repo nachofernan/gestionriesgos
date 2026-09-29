@@ -148,6 +148,8 @@ class GestionControles extends Component
             'mitigacion_default' => $control->mitigacion_default,
             'estado' => $control->estado?->nombre ?? 'borrador',
             'estado_color' => $control->estado?->color ?? 'gray',
+            'pausado' => $control->pausado,
+            'mitiga' => $control->mitiga(),
             'area' => $control->area?->nombre,
             'puede_ver' => Auth::user()->can('view', $control),
             'url' => route('auditoria.controles.show', $control->id),
@@ -295,7 +297,7 @@ class GestionControles extends Component
     private function residualActual(): int
     {
         $mitigacion = collect($this->seleccionados)
-            ->filter(fn ($c) => ($c['estado'] ?? null) === 'aprobado')
+            ->filter(fn ($c) => $c['mitiga'] ?? false)
             ->sum('mitigacion');
 
         return max(0, $this->valorTotal - $mitigacion - $this->mitigacionPlanesBase);
@@ -353,6 +355,8 @@ class GestionControles extends Component
                 'mitigacion_default' => $c->mitigacion_default,
                 'estado' => $c->estado?->nombre ?? 'borrador',
                 'estado_color' => $c->estado?->color ?? 'gray',
+                'pausado' => $c->pausado,
+                'mitiga' => $c->mitiga(),
                 'area' => $c->area?->nombre,
                 'puede_ver' => true,
                 'url' => route('auditoria.controles.show', $c->id),

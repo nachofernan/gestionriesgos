@@ -10,6 +10,10 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
   usuario y sub-áreas; el comité, todo), con filtros de gerencia/sector y estado que se combinan con la
   búsqueda. Lógica compartida en el trait `BuscaEnModal`; los filtros sólo restringen `visiblePara`.
   Objetivos y controles muestran la descripción. Test: `ModalBuscarFiltrosTest`.
+- **2026-09-29** — Controles pausables ([D-019](DECISIONES.md#d-019)): columna `controles.pausado`,
+  `Control::mitiga()` (aprobado y no pausado) como regla única del descuento en el residual, y
+  pausar/reanudar como propuesta desde la ficha. El checkbox de propagar la mitigación pide
+  `confirm()`. Ambas reglas quedan pendientes de confirmar en [PREGUNTAS-CLIENTES.md](PREGUNTAS-CLIENTES.md).
 - **2026-09-29** — "Recalcular" tampoco se le muestra al comité. La regla de bloqueo pasa del
   controlador a `Riesgo::motivoBloqueoRecalculo()`, que consultan el controlador y las vistas. Nuevo
   [PREGUNTAS-CLIENTES.md](PREGUNTAS-CLIENTES.md) con dudas de dominio para la próxima reunión.

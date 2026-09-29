@@ -30,7 +30,7 @@ class InfoControl extends Component
 
         return view('livewire.auditoria.control.show.info-control', [
             'control' => $control,
-            'mitiga' => $control->estado?->nombre === 'aprobado',
+            'mitiga' => $control->mitiga(),
         ]);
     }
 }

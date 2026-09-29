@@ -187,7 +187,7 @@ class PanelRiesgos extends Component
     private function controlesParaJs(Riesgo $r): array
     {
         return $r->controles
-            ->filter(fn ($c) => $c->estado?->nombre === 'aprobado')
+            ->filter(fn ($c) => $c->mitiga())
             ->map(fn ($c) => [
                 'nombre' => $c->nombre,
                 'mitigacion' => $c->pivot->mitigacion ?? $c->mitigacion_default,

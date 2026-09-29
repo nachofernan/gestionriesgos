@@ -537,3 +537,30 @@ pantallas.
 **Con esto se cierra el rediseño de las pantallas de detalle:** riesgo, control, objetivo, tarea y
 plan comparten encabezado, ficha editable en el bloque, bloques de relaciones, conversación y
 actividad.
+
+---
+
+## D-019 — Un control se puede pausar; el pausado no mitiga (2026-09-29)
+
+**Decisión.** Los controles ganan la columna `controles.pausado` (boolean, por defecto `false`),
+ortogonal al estado.
+
+1. **No mitiga.** `Control::mitiga()` es la regla única: aprobado **y** no pausado. La usan
+   `Riesgo::getMitigacionControlesAttribute()` (por lo tanto el residual), el Panel de Riesgos y las
+   previsualizaciones de GestionControles/GestionPlanes. Pausar conserva la asociación y la
+   mitigación del pivot; al reanudar, el control vuelve a descontar.
+2. **Es un campo más de la ficha.** Pausar y reanudar pasan por `Actualizacion::registrarCambioCampos()`
+   como cualquier otro campo del control: propuesta, validación, aprobación e historial.
+3. **Confirmación al propagar.** El checkbox "aplicar también a los riesgos asociados" (D-017) pide
+   un `confirm()` de JS al tildarlo, con el valor y la cantidad de riesgos. La propagación sigue
+   aplicándose recién cuando se aprueba la propuesta.
+
+**Motivo.** Se necesita apagar un control temporalmente (por ejemplo, mientras se rediseña) sin
+desasociarlo ni perder el valor cargado en cada riesgo, y sin degradarlo de "aprobado".
+
+**Descartado.** Un estado más en `estados` (se comparte con todas las entidades y obliga a recordar a
+qué estado volver). Que pausar sea una marca visual sin efecto en el residual. Que pausar sea directo
+y sin propuesta: baja el residual de riesgos de otras áreas, así que conviene que quede auditado.
+
+**Pendiente de confirmar con los clientes** (ver [PREGUNTAS-CLIENTES.md](PREGUNTAS-CLIENTES.md)): se
+implementó para poder mostrarla en vivo.

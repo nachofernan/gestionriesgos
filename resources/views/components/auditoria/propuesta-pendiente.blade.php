@@ -35,7 +35,7 @@
         'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
         'fundamento' => 'Fundamento', 'tipo_riesgo_id' => 'Tipo de riesgo',
         'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
-        'mitigacion_default' => 'Mitigación', 'fecha_objetivo' => 'Fecha objetivo',
+        'mitigacion_default' => 'Mitigación', 'pausado' => 'Pausado', 'fecha_objetivo' => 'Fecha objetivo',
         'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
     ];
     $formatear = function ($campo, $valor) use ($tiposRiesgo) {

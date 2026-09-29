@@ -40,7 +40,7 @@ class RiesgosControl extends Component
             'control' => $control,
             'riesgos' => Estado::ordenarColeccion($riesgos),
             'ocultos' => $control->riesgos()->count() - $riesgos->count(),
-            'mitiga' => $control->estado?->nombre === 'aprobado',
+            'mitiga' => $control->mitiga(),
         ]);
     }
 }

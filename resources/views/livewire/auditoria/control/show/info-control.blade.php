@@ -4,18 +4,20 @@
     </div>
 
     {{-- Mitigación por defecto, protagonista --}}
-    <div class="mx-4 rounded-xl px-4 py-3 flex items-end justify-between {{ $mitiga ? 'bg-indigo-50' : 'bg-gray-50' }}">
+    <div class="mx-4 rounded-xl px-4 py-3 flex items-end justify-between {{ $mitiga ? 'bg-indigo-50' : ($control->pausado ? 'bg-orange-50' : 'bg-gray-50') }}">
         <div>
-            <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 {{ $mitiga ? 'text-indigo-700' : 'text-gray-500' }}">Por defecto</p>
-            <p class="text-4xl font-black tabular-nums leading-none {{ $mitiga ? 'text-indigo-700' : 'text-gray-500' }}">
+            <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 {{ $mitiga ? 'text-indigo-700' : ($control->pausado ? 'text-orange-700' : 'text-gray-500') }}">Por defecto</p>
+            <p class="text-4xl font-black tabular-nums leading-none {{ $mitiga ? 'text-indigo-700' : ($control->pausado ? 'text-orange-600 line-through' : 'text-gray-500') }}">
                 {{ $control->mitigacion_default }}<span class="text-sm font-bold opacity-50">/10</span>
             </p>
         </div>
-        <p class="text-right text-[11px] leading-tight {{ $mitiga ? 'text-indigo-800' : 'text-gray-500' }}">
+        <p class="text-right text-[11px] leading-tight {{ $mitiga ? 'text-indigo-800' : ($control->pausado ? 'text-orange-700' : 'text-gray-500') }}">
             @if($control->riesgos_count === 0)
                 Sin riesgos asociados
             @elseif($mitiga)
                 Descuenta en <a href="#riesgos" class="font-extrabold hover:underline">{{ $control->riesgos_count }} {{ $control->riesgos_count === 1 ? 'riesgo' : 'riesgos' }}</a>
+            @elseif($control->pausado)
+                Pausado: no descuenta<br>hasta reanudarlo
             @else
                 No descuenta hasta<br>que se apruebe
             @endif
@@ -26,7 +28,14 @@
     <dl class="mx-4 mt-3 mb-4 text-sm divide-y divide-gray-100">
         <div class="flex items-center justify-between py-1.5">
             <dt class="text-gray-500">Estado</dt>
-            <dd><x-auditoria.estado-punto :estado="$control->estado" /></dd>
+            <dd class="flex items-center gap-2">
+                <x-auditoria.estado-punto :estado="$control->estado" />
+                @if($control->pausado)
+                    <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-orange-700 bg-orange-50 rounded-full px-2 py-0.5">
+                        <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>Pausado
+                    </span>
+                @endif
+            </dd>
         </div>
         <div class="flex items-center justify-between gap-3 py-1.5">
             <dt class="text-gray-500">Área</dt>

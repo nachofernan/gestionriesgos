@@ -316,7 +316,8 @@ class Riesgo extends Model implements HasMedia
     }
 
     /**
-     * Parte del residual que descuentan los controles: sólo los aprobados, con la
+     * Parte del residual que descuentan los controles: sólo los que mitigan
+     * (Control::mitiga(): aprobados y no pausados), con la
      * mitigación del pivot (o mitigacion_default del control). Separada de
      * valor_residual para que la ficha pueda mostrar el desglose sin recalcularlo.
      * Test: el_desglose_de_mitigacion_separa_controles_y_planes_y_cuadra_con_el_residual.
@@ -324,7 +325,7 @@ class Riesgo extends Model implements HasMedia
     public function getMitigacionControlesAttribute(): int
     {
         return (int) $this->controles
-            ->filter(fn ($control) => $control->estado?->nombre === 'aprobado')
+            ->filter(fn ($control) => $control->mitiga())
             ->sum(fn ($control) => $control->pivot->mitigacion ?? $control->mitigacion_default);
     }
 

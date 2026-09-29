@@ -1,6 +1,6 @@
 <div>
     <x-auditoria.bloque-riesgo ancla="riesgos" titulo="Riesgos que mitiga" :contador="$riesgos->count() + $ocultos"
-        :subtitulo="$mitiga ? 'La asociación y su mitigación se gestionan desde cada riesgo.' : 'No descuenta del residual hasta que el control esté aprobado.'">
+        :subtitulo="$mitiga ? 'La asociación y su mitigación se gestionan desde cada riesgo.' : ($control->pausado ? 'El control está pausado: no descuenta del residual hasta reanudarlo.' : 'No descuenta del residual hasta que el control esté aprobado.')">
 
         @forelse ($riesgos as $riesgo)
             @php $mit = $riesgo->pivot->mitigacion ?? $control->mitigacion_default; @endphp
@@ -18,8 +18,8 @@
                     </p>
                 </div>
                 <span class="shrink-0 min-w-[3rem] text-center text-xs font-extrabold rounded-lg px-2 py-1 tabular-nums
-                             {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : 'text-gray-400 bg-white border border-dashed border-gray-200' }}"
-                      title="{{ $mitiga ? 'Descuenta del residual de este riesgo' : 'No descuenta hasta que el control esté aprobado' }}">
+                             {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : ($control->pausado ? 'text-orange-600 line-through bg-orange-50 border border-dashed border-orange-200' : 'text-gray-400 bg-white border border-dashed border-gray-200') }}"
+                      title="{{ $mitiga ? 'Descuenta del residual de este riesgo' : ($control->pausado ? 'El control está pausado' : 'No descuenta hasta que el control esté aprobado') }}">
                     −{{ $mit }}
                 </span>
                 <span class="shrink-0 w-20 text-right text-xs tabular-nums text-gray-500" title="Valor total → residual">
