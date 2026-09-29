@@ -97,9 +97,11 @@
                     @error('form.probabilidad') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div class="col-span-2 flex items-end">
-                    <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}" class="text-[11px] font-semibold text-gray-500 hover:text-indigo-700 pb-2.5">
-                        o recalcular con el cuestionario →
-                    </a>
+                    @if($riesgo->estado?->nombre !== 'aprobado')
+                        <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}" class="text-[11px] font-semibold text-gray-500 hover:text-indigo-700 pb-2.5">
+                            o recalcular con el cuestionario →
+                        </a>
+                    @endif
                 </div>
                 @if(!empty($bloqueados))
                     <p class="col-span-6 text-[11px] text-amber-700">Los campos grisados ya tienen una propuesta pendiente: se pueden volver a tocar cuando se resuelva.</p>

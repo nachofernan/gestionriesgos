@@ -17,7 +17,7 @@
 
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">
         <h2 class="text-[13px] font-extrabold text-gray-900 tracking-tight">Valor del riesgo</h2>
-        @if($puedeActualizar)
+        @if($puedeActualizar && $riesgo->estado?->nombre !== 'aprobado')
             <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}"
                class="text-[11px] font-bold text-gray-500 hover:text-indigo-700">Recalcular</a>
         @endif

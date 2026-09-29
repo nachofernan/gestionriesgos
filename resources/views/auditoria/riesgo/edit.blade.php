@@ -57,10 +57,12 @@
                     <div class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 text-gray-700 font-semibold">{{ $riesgo->probabilidad }}</div>
                 </div>
             </div>
-            <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}"
-               class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 -mt-3">
-                Recalcular impacto y probabilidad (vuelve a pasar el wizard) →
-            </a>
+            @if($riesgo->estado?->nombre !== 'aprobado')
+                <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}"
+                   class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 -mt-3">
+                    Recalcular impacto y probabilidad (vuelve a pasar el wizard) →
+                </a>
+            @endif
 
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tipo de Riesgo *</label>
