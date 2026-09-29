@@ -6,6 +6,11 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-29** — "Recalcular" tampoco se le muestra al comité. La regla de bloqueo pasa del
+  controlador a `Riesgo::motivoBloqueoRecalculo()`, que consultan el controlador y las vistas. Nuevo
+  [PREGUNTAS-CLIENTES.md](PREGUNTAS-CLIENTES.md) con dudas de dominio para la próxima reunión.
+- **2026-09-29** — Fix del wizard de riesgo (crear y recalcular): responder primero la última
+  pregunta dejaba "Siguiente" deshabilitado para siempre.
 - **2026-09-29** — El link "Recalcular" deja de mostrarse en un riesgo aprobado (show, ficha y
   edit); el bloqueo del controlador sigue siendo la defensa real. Cierra el issue #2.
 - **2026-09-29** — riesgo/show: mientras se edita o se propone la mitigación de los controles, la

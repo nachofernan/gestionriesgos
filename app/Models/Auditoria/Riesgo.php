@@ -234,6 +234,28 @@ class Riesgo extends Model implements HasMedia
     }
 
     /**
+     * Motivo por el que $user no puede recalcular impacto/probabilidad ahora mismo
+     * (null si puede). Disponible en cualquier estado salvo aprobado, y nunca
+     * para el comité (su rol es aprobar, no reevaluar impacto/probabilidad).
+     * Lo consultan RiesgoController::recalcular()/recalcularStore() como bloqueo
+     * real, y las vistas para no ofrecer el link. Cubierto por
+     * no_se_puede_recalcular_un_riesgo_ya_aprobado y
+     * el_comite_no_puede_recalcular_ni_siquiera_en_borrador.
+     */
+    public function motivoBloqueoRecalculo(User $user): ?string
+    {
+        if ($this->estado?->nombre === 'aprobado') {
+            return 'El riesgo ya fue aprobado: el impacto y la probabilidad no pueden recalcularse.';
+        }
+
+        if ($user->esComite()) {
+            return 'El comité no puede recalcular impacto y probabilidad.';
+        }
+
+        return null;
+    }
+
+    /**
      * Decide si una propuesta de cambio sobre este riesgo tiene que pasar por la
      * doble validación: sólo cuando es compartido entre gerencias y quien propone
      * no es el comité. El comité es la cúspide y valida solo, sin depender de las

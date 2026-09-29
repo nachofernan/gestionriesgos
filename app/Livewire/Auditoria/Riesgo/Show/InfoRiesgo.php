@@ -48,9 +48,11 @@ class InfoRiesgo extends Component
         $propuestasValor = $riesgo->actualizaciones()->propuestasPendientes('campos')->get()
             ->filter(fn ($p) => isset($p->data['diff']['campos']['impacto']) || isset($p->data['diff']['campos']['probabilidad']));
 
+        $puedeActualizar = Auth::user()->can('update', $riesgo);
+
         return view('livewire.auditoria.riesgo.show.info-riesgo', [
             'riesgo' => $riesgo,
-            'puedeActualizar' => Auth::user()->can('update', $riesgo),
+            'puedeRecalcular' => $puedeActualizar && $riesgo->motivoBloqueoRecalculo(Auth::user()) === null,
             'propuestasValor' => $propuestasValor,
         ]);
     }

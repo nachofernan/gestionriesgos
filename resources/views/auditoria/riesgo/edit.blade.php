@@ -57,7 +57,7 @@
                     <div class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 text-gray-700 font-semibold">{{ $riesgo->probabilidad }}</div>
                 </div>
             </div>
-            @if($riesgo->estado?->nombre !== 'aprobado')
+            @if($puedeRecalcular)
                 <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}"
                    class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 -mt-3">
                     Recalcular impacto y probabilidad (vuelve a pasar el wizard) →

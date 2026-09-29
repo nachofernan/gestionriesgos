@@ -144,6 +144,7 @@ class FichaRiesgo extends Component
         return view('livewire.auditoria.riesgo.show.ficha-riesgo', [
             'riesgo' => $riesgo,
             'puedeActualizar' => Auth::user()->can('update', $riesgo),
+            'puedeRecalcular' => $riesgo->motivoBloqueoRecalculo(Auth::user()) === null,
             'modo' => $this->modoCambio($riesgo),
             'gerencias' => $this->nombresGerencias($riesgo),
             'propuestas' => $propuestas,

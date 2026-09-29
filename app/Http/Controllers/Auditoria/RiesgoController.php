@@ -147,7 +147,9 @@ class RiesgoController extends Controller
         $areas = Area::whereIn('id', array_merge(Auth::user()->idsAreasGestionables(), [$riesgo->area_id]))
             ->orderBy('nombre')->get();
 
-        return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas'));
+        $puedeRecalcular = $riesgo->motivoBloqueoRecalculo(Auth::user()) === null;
+
+        return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas', 'puedeRecalcular'));
     }
 
     /**
@@ -211,29 +213,11 @@ class RiesgoController extends Controller
         return redirect()->route('auditoria.riesgos.show', $riesgo)->with('ok', 'Riesgo actualizado.');
     }
 
-    /**
-     * Motivo por el que no se puede recalcular impacto/probabilidad ahora mismo
-     * (null si puede). Disponible en cualquier estado salvo aprobado, y nunca
-     * para el comité (su rol es aprobar, no reevaluar impacto/probabilidad).
-     */
-    private function motivoBloqueoRecalculo(Riesgo $riesgo): ?string
-    {
-        if ($riesgo->estado?->nombre === 'aprobado') {
-            return 'El riesgo ya fue aprobado: el impacto y la probabilidad no pueden recalcularse.';
-        }
-
-        if (Auth::user()->esComite()) {
-            return 'El comité no puede recalcular impacto y probabilidad.';
-        }
-
-        return null;
-    }
-
     public function recalcular(Riesgo $riesgo)
     {
         $this->authorize('update', $riesgo);
 
-        if ($motivo = $this->motivoBloqueoRecalculo($riesgo)) {
+        if ($motivo = $riesgo->motivoBloqueoRecalculo(Auth::user())) {
             return redirect()->route('auditoria.riesgos.show', $riesgo)->with('error', $motivo);
         }
 
@@ -257,7 +241,7 @@ class RiesgoController extends Controller
     {
         $this->authorize('update', $riesgo);
 
-        if ($motivo = $this->motivoBloqueoRecalculo($riesgo)) {
+        if ($motivo = $riesgo->motivoBloqueoRecalculo(Auth::user())) {
             return redirect()->route('auditoria.riesgos.show', $riesgo)->with('error', $motivo);
         }
 

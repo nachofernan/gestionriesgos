@@ -97,7 +97,7 @@
                     @error('form.probabilidad') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div class="col-span-2 flex items-end">
-                    @if($riesgo->estado?->nombre !== 'aprobado')
+                    @if($puedeRecalcular)
                         <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}" class="text-[11px] font-semibold text-gray-500 hover:text-indigo-700 pb-2.5">
                             o recalcular con el cuestionario →
                         </a>
