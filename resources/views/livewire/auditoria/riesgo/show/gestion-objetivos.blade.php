@@ -83,7 +83,7 @@
     </x-auditoria.bloque-riesgo>
 
     @if($modalAbierto)
-        <x-auditoria.modal-buscar titulo="Agregar objetivo" placeholder="Nombre del objetivo…">
+        <x-auditoria.modal-buscar titulo="Agregar objetivo" placeholder="Nombre del objetivo…" :areas="$areasModal" :estados="$estadosModal">
             @forelse ($resultados as $obj)
                 <button type="button" wire:click="agregar({{ $obj->id }})"
                     class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-50 transition-colors border border-gray-100 hover:border-indigo-200">
@@ -94,9 +94,12 @@
                     <p class="mt-0.5 text-[11px] text-gray-500 truncate">
                         {{ collect([$obj->area?->nombre, $obj->fecha_objetivo ? 'meta '.$obj->fecha_objetivo->format('d/m/Y') : null])->filter()->join(' · ') }}
                     </p>
+                    @if($obj->descripcion)
+                        <p class="mt-1 text-[11px] text-gray-400 line-clamp-2">{{ $obj->descripcion }}</p>
+                    @endif
                 </button>
             @empty
-                <p class="text-sm text-gray-400 italic px-4 py-3">{{ $busqueda ? 'Sin resultados.' : 'Escribí para buscar objetivos.' }}</p>
+                <p class="text-sm text-gray-400 italic px-4 py-3">Sin resultados.</p>
             @endforelse
         </x-auditoria.modal-buscar>
     @endif

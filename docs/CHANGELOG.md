@@ -6,6 +6,10 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-29** — Modales "Agregar control/plan/objetivo" (issue #3): abren mostrando lo propio (área del
+  usuario y sub-áreas; el comité, todo), con filtros de gerencia/sector y estado que se combinan con la
+  búsqueda. Lógica compartida en el trait `BuscaEnModal`; los filtros sólo restringen `visiblePara`.
+  Objetivos y controles muestran la descripción. Test: `ModalBuscarFiltrosTest`.
 - **2026-09-29** — "Recalcular" tampoco se le muestra al comité. La regla de bloqueo pasa del
   controlador a `Riesgo::motivoBloqueoRecalculo()`, que consultan el controlador y las vistas. Nuevo
   [PREGUNTAS-CLIENTES.md](PREGUNTAS-CLIENTES.md) con dudas de dominio para la próxima reunión.

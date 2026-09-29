@@ -1,9 +1,9 @@
 {{--
     Modal de búsqueda para agregar un elemento a un bloque de riesgo/show. El
-    slot trae los resultados; el input está atado a `busqueda` y el cierre a
+    slot trae los resultados; el input está atado a `busqueda`, los filtros a `filtroArea`/`filtroEstado` (trait BuscaEnModal) y el cierre a
     cerrarModal() del componente Livewire que lo incluye.
 --}}
-@props(['titulo', 'placeholder' => 'Escribí para buscar…'])
+@props(['titulo', 'placeholder' => 'Escribí para buscar…', 'areas' => null, 'estados' => null])
 <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-gray-900/40 backdrop-blur-[1px] p-4" wire:click.self="cerrarModal">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div class="px-5 pt-4 pb-3 flex items-center justify-between">
@@ -18,6 +18,22 @@
                 <input type="text" wire:model.live.debounce.250ms="busqueda" autofocus placeholder="{{ $placeholder }}"
                     class="w-full border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
             </div>
+            @if($areas && $estados)
+            <div class="grid grid-cols-2 gap-2">
+                <select wire:model.live="filtroArea" class="w-full border-gray-200 rounded-xl px-3 py-2 text-xs focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">Todas las gerencias y sectores</option>
+                    @foreach($areas as $area)
+                        <option value="{{ $area->id }}">{{ $area->nombre }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="filtroEstado" class="w-full border-gray-200 rounded-xl px-3 py-2 text-xs focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">Todos los estados</option>
+                    @foreach($estados as $estado)
+                        <option value="{{ $estado->id }}">{{ ucfirst($estado->nombre) }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
             <div class="relative">
                 <div class="space-y-1.5 max-h-80 overflow-y-auto -mx-1 px-1">
                     {{ $slot }}
@@ -27,7 +43,7 @@
                      class="absolute inset-0 items-center justify-center gap-2 rounded-xl bg-white/80 text-sm font-semibold text-indigo-700">
                     <x-auditoria.spinner /> Agregando…
                 </div>
-                <div wire:loading.flex wire:target="busqueda"
+                <div wire:loading.flex wire:target="busqueda,filtroArea,filtroEstado"
                      class="absolute right-2 -top-9 items-center text-gray-400">
                     <x-auditoria.spinner class="h-3.5 w-3.5" />
                 </div>

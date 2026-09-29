@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\BuscaEnModal;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
@@ -22,6 +23,7 @@ use Livewire\Component;
  */
 class GestionObjetivos extends Component
 {
+    use BuscaEnModal;
     use PropuestasEnBloque;
 
     public int $riesgoId;
@@ -36,8 +38,6 @@ class GestionObjetivos extends Component
     public bool $puedeActualizar = false;
 
     public string $estadoModelo = 'borrador';
-
-    public string $busqueda = '';
 
     public string $error = '';
 
@@ -91,13 +91,13 @@ class GestionObjetivos extends Component
 
     public function abrirModal(): void
     {
-        $this->busqueda = '';
+        $this->reiniciarFiltrosModal();
         $this->modalAbierto = true;
     }
 
     public function cerrarModal(): void
     {
-        $this->busqueda = '';
+        $this->reiniciarFiltrosModal();
         $this->modalAbierto = false;
     }
 
@@ -322,6 +322,7 @@ class GestionObjetivos extends Component
                 ->with(['estado', 'area'])
                 ->visiblePara(Auth::user())
                 ->whereNot('estado_id', Estado::borrado()->id)
+                ->tap(fn ($q) => $this->aplicarFiltrosModal($q, 'objetivos'))
                 ->when($this->busqueda, fn ($q) => $q->where('objetivos.nombre', 'like', '%'.$this->busqueda.'%'))
                 ->whereNotIn('objetivos.id', $yaIds)
                 ->join('estados', 'estados.id', '=', 'objetivos.estado_id')
@@ -340,6 +341,7 @@ class GestionObjetivos extends Component
             'marcas' => $this->marcasDe($propuestas, 'objetivos'),
             'diffEnCurso' => $this->editando ? $this->construirDiff($riesgoVista) : [],
             'resultados' => $resultados,
+            ...$this->opcionesFiltrosModal(),
         ]);
     }
 }

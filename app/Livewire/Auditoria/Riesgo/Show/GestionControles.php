@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\BuscaEnModal;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -25,6 +26,7 @@ use Livewire\Component;
  */
 class GestionControles extends Component
 {
+    use BuscaEnModal;
     use PropuestasEnBloque;
 
     public int $riesgoId;
@@ -41,8 +43,6 @@ class GestionControles extends Component
     public bool $puedeActualizar = false;
 
     public string $estadoModelo = 'borrador';
-
-    public string $busqueda = '';
 
     /** Mitigación de los planes ya asociados que están al 100%, base fija del preview de residual. */
     public int $mitigacionPlanesBase = 0;
@@ -100,13 +100,13 @@ class GestionControles extends Component
 
     public function abrirModal(): void
     {
-        $this->busqueda = '';
+        $this->reiniciarFiltrosModal();
         $this->modalAbierto = true;
     }
 
     public function cerrarModal(): void
     {
-        $this->busqueda = '';
+        $this->reiniciarFiltrosModal();
         $this->modalAbierto = false;
     }
 
@@ -371,6 +371,7 @@ class GestionControles extends Component
                 ->with(['estado', 'area'])
                 ->visiblePara(Auth::user())
                 ->whereNot('estado_id', Estado::borrado()->id)
+                ->tap(fn ($q) => $this->aplicarFiltrosModal($q, 'controles'))
                 ->when($this->busqueda, fn ($q) => $q->where('controles.nombre', 'like', '%'.$this->busqueda.'%'))
                 ->whereNotIn('controles.id', $yaIds)
                 ->join('estados', 'estados.id', '=', 'controles.estado_id')
@@ -389,6 +390,7 @@ class GestionControles extends Component
             'marcas' => $this->marcasDe($propuestas, 'controles'),
             'diffEnCurso' => $this->editando ? $this->construirDiff($riesgoVista) : [],
             'resultados' => $resultados,
+            ...$this->opcionesFiltrosModal(),
         ]);
     }
 }

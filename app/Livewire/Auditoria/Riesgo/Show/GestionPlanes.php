@@ -3,6 +3,7 @@
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\BuscaEnModal;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
@@ -28,6 +29,7 @@ use Livewire\Component;
  */
 class GestionPlanes extends Component
 {
+    use BuscaEnModal;
     use PropuestasEnBloque;
 
     public int $riesgoId;
@@ -44,8 +46,6 @@ class GestionPlanes extends Component
     public bool $puedeActualizar = false;
 
     public string $estadoModelo = 'borrador';
-
-    public string $busqueda = '';
 
     public string $error = '';
 
@@ -107,13 +107,13 @@ class GestionPlanes extends Component
 
     public function abrirModal(): void
     {
-        $this->busqueda = '';
+        $this->reiniciarFiltrosModal();
         $this->modalAbierto = true;
     }
 
     public function cerrarModal(): void
     {
-        $this->busqueda = '';
+        $this->reiniciarFiltrosModal();
         $this->modalAbierto = false;
     }
 
@@ -365,9 +365,9 @@ class GestionPlanes extends Component
         $this->esBorrador = $this->estadoModelo === 'borrador';
         $this->exigePlan = $riesgo->respuesta === RespuestaRiesgo::Mitigar;
 
-        // Sólo los controles aprobados mitigan (misma regla que el accessor valor_residual).
+        // Sólo los controles aprobados y no pausados mitigan (misma regla que el accessor valor_residual).
         $this->mitigacionControlesBase = (int) $riesgo->controles
-            ->filter(fn ($c) => $c->estado?->nombre === 'aprobado')
+            ->filter(fn ($c) => $c->mitiga())
             ->sum(fn ($c) => $c->pivot->mitigacion ?? $c->mitigacion_default);
 
         $user = Auth::user();
@@ -416,6 +416,7 @@ class GestionPlanes extends Component
                 ->with(['estado', 'area', 'tareas.estado'])
                 ->visiblePara(Auth::user())
                 ->whereNot('estado_id', Estado::borrado()->id)
+                ->tap(fn ($q) => $this->aplicarFiltrosModal($q, 'planes_accion'))
                 ->when($this->busqueda, fn ($q) => $q->where(function ($q) {
                     $q->where('planes_accion.nombre', 'like', '%'.$this->busqueda.'%')
                         ->orWhere('codigo', 'like', '%'.$this->busqueda.'%');
@@ -438,6 +439,7 @@ class GestionPlanes extends Component
             'diffEnCurso' => $this->editando ? $this->construirDiff($riesgoVista) : [],
             'planesConTareas' => $planesConTareas,
             'resultados' => $resultados,
+            ...$this->opcionesFiltrosModal(),
         ]);
     }
 }

@@ -141,7 +141,7 @@
     </x-auditoria.bloque-riesgo>
 
     @if($modalAbierto)
-        <x-auditoria.modal-buscar titulo="Agregar plan de acción" placeholder="Nombre o código…">
+        <x-auditoria.modal-buscar titulo="Agregar plan de acción" placeholder="Nombre o código…" :areas="$areasModal" :estados="$estadosModal">
             @forelse ($resultados as $plan)
                 @php $avance = $plan->avance; @endphp
                 <button type="button" wire:click="agregar({{ $plan->id }})"
@@ -159,7 +159,7 @@
                     </p>
                 </button>
             @empty
-                <p class="text-sm text-gray-400 italic px-4 py-3">{{ $busqueda ? 'Sin resultados.' : 'Escribí para buscar planes.' }}</p>
+                <p class="text-sm text-gray-400 italic px-4 py-3">Sin resultados.</p>
             @endforelse
         </x-auditoria.modal-buscar>
     @endif

@@ -91,7 +91,7 @@
     </x-auditoria.bloque-riesgo>
 
     @if($modalAbierto)
-        <x-auditoria.modal-buscar titulo="Agregar control" placeholder="Nombre del control…">
+        <x-auditoria.modal-buscar titulo="Agregar control" placeholder="Nombre del control…" :areas="$areasModal" :estados="$estadosModal">
             @forelse ($resultados as $ctrl)
                 <button type="button" wire:click="agregar({{ $ctrl->id }})"
                     class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-50 transition-colors border border-gray-100 hover:border-indigo-200">
@@ -103,9 +103,12 @@
                         <span class="font-bold text-indigo-700">mit. default {{ $ctrl->mitigacion_default }}</span>
                         @if($ctrl->area) · {{ $ctrl->area->nombre }} @endif
                     </p>
+                    @if($ctrl->descripcion)
+                        <p class="mt-1 text-[11px] text-gray-400 line-clamp-2">{{ $ctrl->descripcion }}</p>
+                    @endif
                 </button>
             @empty
-                <p class="text-sm text-gray-400 italic px-4 py-3">{{ $busqueda ? 'Sin resultados.' : 'Escribí para buscar controles.' }}</p>
+                <p class="text-sm text-gray-400 italic px-4 py-3">Sin resultados.</p>
             @endforelse
         </x-auditoria.modal-buscar>
     @endif
