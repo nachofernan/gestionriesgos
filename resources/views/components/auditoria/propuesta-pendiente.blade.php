@@ -6,9 +6,10 @@
     abre su modal de resumen. Las acciones disparan 'resolver-actualizacion', que
     atiende GestionActualizaciones (autoriza y registra el voto); las condiciones
     de estado de cada botón son las mismas que usa el historial.
-    Props: propuesta (Actualizacion), parte, estadoEntidad, tiposRiesgo (sólo 'campos').
+    El formato de 'campos' sale de Actualizacion::diffLegible(), compartido con Pendientes.
+    Props: propuesta (Actualizacion), parte, estadoEntidad.
 --}}
-@props(['propuesta', 'parte', 'estadoEntidad', 'tiposRiesgo' => []])
+@props(['propuesta', 'parte', 'estadoEntidad'])
 @php
     $data = $propuesta->data ?? [];
     $esCampos = $parte === 'campos';
@@ -31,25 +32,7 @@
 
     $evento = ['objetivos' => 'ver-objetivo', 'controles' => 'ver-control', 'planesAccion' => 'ver-plan', 'tareas' => 'ver-tarea'][$parte] ?? null;
 
-    $etiquetas = [
-        'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
-        'fundamento' => 'Fundamento', 'tipo_riesgo_id' => 'Tipo de riesgo',
-        'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
-        'mitigacion_default' => 'Mitigación', 'pausado' => 'Pausado', 'fecha_objetivo' => 'Fecha objetivo',
-        'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
-    ];
-    $formatear = function ($campo, $valor) use ($tiposRiesgo) {
-        if ($valor === null || $valor === '') {
-            return '—';
-        }
-        return match ($campo) {
-            'tipo_riesgo_id' => $tiposRiesgo[$valor] ?? '#'.$valor,
-            'respuesta' => \App\Enums\Auditoria\RespuestaRiesgo::tryFrom($valor)?->label() ?? $valor,
-            'fecha_objetivo', 'fecha' => \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y'),
-            'porcentaje_avance' => $valor.'%',
-            default => is_bool($valor) ? ($valor ? 'Sí' : 'No') : $valor,
-        };
-    };
+    $camposLegibles = $esCampos ? $propuesta->diffLegible()['campos'] : [];
 
     // Relación: los elementos de la propuesta con su operación. Las propuestas por
     // elemento traen uno solo; las de bloque (Gerencias, o anteriores al rediseño) varios.
@@ -117,13 +100,13 @@
             @endif
         </div>
         <dl class="mt-1.5 space-y-1">
-            @foreach($diff as $campo => $cambio)
+            @foreach($camposLegibles as $fila)
                 <div class="text-xs leading-5 grid grid-cols-[6.5rem_1fr] gap-2">
-                    <dt class="font-semibold text-gray-500">{{ $etiquetas[$campo] ?? ucfirst(str_replace('_', ' ', $campo)) }}</dt>
+                    <dt class="font-semibold text-gray-500">{{ $fila['etiqueta'] }}</dt>
                     <dd class="min-w-0">
-                        <span class="line-through text-gray-400 decoration-gray-300">{{ \Illuminate\Support\Str::limit($formatear($campo, $cambio['antes']), 80) }}</span>
+                        <span class="line-through text-gray-400 decoration-gray-300">{{ \Illuminate\Support\Str::limit($fila['antes'], 80) }}</span>
                         <span class="mx-1 text-amber-500">→</span>
-                        <span class="font-semibold text-gray-900">{{ \Illuminate\Support\Str::limit($formatear($campo, $cambio['despues']), 160) }}</span>
+                        <span class="font-semibold text-gray-900">{{ \Illuminate\Support\Str::limit($fila['despues'], 160) }}</span>
                     </dd>
                 </div>
             @endforeach

@@ -130,7 +130,7 @@
 
         <x-slot:propuestas>
             @foreach($propuestas as $propuesta)
-                <x-auditoria.propuesta-pendiente :propuesta="$propuesta" parte="campos" :estadoEntidad="$estadoModelo" :tiposRiesgo="$tiposRiesgo" />
+                <x-auditoria.propuesta-pendiente :propuesta="$propuesta" parte="campos" :estadoEntidad="$estadoModelo" />
             @endforeach
         </x-slot:propuestas>
     </x-auditoria.bloque-riesgo>

@@ -133,6 +133,69 @@ class PendienteControllerTest extends TestCase
     }
 
     #[Test]
+    public function el_modal_de_una_propuesta_trae_el_diff_legible_y_los_permisos(): void
+    {
+        $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->sectA->id, 'respuesta' => 'aceptar']);
+        $propuesta = $riesgo->actualizaciones()->create([
+            'user_id' => $this->nacho->id,
+            'mensaje' => 'Pasamos a mitigar',
+            'estado_id' => Estado::borrador()->id,
+            'data' => [
+                'tipo' => 'cambio',
+                'campos' => ['respuesta' => 'mitigar'],
+                'diff' => [
+                    'campos' => ['respuesta' => ['antes' => 'aceptar', 'despues' => 'mitigar']],
+                    'relaciones' => ['controles' => ['agrega' => [['id' => 99, 'nombre' => 'Cifrado en reposo', 'mitigacion' => 3]]]],
+                ],
+            ],
+        ]);
+
+        $respuesta = $this->actingAs($this->canela)->get(route('auditoria.pendientes.index'));
+
+        $respuesta->assertOk();
+        $respuesta->assertViewHas('detalles', function ($detalles) use ($propuesta) {
+            $detalle = $detalles["actualizacion-{$propuesta->id}"];
+
+            return $detalle['modo'] === 'propuesta'
+                && $detalle['diff']['campos'][0]['etiqueta'] === 'Respuesta'
+                && $detalle['diff']['campos'][0]['antes'] === 'Aceptar / Monitorear'
+                && $detalle['diff']['campos'][0]['despues'] === 'Reducir / Mitigar'
+                && $detalle['diff']['relaciones']['controles']['items'][0] === ['op' => 'agrega', 'nombre' => 'Cifrado en reposo', 'detalle' => 'mit. 3']
+                && $detalle['puede_ver'] === true
+                && $detalle['puede_accion'] === true
+                && $detalle['puede_rechazar'] === true;
+        });
+    }
+
+    #[Test]
+    public function los_registros_de_historial_no_aparecen_como_cambios_propuestos_ni_antes_ni_despues_de_validar(): void
+    {
+        // En borrador todo se edita directo y deja registros creacion/edicion en
+        // borrador; al validar el elemento se sellan a validado junto con él. En
+        // ningún momento son algo a decidir: el único pendiente es el riesgo.
+        $riesgo = Riesgo::factory()->borrador()->create(['area_id' => $this->sectA->id]);
+        foreach (['creacion', 'edicion', 'edicion'] as $tipo) {
+            $riesgo->actualizaciones()->create([
+                'user_id' => $this->nacho->id,
+                'mensaje' => 'Registro de historial',
+                'estado_id' => Estado::borrador()->id,
+                'data' => ['tipo' => $tipo],
+            ]);
+        }
+
+        $this->actingAs($this->canela)->get(route('auditoria.pendientes.index'))
+            ->assertViewHas('paraValidar', fn ($p) => $p['riesgo']->pluck('id')->all() === [$riesgo->id])
+            ->assertViewHas('actualizacionesParaValidar', fn ($a) => $a->isEmpty());
+
+        $riesgo->update(['estado_id' => Estado::validado()->id]);
+        $riesgo->actualizaciones()->update(['estado_id' => Estado::validado()->id]);
+
+        $this->actingAs($this->lucia)->get(route('auditoria.pendientes.index'))
+            ->assertViewHas('paraAprobar', fn ($p) => $p['riesgo']->pluck('id')->all() === [$riesgo->id])
+            ->assertViewHas('actualizacionesParaAprobar', fn ($a) => $a->isEmpty());
+    }
+
+    #[Test]
     public function no_hay_nada_pendiente_muestra_el_mensaje_vacio(): void
     {
         $respuesta = $this->actingAs($this->canela)->get(route('auditoria.pendientes.index'));

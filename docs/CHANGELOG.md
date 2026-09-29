@@ -6,6 +6,14 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-29** — Pendientes: vista rápida para todos los ítems (issue #5). El modal ahora cubre
+  entidades (con datos para decidir según el tipo: valores del riesgo, mitigación, avance, fechas) y
+  propuestas de cambio (diff antes → después, relaciones, votos si el riesgo es compartido), y ofrece
+  Validar/Aprobar/Rechazar que disparan los flujos existentes de la fila. `PendienteController::detalles()`
+  arma el payload con `puede_ver` y los flags de acción; el formato del diff se extrajo a
+  `Actualizacion::diffLegible()`, compartido con `propuesta-pendiente`. Fix: Pendientes listaba como
+  "cambios propuestos" los registros de historial (`creacion`/`edicion`) de los borradores, y tras
+  validar se los mostraba al comité; ahora sólo lista actualizaciones de tipo `cambio`.
 - **2026-09-29** — Modales "Agregar control/plan/objetivo" (issue #3): abren mostrando lo propio (área del
   usuario y sub-áreas; el comité, todo), con filtros de gerencia/sector y estado que se combinan con la
   búsqueda. Lógica compartida en el trait `BuscaEnModal`; los filtros sólo restringen `visiblePara`.

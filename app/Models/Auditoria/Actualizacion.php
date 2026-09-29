@@ -2,6 +2,7 @@
 
 namespace App\Models\Auditoria;
 
+use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Enums\Auditoria\TipoArea;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
@@ -251,6 +253,80 @@ class Actualizacion extends Model implements HasMedia
         }
 
         return $query;
+    }
+
+    /**
+     * El diff de `data` en texto listo para pintar: 'campos' = filas
+     * [campo, etiqueta, antes, despues] con los valores ya formateados (tipo de
+     * riesgo por nombre, respuesta por label, fechas d/m/Y, avance en %), y
+     * 'relaciones' = [parte => [etiqueta, items: [op, nombre, detalle]]] con op
+     * agrega/quita/cambia. Lo consumen x-auditoria.propuesta-pendiente (sólo
+     * 'campos') y el modal de Pendientes, para que las dos pantallas no se
+     * desincronicen en etiquetas ni formato.
+     */
+    public function diffLegible(): array
+    {
+        $diff = $this->data['diff'] ?? [];
+
+        $tiposRiesgo = [];
+        if (isset($diff['campos']['tipo_riesgo_id'])) {
+            $tiposRiesgo = TipoRiesgo::whereIn('id', array_filter($diff['campos']['tipo_riesgo_id']))->pluck('nombre', 'id');
+        }
+
+        $etiquetas = [
+            'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
+            'fundamento' => 'Fundamento', 'tipo_riesgo_id' => 'Tipo de riesgo',
+            'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
+            'mitigacion_default' => 'Mitigación', 'pausado' => 'Pausado', 'fecha_objetivo' => 'Fecha objetivo',
+            'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
+        ];
+        $formatear = function ($campo, $valor) use ($tiposRiesgo) {
+            if ($valor === null || $valor === '') {
+                return '—';
+            }
+
+            return (string) match ($campo) {
+                'tipo_riesgo_id' => $tiposRiesgo[$valor] ?? '#'.$valor,
+                'respuesta' => RespuestaRiesgo::tryFrom($valor)?->label() ?? $valor,
+                'fecha_objetivo', 'fecha' => Carbon::parse($valor)->format('d/m/Y'),
+                'porcentaje_avance' => $valor.'%',
+                default => is_bool($valor) ? ($valor ? 'Sí' : 'No') : $valor,
+            };
+        };
+
+        $campos = [];
+        foreach ($diff['campos'] ?? [] as $campo => $cambio) {
+            $campos[] = [
+                'campo' => $campo,
+                'etiqueta' => $etiquetas[$campo] ?? ucfirst(str_replace('_', ' ', $campo)),
+                'antes' => $formatear($campo, $cambio['antes'] ?? null),
+                'despues' => $formatear($campo, $cambio['despues'] ?? null),
+            ];
+        }
+
+        $partes = [
+            'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes de acción',
+            'areas' => 'Gerencias', 'tareas' => 'Tareas',
+        ];
+        $relaciones = [];
+        foreach ($diff['relaciones'] ?? [] as $parte => $ops) {
+            $items = [];
+            foreach (['agrega', 'quita', 'cambia'] as $op) {
+                foreach ($ops[$op] ?? [] as $elemento) {
+                    $detalle = match (true) {
+                        $op === 'agrega' && isset($elemento['mitigacion']) => 'mit. '.$elemento['mitigacion'],
+                        $op === 'cambia' => 'mit. '.($elemento['mitigacion_antes'] ?? '—').' → '.($elemento['mitigacion_despues'] ?? '—'),
+                        default => null,
+                    };
+                    $items[] = ['op' => $op, 'nombre' => $elemento['nombre'] ?? '—', 'detalle' => $detalle];
+                }
+            }
+            if ($items) {
+                $relaciones[$parte] = ['etiqueta' => $partes[$parte] ?? ucfirst($parte), 'items' => $items];
+            }
+        }
+
+        return ['campos' => $campos, 'relaciones' => $relaciones];
     }
 
     public function validacionesGerencia(): HasMany
