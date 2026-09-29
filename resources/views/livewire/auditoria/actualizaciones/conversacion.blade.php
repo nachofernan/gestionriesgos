@@ -89,6 +89,7 @@
                         $rol = match (true) {
                             (bool) $autor?->esComite() => 'Comité',
                             (bool) $autor?->esGerente() => 'Gerente',
+                            (bool) $autor?->esAuditor() => 'Auditor',
                             default => null,
                         };
                     @endphp

@@ -48,7 +48,7 @@ class FichaTarea extends Component
     public function activarEdicion(): void
     {
         $tarea = Tarea::findOrFail($this->tareaId);
-        $this->authorize('update', $tarea);
+        $this->authorize('proponer', $tarea);
 
         $this->form = $this->valoresVigentes($tarea);
         $this->mensaje = '';
@@ -72,7 +72,7 @@ class FichaTarea extends Component
     public function guardar(): void
     {
         $tarea = Tarea::with('estado')->findOrFail($this->tareaId);
-        $this->authorize('update', $tarea);
+        $this->authorize('proponer', $tarea);
 
         $this->validate([
             'mensaje' => 'required|string|min:3',
@@ -143,7 +143,7 @@ class FichaTarea extends Component
 
         return view('livewire.auditoria.tarea.show.ficha-tarea', [
             'tarea' => $tarea,
-            'puedeActualizar' => Auth::user()->can('update', $tarea),
+            'puedeActualizar' => Auth::user()->can('proponer', $tarea),
             'modo' => $this->modoCambio($tarea),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),

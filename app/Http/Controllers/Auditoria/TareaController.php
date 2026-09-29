@@ -34,6 +34,8 @@ class TareaController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Tarea::class);
+
         $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 

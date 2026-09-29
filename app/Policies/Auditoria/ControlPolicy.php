@@ -21,15 +21,22 @@ class ControlPolicy
     public function view(User $user, Control $control): bool
     {
         $estado = $control->estado?->nombre;
-        if (in_array($estado, ['aprobado', 'validado'])) return true;
-        if (!$user->area_id) return true;
-        if ($user->esComite()) return false;
+        if (in_array($estado, ['aprobado', 'validado'])) {
+            return true;
+        }
+        if (! $user->area_id) {
+            return true;
+        }
+        if ($user->esComite()) {
+            return false;
+        }
+
         return $user->puedeGestionarArea($this->areaEfectiva($control));
     }
 
     public function create(User $user, mixed $areaId = null): bool
     {
-        return $user->puedeGestionarArea($areaId);
+        return ! $user->esAuditor() && $user->puedeGestionarArea($areaId);
     }
 
     public function update(User $user, Control $control): bool
@@ -37,9 +44,16 @@ class ControlPolicy
         return $user->puedeGestionarArea($this->areaEfectiva($control));
     }
 
+    /** Originar una propuesta o nota; ver RiesgoPolicy::proponer(). */
+    public function proponer(User $user, Control $control): bool
+    {
+        return $this->update($user, $control)
+            || $user->puedeProponerComoAuditor($control->estado?->nombre);
+    }
+
     public function delete(User $user, Control $control): bool
     {
-        return $user->puedeGestionarArea($this->areaEfectiva($control));
+        return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($control));
     }
 
     public function validar(User $user, Control $control): bool

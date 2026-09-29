@@ -51,7 +51,7 @@ class FichaRiesgo extends Component
     public function activarEdicion(): void
     {
         $riesgo = Riesgo::findOrFail($this->riesgoId);
-        $this->authorize('update', $riesgo);
+        $this->authorize('proponer', $riesgo);
 
         $this->form = collect(self::CAMPOS)->mapWithKeys(function ($campo) use ($riesgo) {
             $valor = $riesgo->$campo;
@@ -79,7 +79,7 @@ class FichaRiesgo extends Component
     public function guardar(): void
     {
         $riesgo = Riesgo::with('estado')->findOrFail($this->riesgoId);
-        $this->authorize('update', $riesgo);
+        $this->authorize('proponer', $riesgo);
 
         $exigenFundamento = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
         $this->validate([
@@ -143,7 +143,7 @@ class FichaRiesgo extends Component
 
         return view('livewire.auditoria.riesgo.show.ficha-riesgo', [
             'riesgo' => $riesgo,
-            'puedeActualizar' => Auth::user()->can('update', $riesgo),
+            'puedeActualizar' => Auth::user()->can('proponer', $riesgo),
             'puedeRecalcular' => $riesgo->motivoBloqueoRecalculo(Auth::user()) === null,
             'modo' => $this->modoCambio($riesgo),
             'gerencias' => $this->nombresGerencias($riesgo),

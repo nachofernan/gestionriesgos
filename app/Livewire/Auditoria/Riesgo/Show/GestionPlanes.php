@@ -73,7 +73,7 @@ class GestionPlanes extends Component
     {
         $this->riesgoId = $riesgo->id;
         $this->valorTotal = $riesgo->valor_total;
-        $this->puedeActualizar = Auth::user()->can('update', $riesgo);
+        $this->puedeActualizar = Auth::user()->can('proponer', $riesgo);
         $this->cargar();
     }
 
@@ -216,7 +216,7 @@ class GestionPlanes extends Component
     public function guardar(): void
     {
         $riesgo = Riesgo::with('planesAccion.estado')->findOrFail($this->riesgoId);
-        $this->authorize('update', $riesgo);
+        $this->authorize('proponer', $riesgo);
 
         $sync = [];
         foreach ($this->seleccionados as $item) {

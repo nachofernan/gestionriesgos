@@ -86,7 +86,7 @@ class GestionActualizaciones extends Component
         $this->variante = $variante;
         $modelo = $this->resolverModelo();
         $this->estadoModelo = $modelo->estado?->nombre ?? '';
-        $this->puedeActualizar = Auth::user()->can('update', $modelo);
+        $this->puedeActualizar = Auth::user()->can('proponer', $modelo);
     }
 
     public function abrirModal(): void
@@ -198,7 +198,7 @@ class GestionActualizaciones extends Component
             ->filter(fn ($v) => $v !== null && $v !== '')
             ->toArray();
 
-        $this->authorize('update', $model);
+        $this->authorize('proponer', $model);
 
         if (empty($campos)) {
             $actualizacion = Actualizacion::registrarNota($model, Auth::user(), $this->mensaje);

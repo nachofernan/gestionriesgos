@@ -47,7 +47,7 @@ class FichaPlan extends Component
     public function activarEdicion(): void
     {
         $plan = PlanAccion::findOrFail($this->planId);
-        $this->authorize('update', $plan);
+        $this->authorize('proponer', $plan);
 
         $this->form = $this->valoresVigentes($plan);
         $this->mensaje = '';
@@ -71,7 +71,7 @@ class FichaPlan extends Component
     public function guardar(): void
     {
         $plan = PlanAccion::with('estado')->findOrFail($this->planId);
-        $this->authorize('update', $plan);
+        $this->authorize('proponer', $plan);
 
         $this->validate([
             'mensaje' => 'required|string|min:3',
@@ -137,7 +137,7 @@ class FichaPlan extends Component
 
         return view('livewire.auditoria.plan-accion.show.ficha-plan', [
             'plan' => $plan,
-            'puedeActualizar' => Auth::user()->can('update', $plan),
+            'puedeActualizar' => Auth::user()->can('proponer', $plan),
             'modo' => $this->modoCambio($plan),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),

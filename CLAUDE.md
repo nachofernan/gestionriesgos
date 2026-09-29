@@ -186,7 +186,7 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
 
 ### Controladores
 
-- Seguir el patrón resource de Laravel. Métodos extra (como `asociarControles`) van en el mismo
+- Seguir el patrón resource de Laravel. Métodos extra (como `recalcular`) van en el mismo
   controlador si son sobre la misma entidad.
 - Validar con `$request->validate()` o Form Requests para casos complejos.
 - En `show()`, hacer eager loading de todas las relaciones que la vista necesite. No lazy-load en

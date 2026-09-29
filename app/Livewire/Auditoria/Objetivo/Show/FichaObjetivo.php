@@ -47,7 +47,7 @@ class FichaObjetivo extends Component
     public function activarEdicion(): void
     {
         $objetivo = Objetivo::findOrFail($this->objetivoId);
-        $this->authorize('update', $objetivo);
+        $this->authorize('proponer', $objetivo);
 
         $this->form = $this->valoresVigentes($objetivo);
         $this->mensaje = '';
@@ -71,7 +71,7 @@ class FichaObjetivo extends Component
     public function guardar(): void
     {
         $objetivo = Objetivo::with('estado')->findOrFail($this->objetivoId);
-        $this->authorize('update', $objetivo);
+        $this->authorize('proponer', $objetivo);
 
         $this->validate([
             'mensaje' => 'required|string|min:3',
@@ -140,7 +140,7 @@ class FichaObjetivo extends Component
 
         return view('livewire.auditoria.objetivo.show.ficha-objetivo', [
             'objetivo' => $objetivo,
-            'puedeActualizar' => Auth::user()->can('update', $objetivo),
+            'puedeActualizar' => Auth::user()->can('proponer', $objetivo),
             'modo' => $this->modoCambio($objetivo),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),

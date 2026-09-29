@@ -45,6 +45,8 @@ class RiesgoController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Riesgo::class);
+
         $tiposRiesgo = TipoRiesgo::all();
         $areas = Area::whereIn('id', Auth::user()->idsAreasGestionables())->orderBy('nombre')->get();
         $objetivos = Objetivo::visiblePara(Auth::user())->orderBy('nombre')->get();
@@ -215,7 +217,7 @@ class RiesgoController extends Controller
 
     public function recalcular(Riesgo $riesgo)
     {
-        $this->authorize('update', $riesgo);
+        $this->authorize('proponer', $riesgo);
 
         if ($motivo = $riesgo->motivoBloqueoRecalculo(Auth::user())) {
             return redirect()->route('auditoria.riesgos.show', $riesgo)->with('error', $motivo);
@@ -239,7 +241,7 @@ class RiesgoController extends Controller
      */
     public function recalcularStore(Request $request, Riesgo $riesgo)
     {
-        $this->authorize('update', $riesgo);
+        $this->authorize('proponer', $riesgo);
 
         if ($motivo = $riesgo->motivoBloqueoRecalculo(Auth::user())) {
             return redirect()->route('auditoria.riesgos.show', $riesgo)->with('error', $motivo);
@@ -417,42 +419,6 @@ class RiesgoController extends Controller
         $this->logAprobado($riesgo, 'Rechazado por '.Auth::user()->name);
 
         return back()->with('ok', 'Riesgo rechazado.');
-    }
-
-    /**
-     * Reemplaza el conjunto de controles asociados al riesgo por el enviado
-     * (sync completo, no incremental).
-     */
-    public function asociarControles(Request $request, Riesgo $riesgo)
-    {
-        $this->authorize('update', $riesgo);
-
-        $request->validate([
-            'controles' => 'nullable|array',
-            'controles.*' => 'exists:controles,id',
-        ]);
-
-        $riesgo->controles()->sync($request->input('controles', []));
-
-        return redirect()->route('auditoria.riesgos.show', $riesgo)->with('ok', 'Controles actualizados.');
-    }
-
-    /**
-     * Reemplaza el conjunto de objetivos asociados al riesgo por el enviado
-     * (sync completo, no incremental), restringido a objetivos visibles para el usuario.
-     */
-    public function asociarObjetivos(Request $request, Riesgo $riesgo)
-    {
-        $this->authorize('update', $riesgo);
-
-        $request->validate([
-            'objetivos' => 'nullable|array',
-            'objetivos.*' => ['exists:objetivos,id', Rule::in(Objetivo::visiblePara(Auth::user())->pluck('id')->toArray())],
-        ]);
-
-        $riesgo->objetivos()->sync($request->input('objetivos', []));
-
-        return redirect()->route('auditoria.riesgos.show', $riesgo)->with('ok', 'Objetivos actualizados.');
     }
 
     /**

@@ -124,10 +124,12 @@
 
     @if($modalAbierto)
         <x-auditoria.modal-buscar titulo="Agregar tarea" placeholder="Nombre de la tarea…">
-            <button type="button" wire:click="abrirFormNuevaTarea"
-                class="w-full text-left px-4 py-2.5 rounded-xl border border-dashed border-indigo-200 text-sm font-bold text-indigo-700 hover:bg-indigo-50 transition-colors">
-                + Crear una tarea nueva
-            </button>
+            @if($puedeCrearTarea)
+                <button type="button" wire:click="abrirFormNuevaTarea"
+                    class="w-full text-left px-4 py-2.5 rounded-xl border border-dashed border-indigo-200 text-sm font-bold text-indigo-700 hover:bg-indigo-50 transition-colors">
+                    + Crear una tarea nueva
+                </button>
+            @endif
             @forelse ($resultados as $tarea)
                 @php $tarVencida = $tarea->fecha && $tarea->fecha->lt($hoy) && $tarea->porcentaje_avance < 100; @endphp
                 <button type="button" wire:click="agregar({{ $tarea->id }})"

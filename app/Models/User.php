@@ -70,6 +70,27 @@ class User extends Authenticatable
     }
 
     /**
+     * Auditor (D-020): ve como un empleado de su área, pero puede proponer
+     * cambios sobre cualquier elemento validado o aprobado (ver proponer() en
+     * las Policies). Sus propuestas nacen en borrador y no deja voto de gerencia.
+     */
+    public function esAuditor(): bool
+    {
+        return $this->rol === 'auditor';
+    }
+
+    /**
+     * Regla común del proponer() de las Policies: el auditor propone sobre lo
+     * validado o aprobado de cualquier área, nunca sobre un borrador ajeno.
+     * Tests: el_auditor_puede_proponer_sobre_lo_validado_y_aprobado_de_otra_gerencia,
+     * el_auditor_no_puede_proponer_sobre_un_borrador_de_otra_gerencia.
+     */
+    public function puedeProponerComoAuditor(?string $estadoEntidad): bool
+    {
+        return $this->esAuditor() && in_array($estadoEntidad, ['validado', 'aprobado']);
+    }
+
+    /**
      * Gerencia del usuario: la primera área marcada como tipo Gerencia subiendo
      * desde su área propia (ver Area::gerencia()). Sin área propia devuelve null.
      */

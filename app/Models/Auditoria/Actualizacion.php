@@ -354,12 +354,15 @@ class Actualizacion extends Model implements HasMedia
     /**
      * Registra (o cambia) el voto de la gerencia del usuario sobre esta propuesta.
      * `aprueba` = validar (true) / rechazar (false). Cada gerencia vota una sola
-     * vez; el proponente vota a favor al crear la propuesta.
+     * vez; el proponente vota a favor al crear la propuesta. El auditor nunca vota
+     * (D-020): no representa a su gerencia, así que su propuesta espera el voto de
+     * todas las gerencias del riesgo.
+     * Test: la_propuesta_del_auditor_en_un_riesgo_compartido_espera_el_voto_de_todas_las_gerencias.
      */
     public function registrarVoto(User $usuario, bool $aprueba): void
     {
         $gerencia = $usuario->areaGerencia();
-        if (! $gerencia) {
+        if (! $gerencia || $usuario->esAuditor()) {
             return;
         }
 

@@ -21,6 +21,14 @@ Hoy conviven las dos formas y hay que elegir una:
 - **También a mano.** Es más ágil para correcciones chicas. Contra: el valor puede no coincidir con
   ninguna combinación de respuestas, y hay que definir quién puede hacerlo y si exige un fundamento.
 
+**El auditor también pasa por esta pregunta.** El rol auditor ([D-020](DECISIONES.md#d-020)) puede
+proponer cambios de impacto y probabilidad de dos formas: desde la ficha, con los números, o
+repitiendo el cuestionario. En los dos casos la propuesta nace en borrador y la valida el gerente
+responsable. Si la respuesta es "sólo cuestionario", el auditor queda limitado a esa vía como todos.
+Falta confirmar si al auditor, justamente porque revisa, le conviene una regla distinta: por ejemplo,
+que sólo pueda usar el cuestionario, así cada corrección que propone queda fundamentada en las
+respuestas.
+
 ---
 
 ## Un control puede pausarse, y cambiar su mitigación por defecto pisa a todos sus riesgos

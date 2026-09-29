@@ -37,7 +37,7 @@ class RiesgoPolicy
 
     public function create(User $user, mixed $areaId = null): bool
     {
-        return $user->puedeGestionarArea($areaId);
+        return ! $user->esAuditor() && $user->puedeGestionarArea($areaId);
     }
 
     public function update(User $user, Riesgo $riesgo): bool
@@ -45,9 +45,21 @@ class RiesgoPolicy
         return $riesgo->puedeGestionarAlgunaArea($user);
     }
 
+    /**
+     * Originar una propuesta de cambio o una nota (ficha, bloques de relaciones,
+     * conversación, recálculo). Quien gestiona el riesgo, o un auditor sobre uno
+     * validado/aprobado de cualquier gerencia (D-020). No habilita mutar directo:
+     * eso sigue siendo update().
+     */
+    public function proponer(User $user, Riesgo $riesgo): bool
+    {
+        return $this->update($user, $riesgo)
+            || $user->puedeProponerComoAuditor($riesgo->estado?->nombre);
+    }
+
     public function delete(User $user, Riesgo $riesgo): bool
     {
-        return $riesgo->puedeGestionarAlgunaArea($user);
+        return ! $user->esAuditor() && $riesgo->puedeGestionarAlgunaArea($user);
     }
 
     public function validar(User $user, Riesgo $riesgo): bool

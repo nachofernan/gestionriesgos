@@ -564,3 +564,61 @@ y sin propuesta: baja el residual de riesgos de otras áreas, así que conviene 
 
 **Pendiente de confirmar con los clientes** (ver [PREGUNTAS-CLIENTES.md](PREGUNTAS-CLIENTES.md)): se
 implementó para poder mostrarla en vivo.
+
+---
+
+## D-020 — Rol auditor: propone sobre cualquier elemento, valida el gerente responsable (2026-09-29)
+
+**Decisión.** Issue #4. Se agrega el rol `auditor`.
+
+1. **Representación.** Es un valor nuevo en la columna `users.rol`, no un flag. El auditor **tiene
+   área propia**, por ejemplo Auditoría Interna. Lo que lo habilita a proponer sobre elementos de
+   otras áreas es el rol, no el área.
+2. **Visibilidad: la de un empleado de su área.** Ve lo validado y lo aprobado de cualquier área, y
+   los borradores de su propia área. **No ve borradores de otras gerencias**, así que tampoco propone
+   sobre ellos.
+3. **Propone sobre cualquier elemento validado o aprobado**, de cualquier área: campos de la ficha,
+   altas y bajas en los bloques de relaciones, y recálculo por el wizard. Su propuesta **siempre nace
+   en borrador**, aunque el elemento sea de su área. La valida el gerente que gestiona el elemento,
+   con el circuito de siempre (`ActualizacionPolicy::validar`). Sobre un elemento aprobado, después
+   de la validación la aprueba el comité, como cualquier otra propuesta.
+4. **En los borradores de su propia área edita directo**, igual que un empleado: el borrador todavía
+   es un trabajo en curso.
+5. **Riesgos compartidos: votan todas las gerencias**, como fija D-003. El auditor **no deja voto a
+   favor al proponer**, porque no representa a ninguna de esas gerencias.
+6. **Además de proponer:** deja notas y adjuntos en la Conversación de cualquier elemento que ve, y
+   cancela sus propias propuestas mientras siguen en borrador.
+7. **Lo que no puede:** crear elementos, validar, aprobar, rechazar, eliminar, gestionar las
+   gerencias de un riesgo, crear tareas desde un plan ni hacer un `sync` directo de relaciones sobre
+   elementos ajenos.
+
+**Motivo.** Hoy las personas de auditoría detectan cambios y los mandan por nota, fuera del sistema.
+Con este rol proponen desde el sistema y el gerente responsable decide, sin darles poder de cambio
+directo.
+
+**Descartado.** (1) Un auditor transversal con `area_id = null`: hoy esa combinación significa
+superusuario (`esGerente()`, `scopeVisiblePara` y `puedeGestionarArea()` la tratan como acceso
+total), y el auditor vería todos los borradores. (2) Un flag `es_auditor` combinable con otro rol:
+deja abierto qué pasa con un gerente auditor que valida sus propias propuestas. (3) Que pueda crear
+elementos en su área: no hace falta para el caso de uso.
+
+**Pendiente de confirmar con los clientes:** si al auditor le conviene proponer impacto y
+probabilidad sólo por el cuestionario (ver [PREGUNTAS-CLIENTES.md](PREGUNTAS-CLIENTES.md)).
+
+**Efecto en cascada anotado.**
+- Se separa la habilidad `proponer` de `update` en las 5 Policies de entidad. `proponer` origina una
+  propuesta o una nota; `update` sigue siendo mutar directo.
+- Pasan a `proponer` las fichas, `GestionControles`/`Planes`/`Objetivos`/`Tareas`,
+  `GestionActualizaciones`, `Conversacion`, `InfoRiesgo`, `RiesgoController::recalcular*` y
+  `ActualizacionController::store*`.
+- En borrador `proponer` coincide con `update`, así que las ramas de `sync` directo siguen protegidas.
+- Quedan con `update`:
+  - `ActualizacionTareaController::store`, que aplica el avance en el acto.
+  - `GestionTareas::guardarNuevaTarea`, que además exige `create`.
+- El voto se corta en `Actualizacion::registrarVoto()`, el único lugar por donde pasa.
+- Los `create()` de los 5 controladores ahora autorizan. Antes sólo autorizaba `store()`.
+- Se eliminaron `RiesgoController::asociarControles`/`asociarObjetivos` y
+  `PlanAccionController::asociarTareas` con sus rutas. Ninguna vista ni test las usaba desde que los
+  bloques Livewire las reemplazaron, y hacían `sync` directo con sólo `update`, sin mirar el estado:
+  un empleado podía cambiar los controles de un riesgo aprobado sin pasar por una propuesta.
+- Tests: `AuditorTest`.

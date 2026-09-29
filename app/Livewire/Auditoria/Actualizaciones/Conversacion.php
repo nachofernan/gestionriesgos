@@ -48,7 +48,8 @@ class Conversacion extends Component
 
     /**
      * Publica una nota (con adjuntos opcionales). Mismas reglas de archivo que
-     * GestionActualizaciones::guardar(). Muta: autoriza 'update' sobre la entidad.
+     * GestionActualizaciones::guardar(). Muta: autoriza 'proponer' sobre la entidad
+     * (quien la gestiona, o un auditor sobre lo validado/aprobado; D-020).
      * Tests: una_nota_de_la_conversacion_no_entra_al_ciclo_de_validacion,
      * enviar_una_nota_devuelve_403_a_quien_no_gestiona_el_riesgo,
      * enviar_una_nota_a_un_control_ajeno_devuelve_403.
@@ -56,7 +57,7 @@ class Conversacion extends Component
     public function enviar(): void
     {
         $modelo = $this->resolverModelo();
-        $this->authorize('update', $modelo);
+        $this->authorize('proponer', $modelo);
 
         $this->validate([
             'mensaje' => 'required|string|min:2',
@@ -115,7 +116,7 @@ class Conversacion extends Component
             'notas' => $notas,
             'documentos' => $documentos,
             'sujeto' => $this->modelType === 'tarea' ? 'de la tarea' : 'del '.$this->modelType,
-            'puedeEscribir' => Auth::user()->can('update', $modelo),
+            'puedeEscribir' => Auth::user()->can('proponer', $modelo),
         ]);
     }
 }

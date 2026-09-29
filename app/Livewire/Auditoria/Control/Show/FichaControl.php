@@ -52,7 +52,7 @@ class FichaControl extends Component
     public function activarEdicion(): void
     {
         $control = Control::findOrFail($this->controlId);
-        $this->authorize('update', $control);
+        $this->authorize('proponer', $control);
 
         $this->form = $control->only(self::CAMPOS);
         $this->mensaje = '';
@@ -78,7 +78,7 @@ class FichaControl extends Component
     public function guardar(): void
     {
         $control = Control::with('estado')->findOrFail($this->controlId);
-        $this->authorize('update', $control);
+        $this->authorize('proponer', $control);
 
         $this->validate([
             'mensaje' => 'required|string|min:3',
@@ -147,7 +147,7 @@ class FichaControl extends Component
 
         return view('livewire.auditoria.control.show.ficha-control', [
             'control' => $control,
-            'puedeActualizar' => Auth::user()->can('update', $control),
+            'puedeActualizar' => Auth::user()->can('proponer', $control),
             'modo' => $this->modoCambio($control),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),

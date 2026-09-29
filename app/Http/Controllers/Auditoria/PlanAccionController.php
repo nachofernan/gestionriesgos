@@ -35,6 +35,8 @@ class PlanAccionController extends Controller
 
     public function create()
     {
+        $this->authorize('create', PlanAccion::class);
+
         $riesgos = Riesgo::visiblePara(Auth::user())->orderBy('nombre')->get();
         $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
@@ -158,24 +160,6 @@ class PlanAccionController extends Controller
         $planAccion->delete();
 
         return redirect()->route('auditoria.planes.index')->with('ok', 'Plan de acción eliminado.');
-    }
-
-    /**
-     * Reemplaza el conjunto de tareas asociadas al plan por el enviado (sync
-     * completo, no incremental).
-     */
-    public function asociarTareas(Request $request, PlanAccion $planAccion)
-    {
-        $this->authorize('update', $planAccion);
-
-        $request->validate([
-            'tareas' => 'nullable|array',
-            'tareas.*' => 'exists:tareas,id',
-        ]);
-
-        $planAccion->tareas()->sync($request->input('tareas', []));
-
-        return redirect()->route('auditoria.planes.show', $planAccion)->with('ok', 'Tareas actualizadas.');
     }
 
     /**

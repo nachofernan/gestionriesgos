@@ -29,7 +29,7 @@ class ActualizacionController extends Controller
 
     public function storeRiesgo(Request $request, Riesgo $riesgo)
     {
-        $this->authorize('update', $riesgo);
+        $this->authorize('proponer', $riesgo);
         $this->crearActualizacion($request, $riesgo, ['nombre', 'descripcion', 'impacto', 'probabilidad']);
 
         return back()->with('ok', 'Actualización registrada.');
@@ -37,7 +37,7 @@ class ActualizacionController extends Controller
 
     public function storeControl(Request $request, Control $control)
     {
-        $this->authorize('update', $control);
+        $this->authorize('proponer', $control);
         $request->validate([
             'mitigacion_default' => 'nullable|integer|min:1|max:10',
         ]);
@@ -48,7 +48,7 @@ class ActualizacionController extends Controller
 
     public function storeObjetivo(Request $request, Objetivo $objetivo)
     {
-        $this->authorize('update', $objetivo);
+        $this->authorize('proponer', $objetivo);
         $this->crearActualizacion($request, $objetivo, ['nombre', 'descripcion', 'fecha_objetivo', 'estrategico', 'peis']);
 
         return back()->with('ok', 'Actualización registrada.');
@@ -56,7 +56,7 @@ class ActualizacionController extends Controller
 
     public function storePlan(Request $request, PlanAccion $planAccion)
     {
-        $this->authorize('update', $planAccion);
+        $this->authorize('proponer', $planAccion);
         $this->crearActualizacion($request, $planAccion, ['nombre', 'descripcion']);
 
         return back()->with('ok', 'Actualización registrada.');
@@ -64,7 +64,7 @@ class ActualizacionController extends Controller
 
     public function storeTarea(Request $request, Tarea $tarea)
     {
-        $this->authorize('update', $tarea);
+        $this->authorize('proponer', $tarea);
         $request->validate([
             'porcentaje_avance' => 'nullable|integer|min:0|max:100',
         ]);

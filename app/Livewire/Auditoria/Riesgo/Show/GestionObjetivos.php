@@ -58,7 +58,7 @@ class GestionObjetivos extends Component
     public function mount(Riesgo $riesgo): void
     {
         $this->riesgoId = $riesgo->id;
-        $this->puedeActualizar = Auth::user()->can('update', $riesgo);
+        $this->puedeActualizar = Auth::user()->can('proponer', $riesgo);
         $this->cargar();
     }
 
@@ -167,7 +167,7 @@ class GestionObjetivos extends Component
         }
 
         $riesgo = Riesgo::with('objetivos.estado')->findOrFail($this->riesgoId);
-        $this->authorize('update', $riesgo);
+        $this->authorize('proponer', $riesgo);
         // Los ocultos (borrado / no visibles) se re-agregan al sync para no detacharlos.
         $ids = array_values(array_unique(array_merge(
             collect($this->seleccionados)->pluck('id')->toArray(),

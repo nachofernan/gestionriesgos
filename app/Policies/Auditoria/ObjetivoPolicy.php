@@ -21,15 +21,22 @@ class ObjetivoPolicy
     public function view(User $user, Objetivo $objetivo): bool
     {
         $estado = $objetivo->estado?->nombre;
-        if (in_array($estado, ['aprobado', 'validado'])) return true;
-        if (!$user->area_id) return true;
-        if ($user->esComite()) return false;
+        if (in_array($estado, ['aprobado', 'validado'])) {
+            return true;
+        }
+        if (! $user->area_id) {
+            return true;
+        }
+        if ($user->esComite()) {
+            return false;
+        }
+
         return $user->puedeGestionarArea($this->areaEfectiva($objetivo));
     }
 
     public function create(User $user, mixed $areaId = null): bool
     {
-        return $user->puedeGestionarArea($areaId);
+        return ! $user->esAuditor() && $user->puedeGestionarArea($areaId);
     }
 
     public function update(User $user, Objetivo $objetivo): bool
@@ -37,9 +44,16 @@ class ObjetivoPolicy
         return $user->puedeGestionarArea($this->areaEfectiva($objetivo));
     }
 
+    /** Originar una propuesta o nota; ver RiesgoPolicy::proponer(). */
+    public function proponer(User $user, Objetivo $objetivo): bool
+    {
+        return $this->update($user, $objetivo)
+            || $user->puedeProponerComoAuditor($objetivo->estado?->nombre);
+    }
+
     public function delete(User $user, Objetivo $objetivo): bool
     {
-        return $user->puedeGestionarArea($this->areaEfectiva($objetivo));
+        return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($objetivo));
     }
 
     public function validar(User $user, Objetivo $objetivo): bool

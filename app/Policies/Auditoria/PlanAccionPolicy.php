@@ -21,15 +21,22 @@ class PlanAccionPolicy
     public function view(User $user, PlanAccion $planAccion): bool
     {
         $estado = $planAccion->estado?->nombre;
-        if (in_array($estado, ['aprobado', 'validado'])) return true;
-        if (!$user->area_id) return true;
-        if ($user->esComite()) return false;
+        if (in_array($estado, ['aprobado', 'validado'])) {
+            return true;
+        }
+        if (! $user->area_id) {
+            return true;
+        }
+        if ($user->esComite()) {
+            return false;
+        }
+
         return $user->puedeGestionarArea($this->areaEfectiva($planAccion));
     }
 
     public function create(User $user, mixed $areaId = null): bool
     {
-        return $user->puedeGestionarArea($areaId);
+        return ! $user->esAuditor() && $user->puedeGestionarArea($areaId);
     }
 
     public function update(User $user, PlanAccion $planAccion): bool
@@ -37,9 +44,16 @@ class PlanAccionPolicy
         return $user->puedeGestionarArea($this->areaEfectiva($planAccion));
     }
 
+    /** Originar una propuesta o nota; ver RiesgoPolicy::proponer(). */
+    public function proponer(User $user, PlanAccion $planAccion): bool
+    {
+        return $this->update($user, $planAccion)
+            || $user->puedeProponerComoAuditor($planAccion->estado?->nombre);
+    }
+
     public function delete(User $user, PlanAccion $planAccion): bool
     {
-        return $user->puedeGestionarArea($this->areaEfectiva($planAccion));
+        return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($planAccion));
     }
 
     public function validar(User $user, PlanAccion $planAccion): bool

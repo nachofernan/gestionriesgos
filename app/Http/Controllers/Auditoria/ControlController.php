@@ -33,6 +33,8 @@ class ControlController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Control::class);
+
         $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 

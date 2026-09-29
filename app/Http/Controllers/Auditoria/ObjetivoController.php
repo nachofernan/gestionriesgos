@@ -34,6 +34,8 @@ class ObjetivoController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Objetivo::class);
+
         $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
         $peisItems = PeisItem::orderBy('id')->get();

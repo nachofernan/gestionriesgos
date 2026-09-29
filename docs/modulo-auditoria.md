@@ -4,12 +4,13 @@
 
 1. [Visión General](#visión-general)
 2. [Modelos y Base de Datos](#modelos-y-base-de-datos)
-3. [Rutas](#rutas)
-4. [Controladores](#controladores)
-5. [Componentes Livewire](#componentes-livewire)
-6. [Vistas](#vistas)
-7. [Seeders y Factories](#seeders-y-factories)
-8. [Tests](#tests)
+3. [Roles y autorización](#roles-y-autorización)
+4. [Rutas](#rutas)
+5. [Controladores](#controladores)
+6. [Componentes Livewire](#componentes-livewire)
+7. [Vistas](#vistas)
+8. [Seeders y Factories](#seeders-y-factories)
+9. [Tests](#tests)
 
 ---
 
@@ -76,6 +77,28 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 
 ---
 
+## Roles y autorización
+
+El rol vive en `users.rol` y el área en `users.area_id`. Las Policies están en `app/Policies/Auditoria/`.
+
+| Rol | Ve | Propone / edita | Valida · aprueba | Crea · elimina |
+|---|---|---|---|---|
+| `empleado` | Lo validado o aprobado de todos, más todo lo de su subárbol | Sobre lo de su subárbol. Fuera de borrador, su propuesta nace en borrador | — | En su subárbol |
+| `gerente` | Igual que el empleado | Igual. Fuera de borrador aplica directo, o vota si el riesgo es compartido | Valida lo de su subárbol | En su subárbol |
+| `comite` | Sólo lo validado o aprobado | Aplica directo sobre lo aprobado | Aprueba, y rechaza lo validado | Ver D-006 |
+| `auditor` | Igual que el empleado | **Sobre cualquier elemento validado o aprobado.** Su propuesta siempre nace en borrador y **no deja voto** | — | — |
+
+**`update` y `proponer` (D-020).**
+- `update` es mutar directo: el formulario de un borrador, un alta desde un bloque (nueva tarea), el avance de una tarea.
+- `proponer` es originar una propuesta o una nota: fichas, bloques de relaciones, Conversación, recálculo y `ActualizacionController::store*`. Se cumple si hay `update`, o si es un auditor sobre un elemento validado o aprobado (`User::puedeProponerComoAuditor()`).
+- En borrador las dos coinciden, así que las ramas de `sync` directo de los bloques siguen protegidas.
+
+Un usuario con `area_id = null` es superusuario: `esGerente()` da `true` y ve y gestiona todo. Por eso el auditor lleva área propia.
+
+Tests: `AuditorTest`.
+
+---
+
 ## Rutas
 
 Todas bajo prefijo `/auditoria` con middleware `auth`. Definidas en `routes/web.php`.
@@ -91,8 +114,6 @@ GET    /auditoria/riesgos/{riesgo}              → RiesgoController@show
 GET    /auditoria/riesgos/{riesgo}/edit         → RiesgoController@edit
 PUT    /auditoria/riesgos/{riesgo}              → RiesgoController@update
 DELETE /auditoria/riesgos/{riesgo}              → RiesgoController@destroy
-POST   /auditoria/riesgos/{riesgo}/controles    → RiesgoController@asociarControles
-POST   /auditoria/riesgos/{riesgo}/objetivos    → RiesgoController@asociarObjetivos
 
 # Controles
 GET/POST/PUT/DELETE /auditoria/controles/{...}  → ControlController (resource completo)
@@ -102,7 +123,6 @@ GET/POST/PUT/DELETE /auditoria/objetivos/{...}  → ObjetivoController (resource
 
 # Planes de Acción  (param: {plane})
 GET/POST/PUT/DELETE /auditoria/planes/{...}     → PlanAccionController (resource completo)
-POST   /auditoria/planes/{plane}/tareas         → PlanAccionController@asociarTareas
 
 # Tareas
 GET/POST/PUT/DELETE /auditoria/tareas/{...}     → TareaController (resource completo)
@@ -120,14 +140,11 @@ Todos siguen el patrón CRUD estándar de Laravel. Se listan solo las particular
 ### `RiesgoController`
 
 - **`store` / `update`**: Valida `impacto` y `probabilidad` (0-10), `tipo_riesgo_id`, `area_id`, `user_id`.
-- **`asociarControles(Request, Riesgo)`**: Recibe array de `controles` con `{id, mitigacion}` y hace `sync()` con los datos del pivot.
-- **`asociarObjetivos(Request, Riesgo)`**: Valida que venga al menos 1 objetivo. Hace `sync()`.
 
 ### `PlanAccionController`
 
 - **`create`**: Llama a `generarCodigo()` privado que genera el siguiente código secuencial (PA-0001, PA-0002…).
 - **`store`**: Crea el plan y luego sincroniza los `riesgo_ids` pasados en la request.
-- **`asociarTareas(Request, PlanAccion)`**: Hace `sync()` de las tareas al plan.
 
 ### `TareaController`
 

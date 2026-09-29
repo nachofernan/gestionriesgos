@@ -21,15 +21,22 @@ class TareaPolicy
     public function view(User $user, Tarea $tarea): bool
     {
         $estado = $tarea->estado?->nombre;
-        if (in_array($estado, ['aprobado', 'validado'])) return true;
-        if (!$user->area_id) return true;
-        if ($user->esComite()) return false;
+        if (in_array($estado, ['aprobado', 'validado'])) {
+            return true;
+        }
+        if (! $user->area_id) {
+            return true;
+        }
+        if ($user->esComite()) {
+            return false;
+        }
+
         return $user->puedeGestionarArea($this->areaEfectiva($tarea));
     }
 
     public function create(User $user, mixed $areaId = null): bool
     {
-        return $user->puedeGestionarArea($areaId);
+        return ! $user->esAuditor() && $user->puedeGestionarArea($areaId);
     }
 
     public function update(User $user, Tarea $tarea): bool
@@ -37,9 +44,16 @@ class TareaPolicy
         return $user->puedeGestionarArea($this->areaEfectiva($tarea));
     }
 
+    /** Originar una propuesta o nota; ver RiesgoPolicy::proponer(). */
+    public function proponer(User $user, Tarea $tarea): bool
+    {
+        return $this->update($user, $tarea)
+            || $user->puedeProponerComoAuditor($tarea->estado?->nombre);
+    }
+
     public function delete(User $user, Tarea $tarea): bool
     {
-        return $user->puedeGestionarArea($this->areaEfectiva($tarea));
+        return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($tarea));
     }
 
     public function validar(User $user, Tarea $tarea): bool

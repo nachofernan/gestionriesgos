@@ -41,10 +41,6 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
         ->name('riesgos.recalcular');
     Route::post('riesgos/{riesgo}/recalcular', [RiesgoController::class, 'recalcularStore'])
         ->name('riesgos.recalcular.store');
-    Route::post('riesgos/{riesgo}/controles', [RiesgoController::class, 'asociarControles'])
-        ->name('riesgos.controles');
-    Route::post('riesgos/{riesgo}/objetivos', [RiesgoController::class, 'asociarObjetivos'])
-        ->name('riesgos.objetivos');
     Route::post('riesgos/{riesgo}/validar', [RiesgoController::class, 'validar'])
         ->name('riesgos.validar');
     Route::post('riesgos/{riesgo}/aprobar', [RiesgoController::class, 'aprobar'])
@@ -87,8 +83,6 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // -------------------------------------------------------------------
     Route::resource('planes', PlanAccionController::class)
         ->parameters(['planes' => 'planAccion']);
-    Route::post('planes/{planAccion}/tareas', [PlanAccionController::class, 'asociarTareas'])
-        ->name('planes.tareas');
     Route::post('planes/{planAccion}/validar', [PlanAccionController::class, 'validar'])
         ->name('planes.validar');
     Route::post('planes/{planAccion}/aprobar', [PlanAccionController::class, 'aprobar'])

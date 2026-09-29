@@ -38,6 +38,12 @@ class GestionTareas extends Component
     /** Gobierna la visibilidad de los botones de mutar (Editar / Proponer cambio) en la vista. */
     public bool $puedeActualizar = false;
 
+    /**
+     * Crear una tarea nueva desde el bloque es un alta directa, no una propuesta:
+     * pide gestionar el plan y poder crear (el auditor proponer sí, crear no; D-020).
+     */
+    public bool $puedeCrearTarea = false;
+
     public string $estadoModelo = 'borrador';
 
     public string $busqueda = '';
@@ -66,7 +72,8 @@ class GestionTareas extends Component
     public function mount(PlanAccion $plan): void
     {
         $this->planId = $plan->id;
-        $this->puedeActualizar = Auth::user()->can('update', $plan);
+        $this->puedeActualizar = Auth::user()->can('proponer', $plan);
+        $this->puedeCrearTarea = Auth::user()->can('update', $plan) && Auth::user()->can('create', Tarea::class);
         $this->cargar();
     }
 
@@ -84,7 +91,7 @@ class GestionTareas extends Component
 
     public function activarEdicion(): void
     {
-        $this->authorize('update', PlanAccion::findOrFail($this->planId));
+        $this->authorize('proponer', PlanAccion::findOrFail($this->planId));
         $this->editando = true;
     }
 
@@ -138,6 +145,7 @@ class GestionTareas extends Component
     public function guardarNuevaTarea(): void
     {
         $this->authorize('update', PlanAccion::findOrFail($this->planId));
+        $this->authorize('create', Tarea::class);
 
         $this->validate([
             'nuevaNombre' => 'required|string|max:255',
@@ -231,7 +239,7 @@ class GestionTareas extends Component
     public function guardar(): void
     {
         $plan = PlanAccion::with('tareas.estado')->findOrFail($this->planId);
-        $this->authorize('update', $plan);
+        $this->authorize('proponer', $plan);
         // Las tareas "borrado" ocultas se re-agregan al sync para no detacharlas.
         $ids = array_values(array_unique(array_merge(
             collect($this->seleccionados)->pluck('id')->toArray(),

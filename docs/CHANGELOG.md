@@ -6,6 +6,15 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-29** — Rol auditor (issue #4, [D-020](DECISIONES.md#d-020)): `rol = 'auditor'` con área propia.
+  Nueva habilidad `proponer` en las 5 Policies, separada de `update`: la usan fichas, bloques de
+  relaciones, Conversación, recálculo y `ActualizacionController::store*`. El auditor propone sobre
+  cualquier elemento validado o aprobado. Su propuesta nace en borrador, la valida el gerente
+  responsable y el auditor no vota (`Actualizacion::registrarVoto()`). No crea, no elimina, no valida.
+  Los `create()` de los 5 controladores ahora autorizan y el botón "Nuevo" se oculta a quien no puede
+  crear. Crear una tarea desde el bloque de un plan pasa a exigir `update` + `create`. Se eliminan las
+  rutas muertas `asociarControles`, `asociarObjetivos` y `asociarTareas`: hacían `sync` directo sin
+  mirar el estado. Tests: `AuditorTest` (13). Suite: 410 passed.
 - **2026-09-29** — Pendientes: vista rápida para todos los ítems (issue #5). El modal ahora cubre
   entidades (con datos para decidir según el tipo: valores del riesgo, mitigación, avance, fechas) y
   propuestas de cambio (diff antes → después, relaciones, votos si el riesgo es compartido), y ofrece

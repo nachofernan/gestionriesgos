@@ -6,6 +6,7 @@
             <h1 class="text-2xl font-extrabold text-gray-900">Controles</h1>
             <p class="text-sm text-gray-500 mt-1">{{ $controles->count() }} control(es) registrado(s)</p>
         </div>
+        @can('create', App\Models\Auditoria\Control::class)
         <a href="{{ route('auditoria.controles.create') }}"
            class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 shadow-sm transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -13,6 +14,7 @@
             </svg>
             Nuevo Control
         </a>
+        @endcan
     </div>
 
     <!-- Filtros -->
