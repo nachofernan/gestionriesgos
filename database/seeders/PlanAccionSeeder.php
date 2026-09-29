@@ -14,7 +14,7 @@ class PlanAccionSeeder extends Seeder
 {
     public function run(): void
     {
-        $users = User::where('id', '>', 1)->whereNotNull('area_id')->get();
+        $users = User::where('id', '>', 1)->whereNotNull('area_id')->where('rol', '!=', 'auditor')->get();
         $riesgoIds = Riesgo::pluck('id')->toArray();
         $tareas = Tarea::with('estado')->get();
         $estadoIds = Estado::pluck('id', 'nombre');

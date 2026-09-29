@@ -135,6 +135,7 @@ real a cargar es el que trae el Excel tal cual.
 | Torres | MASHMA | `empleado` (ídem) | `UsuariosAreas.csv` |
 | Nicolini | RRHH | `empleado` | Solo aparece en `Tareas.csv` (tareas 58, 60), no es responsable de área |
 | Martin | GAL | `empleado` | Solo aparece en `Tareas.csv` (tareas 67, 69), no es responsable de área |
+| Barbarulo | UAI | `auditor` | No viene de los CSV: se agrega a mano para el rol auditor (D-020, `MapeoCargaInicial::AUDITORES`) |
 
 **Datos inventados** (no vienen en ningún CSV, obligatorios por schema): `email` y `password`. Se
 propone reutilizar el mismo patrón ya validado en `AreaSeeder.php:50-51`:

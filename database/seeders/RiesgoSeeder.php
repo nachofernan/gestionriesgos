@@ -2,26 +2,26 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class RiesgoSeeder extends Seeder
 {
     public function run(): void
     {
-        $tipos       = TipoRiesgo::pluck('id')->toArray();
-        $users       = User::where('id', '>', 1)->whereNotNull('area_id')->get();
+        $tipos = TipoRiesgo::pluck('id')->toArray();
+        $users = User::where('id', '>', 1)->whereNotNull('area_id')->where('rol', '!=', 'auditor')->get();
         $objetivoIds = Objetivo::pluck('id')->toArray();
-        $respuestas  = RespuestaRiesgo::cases();
+        $respuestas = RespuestaRiesgo::cases();
 
         // 15 riesgos: 2 borrado, 3 borrador, 5 validado, 5 aprobado
         $estadoDistribucion = [
-            'borrado'  => 2,
+            'borrado' => 2,
             'borrador' => 3,
             'validado' => 5,
             'aprobado' => 5,
@@ -57,23 +57,23 @@ class RiesgoSeeder extends Seeder
         ];
 
         foreach ($nombres as $i => $nombre) {
-            $user         = $users->random();
+            $user = $users->random();
             $estadoNombre = $estadosAsignados[$i];
-            $impacto      = rand(0, 10);
+            $impacto = rand(0, 10);
             $probabilidad = rand(0, 10);
 
             $riesgo = Riesgo::create([
-                'codigo'           => 'RSG-' . str_pad($i + 1, 3, '0', STR_PAD_LEFT),
-                'nombre'           => $nombre,
-                'descripcion'      => "Descripción del riesgo: {$nombre}.",
-                'impacto'          => $impacto,
-                'probabilidad'     => $probabilidad,
+                'codigo' => 'RSG-'.str_pad($i + 1, 3, '0', STR_PAD_LEFT),
+                'nombre' => $nombre,
+                'descripcion' => "Descripción del riesgo: {$nombre}.",
+                'impacto' => $impacto,
+                'probabilidad' => $probabilidad,
                 'mayor_criticidad' => ($impacto + $probabilidad) >= 14 && (bool) rand(0, 1),
-                'respuesta'        => $respuestas[array_rand($respuestas)],
-                'tipo_riesgo_id'   => $tipos[array_rand($tipos)],
-                'estado_id'        => $estadoIds[$estadoNombre],
-                'user_id'          => $user->id,
-                'area_id'          => $user->area_id,
+                'respuesta' => $respuestas[array_rand($respuestas)],
+                'tipo_riesgo_id' => $tipos[array_rand($tipos)],
+                'estado_id' => $estadoIds[$estadoNombre],
+                'user_id' => $user->id,
+                'area_id' => $user->area_id,
             ]);
 
             // motivosBloqueoValidacion(): validar exige al menos un objetivo asociado,
@@ -82,8 +82,8 @@ class RiesgoSeeder extends Seeder
             $tieneObjetivo = in_array($estadoNombre, ['validado', 'aprobado']) || (bool) rand(0, 1);
             if ($tieneObjetivo) {
                 $cantidad = rand(1, min(3, count($objetivoIds)));
-                $keys     = (array) array_rand($objetivoIds, $cantidad);
-                $riesgo->objetivos()->attach(array_map(fn($k) => $objetivoIds[$k], $keys));
+                $keys = (array) array_rand($objetivoIds, $cantidad);
+                $riesgo->objetivos()->attach(array_map(fn ($k) => $objetivoIds[$k], $keys));
             }
         }
     }

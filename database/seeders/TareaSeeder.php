@@ -11,7 +11,7 @@ class TareaSeeder extends Seeder
 {
     public function run(): void
     {
-        $users = User::where('id', '>', 1)->whereNotNull('area_id')->get();
+        $users = User::where('id', '>', 1)->whereNotNull('area_id')->where('rol', '!=', 'auditor')->get();
         $estadoIds = Estado::pluck('id', 'nombre');
 
         // Pool de estados con variedad (antes quedaban todos hardcodeados en "aprobado").

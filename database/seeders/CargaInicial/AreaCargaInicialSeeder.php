@@ -54,6 +54,10 @@ class AreaCargaInicialSeeder extends Seeder
         foreach (MapeoCargaInicial::USUARIOS_SIN_AREA_PROPIA as $apellido => $codigoArea) {
             $this->crearUsuario($apellido, $codigoArea, 'empleado');
         }
+
+        foreach (MapeoCargaInicial::AUDITORES as $apellido => $codigoArea) {
+            $this->crearUsuario($apellido, $codigoArea, 'auditor');
+        }
     }
 
     /**

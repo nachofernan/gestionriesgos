@@ -75,6 +75,14 @@ class MapeoCargaInicial
     ];
 
     /**
+     * Usuarios con rol auditor (D-020): no vienen del Excel, se agregan a mano.
+     * apellido => código del área a la que pertenecen.
+     */
+    public const AUDITORES = [
+        'Barbarulo' => 'UAI',
+    ];
+
+    /**
      * Correcciones de datos detectadas en el Excel (ver docs/reconstruccion.md):
      * "ALE" es un error de tipeo por "GAL" (Langus es responsable de ambas en el
      * dataset, GAL es la que existe en UsuariosAreas.csv).

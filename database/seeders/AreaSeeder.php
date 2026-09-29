@@ -29,6 +29,8 @@ class AreaSeeder extends Seeder
         $villaGesell = Area::create(['nombre' => 'Central Villa Gesell',    'area_padre_id' => $gerProd->id]); // Nocetti
         $marDelPlata = Area::create(['nombre' => 'Central Mar del Plata',   'area_padre_id' => $gerProd->id]); // Zanotti
 
+        $auditoriaInterna = Area::create(['nombre' => 'Auditoría Interna', 'area_padre_id' => $comite->id, 'tipo' => TipoArea::Gerencia]); // Barbarulo
+
         $areas = [
             ['area' => $comite, 'responsable' => 'Lucia', 'rol' => 'comite'],
             ['area' => $gerAdmin, 'responsable' => 'Canela', 'rol' => 'gerente'],
@@ -41,6 +43,7 @@ class AreaSeeder extends Seeder
             ['area' => $cuentasPagar, 'responsable' => 'Silvina', 'rol' => 'empleado'],
             ['area' => $villaGesell, 'responsable' => 'Nocetti', 'rol' => 'empleado'],
             ['area' => $marDelPlata, 'responsable' => 'Zanotti', 'rol' => 'empleado'],
+            ['area' => $auditoriaInterna, 'responsable' => 'Barbarulo', 'rol' => 'auditor'],
         ];
 
         foreach ($areas as $i => $area) {
