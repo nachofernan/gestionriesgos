@@ -308,8 +308,10 @@
             paso: pasoInicial,
             nombre: @js(old('nombre', '')),
             tipoRiesgoId: @js((string) old('tipo_riesgo_id', '')),
-            probabilidad: @json(collect(old('probabilidad_respuestas', []))->map(fn($v) => (int) $v)),
-            impacto: @json(collect(old('impacto_respuestas', []))->map(fn($v) => (int) $v)),
+            // Objeto y no array: con un array vacío, responder primero la última pregunta estira el
+            // length y las siguientes respuestas ya no disparan la reactividad de pasoCompleto.
+            probabilidad: Object.assign({}, @json(collect(old('probabilidad_respuestas', []))->map(fn($v) => (int) $v))),
+            impacto: Object.assign({}, @json(collect(old('impacto_respuestas', []))->map(fn($v) => (int) $v))),
             respuesta: @js(old('respuesta', '')),
             tiposRestringidos: @js($tiposRiesgo->where('restringe_respuesta')->pluck('id')->map(fn($id) => (string) $id)->values()),
             respuestasRestringidas: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::restringidas(), 'value')),

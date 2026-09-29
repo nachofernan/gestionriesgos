@@ -167,8 +167,9 @@
     document.addEventListener('alpine:init', () => {
         Alpine.data('recalcularWizard', (pasoInicial) => ({
             paso: pasoInicial,
-            probabilidad: @json(collect(old('probabilidad_respuestas', []))->map(fn($v) => (int) $v)),
-            impacto: @json(collect(old('impacto_respuestas', []))->map(fn($v) => (int) $v)),
+            // Objeto y no array: ver el mismo comentario en riesgo/create.blade.php.
+            probabilidad: Object.assign({}, @json(collect(old('probabilidad_respuestas', []))->map(fn($v) => (int) $v))),
+            impacto: Object.assign({}, @json(collect(old('impacto_respuestas', []))->map(fn($v) => (int) $v))),
 
             get probabilidadTotal() {
                 return Object.values(this.probabilidad).reduce((a, b) => a + (Number(b) || 0), 0);
