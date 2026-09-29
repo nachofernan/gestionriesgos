@@ -45,7 +45,7 @@
     </div>
 
     {{-- Barra: total vs residual --}}
-    <div class="mx-4 mt-3">
+    <div data-detalle-valor class="mx-4 mt-3">
         <div class="relative h-2 rounded-full bg-gray-100 overflow-hidden">
             <div class="absolute inset-y-0 left-0 {{ $cTotal['bar'] }} opacity-25" style="width: {{ $pctTotal }}%"></div>
             <div class="absolute inset-y-0 left-0 {{ $cResidual['bar'] }}" style="width: {{ $pctResidual }}%"></div>
@@ -54,7 +54,7 @@
     </div>
 
     {{-- La cuenta --}}
-    <dl class="mx-4 mt-3 mb-4 text-sm divide-y divide-gray-100">
+    <dl data-detalle-valor class="mx-4 mt-3 mb-4 text-sm divide-y divide-gray-100">
         <div class="flex items-center justify-between py-1.5">
             <dt class="text-gray-500">Impacto</dt>
             <dd class="font-bold text-gray-800 tabular-nums">{{ $riesgo->impacto }}<span class="text-[11px] font-normal text-gray-400">/10</span></dd>

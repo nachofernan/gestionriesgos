@@ -137,6 +137,16 @@
         {{-- Lateral: cuánto vale, quién lo gestiona, qué pasó --}}
         <aside class="lg:col-span-4 space-y-5 order-1 lg:order-2 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pb-2 lg:-mr-2 lg:pr-2">
             @livewire('auditoria.riesgo.show.info-riesgo', ['riesgo' => $riesgo])
+            {{-- Mientras se edita la mitigación de los controles (edición directa o propuesta), la card de valor
+                 se achica a residual + proyección para que la referencia quede a la vista justo debajo. --}}
+            <div id="referencia-valoracion" class="hidden">
+                @include('auditoria.partials.referencia-valoracion-control')
+            </div>
+            <style>
+                body:has(#controles[data-editando]) #referencia-valoracion { display: block; }
+                body:has(#controles[data-editando]) #valor [data-detalle-valor] { display: none; }
+                body:has(#controles[data-editando]) #valor > div { padding-bottom: 1rem; }
+            </style>
             @livewire('auditoria.riesgo.show.gestion-areas', ['riesgo' => $riesgo])
             @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'riesgo', 'modelId' => $riesgo->id, 'variante' => 'timeline'])
         </aside>

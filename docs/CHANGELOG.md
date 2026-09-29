@@ -6,6 +6,9 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-29** — riesgo/show: mientras se edita o se propone la mitigación de los controles, la
+  card de valor se reduce a residual y proyección, y debajo aparece la referencia de valoración
+  (el mismo partial de crear/editar control). Cierra el issue #1.
 - **2026-09-25** — planaccion/show pasa al mismo diseño y cierra el rediseño de las pantallas de
   detalle. Las tareas del plan se proponen por elemento, como en riesgo/show, y una propuesta no mueve
   el avance ni el residual hasta aplicarse. Se suman la ficha del plan, los riesgos que mitiga (se
