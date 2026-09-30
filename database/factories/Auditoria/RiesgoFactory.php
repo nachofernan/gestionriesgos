@@ -2,9 +2,9 @@
 
 namespace Database\Factories\Auditoria;
 
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
-use App\Models\Auditoria\Estado;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -15,14 +15,13 @@ class RiesgoFactory extends Factory
     public function definition(): array
     {
         return [
-            'codigo'           => 'R-' . $this->faker->unique()->numerify('####'),
-            'nombre'           => $this->faker->sentence(3),
-            'descripcion'      => $this->faker->paragraph(),
-            'impacto'          => $this->faker->numberBetween(0, 10),
-            'probabilidad'     => $this->faker->numberBetween(0, 10),
+            'nombre' => $this->faker->sentence(3),
+            'descripcion' => $this->faker->paragraph(),
+            'impacto' => $this->faker->numberBetween(0, 10),
+            'probabilidad' => $this->faker->numberBetween(0, 10),
             'mayor_criticidad' => false,
-            'tipo_riesgo_id'   => TipoRiesgo::factory(),
-            'user_id'          => User::factory(),
+            'tipo_riesgo_id' => TipoRiesgo::factory(),
+            'user_id' => User::factory(),
             // estado_id no se fija aquí — el boot() del modelo asigna borrador automáticamente
         ];
     }

@@ -622,3 +622,31 @@ probabilidad sólo por el cuestionario (ver [PREGUNTAS-CLIENTES.md](PREGUNTAS-CL
   bloques Livewire las reemplazaron, y hacían `sync` directo con sólo `update`, sin mirar el estado:
   un empleado podía cambiar los controles de un riesgo aprobado sin pasar por una propuesta.
 - Tests: `AuditorTest`.
+
+---
+
+## D-021 — Ningún elemento lleva código; se elimina el de Riesgo y el de Plan de acción (2026-09-30)
+
+**Decisión.** Se eliminan las columnas `riesgos.codigo` (`R-0001…`, autogenerado en
+`Riesgo::booted()`) y `planes_accion.codigo` (`PA-0001…`, sugerido por
+`PlanAccionController::generarCodigo()` y editable a mano). Los elementos se identifican por su
+nombre en pantalla y por su `id` internamente. Se editó la migración original, sin migración nueva:
+la base se regenera con `migrate:fresh --seed`.
+
+**Motivo.** Los clientes no usan los códigos para referirse a ningún elemento. El del plan estaba en
+desuso desde el principio. Mantenerlos obligaba a sostener la generación correlativa y a mostrar un
+dato que nadie lee.
+
+**Reemplaza** la segunda mitad del axioma 6 de `CLAUDE.md` ("los códigos correlativos no se
+reutilizan"). Sigue vigente la primera: SoftDeletes en todos los modelos principales.
+
+**Descartado.** Conservar sólo el código del riesgo, que es el único que se autogeneraba: el motivo
+es el mismo para los dos.
+
+**Efecto en cascada anotado.**
+- `PanelRiesgos::riesgosParaJs()` expone `id` en lugar de `codigo`. Es la clave del `x-for` y lo que
+  miran los tests de visibilidad de `PanelRiesgosTest`.
+- La columna "Planes" del listado de Tareas muestra el nombre del plan, porque antes mostraba sólo el
+  código.
+- Las búsquedas de planes (índice y modal de GestionPlanes) pasan a buscar sólo por nombre.
+- El CSV de carga inicial conserva la columna `codigo`, que viene vacía y el seeder ignora.

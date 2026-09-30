@@ -10,12 +10,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
- * Plan de Acción con código correlativo (ver PlanAccionController::generarCodigo()),
- * asociado a uno o más Riesgo y a las Tarea que lo ejecutan (ambas many-to-many).
+ * Plan de Acción asociado a uno o más Riesgo y a las Tarea que lo ejecutan (ambas many-to-many).
  * Ciclo de vida de estado borrador → validado → aprobado/borrado.
  */
 class PlanAccion extends Model implements HasMedia
@@ -25,7 +25,6 @@ class PlanAccion extends Model implements HasMedia
     protected $table = 'planes_accion';
 
     protected $fillable = [
-        'codigo',
         'nombre',
         'descripcion',
         'estado_id',
@@ -114,7 +113,7 @@ class PlanAccion extends Model implements HasMedia
      * en el pasado. null si no hay ninguna pendiente con fecha. Consumir con
      * `tareas.estado` eager-loaded.
      */
-    public function getVencimientoAttribute(): ?\Illuminate\Support\Carbon
+    public function getVencimientoAttribute(): ?Carbon
     {
         $fecha = $this->tareas
             ->reject(fn ($tarea) => $tarea->estado?->nombre === 'borrado')
@@ -122,7 +121,7 @@ class PlanAccion extends Model implements HasMedia
             ->whereNotNull('fecha')
             ->min('fecha');
 
-        return $fecha ? \Illuminate\Support\Carbon::parse($fecha) : null;
+        return $fecha ? Carbon::parse($fecha) : null;
     }
 
     /**

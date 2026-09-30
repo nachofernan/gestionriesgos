@@ -26,7 +26,6 @@
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5"
                        x-text="item.modo === 'propuesta' ? 'Propuesta de cambio · ' + item.tipo_label : item.tipo_label"></p>
                     <h3 class="text-base font-extrabold text-gray-900 leading-tight">
-                        <span x-show="item.codigo" class="text-gray-400 font-bold mr-1" x-text="item.codigo"></span>
                         <span x-text="item.nombre"></span>
                     </h3>
                 </div>

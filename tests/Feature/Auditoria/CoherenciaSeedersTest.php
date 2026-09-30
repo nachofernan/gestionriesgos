@@ -41,7 +41,7 @@ class CoherenciaSeedersTest extends TestCase
                 $this->assertContains(
                     $tarea->estado->nombre,
                     $permitidos,
-                    "El plan {$plan->codigo} ({$plan->estado->nombre}) tiene la tarea ".
+                    "El plan '{$plan->nombre}' ({$plan->estado->nombre}) tiene la tarea ".
                     "'{$tarea->nombre}' en estado '{$tarea->estado->nombre}', incompatible."
                 );
             }

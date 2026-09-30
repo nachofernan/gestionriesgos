@@ -47,7 +47,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | `Control` | `controles` | Medidas de mitigación. Tiene `mitigacion_default` (1-10). El valor real se guarda en el pivot con el riesgo. `propagarMitigacionDefault()` lleva el default a todas las asociaciones (opcional al cambiarlo, ver D-017). `pausado` (boolean): un control pausado no mitiga; `mitiga()` es la regla única (aprobado y no pausado, ver D-019). |
 | `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `peis` (boolean): si es true, requiere al menos un `PeisItem` asociado (ver validación en `ObjetivoController`). |
 | `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
-| `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Código secuencial automático (PA-0001, PA-0002…). Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
+| `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
 | `Tarea` | `tareas` | Unidad de trabajo. `fecha` casteada a `date`, `porcentaje_avance` (0-100). |
 | `Actualizacion` | `actualizaciones` | Historial de actualizaciones polimórfico. Tiene `mensaje`, `data` (JSON) y `user_id`. |
 | `EstadoRiesgo` | `estados_riesgo` | Catálogo: borrador, validado, activo, mitigado, eliminado. |
@@ -143,7 +143,6 @@ Todos siguen el patrón CRUD estándar de Laravel. Se listan solo las particular
 
 ### `PlanAccionController`
 
-- **`create`**: Llama a `generarCodigo()` privado que genera el siguiente código secuencial (PA-0001, PA-0002…).
 - **`store`**: Crea el plan y luego sincroniza los `riesgo_ids` pasados en la request.
 
 ### `TareaController`
@@ -336,8 +335,8 @@ Orden de ejecución (respeta dependencias de FK):
 
 | Factory | Modelo |
 |---|---|
-| `RiesgoFactory` | `Riesgo` — genera código `R-XXXX`, crea `TipoRiesgo` y `EstadoRiesgo` asociados |
-| `PlanAccionFactory` | `PlanAccion` — código `PA-XXXX` |
+| `RiesgoFactory` | `Riesgo` — crea `TipoRiesgo` y `EstadoRiesgo` asociados |
+| `PlanAccionFactory` | `PlanAccion` |
 | `TareaFactory` | `Tarea` |
 | `ControlFactory` | `Control` |
 | `TipoRiesgoFactory` | `TipoRiesgo` |
@@ -360,7 +359,7 @@ Suite de tests de integración con `RefreshDatabase`. El `setUp()` ejecuta `Esta
 | `un_plan_de_accion_puede_tener_muchas_tareas` | Relación many-to-many PlanAccion ↔ Tarea |
 | `una_tarea_puede_pertenecer_a_muchos_planes` | Relación inversa Tarea ↔ PlanAccion |
 | `una_tarea_tiene_fecha_y_actualizaciones` | `fecha` cast a Carbon, `actualizaciones` polimórficas |
-| `riesgo_tiene_codigo_y_criticidad` | Campos `codigo` y `criticidad_alta` |
+| `riesgo_tiene_mayor_criticidad` | Campo `mayor_criticidad` |
 | `un_riesgo_puede_tener_muchos_controles_con_mitigacion_pivot` | Pivot `control_riesgo` con campo `mitigacion` |
 | `objetivo_tiene_fecha_nullable` | `fecha_objetivo` nullable y cast a Carbon |
 

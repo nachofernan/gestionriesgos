@@ -140,7 +140,7 @@ class FichaControl extends Component
             $todos = $control->riesgos()->get();
             $visibles = $control->riesgos()->visiblePara(Auth::user())->pluck('riesgos.id');
             $afectados = $todos->filter(fn ($r) => $visibles->contains($r->id))
-                ->map(fn ($r) => ['codigo' => $r->codigo, 'nombre' => $r->nombre, 'mitigacion' => (int) ($r->pivot->mitigacion ?? $control->mitigacion_default)])
+                ->map(fn ($r) => ['nombre' => $r->nombre, 'mitigacion' => (int) ($r->pivot->mitigacion ?? $control->mitigacion_default)])
                 ->values();
             $ocultos = $todos->count() - $afectados->count();
         }

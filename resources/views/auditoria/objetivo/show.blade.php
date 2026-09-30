@@ -80,7 +80,6 @@
                         <x-auditoria.estado-punto :estado="$riesgo->estado" soloPunto />
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold text-gray-800 truncate">
-                                @if($riesgo->codigo) <span class="font-mono text-[11px] font-bold text-gray-400 mr-1">{{ $riesgo->codigo }}</span> @endif
                                 {{ $riesgo->nombre }}
                             </p>
                             <p class="text-[11px] text-gray-500 truncate">
@@ -113,7 +112,6 @@
                             <x-auditoria.estado-punto :estado="$plan->estado" soloPunto />
                             <div class="flex-1 min-w-0">
                                 <a href="{{ route('auditoria.planes.show', $plan) }}" class="block text-sm font-semibold text-gray-800 hover:text-indigo-700 truncate">
-                                    <span class="font-mono text-[11px] font-bold text-gray-400 mr-1">{{ $plan->codigo }}</span>
                                     {{ $plan->nombre }}
                                 </a>
                                 <p class="text-[11px] text-gray-500 truncate">

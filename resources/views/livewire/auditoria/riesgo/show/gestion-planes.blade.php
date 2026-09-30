@@ -33,9 +33,6 @@
                     <x-auditoria.estado-punto :color="$plan['estado_color']" :nombre="$plan['estado'] ?? 'borrador'" soloPunto />
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 min-w-0">
-                            @if($plan['codigo'] !== '—')
-                                <span class="font-mono text-[10px] text-gray-400 uppercase shrink-0">{{ $plan['codigo'] }}</span>
-                            @endif
                             @if($editando)
                                 <span class="text-sm font-semibold text-gray-800 truncate">{{ $plan['nombre'] }}</span>
                             @else
@@ -148,7 +145,6 @@
                     class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-50 transition-colors border border-gray-100 hover:border-indigo-200">
                     <div class="flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2 min-w-0">
-                            @if($plan->codigo)<span class="font-mono text-[10px] text-gray-400 uppercase shrink-0">{{ $plan->codigo }}</span>@endif
                             <span class="font-semibold text-sm text-gray-800 truncate">{{ $plan->nombre }}</span>
                         </div>
                         <x-auditoria.estado-badge :estado="$plan->estado" size="xs" class="shrink-0" />

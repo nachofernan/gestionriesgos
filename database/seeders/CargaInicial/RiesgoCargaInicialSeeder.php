@@ -11,8 +11,8 @@ use Illuminate\Database\Seeder;
  * (decisión de negocio, ver docs/reconstruccion.md): representan controles y
  * planes que ya funcionan hoy en la empresa, no un borrador a revalidar. Los 8
  * riesgos sin impacto/probabilidad en el Excel (111, 142-148) quedan en 0/0,
- * pendientes de completar por el negocio. El `codigo` (R-0001...) no viene del
- * CSV, lo autogenera Riesgo::booted().
+ * pendientes de completar por el negocio. La columna `codigo` del CSV viene
+ * vacía y se ignora: los riesgos no llevan código.
  */
 class RiesgoCargaInicialSeeder extends Seeder
 {

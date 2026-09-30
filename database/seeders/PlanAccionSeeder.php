@@ -46,7 +46,6 @@ class PlanAccionSeeder extends Seeder
             $datos = $planes[$i - 1];
             $estadoPlan = $estadosPlan[$i - 1];
             $plan = PlanAccion::create([
-                'codigo' => 'PLAN-'.str_pad($i, 3, '0', STR_PAD_LEFT),
                 'nombre' => $datos['nombre'],
                 'descripcion' => $datos['descripcion'],
                 'user_id' => $user->id,

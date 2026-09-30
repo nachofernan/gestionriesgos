@@ -98,16 +98,14 @@ class ModuloAuditoriaTest extends TestCase
     }
 
     #[Test]
-    public function riesgo_tiene_codigo_y_mayor_criticidad()
+    public function riesgo_tiene_mayor_criticidad()
     {
         $riesgo = Riesgo::factory()->create([
-            'codigo' => 'R-TEST',
             'impacto' => 8,
             'probabilidad' => 8,
             'mayor_criticidad' => true,
         ]);
 
-        $this->assertEquals('R-TEST', $riesgo->codigo);
         $this->assertTrue($riesgo->mayor_criticidad);
     }
 

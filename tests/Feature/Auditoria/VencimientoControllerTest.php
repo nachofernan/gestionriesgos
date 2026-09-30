@@ -140,7 +140,6 @@ class VencimientoControllerTest extends TestCase
     {
         $tarea = $this->crearTarea(['fecha' => today()->subDays(3)]);
         $plan = PlanAccion::create([
-            'codigo' => 'PA-001',
             'nombre' => 'Plan de contingencia',
             'estado_id' => Estado::aprobado()->id,
             'area_id' => $this->gerAdmin->id,

@@ -96,14 +96,11 @@
                         @endphp
                         <tr class="hover:bg-indigo-50/30 transition-colors">
                             <td class="px-6 py-4">
-                                <div class="space-y-1">
-                                    <div class="font-semibold text-gray-900">
-                                        <a href="{{ route('auditoria.planes.show', $plan) }}"
-                                           class="hover:text-indigo-600 transition-colors">
-                                            {{ $plan->nombre }}
-                                        </a>
-                                    </div>
-                                    <div class="text-xs text-gray-500 font-mono">{{ $plan->codigo }}</div>
+                                <div class="font-semibold text-gray-900">
+                                    <a href="{{ route('auditoria.planes.show', $plan) }}"
+                                       class="hover:text-indigo-600 transition-colors">
+                                        {{ $plan->nombre }}
+                                    </a>
                                 </div>
                             </td>
                             <td class="px-6 py-4">

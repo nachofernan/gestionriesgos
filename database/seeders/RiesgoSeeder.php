@@ -63,7 +63,6 @@ class RiesgoSeeder extends Seeder
             $probabilidad = rand(0, 10);
 
             $riesgo = Riesgo::create([
-                'codigo' => 'RSG-'.str_pad($i + 1, 3, '0', STR_PAD_LEFT),
                 'nombre' => $nombre,
                 'descripcion' => "Descripción del riesgo: {$nombre}.",
                 'impacto' => $impacto,

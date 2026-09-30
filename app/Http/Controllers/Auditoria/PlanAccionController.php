@@ -40,9 +40,8 @@ class PlanAccionController extends Controller
         $riesgos = Riesgo::visiblePara(Auth::user())->orderBy('nombre')->get();
         $areas = Area::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
-        $codigoSugerido = $this->generarCodigo();
 
-        return view('auditoria.planaccion.create', compact('riesgos', 'areas', 'usuarios', 'codigoSugerido'));
+        return view('auditoria.planaccion.create', compact('riesgos', 'areas', 'usuarios'));
     }
 
     public function store(Request $request)
@@ -50,7 +49,6 @@ class PlanAccionController extends Controller
         $this->authorize('create', [PlanAccion::class, $request->input('area_id')]);
 
         $data = $request->validate([
-            'codigo' => 'required|string|max:100|unique:planes_accion,codigo',
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'riesgo_ids' => 'nullable|array',
@@ -72,7 +70,6 @@ class PlanAccionController extends Controller
             'mensaje' => 'Plan de acción creado',
             'estado_id' => Estado::borrador()->id,
             'data' => ['tipo' => 'creacion', 'campos' => [
-                'codigo' => $plan->codigo,
                 'nombre' => $plan->nombre,
                 'descripcion' => $plan->descripcion,
             ]],
@@ -119,7 +116,6 @@ class PlanAccionController extends Controller
         }
 
         $data = $request->validate([
-            'codigo' => 'required|string|max:100|unique:planes_accion,codigo,'.$planAccion->id,
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'riesgo_ids' => 'nullable|array',
@@ -278,18 +274,5 @@ class PlanAccionController extends Controller
                 }
             }
         }
-    }
-
-    /**
-     * Genera el próximo código correlativo (PA-0001, PA-0002, ...) a partir del
-     * último plan creado, incluyendo los borrados lógicamente (withTrashed) para
-     * no reutilizar códigos ya asignados.
-     */
-    private function generarCodigo(): string
-    {
-        $ultimo = PlanAccion::withTrashed()->orderByDesc('id')->first();
-        $numero = $ultimo ? (intval(preg_replace('/\D/', '', $ultimo->codigo)) + 1) : 1;
-
-        return 'PA-'.str_pad($numero, 4, '0', STR_PAD_LEFT);
     }
 }

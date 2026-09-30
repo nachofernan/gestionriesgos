@@ -13,7 +13,6 @@ class PlanAccionFactory extends Factory
     public function definition(): array
     {
         return [
-            'codigo' => 'PA-' . $this->faker->unique()->numerify('####'),
             'nombre' => $this->faker->sentence(3),
             'descripcion' => $this->faker->paragraph(),
             'user_id' => User::factory(),

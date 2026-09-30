@@ -174,19 +174,18 @@
                         <span class="text-gray-300 font-normal">— pasá el mouse por uno para ubicarlo en ambos rieles</span>
                     </div>
                     <div class="grid sm:grid-cols-2 gap-2">
-                        <template x-for="r in lista()" :key="r.codigo">
+                        <template x-for="r in lista()" :key="r.id">
                             <a :href="r.url"
                                @mouseenter="hov = r" @mouseleave="hov = null"
                                class="block rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/40 px-3 py-2 transition">
                                 <div class="flex items-center justify-between gap-2">
-                                    <span class="font-mono text-xs text-gray-500" x-text="r.codigo"></span>
-                                    <span class="text-[11px] font-semibold text-gray-600">
+                                    <span class="text-sm font-medium text-gray-800 truncate min-w-0" x-text="r.nombre"></span>
+                                    <span class="text-[11px] font-semibold text-gray-600 shrink-0">
                                         <span x-text="'total ' + r.total"></span>
                                         <span class="text-gray-300">→</span>
                                         <span x-text="'residual ' + r.residual"></span>
                                     </span>
                                 </div>
-                                <div class="text-sm font-medium text-gray-800 mt-0.5 truncate" x-text="r.nombre"></div>
                                 <div class="text-[11px] text-gray-400 mt-0.5">
                                     <span x-text="r.tipo"></span> · <span class="capitalize" x-text="r.estado"></span>
                                 </div>

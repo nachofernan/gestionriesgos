@@ -64,7 +64,6 @@
                         <ul class="mt-2 pl-6 space-y-0.5 text-xs text-gray-600">
                             @foreach($afectados as $r)
                                 <li class="flex items-center gap-2 min-w-0">
-                                    @if($r['codigo']) <span class="font-mono text-[10px] font-bold text-gray-400">{{ $r['codigo'] }}</span> @endif
                                     <span class="truncate">{{ $r['nombre'] }}</span>
                                     <span class="ml-auto shrink-0 tabular-nums font-bold {{ $propagar && $r['mitigacion'] != $form['mitigacion_default'] ? 'text-indigo-700' : 'text-gray-400' }}">
                                         @if($propagar && $r['mitigacion'] != $form['mitigacion_default'])

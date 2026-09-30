@@ -176,7 +176,6 @@ class VisibilidadSinAreaTest extends TestCase
     public function plan_accion_sin_area_sigue_el_mismo_patron(): void
     {
         $p = PlanAccion::create([
-            'codigo' => 'PA-TEST',
             'nombre' => 'Plan sin área',
             'estado_id' => $this->borradorId,
             'area_id' => null,

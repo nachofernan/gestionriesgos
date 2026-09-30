@@ -134,9 +134,8 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
    dimensión. En la edición son de solo lectura; para cambiarlos hay que "Recalcular" repitiendo el
    wizard. Ninguna pantalla los deja editar libremente.
 
-6. **SoftDeletes en todos los modelos principales; los códigos correlativos no se reutilizan.** El
-   código de un riesgo (`R-0001`, `R-0002`, …) se asigna contando también los borrados lógicamente
-   (`withTrashed`), para que un borrado nunca libere su número.
+6. **SoftDeletes en todos los modelos principales.** Ningún elemento lleva código correlativo: se
+   identifican por nombre en pantalla y por `id` internamente (ver D-021).
 
 7. **El dominio se nombra en castellano.** Riesgo, control, objetivo, plan de acción, tarea,
    actualización, área, gerencia, estado. Los nombres de modelos, tablas, variables y vistas siguen

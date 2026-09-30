@@ -164,7 +164,7 @@ class PanelRiesgos extends Component
     {
         return $riesgos->map(fn ($r) => [
             'celda' => $r->impacto.'-'.$r->probabilidad,
-            'codigo' => $r->codigo,
+            'id' => $r->id,
             'nombre' => $r->nombre,
             'tipo' => $r->tipoRiesgo?->nombre,
             'estado' => $r->estado?->nombre,

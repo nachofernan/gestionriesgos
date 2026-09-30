@@ -50,7 +50,6 @@ return new class extends Migration
         // -------------------------------------------------------
         Schema::create('riesgos', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo')->nullable()->unique();
             $table->string('nombre');
             $table->text('descripcion')->nullable();
             $table->unsignedTinyInteger('impacto')->default(0);      // 0-10
@@ -145,7 +144,6 @@ return new class extends Migration
         // -------------------------------------------------------
         Schema::create('planes_accion', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo')->unique();
             $table->string('nombre');
             $table->text('descripcion')->nullable();
             $table->foreignId('user_id')->nullable()->constrained('users');

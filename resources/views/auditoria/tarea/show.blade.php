@@ -73,7 +73,6 @@
                             <x-auditoria.estado-punto :estado="$plan->estado" soloPunto />
                             <div class="flex-1 min-w-0">
                                 <a href="{{ route('auditoria.planes.show', $plan) }}" class="block text-sm font-semibold text-gray-800 hover:text-indigo-700 truncate">
-                                    <span class="font-mono text-[11px] font-bold text-gray-400 mr-1">{{ $plan->codigo }}</span>
                                     {{ $plan->nombre }}
                                 </a>
                                 <p class="text-[11px] text-gray-500 truncate">
@@ -97,7 +96,6 @@
                                 @foreach(\App\Models\Auditoria\Estado::ordenarColeccion($plan->riesgos) as $riesgo)
                                     <button type="button" onclick="Livewire.dispatch('ver-riesgo', {id: {{ $riesgo->id }}})"
                                         class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-white border border-gray-200 text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition-colors">
-                                        @if($riesgo->codigo) <span class="font-mono text-[10px] font-bold text-gray-400">{{ $riesgo->codigo }}</span> @endif
                                         {{ \Illuminate\Support\Str::limit($riesgo->nombre, 40) }}
                                     </button>
                                 @endforeach

@@ -63,8 +63,8 @@ class PanelRiesgosTest extends TestCase
         Livewire::actingAs($this->canela)
             ->test(PanelRiesgos::class)
             ->assertViewHas('total', 1)
-            ->assertViewHas('riesgosJs', fn ($js) => collect($js)->pluck('codigo')->contains($propio->codigo)
-                && ! collect($js)->pluck('codigo')->contains($ajeno->codigo));
+            ->assertViewHas('riesgosJs', fn ($js) => collect($js)->pluck('id')->contains($propio->id)
+                && ! collect($js)->pluck('id')->contains($ajeno->id));
     }
 
     #[Test]
@@ -76,7 +76,7 @@ class PanelRiesgosTest extends TestCase
         Livewire::actingAs($this->canela)
             ->test(PanelRiesgos::class)
             ->assertViewHas('total', 1)
-            ->assertViewHas('riesgosJs', fn ($js) => collect($js)->pluck('codigo')->contains($propio->codigo));
+            ->assertViewHas('riesgosJs', fn ($js) => collect($js)->pluck('id')->contains($propio->id));
     }
 
     #[Test]

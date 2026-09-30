@@ -18,16 +18,6 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
 
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Código Identificador *
-                </label>
-                <input type="text" name="codigo" value="{{ old('codigo', $codigoSugerido) }}"
-                    class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500 @error('codigo') border-red-300 @enderror"
-                    placeholder="PA-0001" />
-                @error('codigo') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Nombre del Plan *</label>
                 <input type="text" name="nombre" value="{{ old('nombre') }}"
                     class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('nombre') border-red-300 @enderror"

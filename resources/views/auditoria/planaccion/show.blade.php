@@ -18,11 +18,7 @@
             </a>
             <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap text-xs">
-                    @if($planAccion->codigo)
-                        <span class="font-mono font-bold text-gray-500 uppercase">{{ $planAccion->codigo }}</span>
-                    @else
-                        <span class="font-bold text-gray-500 uppercase">Plan de acción</span>
-                    @endif
+                    <span class="font-bold text-gray-500 uppercase">Plan de acción</span>
                     <x-auditoria.estado-badge :estado="$planAccion->estado" size="sm" />
                     @if($planAccion->esta_vencido)
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">Vencido</span>

@@ -16,9 +16,6 @@
         {{-- Header --}}
         <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 shrink-0">
             <div class="flex-1 min-w-0">
-                @if($plan->codigo)
-                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide mb-0.5 font-mono">{{ $plan->codigo }}</p>
-                @endif
                 <h3 class="text-lg font-extrabold text-gray-900 leading-tight">{{ $plan->nombre }}</h3>
                 <div class="flex items-center gap-2 mt-1.5 flex-wrap">
                     <x-auditoria.estado-badge :estado="$plan->estado" size="sm" />

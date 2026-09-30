@@ -26,7 +26,6 @@
             'fecha_objetivo' => 'Fecha objetivo',
             'porcentaje_avance' => 'Avance',
             'fecha' => 'Fecha',
-            'codigo' => 'Código',
         ];
         // Numéricos que merecen realce en la entrada de creación.
         $camposRealce = ['impacto', 'probabilidad', 'valor', 'mitigacion_default', 'porcentaje_avance'];

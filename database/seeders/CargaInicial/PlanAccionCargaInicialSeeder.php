@@ -13,8 +13,7 @@ use Illuminate\Database\Seeder;
  * plan. El vínculo real con los riesgos se toma de PlanAccionRiesgo.csv, no de
  * la columna "riesgo id" repetida de este archivo. La mitigación de todos los
  * pares plan-riesgo queda en 0 (decisión de negocio): ningún plan descuenta
- * valor_residual todavía, es carga manual pendiente vía UI. El `codigo`
- * (PA-0001...) replica el algoritmo de PlanAccionController::generarCodigo().
+ * valor_residual todavía, es carga manual pendiente vía UI.
  */
 class PlanAccionCargaInicialSeeder extends Seeder
 {
@@ -23,7 +22,6 @@ class PlanAccionCargaInicialSeeder extends Seeder
     public function run(): void
     {
         $estadoAprobadoId = MapeoCargaInicial::estado('aprobado');
-        $numero = 0;
 
         foreach ($this->filasCsv('PlanesAccion.csv') as $fila) {
             [$csvId, $nombre, $descripcion, $areaTxt, $userTxt] = $fila;
@@ -32,9 +30,7 @@ class PlanAccionCargaInicialSeeder extends Seeder
                 continue; // ya creado: esta fila solo repite el plan para otro riesgo
             }
 
-            $numero++;
             $plan = PlanAccion::create([
-                'codigo' => 'PA-'.str_pad((string) $numero, 4, '0', STR_PAD_LEFT),
                 'nombre' => $nombre,
                 'descripcion' => $descripcion !== '' ? $descripcion : null,
                 'estado_id' => $estadoAprobadoId,

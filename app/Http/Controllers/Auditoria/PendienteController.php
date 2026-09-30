@@ -167,7 +167,6 @@ class PendienteController extends Controller
             'tipo' => $tipo,
             'id' => $item->id,
             'tipo_label' => $cfg['singular'],
-            'codigo' => $item->codigo ?? null,
             'nombre' => $item->nombre,
             'descripcion' => $item->descripcion,
             'area' => $item->area?->nombre ?? 'Sin área',

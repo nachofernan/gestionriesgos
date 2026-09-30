@@ -18,7 +18,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
- * Riesgo con código correlativo auto-generado. `valor_total` = impacto +
+ * Riesgo. `valor_total` = impacto +
  * probabilidad; `valor_residual` descuenta la mitigación de los controles
  * asociados; `clasificacion_total`/`clasificacion_residual` traducen esos
  * valores a bajo/moderado/critico (ver clasificacion()). `respuesta` es la
@@ -34,7 +34,6 @@ class Riesgo extends Model implements HasMedia
     protected $table = 'riesgos';
 
     protected $fillable = [
-        'codigo',
         'nombre',
         'descripcion',
         'impacto',
@@ -80,19 +79,12 @@ class Riesgo extends Model implements HasMedia
     protected static function booted()
     {
         // Requiere que exista el estado "borrador" (ver EstadoRiesgoSeeder).
-        // También asigna el código correlativo (R-0001, R-0002, ...) si no vino seteado,
-        // incluyendo los borrados lógicamente (withTrashed) para no reutilizar códigos.
         static::creating(function ($riesgo) {
             if (! $riesgo->estado_id) {
                 $borrador = Estado::borrador();
                 if ($borrador) {
                     $riesgo->estado_id = $borrador->id;
                 }
-            }
-            if (! $riesgo->codigo) {
-                $ultimo = Riesgo::withTrashed()->whereNotNull('codigo')->orderByDesc('id')->first();
-                $numero = $ultimo ? (intval(preg_replace('/\D/', '', $ultimo->codigo)) + 1) : 1;
-                $riesgo->codigo = 'R-'.str_pad($numero, 4, '0', STR_PAD_LEFT);
             }
         });
 

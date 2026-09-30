@@ -6,6 +6,11 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-30** — Ningún elemento lleva código ([D-021](DECISIONES.md#d-021)). Se eliminan
+  `riesgos.codigo` y `planes_accion.codigo`, junto con su generación, sus formularios, búsquedas y
+  vistas. Se editó la migración original sin crear una nueva, así que hay que hacer
+  `migrate:fresh --seed`. El axioma 6 de CLAUDE.md queda sólo con SoftDeletes.
+
 - **2026-09-29** — Rol auditor (issue #4, [D-020](DECISIONES.md#d-020)): `rol = 'auditor'` con área propia.
   Nueva habilidad `proponer` en las 5 Policies, separada de `update`: la usan fichas, bloques de
   relaciones, Conversación, recálculo y `ActualizacionController::store*`. El auditor propone sobre

@@ -152,7 +152,7 @@
                             </td>
                             <td class="px-6 py-4 text-xs text-gray-600">
                                 @forelse($tarea->planesAccion as $plan)
-                                    {{ $plan->codigo }}@if(!$loop->last)<br>@endif
+                                    {{ $plan->nombre }}@if(!$loop->last)<br>@endif
                                 @empty
                                     <span class="text-gray-400">—</span>
                                 @endforelse

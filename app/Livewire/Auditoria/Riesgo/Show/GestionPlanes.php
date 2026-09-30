@@ -55,7 +55,7 @@ class GestionPlanes extends Component
     /** Mitigación de los controles ya asociados, base fija del preview de residual. */
     public int $mitigacionControlesBase = 0;
 
-    /** @var array<int, array{id:int, codigo:string, nombre:string, mitigacion:int, avg_avance:?int}> */
+    /** @var array<int, array{id:int, nombre:string, mitigacion:int, avg_avance:?int}> */
     public array $seleccionados = [];
 
     /**
@@ -153,7 +153,6 @@ class GestionPlanes extends Component
 
         $this->seleccionados[] = [
             'id' => $plan->id,
-            'codigo' => $plan->codigo ?? '—',
             'nombre' => $plan->nombre,
             'descripcion' => $plan->descripcion,
             'estado' => $plan->estado?->nombre ?? 'borrador',
@@ -384,7 +383,6 @@ class GestionPlanes extends Component
             ->sortBy(fn ($p) => Estado::peso($p->estado))
             ->map(fn ($p) => [
                 'id' => $p->id,
-                'codigo' => $p->codigo ?? '—',
                 'nombre' => $p->nombre,
                 'descripcion' => $p->descripcion,
                 'estado' => $p->estado?->nombre ?? 'borrador',
@@ -417,10 +415,7 @@ class GestionPlanes extends Component
                 ->visiblePara(Auth::user())
                 ->whereNot('estado_id', Estado::borrado()->id)
                 ->tap(fn ($q) => $this->aplicarFiltrosModal($q, 'planes_accion'))
-                ->when($this->busqueda, fn ($q) => $q->where(function ($q) {
-                    $q->where('planes_accion.nombre', 'like', '%'.$this->busqueda.'%')
-                        ->orWhere('codigo', 'like', '%'.$this->busqueda.'%');
-                }))
+                ->when($this->busqueda, fn ($q) => $q->where('planes_accion.nombre', 'like', '%'.$this->busqueda.'%'))
                 ->whereNotIn('planes_accion.id', $yaIds)
                 ->join('estados', 'estados.id', '=', 'planes_accion.estado_id')
                 ->select('planes_accion.*')

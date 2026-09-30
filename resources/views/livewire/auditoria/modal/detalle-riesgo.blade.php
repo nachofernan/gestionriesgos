@@ -120,9 +120,6 @@
                         @endphp
                         <div class="mb-3 last:mb-0 p-2.5 rounded-xl border border-gray-100 bg-gray-50/40">
                             <div class="flex items-center gap-2 mb-1.5">
-                                @if($plan->codigo)
-                                    <span class="font-mono text-[9px] text-gray-400 uppercase shrink-0">{{ $plan->codigo }}</span>
-                                @endif
                                 <x-auditoria.estado-punto :estado="$plan->estado" soloPunto size="sm" />
                                 <span class="flex-1 text-sm font-semibold text-gray-800 truncate">{{ $plan->nombre }}</span>
                             </div>

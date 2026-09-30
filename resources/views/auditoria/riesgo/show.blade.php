@@ -19,9 +19,6 @@
             </a>
             <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap text-xs">
-                    @if($riesgo->codigo)
-                        <span class="font-mono font-bold text-gray-500 uppercase">{{ $riesgo->codigo }}</span>
-                    @endif
                     <x-auditoria.estado-badge :estado="$riesgo->estado" size="sm" />
                     @if($compartido)
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700"

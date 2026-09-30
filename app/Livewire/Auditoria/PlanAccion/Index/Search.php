@@ -101,10 +101,7 @@ class Search extends Component
             ->visiblePara($user);
 
         if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('planes_accion.nombre', 'like', '%'.$this->search.'%')
-                    ->orWhere('codigo', 'like', '%'.$this->search.'%');
-            });
+            $query->where('planes_accion.nombre', 'like', '%'.$this->search.'%');
         }
 
         if ($this->filtroEstado) {
