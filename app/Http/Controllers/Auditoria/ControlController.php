@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Auditoria;
 
+use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
 use App\Http\Controllers\Controller;
-use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +17,8 @@ use Illuminate\Support\Facades\DB;
  */
 class ControlController extends Controller
 {
+    use OpcionesAreaResponsable;
+
     public function index()
     {
         $controles = Control::with(['riesgos', 'user', 'area'])
@@ -35,10 +36,7 @@ class ControlController extends Controller
     {
         $this->authorize('create', Control::class);
 
-        $areas = Area::orderBy('nombre')->get();
-        $usuarios = User::orderBy('name')->get();
-
-        return view('auditoria.control.create', compact('areas', 'usuarios'));
+        return view('auditoria.control.create', $this->opcionesAreaResponsable());
     }
 
     public function store(Request $request)
@@ -49,9 +47,7 @@ class ControlController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'mitigacion_default' => 'required|integer|min:1|max:10',
-            'area_id' => 'nullable|exists:areas,id',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
+        ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
 
         $data['user_id'] = $data['user_id'] ?? Auth::id();
         $control = Control::create($data);
@@ -88,10 +84,8 @@ class ControlController extends Controller
                 ->with('error', 'El control ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
-        $areas = Area::orderBy('nombre')->get();
-        $usuarios = User::orderBy('name')->get();
-
-        return view('auditoria.control.edit', compact('control', 'areas', 'usuarios'));
+        return view('auditoria.control.edit', ['control' => $control]
+            + $this->opcionesAreaResponsable($control->area_id, $control->user_id));
     }
 
     /**
@@ -113,9 +107,7 @@ class ControlController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'mitigacion_default' => 'required|integer|min:1|max:10',
-            'area_id' => 'nullable|exists:areas,id',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
+        ] + $this->reglasAreaResponsable($request, $control->area_id, $control->user_id), self::MENSAJES_AREA_RESPONSABLE);
         $propagar = $request->boolean('propagar_mitigacion');
 
         $original = $control->only(array_keys($data));

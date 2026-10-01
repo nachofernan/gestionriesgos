@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
@@ -51,6 +52,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
             'tipo_riesgo_id' => $this->corrupcion->id,
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
             'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'area_id' => Area::firstOrCreate(['nombre' => 'Área de prueba'])->id,
         ], $overrides);
     }
 

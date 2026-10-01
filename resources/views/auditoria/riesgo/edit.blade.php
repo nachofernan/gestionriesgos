@@ -115,10 +115,10 @@
             />
 
             <div class="pt-2 border-t border-gray-100">
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Área</label>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Área *</label>
                 <select name="area_id"
                     class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('area_id') border-red-300 @enderror">
-                    <option value="">— Sin área —</option>
+                    <option value="" disabled @selected(! old('area_id', $riesgo->area_id))>— Elegí un área —</option>
                     @foreach ($areas as $area)
                         <option value="{{ $area->id }}" {{ old('area_id', $riesgo->area_id) == $area->id ? 'selected' : '' }}>
                             {{ $area->nombre }}

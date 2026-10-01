@@ -2,16 +2,13 @@
 
 namespace App\Http\Controllers\Auditoria;
 
+use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
 use App\Http\Controllers\Controller;
-use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
-use App\Models\Auditoria\Riesgo;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 /**
  * CRUD de PlanAccion más su ciclo de vida de estados: borrador → validado → aprobado,
@@ -20,6 +17,8 @@ use Illuminate\Validation\Rule;
  */
 class PlanAccionController extends Controller
 {
+    use OpcionesAreaResponsable;
+
     public function index()
     {
         $planAccions = PlanAccion::with(['riesgos', 'tareas', 'user', 'area'])
@@ -37,13 +36,13 @@ class PlanAccionController extends Controller
     {
         $this->authorize('create', PlanAccion::class);
 
-        $riesgos = Riesgo::visiblePara(Auth::user())->orderBy('nombre')->get();
-        $areas = Area::orderBy('nombre')->get();
-        $usuarios = User::orderBy('name')->get();
-
-        return view('auditoria.planaccion.create', compact('riesgos', 'areas', 'usuarios'));
+        return view('auditoria.planaccion.create', $this->opcionesAreaResponsable());
     }
 
+    /**
+     * Los riesgos no se asocian en el alta: se vinculan después desde la ficha
+     * del plan o del riesgo, como el resto de las relaciones.
+     */
     public function store(Request $request)
     {
         $this->authorize('create', [PlanAccion::class, $request->input('area_id')]);
@@ -51,20 +50,11 @@ class PlanAccionController extends Controller
         $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'riesgo_ids' => 'nullable|array',
-            'riesgo_ids.*' => ['exists:riesgos,id', Rule::in(Riesgo::visiblePara(Auth::user())->pluck('id')->toArray())],
-            'area_id' => 'nullable|exists:areas,id',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
+        ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
 
-        $riesgoIds = $data['riesgo_ids'] ?? [];
-        unset($data['riesgo_ids']);
         $data['user_id'] = $data['user_id'] ?? Auth::id();
 
         $plan = PlanAccion::create($data);
-        if (! empty($riesgoIds)) {
-            $plan->riesgos()->sync($riesgoIds);
-        }
         $plan->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => 'Plan de acción creado',
@@ -98,14 +88,15 @@ class PlanAccionController extends Controller
                 ->with('error', 'El plan ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
-        $planAccion->load('riesgos');
-        $riesgos = Riesgo::visiblePara(Auth::user())->orderBy('nombre')->get();
-        $areas = Area::orderBy('nombre')->get();
-        $usuarios = User::orderBy('name')->get();
-
-        return view('auditoria.planaccion.edit', compact('planAccion', 'riesgos', 'areas', 'usuarios'));
+        return view('auditoria.planaccion.edit', ['planAccion' => $planAccion]
+            + $this->opcionesAreaResponsable($planAccion->area_id, $planAccion->user_id));
     }
 
+    /**
+     * Edita los campos propios del plan en borrador. Los riesgos asociados no se
+     * tocan acá: se gestionan desde la ficha (RiesgosPlan / GestionPlanes).
+     * Test: editar_un_plan_no_toca_sus_riesgos_asociados.
+     */
     public function update(Request $request, PlanAccion $planAccion)
     {
         $this->authorize('update', $planAccion);
@@ -118,18 +109,10 @@ class PlanAccionController extends Controller
         $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'riesgo_ids' => 'nullable|array',
-            'riesgo_ids.*' => ['exists:riesgos,id', Rule::in(Riesgo::visiblePara(Auth::user())->pluck('id')->toArray())],
-            'area_id' => 'nullable|exists:areas,id',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
-
-        $riesgoIds = $data['riesgo_ids'] ?? [];
-        unset($data['riesgo_ids']);
+        ] + $this->reglasAreaResponsable($request, $planAccion->area_id, $planAccion->user_id), self::MENSAJES_AREA_RESPONSABLE);
 
         $original = $planAccion->only(array_keys($data));
         $planAccion->update($data);
-        $planAccion->riesgos()->sync($riesgoIds);
 
         $diff = [];
         foreach ($data as $campo => $nuevo) {

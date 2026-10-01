@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Auditoria;
 
+use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
 use App\Http\Controllers\Controller;
-use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Tarea;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +18,8 @@ use Illuminate\Support\Facades\DB;
  */
 class TareaController extends Controller
 {
+    use OpcionesAreaResponsable;
+
     public function index()
     {
         $tareas = Tarea::with(['planesAccion.riesgos', 'user', 'area'])
@@ -36,10 +37,7 @@ class TareaController extends Controller
     {
         $this->authorize('create', Tarea::class);
 
-        $areas = Area::orderBy('nombre')->get();
-        $usuarios = User::orderBy('name')->get();
-
-        return view('auditoria.tarea.create', compact('areas', 'usuarios'));
+        return view('auditoria.tarea.create', $this->opcionesAreaResponsable());
     }
 
     public function store(Request $request)
@@ -51,9 +49,7 @@ class TareaController extends Controller
             'descripcion' => 'nullable|string',
             'porcentaje_avance' => 'required|integer|min:0|max:100',
             'fecha' => 'nullable|date',
-            'area_id' => 'nullable|exists:areas,id',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
+        ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
 
         $data['user_id'] = $data['user_id'] ?? Auth::id();
         $tarea = Tarea::create($data);
@@ -96,10 +92,8 @@ class TareaController extends Controller
                 ->with('error', 'La tarea ya fue validada. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
-        $areas = Area::orderBy('nombre')->get();
-        $usuarios = User::orderBy('name')->get();
-
-        return view('auditoria.tarea.edit', compact('tarea', 'areas', 'usuarios'));
+        return view('auditoria.tarea.edit', ['tarea' => $tarea]
+            + $this->opcionesAreaResponsable($tarea->area_id, $tarea->user_id));
     }
 
     public function update(Request $request, Tarea $tarea)
@@ -116,9 +110,7 @@ class TareaController extends Controller
             'descripcion' => 'nullable|string',
             'porcentaje_avance' => 'required|integer|min:0|max:100',
             'fecha' => 'nullable|date',
-            'area_id' => 'nullable|exists:areas,id',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
+        ] + $this->reglasAreaResponsable($request, $tarea->area_id, $tarea->user_id), self::MENSAJES_AREA_RESPONSABLE);
 
         $original = $tarea->only(array_keys($data));
         $tarea->update($data);

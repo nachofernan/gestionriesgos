@@ -137,13 +137,22 @@ Ubicación: `app/Http/Controllers/Auditoria/`
 
 Todos siguen el patrón CRUD estándar de Laravel. Se listan solo las particularidades de cada uno.
 
+**Área y Responsable (D-022).** Control, Objetivo, PlanAccion y Tarea usan el trait
+`Concerns\OpcionesAreaResponsable` en `create/store/edit/update`. El área es obligatoria y sale de
+`User::idsAreasGestionables()`. En edición se suma el área actual. El responsable tiene que ser de
+esa área, sus sub-áreas o sus ancestros (`Area::idsAreasDeResponsables()`). En edición se conserva el
+actual mientras no cambie el área. La vista usa el partial `partials/select-area-responsable`, que
+filtra el Responsable con Alpine al cambiar el Área. Tests: `AltaAreaResponsableTest`.
+
 ### `RiesgoController`
 
-- **`store` / `update`**: Valida `impacto` y `probabilidad` (0-10), `tipo_riesgo_id`, `area_id`, `user_id`.
+- **`store`**: Impacto y probabilidad salen del wizard. `area_id` es obligatorio y de la línea del
+  usuario. No asocia objetivos: se vinculan desde la ficha.
+- **`update`**: `area_id` es obligatorio, de la línea del usuario o el que ya tenía.
 
 ### `PlanAccionController`
 
-- **`store`**: Crea el plan y luego sincroniza los `riesgo_ids` pasados en la request.
+- **`store` / `update`**: No tocan los riesgos asociados: se gestionan desde la ficha (`RiesgosPlan` / `GestionPlanes`).
 
 ### `TareaController`
 

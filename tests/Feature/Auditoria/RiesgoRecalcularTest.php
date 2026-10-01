@@ -39,10 +39,12 @@ class RiesgoRecalcularTest extends TestCase
             'user_id' => $user->id,
             'impacto' => 5,
             'probabilidad' => 4,
+            'area_id' => Area::create(['nombre' => 'Área de prueba'])->id,
         ]);
 
         $this->actingAs($user)->put(route('auditoria.riesgos.update', $riesgo), [
             'nombre' => 'Nombre actualizado',
+            'area_id' => $riesgo->area_id,
             'impacto' => 10,
             'probabilidad' => 10,
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,

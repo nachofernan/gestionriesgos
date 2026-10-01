@@ -650,3 +650,35 @@ es el mismo para los dos.
   código.
 - Las búsquedas de planes (índice y modal de GestionPlanes) pasan a buscar sólo por nombre.
 - El CSV de carga inicial conserva la columna `codigo`, que viene vacía y el seeder ignora.
+
+## D-022 — Área obligatoria y de la línea del usuario; el responsable, de la línea del área (2026-09-30)
+
+**Decisión.** En el alta y la edición de Riesgo, Control, Objetivo, Plan de acción y Tarea:
+- **Área** obligatoria, elegida entre la del usuario y sus sub-áreas. Desaparece "— Sin área —". En
+  edición se admite además el área que el elemento ya tenía. El comité (`area_id = null`) elige
+  cualquiera.
+- **Responsable** (todos salvo Riesgo, cuyo responsable es quien lo crea): un usuario del área
+  elegida, de sus sub-áreas o de sus **ancestros hasta la raíz**. Por ejemplo, desde una coordinación
+  se puede nombrar responsable a su gerente, pero no a alguien de una coordinación hermana ni de otra
+  gerencia. En edición se conserva el responsable actual mientras no cambie el área.
+- El alta de Riesgo ya no asocia **Objetivos**, y ni el alta ni la edición de Plan de acción asocian
+  **Riesgos**. Se vinculan desde la ficha, como el resto de las relaciones. `update()` del plan dejó de
+  hacer `sync`: si no, guardar el form sin la lista le desasociaría todos los riesgos.
+
+**Motivo.** Los forms ofrecían todas las áreas y todos los usuarios, y el servidor rechazaba con 403
+lo que el form proponía. Había dos agujeros reales. "Sin área" pasaba la Policy
+(`puedeGestionarArea(null)` es `true`), así que cualquiera podía crear un elemento huérfano que
+después gestionaba cualquiera. Y los `update()` de Control, Objetivo, Plan y Tarea no validaban el
+área nueva: la Policy mira el área *actual*, así que se podía mover un elemento propio a otra
+gerencia.
+
+**Descartado.**
+- Responsable = todo el subárbol del usuario, sin importar el área elegida: dejaba cruzar
+  coordinaciones hermanas.
+- Cortar los ancestros en la Gerencia (`Area::gerencia()`): queda como alternativa si hace falta
+  acotarlo.
+- Mapear "Sin área" al área del usuario: esconde la regla en vez de mostrarla.
+
+**Efecto en cascada anotado.** Los elementos existentes con `area_id = null` deben recibir un área la
+próxima vez que se editen. Los tests del wizard de Riesgo pasan a mandar `area_id`, y se elimina
+`el_riesgo_creado_sin_area_toma_el_area_del_usuario`, que probaba justo lo que se quitó.

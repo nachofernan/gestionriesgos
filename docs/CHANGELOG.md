@@ -6,6 +6,14 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-09-30** — Área y Responsable acotados a la línea del usuario ([D-022](DECISIONES.md#d-022)),
+  en el alta y la edición de los 5 elementos. El área es obligatoria y no hay más "Sin área". El
+  responsable sale del área elegida, sus sub-áreas o sus ancestros. Se cierra el hueco de `update()`,
+  que dejaba mover un elemento a otra gerencia. El alta de Riesgo ya no asocia Objetivos, y el alta y la
+  edición de Plan no asocian Riesgos. Cinco preguntas nuevas en `PREGUNTAS-CLIENTES.md`, a partir de
+  la carga inicial. Trait `Concerns\OpcionesAreaResponsable`, partial `select-area-responsable` y
+  `AltaAreaResponsableTest`.
+
 - **2026-09-30** — Ningún elemento lleva código ([D-021](DECISIONES.md#d-021)). Se eliminan
   `riesgos.codigo` y `planes_accion.codigo`, junto con su generación, sus formularios, búsquedas y
   vistas. Se editó la migración original sin crear una nueva, así que hay que hacer

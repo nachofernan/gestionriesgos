@@ -17,7 +17,7 @@ use Tests\TestCase;
 
 /**
  * Cubre el wizard de creación de riesgo (impacto/probabilidad calculados a
- * partir de las respuestas de config/riesgo_preguntas.php, objetivos opcional)
+ * partir de las respuestas de config/riesgo_preguntas.php, sin objetivos en el alta)
  * y los nuevos prerequisitos duros para validar (objetivo obligatorio, y plan
  * de acción obligatorio si la respuesta es mitigar). Ver Riesgo::motivosBloqueoValidacion().
  */
@@ -40,6 +40,7 @@ class RiesgoWizardTest extends TestCase
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
             'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
             'respuesta' => 'mitigar',
+            'area_id' => Area::firstOrCreate(['nombre' => 'Área de prueba'])->id,
         ], $overrides);
     }
 
@@ -96,23 +97,9 @@ class RiesgoWizardTest extends TestCase
     }
 
     #[Test]
-    public function el_riesgo_creado_sin_area_toma_el_area_del_usuario(): void
-    {
-        $area = Area::create(['nombre' => 'Área de prueba']);
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
-
-        $datos = $this->datosWizard();
-        unset($datos['area_id']);
-
-        $this->actingAs($user)->post(route('auditoria.riesgos.store'), $datos);
-
-        $this->assertEquals($area->id, Riesgo::firstOrFail()->area_id);
-    }
-
-    #[Test]
     public function el_area_del_creador_queda_sincronizada_como_gerencia_del_riesgo(): void
     {
-        $area = Area::create(['nombre' => 'Área de prueba']);
+        $area = Area::firstOrCreate(['nombre' => 'Área de prueba']);
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
 
         $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard());

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
-use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
 use Illuminate\Http\Request;
@@ -49,10 +48,9 @@ class RiesgoController extends Controller
 
         $tiposRiesgo = TipoRiesgo::all();
         $areas = Area::whereIn('id', Auth::user()->idsAreasGestionables())->orderBy('nombre')->get();
-        $objetivos = Objetivo::visiblePara(Auth::user())->orderBy('nombre')->get();
         $preguntas = config('riesgo_preguntas');
 
-        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'objetivos', 'preguntas'));
+        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'preguntas'));
     }
 
     /**
@@ -60,8 +58,10 @@ class RiesgoController extends Controller
      * las 5 respuestas (0-2 cada una) del wizard de creación para cada dimensión
      * (ver config/riesgo_preguntas.php). `mayor_criticidad` sólo puede quedar en
      * true si esa suma total es >= 14; el checkbox del request es una propuesta,
-     * la suma es la que decide. Objetivos es opcional acá: se vuelve obligatorio
-     * recién al validar el riesgo (ver Riesgo::motivosBloqueoValidacion()).
+     * la suma es la que decide. Los objetivos no se asocian en el alta: se
+     * vinculan desde la ficha y son obligatorios recién al validar el riesgo (ver
+     * Riesgo::motivosBloqueoValidacion()). El área es obligatoria y de la línea
+     * del usuario. Test: no_se_puede_crear_un_riesgo_sin_area.
      */
     public function store(Request $request)
     {
@@ -78,10 +78,11 @@ class RiesgoController extends Controller
             'respuesta' => Riesgo::reglaRespuesta($request->input('tipo_riesgo_id')),
             'fundamento' => Riesgo::reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
-            'area_id' => 'nullable|exists:areas,id',
-            'objetivos' => 'nullable|array',
-            'objetivos.*' => ['exists:objetivos,id', Rule::in(Objetivo::visiblePara(Auth::user())->pluck('id')->toArray())],
-        ], self::MENSAJES_RESPUESTA);
+            'area_id' => ['required', 'exists:areas,id', Rule::in(Auth::user()->idsAreasGestionables())],
+        ], self::MENSAJES_RESPUESTA + [
+            'area_id.required' => 'Debe elegir un área.',
+            'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
+        ]);
 
         $probabilidadRespuestas = $data['probabilidad_respuestas'];
         $impactoRespuestas = $data['impacto_respuestas'];
@@ -93,9 +94,7 @@ class RiesgoController extends Controller
         $suma = $data['impacto'] + $data['probabilidad'];
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
         $data['user_id'] = Auth::id();
-        $data['area_id'] = $data['area_id'] ?? Auth::user()->area_id;
         $riesgo = Riesgo::create($data);
-        $riesgo->objetivos()->sync($request->input('objetivos', []));
         $riesgo->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => 'Riesgo creado',
@@ -181,8 +180,9 @@ class RiesgoController extends Controller
             'respuesta' => Riesgo::reglaRespuesta($request->input('tipo_riesgo_id')),
             'fundamento' => Riesgo::reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
-            'area_id' => ['nullable', 'exists:areas,id', Rule::in($areasPermitidas)],
+            'area_id' => ['required', 'exists:areas,id', Rule::in($areasPermitidas)],
         ], self::MENSAJES_RESPUESTA + [
+            'area_id.required' => 'Debe elegir un área.',
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
 

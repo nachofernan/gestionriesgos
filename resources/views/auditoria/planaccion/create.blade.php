@@ -32,55 +32,10 @@
                     placeholder="Descripción general del plan de acción...">{{ old('descripcion') }}</textarea>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Riesgos Asociados</label>
-                <div class="space-y-2 max-h-52 overflow-y-auto border border-gray-200 rounded-xl p-3">
-                    @forelse ($riesgos as $riesgo)
-                        <label class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-orange-50/30 cursor-pointer transition-all">
-                            <input type="checkbox" name="riesgo_ids[]" value="{{ $riesgo->id }}"
-                                {{ in_array($riesgo->id, old('riesgo_ids', [])) ? 'checked' : '' }}
-                                class="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
-                            <div class="flex-1 min-w-0 flex items-center justify-between">
-                                <span class="text-sm font-medium text-gray-700">{{ $riesgo->nombre }}</span>
-                                <span class="text-[10px] text-orange-600 font-bold bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full ml-2 shrink-0">
-                                    Total: {{ $riesgo->valor_total }}
-                                </span>
-                            </div>
-                        </label>
-                    @empty
-                        <p class="text-sm text-gray-400 italic p-2">No hay riesgos disponibles. Crea uno primero.</p>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Área</label>
-                    <select name="area_id"
-                        class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('area_id') border-red-300 @enderror">
-                        <option value="">— Sin área —</option>
-                        @foreach ($areas as $area)
-                            <option value="{{ $area->id }}" {{ old('area_id') == $area->id ? 'selected' : '' }}>
-                                {{ $area->nombre }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('area_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Responsable</label>
-                    <select name="user_id"
-                        class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('user_id') border-red-300 @enderror">
-                        <option value="">— Sin asignar —</option>
-                        @foreach ($usuarios as $usuario)
-                            <option value="{{ $usuario->id }}" {{ old('user_id', auth()->id()) == $usuario->id ? 'selected' : '' }}>
-                                {{ $usuario->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('user_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
-                </div>
-            </div>
+            @include('auditoria.partials.select-area-responsable', [
+                'areaSeleccionada' => old('area_id', auth()->user()->area_id),
+                'responsableSeleccionado' => old('user_id', auth()->id()),
+            ])
 
             <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <a href="{{ route('auditoria.planes.index') }}"

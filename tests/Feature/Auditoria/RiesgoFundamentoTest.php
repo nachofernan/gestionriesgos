@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
@@ -36,6 +37,7 @@ class RiesgoFundamentoTest extends TestCase
             'tipo_riesgo_id' => TipoRiesgo::factory()->create(['restringe_respuesta' => false])->id,
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
             'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'area_id' => Area::firstOrCreate(['nombre' => 'Área de prueba'])->id,
         ], $overrides);
     }
 
@@ -126,11 +128,13 @@ class RiesgoFundamentoTest extends TestCase
             'user_id' => $this->usuario->id,
             'respuesta' => RespuestaRiesgo::Aceptar,
             'fundamento' => 'Fundamento viejo',
+            'area_id' => Area::firstOrCreate(['nombre' => 'Área de prueba'])->id,
         ]);
 
         $this->actingAs($this->usuario)->put(route('auditoria.riesgos.update', $riesgo), [
             'nombre' => $riesgo->nombre,
             'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
+            'area_id' => $riesgo->area_id,
             'respuesta' => 'aceptar',
             'fundamento' => 'Fundamento nuevo',
         ]);

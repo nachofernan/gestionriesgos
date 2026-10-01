@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Auditoria;
 
+use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
 use App\Http\Controllers\Controller;
-use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PeisItem;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +18,8 @@ use Illuminate\Support\Facades\DB;
  */
 class ObjetivoController extends Controller
 {
+    use OpcionesAreaResponsable;
+
     public function index()
     {
         $objetivos = Objetivo::with(['riesgos', 'user', 'area'])
@@ -36,11 +37,9 @@ class ObjetivoController extends Controller
     {
         $this->authorize('create', Objetivo::class);
 
-        $areas = Area::orderBy('nombre')->get();
-        $usuarios = User::orderBy('name')->get();
         $peisItems = PeisItem::orderBy('id')->get();
 
-        return view('auditoria.objetivo.create', compact('areas', 'usuarios', 'peisItems'));
+        return view('auditoria.objetivo.create', compact('peisItems') + $this->opcionesAreaResponsable());
     }
 
     public function store(Request $request)
@@ -55,9 +54,7 @@ class ObjetivoController extends Controller
             'peis' => 'boolean',
             'peis_items' => 'required_if:peis,1|array|min:1',
             'peis_items.*' => 'exists:peis_items,id',
-            'area_id' => 'nullable|exists:areas,id',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
+        ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
         $data['estrategico'] = $request->boolean('estrategico');
         $data['peis'] = $request->boolean('peis');
 
@@ -120,11 +117,10 @@ class ObjetivoController extends Controller
         }
 
         $objetivo->load('peisItems');
-        $areas = Area::orderBy('nombre')->get();
-        $usuarios = User::orderBy('name')->get();
         $peisItems = PeisItem::orderBy('id')->get();
 
-        return view('auditoria.objetivo.edit', compact('objetivo', 'areas', 'usuarios', 'peisItems'));
+        return view('auditoria.objetivo.edit', compact('objetivo', 'peisItems')
+            + $this->opcionesAreaResponsable($objetivo->area_id, $objetivo->user_id));
     }
 
     public function update(Request $request, Objetivo $objetivo)
@@ -144,9 +140,7 @@ class ObjetivoController extends Controller
             'peis' => 'boolean',
             'peis_items' => 'required_if:peis,1|array|min:1',
             'peis_items.*' => 'exists:peis_items,id',
-            'area_id' => 'nullable|exists:areas,id',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
+        ] + $this->reglasAreaResponsable($request, $objetivo->area_id, $objetivo->user_id), self::MENSAJES_AREA_RESPONSABLE);
         $data['estrategico'] = $request->boolean('estrategico');
         $data['peis'] = $request->boolean('peis');
 

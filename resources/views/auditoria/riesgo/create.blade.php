@@ -11,7 +11,7 @@
         $pasoInicial = 2;
     } elseif ($errors->hasAny(['impacto_respuestas', 'impacto_respuestas.*'])) {
         $pasoInicial = 3;
-    } elseif ($errors->hasAny(['respuesta', 'objetivos', 'objetivos.*', 'area_id', 'user_id'])) {
+    } elseif ($errors->hasAny(['respuesta', 'fundamento', 'area_id'])) {
         $pasoInicial = 4;
     }
 @endphp
@@ -49,7 +49,7 @@
                 <span x-show="paso === 1">Paso 1 de 4 — Datos básicos</span>
                 <span x-show="paso === 2">Paso 2 de 4 — Probabilidad</span>
                 <span x-show="paso === 3">Paso 3 de 4 — Impacto</span>
-                <span x-show="paso === 4">Paso 4 de 4 — Respuesta y objetivos</span>
+                <span x-show="paso === 4">Paso 4 de 4 — Respuesta y área</span>
             </p>
 
             {{-- Paso 1: datos básicos --}}
@@ -138,7 +138,7 @@
                 @endforeach
             </div>
 
-            {{-- Paso 4: respuesta, objetivos, criticidad, área/responsable --}}
+            {{-- Paso 4: respuesta, criticidad, área --}}
             <div x-show="paso === 4" class="space-y-5">
 
                 <div class="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -217,34 +217,11 @@
                     </p>
                 </div>
 
-                {{-- Objetivos: opcional en la creación, obligatorio recién al validar --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                        Objetivos
-                        <span class="text-gray-400 normal-case font-normal ml-1">(opcional acá — obligatorio para validar el riesgo)</span>
-                    </label>
-                    <div class="space-y-1.5 max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3 @error('objetivos') border-red-300 bg-red-50/30 @enderror">
-                        @forelse ($objetivos as $objetivo)
-                            @php $checked = in_array($objetivo->id, old('objetivos', [])); @endphp
-                            <label class="flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all
-                                {{ $checked ? 'border-purple-200 bg-purple-50/50' : 'border-gray-100 hover:border-purple-200 hover:bg-purple-50/20' }}">
-                                <input type="checkbox" name="objetivos[]" value="{{ $objetivo->id }}"
-                                    {{ $checked ? 'checked' : '' }}
-                                    class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
-                                <span class="text-sm font-medium text-gray-700">{{ $objetivo->nombre }}</span>
-                            </label>
-                        @empty
-                            <p class="text-sm text-gray-400 italic py-2">No hay objetivos disponibles.</p>
-                        @endforelse
-                    </div>
-                    @error('objetivos') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
-                </div>
-
                 <div class="pt-2 border-t border-gray-100">
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Área</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Área *</label>
                     <select name="area_id"
                         class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('area_id') border-red-300 @enderror">
-                        <option value="">— Sin área —</option>
+                        <option value="" disabled @selected(! old('area_id', auth()->user()->area_id))>— Elegí un área —</option>
                         @foreach ($areas as $area)
                             <option value="{{ $area->id }}" {{ old('area_id', auth()->user()->area_id) == $area->id ? 'selected' : '' }}>
                                 {{ $area->nombre }}

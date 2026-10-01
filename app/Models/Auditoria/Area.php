@@ -72,6 +72,17 @@ class Area extends Model
     }
 
     /**
+     * Áreas cuyos usuarios pueden ser responsables de un elemento de esta área:
+     * ella, sus sub-áreas y sus ancestros (una coordinación puede nombrar
+     * responsable a su gerente). Base de OpcionesAreaResponsable.
+     * Test: el_responsable_puede_ser_de_un_area_ancestro.
+     */
+    public function idsAreasDeResponsables(): array
+    {
+        return array_values(array_unique(array_merge($this->obtenerIdsSubarbol(), $this->obtenerIdsAncestros())));
+    }
+
+    /**
      * true si $this es igual o ancestro del área con $areaId. Recorre hacia
      * arriba desde $areaId (en vez de hacia abajo desde $this) para no cargar
      * todo el subárbol cuando sólo hace falta esta comprobación puntual.
