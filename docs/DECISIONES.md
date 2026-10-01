@@ -682,3 +682,29 @@ gerencia.
 **Efecto en cascada anotado.** Los elementos existentes con `area_id = null` deben recibir un área la
 próxima vez que se editen. Los tests del wizard de Riesgo pasan a mandar `area_id`, y se elimina
 `el_riesgo_creado_sin_area_toma_el_area_del_usuario`, que probaba justo lo que se quitó.
+
+## D-023 — El responsable sube sólo hasta la primera gerencia (2026-10-01)
+
+**Decisión.** El responsable de un Control, Objetivo, Plan de acción o Tarea sale del área elegida,
+de sus sub-áreas o de sus ancestros **hasta la primera gerencia inclusive** (la primera área marcada
+`tipo = gerencia` subiendo desde el área elegida, ella incluida). Si el área elegida ya es una
+gerencia, no se sube nada. Vale igual en el alta y en la edición. Vive en
+`Area::idsAreasDeResponsables()`, que alimenta el select y la validación.
+
+**Reemplaza** el "ancestros hasta la raíz" de [D-022](#d-022). El resto de D-022 sigue vigente,
+incluido que la edición conserva el responsable que el elemento ya tenía mientras no cambie el área.
+
+**Motivo.** El Comité de Riesgo es un área real, raíz de todas las gerencias, así que con "hasta la
+raíz" su gente (Munafó) aparecía como responsable posible de cualquier elemento de cualquier
+gerencia: el responsable cruzaba la frontera de la gerencia, que es justo lo que D-022 quería evitar.
+
+**Descartado.**
+- Sin ancestros (sólo el área y sus sub-áreas): una coordinación no podría nombrar a su gerente.
+- Igual que el select de Área (usuarios de las áreas que gestiona quien carga): un coordinador
+  tampoco podría nombrar a su gerente, y la lista no dependería del área elegida.
+
+**Efecto en cascada anotado.** `AltaAreaResponsableTest` marca las gerencias de su árbol y suma
+`el_responsable_no_puede_estar_por_encima_de_la_gerencia` y
+`la_edicion_no_ofrece_responsables_por_encima_de_la_gerencia`. Un área sin ninguna gerencia marcada
+hacia arriba sigue subiendo hasta la raíz. La gente del Comité sólo puede ser responsable de
+elementos cuya área sea el Comité mismo.

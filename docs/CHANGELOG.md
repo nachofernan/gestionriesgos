@@ -6,6 +6,11 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-01** — El responsable sube sólo hasta la primera gerencia ([D-023](DECISIONES.md#d-023)),
+  en el alta y la edición de Control, Objetivo, Plan y Tarea. El Comité de Riesgo deja de ofrecerse
+  como responsable de los elementos de las gerencias. Cambia `Area::idsAreasDeResponsables()`; dos
+  tests nuevos en `AltaAreaResponsableTest`.
+
 - **2026-09-30** — Área y Responsable acotados a la línea del usuario ([D-022](DECISIONES.md#d-022)),
   en el alta y la edición de los 5 elementos. El área es obligatoria y no hay más "Sin área". El
   responsable sale del área elegida, sus sub-áreas o sus ancestros. Se cierra el hueco de `update()`,

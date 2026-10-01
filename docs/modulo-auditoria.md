@@ -137,10 +137,10 @@ Ubicación: `app/Http/Controllers/Auditoria/`
 
 Todos siguen el patrón CRUD estándar de Laravel. Se listan solo las particularidades de cada uno.
 
-**Área y Responsable (D-022).** Control, Objetivo, PlanAccion y Tarea usan el trait
+**Área y Responsable (D-022, D-023).** Control, Objetivo, PlanAccion y Tarea usan el trait
 `Concerns\OpcionesAreaResponsable` en `create/store/edit/update`. El área es obligatoria y sale de
 `User::idsAreasGestionables()`. En edición se suma el área actual. El responsable tiene que ser de
-esa área, sus sub-áreas o sus ancestros (`Area::idsAreasDeResponsables()`). En edición se conserva el
+esa área, sus sub-áreas o sus ancestros hasta la primera gerencia (`Area::idsAreasDeResponsables()`). En edición se conserva el
 actual mientras no cambie el área. La vista usa el partial `partials/select-area-responsable`, que
 filtra el Responsable con Alpine al cambiar el Área. Tests: `AltaAreaResponsableTest`.
 

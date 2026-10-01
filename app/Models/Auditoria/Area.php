@@ -73,13 +73,22 @@ class Area extends Model
 
     /**
      * Áreas cuyos usuarios pueden ser responsables de un elemento de esta área:
-     * ella, sus sub-áreas y sus ancestros (una coordinación puede nombrar
-     * responsable a su gerente). Base de OpcionesAreaResponsable.
-     * Test: el_responsable_puede_ser_de_un_area_ancestro.
+     * ella, sus sub-áreas y sus ancestros hasta la primera gerencia inclusive
+     * (una coordinación puede nombrar responsable a su gerente, pero no a
+     * alguien de más arriba: D-023). Base de OpcionesAreaResponsable.
+     * Tests: el_responsable_puede_ser_de_un_area_ancestro,
+     * el_responsable_no_puede_estar_por_encima_de_la_gerencia.
      */
     public function idsAreasDeResponsables(): array
     {
-        return array_values(array_unique(array_merge($this->obtenerIdsSubarbol(), $this->obtenerIdsAncestros())));
+        $ids = $this->obtenerIdsSubarbol();
+        $area = $this;
+        while (! $area->esGerencia() && $area->area_padre_id) {
+            $area = static::find($area->area_padre_id);
+            $ids[] = $area->id;
+        }
+
+        return $ids;
     }
 
     /**

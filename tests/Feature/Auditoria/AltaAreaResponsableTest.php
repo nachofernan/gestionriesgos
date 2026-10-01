@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auditoria;
 
+use App\Enums\Auditoria\TipoArea;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Objetivo;
@@ -19,9 +20,10 @@ use Tests\TestCase;
  * Área y Responsable en el alta y la edición de Control, Objetivo, PlanAccion y
  * Tarea (Concerns\OpcionesAreaResponsable), más el área obligatoria del Riesgo.
  * El área sale de la línea del usuario; el responsable, de esa área, sus
- * sub-áreas o sus ancestros. Ningún elemento nace ni queda sin área.
+ * sub-áreas o sus ancestros hasta la gerencia. Ningún elemento nace ni queda
+ * sin área.
  *
- * Árbol: Comité → Gerencia (Piris) → Sistemas (Aieta) / Compras (Compradora)
+ * Árbol: Comité (Presidenta) → Gerencia (Piris) → Sistemas (Aieta) / Compras (Compradora)
  *        Comité → Contabilidad (Contador)
  */
 class AltaAreaResponsableTest extends TestCase
@@ -44,16 +46,20 @@ class AltaAreaResponsableTest extends TestCase
 
     private User $contador;
 
+    private User $presidenta;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->seed(EstadoRiesgoSeeder::class);
 
-        $raiz = Area::create(['nombre' => 'Comité']);
-        $this->gerencia = Area::create(['nombre' => 'Gerencia Propia', 'area_padre_id' => $raiz->id]);
+        $raiz = Area::create(['nombre' => 'Comité', 'tipo' => TipoArea::Gerencia]);
+        $this->gerencia = Area::create(['nombre' => 'Gerencia Propia', 'area_padre_id' => $raiz->id, 'tipo' => TipoArea::Gerencia]);
         $this->sistemas = Area::create(['nombre' => 'Coordinación Sistemas', 'area_padre_id' => $this->gerencia->id]);
         $this->compras = Area::create(['nombre' => 'Coordinación Compras', 'area_padre_id' => $this->gerencia->id]);
-        $this->contabilidad = Area::create(['nombre' => 'Gerencia Contabilidad', 'area_padre_id' => $raiz->id]);
+        $this->contabilidad = Area::create(['nombre' => 'Gerencia Contabilidad', 'area_padre_id' => $raiz->id, 'tipo' => TipoArea::Gerencia]);
+
+        $this->presidenta = User::factory()->create(['rol' => 'gerente', 'area_id' => $raiz->id]);
 
         $this->piris = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
         $this->aieta = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sistemas->id]);
@@ -115,6 +121,35 @@ class AltaAreaResponsableTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas($tabla, ['area_id' => $this->sistemas->id, 'user_id' => $this->piris->id]);
+    }
+
+    #[Test]
+    #[DataProvider('entidades')]
+    public function el_responsable_no_puede_estar_por_encima_de_la_gerencia(string $ruta, string $tabla, array $datos): void
+    {
+        // Desde la coordinación y desde la gerencia misma: el Comité queda afuera.
+        foreach ([$this->sistemas, $this->gerencia] as $area) {
+            $this->actingAs($this->piris)
+                ->post(route("auditoria.$ruta.store"), $datos + ['area_id' => $area->id, 'user_id' => $this->presidenta->id])
+                ->assertSessionHasErrors('user_id');
+        }
+
+        $this->assertDatabaseCount($tabla, 0);
+    }
+
+    #[Test]
+    public function la_edicion_no_ofrece_responsables_por_encima_de_la_gerencia(): void
+    {
+        $control = Control::factory()->create(['area_id' => $this->sistemas->id, 'user_id' => $this->aieta->id]);
+
+        $this->actingAs($this->aieta)
+            ->put(route('auditoria.controles.update', $control), [
+                'nombre' => $control->nombre, 'mitigacion_default' => 5,
+                'area_id' => $this->sistemas->id, 'user_id' => $this->presidenta->id,
+            ])
+            ->assertSessionHasErrors('user_id');
+
+        $this->assertEquals($this->aieta->id, $control->fresh()->user_id);
     }
 
     #[Test]

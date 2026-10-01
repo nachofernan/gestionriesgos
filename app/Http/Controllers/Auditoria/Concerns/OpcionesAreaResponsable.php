@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
  * PlanAccion y Tarea. El área se elige sólo dentro de la línea del usuario
  * (User::idsAreasGestionables()) y es obligatoria: un elemento sin área lo
  * gestionaría cualquiera. El responsable sale de esa área, sus sub-áreas y sus
- * ancestros (Area::idsAreasDeResponsables()). En edición se conservan el área y
+ * ancestros hasta su gerencia (Area::idsAreasDeResponsables()). En edición se conservan el área y
  * el responsable actuales aunque caigan fuera de la regla, para que abrir y
  * guardar el form no los pierda.
  * Tests: AltaAreaResponsableTest.
@@ -23,7 +23,7 @@ trait OpcionesAreaResponsable
     private const MENSAJES_AREA_RESPONSABLE = [
         'area_id.required' => 'Debe elegir un área.',
         'area_id.in' => 'Sólo puede asignar su área o una de sus sub-áreas.',
-        'user_id.in' => 'El responsable tiene que pertenecer al área elegida, a una de sus sub-áreas o a un área superior.',
+        'user_id.in' => 'El responsable tiene que pertenecer al área elegida, a una de sus sub-áreas o a un área superior de su gerencia.',
     ];
 
     /**

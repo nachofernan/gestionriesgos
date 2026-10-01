@@ -138,11 +138,12 @@ Despacho.
 
 ## ¿Hasta dónde puede "subir" el responsable de un elemento?
 
-*Anotada el 2026-09-30. Ya implementado ([D-022](DECISIONES.md#d-022)); falta confirmar el límite.*
+*Anotada el 2026-09-30. Desde el 2026-10-01 el tope es la gerencia ([D-023](DECISIONES.md#d-023));
+falta confirmarlo con el cliente.*
 
 El responsable de un control, objetivo, plan o tarea tiene que ser alguien del área del elemento, de
 un sector de abajo o de un área superior. Así, una coordinación puede nombrar responsable a su
-gerente. Hoy "superior" llega hasta arriba de todo, así que también se puede nombrar al **Comité de
+gerente. Hoy "superior" llega hasta la gerencia, así que ya no se puede nombrar al **Comité de
 Riesgo**.
 
 - ¿Tiene sentido que el Comité sea responsable de un control o una tarea, o el tope debería ser la
