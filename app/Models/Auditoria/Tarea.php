@@ -2,18 +2,16 @@
 
 namespace App\Models\Auditoria;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\HasVisibilityScope;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use App\Models\User;
-use App\Models\Auditoria\Area;
-use App\Models\Auditoria\Estado;
-use App\Models\Concerns\HasVisibilityScope;
 
 /**
  * Tarea de ejecución de uno o más Plan de Acción (many-to-many). Ciclo de vida
@@ -22,7 +20,7 @@ use App\Models\Concerns\HasVisibilityScope;
  */
 class Tarea extends Model implements HasMedia
 {
-    use SoftDeletes, HasFactory, InteractsWithMedia, HasVisibilityScope;
+    use HasFactory, HasVisibilityScope, InteractsWithMedia, SoftDeletes;
 
     protected $table = 'tareas';
 
@@ -44,7 +42,7 @@ class Tarea extends Model implements HasMedia
     {
         // Requiere que exista el estado "borrador" (ver EstadoRiesgoSeeder).
         static::creating(function ($tarea) {
-            if (!$tarea->estado_id) {
+            if (! $tarea->estado_id) {
                 $borrador = Estado::borrador();
                 if ($borrador) {
                     $tarea->estado_id = $borrador->id;
@@ -71,6 +69,12 @@ class Tarea extends Model implements HasMedia
     public function actualizaciones(): MorphMany
     {
         return $this->morphMany(Actualizacion::class, 'actualizable')->latest('created_at');
+    }
+
+    // Firmas de la revisión de la carga inicial (D-024), una por gerencia.
+    public function revisionesIniciales(): MorphMany
+    {
+        return $this->morphMany(RevisionInicial::class, 'revisable');
     }
 
     public function planesAccion(): BelongsToMany

@@ -73,6 +73,12 @@ class Control extends Model implements HasMedia
         return $this->morphMany(Actualizacion::class, 'actualizable')->latest('created_at');
     }
 
+    // Firmas de la revisión de la carga inicial (D-024), una por gerencia.
+    public function revisionesIniciales(): MorphMany
+    {
+        return $this->morphMany(RevisionInicial::class, 'revisable');
+    }
+
     public function riesgos(): BelongsToMany
     {
         return $this->belongsToMany(Riesgo::class, 'control_riesgo')

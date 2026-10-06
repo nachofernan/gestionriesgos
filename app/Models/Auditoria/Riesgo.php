@@ -277,6 +277,12 @@ class Riesgo extends Model implements HasMedia
         return $this->morphMany(Actualizacion::class, 'actualizable')->latest('created_at');
     }
 
+    // Firmas de la revisión de la carga inicial (D-024), una por gerencia.
+    public function revisionesIniciales(): MorphMany
+    {
+        return $this->morphMany(RevisionInicial::class, 'revisable');
+    }
+
     public function planesAccion(): BelongsToMany
     {
         return $this->belongsToMany(PlanAccion::class, 'plan_accion_riesgo')
