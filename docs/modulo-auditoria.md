@@ -53,6 +53,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | `EstadoRiesgo` | `estados_riesgo` | Catálogo: borrador, validado, activo, mitigado, eliminado. |
 | `TipoRiesgo` | `tipos_riesgo` | Catálogo de categorías de riesgo. |
 | `Area` | `areas` | Estructura organizacional jerárquica (`area_padre_id` auto-referencial). |
+| `RevisionInicial` | `revisiones_iniciales` | **Transitorio (D-024).** Revisado y firma de la carga inicial, por elemento (morph `revisable`) y gerencia firmante. Ver la sección *Revisión de la carga inicial*. |
 
 ### Comportamiento automático
 
@@ -96,6 +97,25 @@ El rol vive en `users.rol` y el área en `users.area_id`. Las Policies están en
 Un usuario con `area_id = null` es superusuario: `esGerente()` da `true` y ve y gestiona todo. Por eso el auditor lleva área propia.
 
 Tests: `AuditorTest`.
+
+### Revisión de la carga inicial (transitoria, D-024)
+
+Pantalla `auditoria/revision-inicial` (`Livewire\Auditoria\RevisionInicial\Index`). Se apaga con `config('auditoria.revision_inicial.activa')`: apagada, desaparecen la ruta y el menú.
+
+**Inconsistencias.** `Services\Auditoria\RevisionInicial\DetectorInconsistencias` lista las de cada elemento:
+- un **error** bloquea la firma;
+- una **advertencia** se firma con comentario.
+
+**Quién hace qué** (`RevisionInicialPolicy`):
+- **Revisado:** lo marca el responsable o quien gestiona el área dentro de la gerencia.
+- **Firma:** la pone el gerente, con o sin revisado previo.
+- **Responsable gerente:** si el responsable es gerente de esa gerencia, sólo esa persona revisa y firma.
+- **Riesgo compartido:** lo firma cada gerencia.
+- **Comité y auditor:** miran, no revisan ni firman.
+
+**Arreglos.** Se hacen en el show del elemento, con el circuito de propuestas.
+
+Detalle en [updates/2026-10-06.md](updates/2026-10-06.md). Tests: `DetectorInconsistenciasTest`, `RevisionInicialTest`, `RevisionInicialPantallaTest`.
 
 ---
 

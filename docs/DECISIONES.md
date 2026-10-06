@@ -708,3 +708,52 @@ gerencia: el responsable cruzaba la frontera de la gerencia, que es justo lo que
 `la_edicion_no_ofrece_responsables_por_encima_de_la_gerencia`. Un área sin ninguna gerencia marcada
 hacia arriba sigue subiendo hasta la raíz. La gente del Comité sólo puede ser responsable de
 elementos cuya área sea el Comité mismo.
+
+## D-024 — Pantalla transitoria de revisión de la carga inicial (2026-10-06)
+
+**Decisión.** La carga inicial viene de Excel y Redmine, entra toda en estado aprobado y arrastra
+inconsistencias. Para el salto al sistema se agrega una pantalla de **revisión y firma** con estas
+reglas:
+
+1. **Una sola vez y sin fecha límite.** Se apaga con `config('auditoria.revision_inicial.activa')`
+   (`AUDITORIA_REVISION_INICIAL` en el `.env`) cuando se da por terminado el salto. Apagada,
+   desaparecen la ruta y el menú. Las firmas quedan en `revisiones_iniciales` como registro.
+2. **Se firma por elemento.** Riesgo, control, objetivo, plan y tarea se firman por separado, ante
+   cada gerencia firmante. Un riesgo compartido necesita la firma de cada una de sus gerencias.
+3. **Dos niveles.** Primero el **revisado**: lo marca el responsable o quien gestiona el área del
+   elemento dentro de esa gerencia (un coordinador). Después la **firma**, que pone el gerente. El
+   gerente puede firmar aunque nadie lo haya revisado: es la última palabra sobre su gerencia.
+4. **Responsable gerente.** Si el responsable del elemento es gerente **de esa misma gerencia**, sólo
+   esa persona lo revisa y lo firma. Si es gerente de otra gerencia del mismo riesgo compartido, no
+   le quita a esta su firma.
+5. **Dos severidades** (`DetectorInconsistencias`):
+   - Un **error** bloquea la firma hasta arreglarlo.
+   - Una **advertencia** se firma con comentario obligatorio, y quedan registrados sus códigos.
+   El catálogo inicial lo ajusta el cliente; plan sin riesgos y plan sin tareas quedaron como
+   advertencias a propósito.
+6. **La firma queda firme.** Un cambio posterior del elemento no la anula. Si el cambio genera una
+   inconsistencia nueva, la pantalla la muestra igual.
+7. **Comité y auditor** ven el avance de todas las gerencias en solo lectura. No revisan ni firman.
+8. **Los arreglos no tienen atajo.** La pantalla enlaza al show del elemento, y se corrige con el
+   circuito de propuestas de siempre: sobre lo aprobado, valida el gerente y aprueba el comité. No
+   se toca el ciclo de estados.
+
+**Motivo.** El cliente pidió que los gerentes avalen lo migrado: que arreglen lo que está mal y
+firmen lo que está bien. El sistema tiene que mostrar qué está inconsistente, sin bloquear la
+operación diaria ni reabrir el ciclo de estados de lo ya aprobado.
+
+**Descartado.**
+- **Revisiones periódicas** (campañas con fecha): no es el caso de uso.
+- **Firmar por riesgo con todo su árbol:** un control compartido por varios riesgos se firmaría
+  varias veces.
+- **Anular la firma ante cualquier cambio.**
+- **Arreglos directos desde la pantalla:** duplicaría el circuito de propuestas.
+- **Un atajo de aprobación mientras dura la revisión:** toca el ciclo de estados. Si hace falta, se
+  charla aparte.
+
+**Efecto en cascada anotado.**
+- Tabla `revisiones_iniciales`, morph `revisionesIniciales` en las 5 entidades.
+- `RevisionInicialPolicy` registrada en `AppServiceProvider`.
+- Tests: `DetectorInconsistenciasTest`, `RevisionInicialTest`, `RevisionInicialPantallaTest`.
+
+Fuente: sesión 2026-10-06, con el usuario presente. Detalle en [updates/2026-10-06.md](updates/2026-10-06.md).

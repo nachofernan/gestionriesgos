@@ -6,6 +6,13 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-06** — Pantalla transitoria de **Revisión de la carga inicial** ([D-024](DECISIONES.md#d-024),
+  [detalle](updates/2026-10-06.md)). Detecta las inconsistencias de cada elemento (errores que bloquean
+  la firma, advertencias que se firman con comentario). El responsable o el coordinador marca revisado y el
+  gerente firma, por gerencia. Comité y auditor ven el avance en solo lectura. Se apaga con
+  `AUDITORIA_REVISION_INICIAL`. Tabla `revisiones_iniciales`, `RevisionInicialPolicy` y tres archivos de
+  tests nuevos.
+
 - **2026-10-01** — El responsable sube sólo hasta la primera gerencia ([D-023](DECISIONES.md#d-023)),
   en el alta y la edición de Control, Objetivo, Plan y Tarea. El Comité de Riesgo deja de ofrecerse
   como responsable de los elementos de las gerencias. Cambia `Area::idsAreasDeResponsables()`; dos

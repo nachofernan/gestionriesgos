@@ -18,6 +18,10 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 
 ## En curso / recién cerrado
 
+- [ ] **Revisión de la carga inicial** (abierta desde 2026-10-06, [D-024](DECISIONES.md#d-024)). La pantalla está
+  construida; falta que el cliente ajuste el catálogo de inconsistencias y que los gerentes firmen. Cuando se
+  dé por terminado el salto: `AUDITORIA_REVISION_INICIAL=false` y, más adelante, borrar el código (ver
+  [updates/2026-10-06](updates/2026-10-06.md#apagado)).
 - [x] **Rediseño de las pantallas de detalle** (2026-09-24 → 2026-09-25), ver [D-016](DECISIONES.md#d-016) y [updates/2026-09-24](updates/2026-09-24.md).
   - [x] riesgo/show: bloques con lo vigente arriba y lo propuesto abajo, una propuesta por elemento, Ficha editable en el bloque, Conversación separada de la Actividad (2026-09-24).
   - [ ] Revisar Gerencias (sigue proponiéndose en bloque) y cómo se comporta un riesgo multigerencia en el diseño nuevo.
@@ -53,4 +57,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-09-25.*
+*Última revisión: 2026-10-06.*
