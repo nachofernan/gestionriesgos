@@ -6,6 +6,11 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-06** — Revisión inicial: un error con su arreglo en una propuesta **validada** deja de
+  bloquear la firma y se muestra "en curso" ([D-025](DECISIONES.md#d-025)). Columna
+  `arreglos_pendientes`. Además, `app.js` deja de arrancar un segundo Alpine en las páginas con Livewire:
+  dejaba sin `$wire` a los `x-data` y muertas las pestañas, la paginación y el modal de la revisión.
+
 - **2026-10-06** — Pantalla transitoria de **Revisión de la carga inicial** ([D-024](DECISIONES.md#d-024),
   [detalle](updates/2026-10-06.md)). Detecta las inconsistencias de cada elemento (errores que bloquean
   la firma, advertencias que se firman con comentario). El responsable o el coordinador marca revisado y el

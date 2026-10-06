@@ -30,12 +30,14 @@ class RevisionInicial extends Model
         'comentario_revision',
         'comentario_firma',
         'advertencias_aceptadas',
+        'arreglos_pendientes',
     ];
 
     protected $casts = [
         'revisado_en' => 'datetime',
         'firmado_en' => 'datetime',
         'advertencias_aceptadas' => 'array',
+        'arreglos_pendientes' => 'array',
     ];
 
     public function revisable(): MorphTo
@@ -86,6 +88,8 @@ class RevisionInicial extends Model
      * Un error del detector bloquea la firma; las advertencias se aceptan con
      * comentario obligatorio y quedan registradas. No exige un "revisado"
      * previo: el gerente puede firmar aunque nadie de su equipo lo haya revisado.
+     * Lo que está "en curso" (arreglo validado que espera al comité, D-025) no
+     * bloquea ni pide comentario, y queda registrado en arreglos_pendientes.
      * Tests: no_se_firma_con_errores_abiertos, firmar_con_advertencias_exige_comentario.
      *
      * @param  list<array{codigo: string, severidad: string, mensaje: string}>  $hallazgos  de DetectorInconsistencias::detectar()
@@ -113,6 +117,7 @@ class RevisionInicial extends Model
             'firmado_en' => now(),
             'comentario_firma' => filled($comentario) ? $comentario : null,
             'advertencias_aceptadas' => $advertencias ?: null,
+            'arreglos_pendientes' => collect($hallazgos)->where('severidad', DetectorInconsistencias::EN_CURSO)->pluck('codigo')->values()->all() ?: null,
         ])->save();
 
         return $revision;

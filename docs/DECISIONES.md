@@ -757,3 +757,33 @@ operación diaria ni reabrir el ciclo de estados de lo ya aprobado.
 - Tests: `DetectorInconsistenciasTest`, `RevisionInicialTest`, `RevisionInicialPantallaTest`.
 
 Fuente: sesión 2026-10-06, con el usuario presente. Detalle en [updates/2026-10-06.md](updates/2026-10-06.md).
+
+## D-025 — Un arreglo validado alcanza para firmar, sin esperar al comité (2026-10-06)
+
+**Decisión.** Modifica el punto 5 de [D-024](#d-024). El detector evalúa cada elemento dos veces:
+como está hoy y **como quedaría** si se aplicaran sus propuestas **validadas** que esperan al comité.
+La proyección tiene en cuenta los campos propuestos y las altas y bajas en relaciones, tanto las
+propias como las del otro lado de la relación. Por ejemplo, la propuesta de un plan que agrega una
+tarea arregla esa tarea.
+
+- **Inconsistencia resuelta en la proyección:** sale con severidad `en_curso`. Se muestra en azul, no
+  bloquea la firma y no pide comentario. La firma la registra en `arreglos_pendientes`.
+- **Propuestas en borrador:** no cuentan. El arreglo vale recién cuando lo valida el gerente.
+- **Si el comité después rechaza la propuesta:** la firma queda (punto 6 de D-024) y la inconsistencia
+  vuelve a aparecer en la pantalla.
+
+**Motivo.** Toda la carga inicial está aprobada, así que cualquier arreglo termina esperando al
+comité. Exigir la aprobación antes de firmar obligaba al gerente a dos pasos, con un hueco largo en el
+medio. Lo que se arregló ya cuenta con su validación.
+
+**Descartado.**
+- **Que cualquier propuesta validada desbloquee todos los errores del elemento:** es menos fiel, porque
+  una propuesta que no toca ese error lo sacaría igual.
+- **Que los errores dejen de bloquear:** borra la diferencia entre error y advertencia.
+- **Anular la firma si el comité rechaza:** obliga a engancharse al ciclo de estados.
+
+**Efecto en cascada anotado.**
+- Columna nueva `revisiones_iniciales.arreglos_pendientes`, en una migración nueva.
+- `DetectorInconsistencias` hace una sola consulta de propuestas por instancia, y la pantalla comparte
+  una instancia por render.
+- Tests nuevos en `DetectorInconsistenciasTest`, `RevisionInicialTest` y `RevisionInicialPantallaTest`.

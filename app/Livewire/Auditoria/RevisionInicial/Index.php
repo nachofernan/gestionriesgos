@@ -156,10 +156,8 @@ class Index extends Component
      * Cada elemento con sus inconsistencias y una entrada por gerencia firmante
      * (revisión registrada, si la hay).
      */
-    private function filas(string $modelo, User $user, array $mapa): Collection
+    private function filas(string $modelo, User $user, array $mapa, DetectorInconsistencias $detector): Collection
     {
-        $detector = new DetectorInconsistencias;
-
         return $this->consultaPara($modelo, $user)->orderBy('nombre')->get()
             ->map(function (Model $elemento) use ($detector, $mapa) {
                 $gerencias = RevisionInicial::gerenciasDe($elemento, $mapa)->map(fn (Area $g) => [
@@ -231,7 +229,8 @@ class Index extends Component
         $user = Auth::user();
         $mapa = RevisionInicial::mapaGerencias();
 
-        $filasPorTipo = collect(self::TIPOS)->map(fn ($cfg) => $this->filas($cfg['modelo'], $user, $mapa));
+        $detector = new DetectorInconsistencias;
+        $filasPorTipo = collect(self::TIPOS)->map(fn ($cfg) => $this->filas($cfg['modelo'], $user, $mapa, $detector));
         $filas = $this->filtrar($filasPorTipo[$this->tipo] ?? collect());
 
         $pagina = $this->getPage();

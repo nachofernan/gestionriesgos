@@ -173,6 +173,20 @@ class RevisionInicialTest extends TestCase
     }
 
     #[Test]
+    public function firmar_con_un_arreglo_en_curso_no_pide_comentario_y_lo_registra(): void
+    {
+        $control = $this->control($this->empleadoCoordinacion);
+
+        $revision = RevisionInicial::registrarFirma($control, $this->sistemas, $this->gerenteSistemas, [
+            ['codigo' => 'sin_area', 'severidad' => 'en_curso', 'mensaje' => '...'],
+        ]);
+
+        $this->assertNotNull($revision->firmado_en);
+        $this->assertSame(['sin_area'], $revision->arreglos_pendientes);
+        $this->assertNull($revision->advertencias_aceptadas);
+    }
+
+    #[Test]
     public function no_se_revisa_ni_se_firma_dos_veces_lo_ya_firmado(): void
     {
         $control = $this->control($this->empleadoCoordinacion);

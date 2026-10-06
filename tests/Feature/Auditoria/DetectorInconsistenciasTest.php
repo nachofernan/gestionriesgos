@@ -6,6 +6,7 @@ use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Enums\Auditoria\TipoArea;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PeisItem;
 use App\Models\Auditoria\PlanAccion;
@@ -67,6 +68,70 @@ class DetectorInconsistenciasTest extends TestCase
     private function objetivo(array $atributos = []): Objetivo
     {
         return Objetivo::create(['nombre' => 'Objetivo', 'area_id' => $this->area->id, 'user_id' => User::factory()->create()->id, ...$atributos]);
+    }
+
+    /** Propuesta de cambio pendiente sobre el elemento, en el estado dado. */
+    private function proponer(Model $elemento, array $data, string $estado = 'validado'): void
+    {
+        $elemento->actualizaciones()->create([
+            'user_id' => User::factory()->create()->id,
+            'mensaje' => 'Propuesta',
+            'estado_id' => Estado::where('nombre', $estado)->firstOrFail()->id,
+            'data' => ['tipo' => 'cambio', ...$data],
+        ]);
+    }
+
+    #[Test]
+    public function un_error_con_arreglo_validado_queda_en_curso_y_no_bloquea(): void
+    {
+        $riesgo = $this->riesgoCompleto();
+        $riesgo->objetivos()->detach();
+        $this->proponer($riesgo, ['relaciones' => ['objetivos' => ['agregar' => [$this->objetivo()->id => []]]]]);
+
+        $hallazgos = $this->hallazgos($riesgo);
+
+        $this->assertSame(['sin_objetivo' => 'en_curso'], $hallazgos);
+        $this->assertFalse(DetectorInconsistencias::tieneErrores([['severidad' => 'en_curso']]));
+    }
+
+    #[Test]
+    public function una_propuesta_en_borrador_no_cuenta_como_arreglo(): void
+    {
+        $riesgo = $this->riesgoCompleto();
+        $riesgo->objetivos()->detach();
+        $this->proponer($riesgo, ['relaciones' => ['objetivos' => ['agregar' => [$this->objetivo()->id => []]]]], 'borrador');
+
+        $this->assertSame(['sin_objetivo' => 'error'], $this->hallazgos($riesgo));
+    }
+
+    #[Test]
+    public function una_propuesta_validada_que_no_arregla_ese_error_no_lo_saca(): void
+    {
+        $riesgo = $this->riesgoCompleto();
+        $riesgo->objetivos()->detach();
+        $this->proponer($riesgo, ['campos' => ['nombre' => 'Otro nombre']]);
+        $this->proponer($riesgo, ['relaciones' => ['objetivos' => ['detach' => [999]]]]);
+
+        $this->assertSame(['sin_objetivo' => 'error'], $this->hallazgos($riesgo));
+    }
+
+    #[Test]
+    public function un_cambio_de_campo_validado_arregla_el_fundamento(): void
+    {
+        $riesgo = $this->riesgoCompleto(['respuesta' => RespuestaRiesgo::Aceptar, 'fundamento' => null]);
+        $this->proponer($riesgo, ['campos' => ['fundamento' => 'Costo de mitigar mayor al impacto.']]);
+
+        $this->assertSame(['sin_fundamento' => 'en_curso'], $this->hallazgos($riesgo));
+    }
+
+    #[Test]
+    public function el_arreglo_puede_venir_del_otro_lado_de_la_relacion(): void
+    {
+        $tarea = Tarea::factory()->create(['area_id' => $this->area->id, 'fecha' => now()->addMonth()]);
+        $plan = PlanAccion::factory()->create(['area_id' => $this->area->id]);
+        $this->proponer($plan, ['relaciones' => ['tareas' => ['agregar' => [$tarea->id => []]]]]);
+
+        $this->assertSame(['sin_plan' => 'en_curso'], $this->hallazgos($tarea));
     }
 
     #[Test]

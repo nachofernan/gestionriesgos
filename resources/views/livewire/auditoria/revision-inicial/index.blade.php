@@ -3,7 +3,7 @@
         abierto: false,
         accion: null,
         tipo: null, id: null, gerenciaId: null,
-        nombre: '', gerencia: '', advertencias: [],
+        nombre: '', gerencia: '', advertencias: [], enCurso: [],
         comentario: '',
         abrir(datos) {
             Object.assign(this, datos, { comentario: '', abierto: true });
@@ -21,7 +21,8 @@
         <h1 class="text-2xl font-extrabold text-gray-900">Revisión de la carga inicial</h1>
         <p class="text-sm text-gray-500 mt-1 max-w-3xl">
             Lo que vino del Excel y del Redmine, elemento por elemento. Los <span class="font-semibold text-red-700">errores</span>
-            hay que arreglarlos en la pantalla del elemento antes de firmar; las <span class="font-semibold text-amber-700">advertencias</span>
+            hay que arreglarlos en la pantalla del elemento antes de firmar (alcanza con que el arreglo esté
+            <span class="font-semibold text-sky-700">validado</span>, aunque espere al comité); las <span class="font-semibold text-amber-700">advertencias</span>
             se pueden firmar con un comentario. Revisa el responsable o el coordinador; firma el gerente.
         </p>
     </div>
@@ -143,6 +144,7 @@
                             $elemento = $fila['elemento'];
                             $conErrores = collect($fila['hallazgos'])->contains('severidad', 'error');
                             $advertencias = collect($fila['hallazgos'])->where('severidad', 'advertencia')->pluck('mensaje')->values();
+                            $enCurso = collect($fila['hallazgos'])->where('severidad', 'en_curso')->pluck('mensaje')->values();
                         @endphp
                         <tr wire:key="fila-{{ $tipo }}-{{ $elemento->id }}" class="align-top">
                             <td class="px-6 py-3">
@@ -158,7 +160,11 @@
                                 <div class="flex flex-wrap gap-1">
                                     @forelse ($fila['hallazgos'] as $h)
                                         <span class="px-2 py-0.5 rounded-full text-xs font-medium
-                                            {{ $h['severidad'] === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-800 border border-amber-200' }}">
+                                            {{ match ($h['severidad']) {
+                                                'error' => 'bg-red-50 text-red-700 border border-red-200',
+                                                'en_curso' => 'bg-sky-50 text-sky-800 border border-sky-200',
+                                                default => 'bg-amber-50 text-amber-800 border border-amber-200',
+                                            } }}">
                                             {{ $h['mensaje'] }}
                                         </span>
                                     @empty
@@ -188,7 +194,7 @@
                                                     @if (! $r?->revisado_en)
                                                         @can('revisar', [App\Models\Auditoria\RevisionInicial::class, $elemento, $g])
                                                             <button type="button"
-                                                                    x-on:click="abrir(@js(['accion' => 'revisar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id, 'nombre' => $elemento->nombre, 'gerencia' => $g->nombre, 'advertencias' => []]))"
+                                                                    x-on:click="abrir(@js(['accion' => 'revisar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id, 'nombre' => $elemento->nombre, 'gerencia' => $g->nombre, 'advertencias' => [], 'enCurso' => []]))"
                                                                     class="px-2 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md">
                                                                 Marcar revisado
                                                             </button>
@@ -199,7 +205,7 @@
                                                             <span class="text-xs text-red-600" title="Hay que arreglar los errores antes de firmar">Firma bloqueada por errores</span>
                                                         @else
                                                             <button type="button"
-                                                                    x-on:click="abrir(@js(['accion' => 'firmar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id, 'nombre' => $elemento->nombre, 'gerencia' => $g->nombre, 'advertencias' => $advertencias]))"
+                                                                    x-on:click="abrir(@js(['accion' => 'firmar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id, 'nombre' => $elemento->nombre, 'gerencia' => $g->nombre, 'advertencias' => $advertencias, 'enCurso' => $enCurso]))"
                                                                     class="px-2 py-1 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-md">
                                                                 ✓ Firmar
                                                             </button>
@@ -238,6 +244,15 @@
                     · <span x-text="gerencia"></span>
                 </p>
             </div>
+
+            <template x-if="accion === 'firmar' && enCurso.length">
+                <div class="rounded-lg bg-sky-50 border border-sky-200 p-3 text-sm text-sky-900">
+                    <p class="font-semibold mb-1">Firmás con arreglos validados que todavía esperan al comité:</p>
+                    <ul class="list-disc pl-5 space-y-0.5">
+                        <template x-for="a in enCurso"><li x-text="a"></li></template>
+                    </ul>
+                </div>
+            </template>
 
             <template x-if="accion === 'firmar' && advertencias.length">
                 <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
