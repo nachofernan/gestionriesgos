@@ -64,6 +64,12 @@
         {{-- Lateral: cuánto mitiga, quién lo gestiona, qué pasó --}}
         <aside class="lg:col-span-4 space-y-5 order-1 lg:order-2 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pb-2 lg:-mr-2 lg:pr-2">
             @livewire('auditoria.control.show.info-control', ['control' => $control])
+            <div id="referencia-valoracion" class="hidden">
+                @include('auditoria.partials.referencia-valoracion-control')
+            </div>
+            <style>
+                body:has(#ficha[data-editando]) #referencia-valoracion { display: block; }
+            </style>
             @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'control', 'modelId' => $control->id, 'variante' => 'timeline'])
         </aside>
 

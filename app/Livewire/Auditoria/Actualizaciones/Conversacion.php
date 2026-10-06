@@ -57,7 +57,7 @@ class Conversacion extends Component
     public function enviar(): void
     {
         $modelo = $this->resolverModelo();
-        $this->authorize('proponer', $modelo);
+        $this->authorize($this->habilidadEscritura(), $modelo);
 
         $this->validate([
             'mensaje' => 'required|string|min:2',
@@ -81,6 +81,12 @@ class Conversacion extends Component
     {
         unset($this->archivos[$indice]);
         $this->archivos = array_values($this->archivos);
+    }
+
+    /** En la tarea también puede escribir quien gestiona un plan aprobado que la incluye (TareaPolicy::comentar). */
+    private function habilidadEscritura(): string
+    {
+        return $this->modelType === 'tarea' ? 'comentar' : 'proponer';
     }
 
     private function resolverModelo(): Model
@@ -116,7 +122,7 @@ class Conversacion extends Component
             'notas' => $notas,
             'documentos' => $documentos,
             'sujeto' => $this->modelType === 'tarea' ? 'de la tarea' : 'del '.$this->modelType,
-            'puedeEscribir' => Auth::user()->can('proponer', $modelo),
+            'puedeEscribir' => Auth::user()->can($this->habilidadEscritura(), $modelo),
         ]);
     }
 }

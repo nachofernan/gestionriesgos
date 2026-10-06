@@ -826,3 +826,22 @@ elemento.
   pantalla de revisión.
 - `DetectorInconsistencias` acepta `contarBorradores` para la vista previa.
 - Tests nuevos en `RevisionInicialTest` y `RevisionInicialPantallaTest`.
+
+---
+
+## D-027 — Quien gestiona un plan aprobado puede comentar las tareas aprobadas de ese plan (2026-10-06)
+
+**Decisión.** Nueva ability `TareaPolicy::comentar`: además de quien ya podía `proponer`, puede dejar una
+nota en una tarea quien gestiona (`update`) un plan **aprobado** que la contiene, si la tarea también está
+**aprobada**, aunque sea de otra gerencia. Solo notas: no habilita proponer cambios de campos.
+`Conversacion` la usa únicamente para `modelType = 'tarea'`.
+
+**Motivo.** Si una tarea de una gerencia externa frena el cierre de mi plan, puedo comentarla ahí mismo en
+vez de mandar mails.
+
+**Descartado.**
+- **Ensanchar `proponer`:** abriría también las propuestas de cambio sobre tareas ajenas.
+- **Extenderlo a otras relaciones (riesgo, control, objetivo):** el pedido es solo plan → tarea.
+
+**Efecto en cascada anotado.** Cambia quién puede escribir en la ficha de la tarea. `view` y
+`scopeVisiblePara` no cambian: aprobado ya es público. Tests en `FichaTareaTest`.

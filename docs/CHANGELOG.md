@@ -6,6 +6,9 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-06** — Quien gestiona un plan aprobado puede comentar las tareas aprobadas de ese plan, aunque sean de
+  otra gerencia ([D-027](DECISIONES.md#d-027)). La tabla de valoración también aparece al editar un control ya
+  validado/aprobado (ficha del control).
 - **2026-10-06** — Revisión inicial: el gerente firma o no firma (revisar queda para empleados), y
   **Validar y firmar** valida de una vez los cambios propuestos por su equipo y firma, todo o nada
   ([D-026](DECISIONES.md#d-026)). Filtro Pendientes / Firmados. Nuevo `Actualizacion::validarPor()`.

@@ -131,4 +131,68 @@ class FichaTareaTest extends TestCase
         $this->assertCount(0, $this->tarea->actualizaciones()->get());
         $this->assertEquals(80, $this->tarea->fresh()->porcentaje_avance);
     }
+
+    /** Tarea de otra gerencia metida en un plan de $this->gerencia, con los estados dados. */
+    private function tareaAjenaEnMiPlan(string $estadoTarea = 'aprobado', string $estadoPlan = 'aprobado'): Tarea
+    {
+        $ajena = Area::create(['nombre' => 'Gerencia Externa', 'tipo' => TipoArea::Gerencia]);
+        $tarea = Tarea::factory()->create([
+            'estado_id' => Estado::where('nombre', $estadoTarea)->first()->id,
+            'area_id' => $ajena->id,
+        ]);
+        $plan = PlanAccion::factory()->create([
+            'estado_id' => Estado::where('nombre', $estadoPlan)->first()->id,
+            'area_id' => $this->gerencia->id,
+        ]);
+        $plan->tareas()->attach($tarea->id);
+
+        return $tarea;
+    }
+
+    #[Test]
+    public function el_gerente_de_un_plan_aprobado_puede_comentar_una_tarea_aprobada_de_otra_gerencia(): void
+    {
+        $tarea = $this->tareaAjenaEnMiPlan();
+
+        Livewire::actingAs($this->empleado)
+            ->test(Conversacion::class, ['modelType' => 'tarea', 'modelId' => $tarea->id])
+            ->set('mensaje', 'Necesitamos esta tarea para cerrar nuestro plan')
+            ->call('enviar')
+            ->assertHasNoErrors();
+
+        $this->assertCount(1, $tarea->actualizaciones()->get());
+    }
+
+    #[Test]
+    public function el_comentario_desde_el_plan_no_habilita_si_el_plan_no_esta_aprobado(): void
+    {
+        $tarea = $this->tareaAjenaEnMiPlan(estadoPlan: 'borrador');
+
+        Livewire::actingAs($this->empleado)
+            ->test(Conversacion::class, ['modelType' => 'tarea', 'modelId' => $tarea->id])
+            ->set('mensaje', 'Intento')
+            ->call('enviar')
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function el_comentario_desde_el_plan_no_habilita_si_la_tarea_no_esta_aprobada(): void
+    {
+        $tarea = $this->tareaAjenaEnMiPlan(estadoTarea: 'validado');
+
+        Livewire::actingAs($this->empleado)
+            ->test(Conversacion::class, ['modelType' => 'tarea', 'modelId' => $tarea->id])
+            ->set('mensaje', 'Intento')
+            ->call('enviar')
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function ser_del_plan_no_habilita_proponer_cambios_de_campos_en_la_tarea(): void
+    {
+        $tarea = $this->tareaAjenaEnMiPlan();
+
+        $this->assertFalse($this->empleado->can('proponer', $tarea));
+        $this->assertTrue($this->empleado->can('comentar', $tarea));
+    }
 }
