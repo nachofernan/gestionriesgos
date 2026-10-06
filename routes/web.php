@@ -128,6 +128,14 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // Vencimientos (tareas ordenadas por fecha: vencidas / por vencer)
     // -------------------------------------------------------------------
     Route::get('vencimientos', [VencimientoController::class, 'index'])->name('vencimientos.index');
+
+    // -------------------------------------------------------------------
+    // Revisión de la carga inicial (transitoria, D-024): se apaga con
+    // config('auditoria.revision_inicial.activa')
+    // -------------------------------------------------------------------
+    if (config('auditoria.revision_inicial.activa')) {
+        Route::view('revision-inicial', 'auditoria.revision-inicial.index')->name('revision-inicial.index');
+    }
 });
 
 require __DIR__.'/auth.php';

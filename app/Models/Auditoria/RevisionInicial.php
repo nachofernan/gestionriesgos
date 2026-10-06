@@ -147,8 +147,14 @@ class RevisionInicial extends Model
      *
      * @return Collection<int, Area>
      */
-    public static function gerenciasDe(Model $elemento): Collection
+    public static function gerenciasDe(Model $elemento, ?array $mapa = null): Collection
     {
+        if ($mapa !== null) {
+            $areaIds = $elemento instanceof Riesgo ? $elemento->areas->pluck('id') : collect([$elemento->area_id]);
+
+            return $areaIds->map(fn ($id) => $mapa[$id] ?? null)->filter()->unique('id')->values();
+        }
+
         $areas = $elemento instanceof Riesgo
             ? $elemento->areas
             : collect([$elemento->area])->filter();
@@ -157,5 +163,25 @@ class RevisionInicial extends Model
             ->filter()
             ->unique('id')
             ->values();
+    }
+
+    /**
+     * Gerencia de cada área (area_id => Area|null) resuelta en memoria con una
+     * sola consulta, con la misma regla que Area::gerencia(). Para listados que
+     * llaman a gerenciasDe() sobre cientos de elementos.
+     *
+     * @return array<int, Area|null>
+     */
+    public static function mapaGerencias(): array
+    {
+        $areas = Area::all()->keyBy('id');
+
+        return $areas->map(function (Area $area) use ($areas) {
+            while ($area && ! $area->esGerencia()) {
+                $area = $areas->get($area->area_padre_id);
+            }
+
+            return $area;
+        })->all();
     }
 }

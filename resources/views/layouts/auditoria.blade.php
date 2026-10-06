@@ -48,6 +48,13 @@
                                 Pendientes
                             </a>
                         @endif
+                        @if(config('auditoria.revision_inicial.activa'))
+                            <a href="{{ route('auditoria.revision-inicial.index') }}"
+                               class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors
+                                   {{ request()->routeIs('auditoria.revision-inicial.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700' }}">
+                                Revisión inicial
+                            </a>
+                        @endif
                     @endauth
                 </div>
                 @auth
