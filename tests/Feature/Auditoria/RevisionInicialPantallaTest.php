@@ -9,6 +9,7 @@ use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
+use App\Models\Auditoria\RevisionInicial;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use App\Models\User;
@@ -136,6 +137,83 @@ class RevisionInicialPantallaTest extends TestCase
 
         $this->assertDatabaseHas('revisiones_iniciales', ['revisable_id' => $riesgo->id, 'firmado_por_id' => $this->gerente->id]);
         $this->assertSame(0, $riesgo->objetivos()->count());
+    }
+
+    /** Riesgo sin objetivo con una propuesta del coordinador en borrador. */
+    private function riesgoConPropuestaDeEmpleado(array $data): array
+    {
+        $riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->sistemas->id, 'impacto' => 5, 'probabilidad' => 5]);
+        $riesgo->controles()->attach($this->control->id);
+        $propuesta = $riesgo->actualizaciones()->create([
+            'user_id' => $this->coordinador->id,
+            'mensaje' => 'Corrección de la carga',
+            'estado_id' => Estado::borrador()->id,
+            'data' => ['tipo' => 'cambio', ...$data],
+        ]);
+
+        return [$riesgo, $propuesta];
+    }
+
+    private function agregarObjetivo(): array
+    {
+        $objetivo = Objetivo::create(['nombre' => 'Continuidad operativa', 'area_id' => $this->sistemas->id, 'user_id' => $this->gerente->id]);
+
+        return ['relaciones' => ['objetivos' => ['agregar' => [$objetivo->id => []]]]];
+    }
+
+    #[Test]
+    public function validar_y_firmar_valida_los_cambios_y_firma(): void
+    {
+        [$riesgo, $propuesta] = $this->riesgoConPropuestaDeEmpleado($this->agregarObjetivo());
+
+        $this->pantalla($this->gerente)
+            ->set('tipo', 'riesgo')
+            ->assertSee('Validar y firmar')
+            ->call('validarYFirmar', 'riesgo', $riesgo->id, $this->sistemas->id)
+            ->assertHasNoErrors();
+
+        $this->assertEquals('validado', $propuesta->fresh()->estado->nombre);
+        $revision = RevisionInicial::where('revisable_id', $riesgo->id)->firstOrFail();
+        $this->assertEquals($this->gerente->id, $revision->firmado_por_id);
+        $this->assertSame(['sin_objetivo'], $revision->arreglos_pendientes);
+    }
+
+    #[Test]
+    public function con_cambios_sin_validar_no_se_firma_a_secas(): void
+    {
+        [$riesgo] = $this->riesgoConPropuestaDeEmpleado(['campos' => ['descripcion' => 'Más clara']]);
+        $riesgo->objetivos()->attach(Objetivo::create(['nombre' => 'Otro', 'area_id' => $this->sistemas->id])->id);
+
+        $this->pantalla($this->gerente)
+            ->call('firmar', 'riesgo', $riesgo->id, $this->sistemas->id)
+            ->assertHasErrors('revision');
+
+        $this->assertDatabaseCount('revisiones_iniciales', 0);
+    }
+
+    #[Test]
+    public function si_la_firma_no_procede_no_se_valida_nada(): void
+    {
+        [$riesgo, $propuesta] = $this->riesgoConPropuestaDeEmpleado(['campos' => ['descripcion' => 'Más clara']]);
+
+        $this->pantalla($this->gerente)
+            ->call('validarYFirmar', 'riesgo', $riesgo->id, $this->sistemas->id)
+            ->assertHasErrors('revision');
+
+        $this->assertEquals('borrador', $propuesta->fresh()->estado->nombre);
+        $this->assertDatabaseCount('revisiones_iniciales', 0);
+    }
+
+    #[Test]
+    public function el_coordinador_no_puede_validar_y_firmar(): void
+    {
+        [$riesgo, $propuesta] = $this->riesgoConPropuestaDeEmpleado($this->agregarObjetivo());
+
+        $this->pantalla($this->coordinador)
+            ->call('validarYFirmar', 'riesgo', $riesgo->id, $this->sistemas->id)
+            ->assertForbidden();
+
+        $this->assertEquals('borrador', $propuesta->fresh()->estado->nombre);
     }
 
     #[Test]

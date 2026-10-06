@@ -233,21 +233,9 @@ class GestionActualizaciones extends Component
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('validar', $actualizacion);
 
-        if ($actualizacion->requiereDobleValidacion()) {
-            $actualizacion->registrarVoto(Auth::user(), true);
-            if ($actualizacion->todasLasGerenciasValidaron()) {
-                $actualizacion->marcarValidada(Auth::user());
-            }
-            // Aunque falten votos, la tarjeta de la propuesta tiene que mostrar el nuevo.
-            $this->dispatch("{$this->modelType}-actualizado");
-
-            return;
-        }
-
-        $actualizacion->marcarValidada(Auth::user());
-        // marcarValidada() sólo aplica los cambios si la entidad ya estaba
-        // "validado" (ver Actualizacion::marcarValidada) — se dispatcha igual sin
-        // distinguir ese caso: un re-render de más en Info* no rompe nada.
+        $actualizacion->validarPor(Auth::user());
+        // Se dispatcha siempre: aunque falten votos, la tarjeta tiene que mostrar el
+        // nuevo, y un re-render de más en Info* cuando no se aplicó nada no rompe nada.
         $this->dispatch("{$this->modelType}-actualizado");
     }
 

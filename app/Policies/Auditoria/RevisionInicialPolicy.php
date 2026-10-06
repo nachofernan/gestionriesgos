@@ -20,17 +20,19 @@ use Illuminate\Support\Facades\Gate;
 class RevisionInicialPolicy
 {
     /**
+     * Revisar es de empleados y coordinadores: un gerente firma o no firma. Si
+     * el responsable es gerente de esta gerencia, nadie revisa: sólo ella firma.
      * Tests: el_coordinador_revisa_un_elemento_de_su_area_pero_no_lo_firma,
-     * si_el_responsable_es_la_gerente_solo_ella_revisa_y_firma.
+     * el_gerente_firma_pero_no_revisa, si_el_responsable_es_la_gerente_solo_ella_firma.
      */
     public function revisar(User $user, Model $elemento, Area $gerencia): bool
     {
-        if (! $this->habilitada($user, $elemento, $gerencia)) {
+        if (! $this->habilitada($user, $elemento, $gerencia) || $user->rol === 'gerente') {
             return false;
         }
 
-        if ($responsableGerente = $this->responsableGerenteDe($elemento, $gerencia)) {
-            return $responsableGerente->is($user);
+        if ($this->responsableGerenteDe($elemento, $gerencia)) {
+            return false;
         }
 
         if ($elemento->user_id === $user->id) {
@@ -43,7 +45,7 @@ class RevisionInicialPolicy
 
     /**
      * Tests: el_gerente_firma_en_su_gerencia_y_no_en_otra,
-     * si_el_responsable_es_la_gerente_solo_ella_revisa_y_firma.
+     * si_el_responsable_es_la_gerente_solo_ella_firma.
      */
     public function firmar(User $user, Model $elemento, Area $gerencia): bool
     {

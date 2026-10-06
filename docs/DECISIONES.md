@@ -787,3 +787,42 @@ medio. Lo que se arregló ya cuenta con su validación.
 - `DetectorInconsistencias` hace una sola consulta de propuestas por instancia, y la pantalla comparte
   una instancia por render.
 - Tests nuevos en `DetectorInconsistenciasTest`, `RevisionInicialTest` y `RevisionInicialPantallaTest`.
+
+## D-026 — El gerente firma o no firma; "Validar y firmar" los cambios de su equipo (2026-10-06)
+
+**Decisión.** Tres ajustes a la revisión de la carga inicial ([D-024](#d-024), [D-025](#d-025)):
+
+1. **Revisar es de empleados y coordinadores.** El gerente ya no "marca revisado": firma o no firma.
+   Si el responsable del elemento es gerente de esa gerencia, nadie lo revisa: sólo esa persona lo
+   firma. Esto reemplaza el "sólo esa persona revisa y firma" del punto 4 de D-024.
+2. **"Validar y firmar".**
+   - Si el elemento tiene propuestas en **borrador** que el gerente puede validar (las que hicieron
+     empleados o coordinadores), la fila lo marca y el botón de firma pasa a ser **Validar y firmar**.
+   - El modal lista los cambios. Al confirmar, se validan **todos** con el circuito de siempre y
+     después se firma. En un riesgo compartido, validar es dejar el voto de su gerencia.
+   - Es **todo o nada**: si después de validar la firma no procede (quedan errores, o advertencias sin
+     comentario), no se valida nada.
+   - Mientras haya cambios sin validar **no se firma a secas**. Si el gerente no está de acuerdo con
+     uno, lo rechaza desde la pantalla del elemento.
+   - La vista previa del botón (si va a quedar bloqueado y qué advertencias van a quedar) proyecta
+     también las propuestas en borrador, como si ya estuvieran validadas.
+3. **El filtro de revisión es Pendientes / Firmados.** Viene en Pendientes, que incluye lo revisado
+   sin firmar.
+
+**Motivo.** Sin esto, el gerente tenía que ir elemento por elemento a validar cada propuesta de su
+equipo y después volver a firmar. En la práctica valida todo junto, así que el sistema lo acompaña
+sin saltear el circuito: cada validación queda registrada igual que si se hubiera hecho desde el
+elemento.
+
+**Descartado.**
+- **Elegir con tildes qué propuestas validar:** hace el modal más pesado. Lo que no se quiere validar
+  se rechaza en el elemento.
+- **Dejar "Firmar" a secas con cambios pendientes:** permitiría firmar sin mirar lo que propuso el
+  equipo.
+
+**Efecto en cascada anotado.**
+- La lógica de validar una propuesta (voto bajo doble validación, o validación directa) pasa a
+  `Actualizacion::validarPor()`. La usan `GestionActualizaciones::validarActualizacion()` y la
+  pantalla de revisión.
+- `DetectorInconsistencias` acepta `contarBorradores` para la vista previa.
+- Tests nuevos en `RevisionInicialTest` y `RevisionInicialPantallaTest`.

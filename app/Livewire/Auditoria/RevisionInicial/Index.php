@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auditoria\RevisionInicial;
 
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -17,6 +18,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -46,8 +50,8 @@ class Index extends Component
 
     public string $search = '';
 
-    /** pendiente | revisado | firmado */
-    public string $filtroRevision = '';
+    /** pendiente (incluye lo revisado sin firmar) | firmado */
+    public string $filtroRevision = 'pendiente';
 
     /** errores | advertencias | limpios */
     public string $filtroHallazgos = '';
@@ -59,7 +63,7 @@ class Index extends Component
     protected $queryString = [
         'tipo' => ['except' => 'riesgo'],
         'search' => ['except' => ''],
-        'filtroRevision' => ['except' => ''],
+        'filtroRevision' => ['except' => 'pendiente'],
         'filtroHallazgos' => ['except' => ''],
         'filtroGerencia' => ['except' => null],
     ];
@@ -101,11 +105,73 @@ class Index extends Component
         [$elemento, $gerencia] = $this->resolver($tipo, $id, $gerenciaId);
         $this->authorize('firmar', [RevisionInicial::class, $elemento, $gerencia]);
 
+        if ($this->cambiosAValidar($elemento)->isNotEmpty()) {
+            throw ValidationException::withMessages(['revision' => 'Tiene cambios sin validar: usá «Validar y firmar».']);
+        }
+
         $hallazgos = (new DetectorInconsistencias)->detectar($elemento);
         RevisionInicial::registrarFirma($elemento, $gerencia, Auth::user(), $hallazgos, $comentario);
 
         $this->mensaje = "«{$elemento->nombre}» quedó firmado.";
         $this->dispatch('revision-registrada');
+    }
+
+    /**
+     * Valida todas las propuestas en borrador del elemento que el gerente puede
+     * validar (con el circuito de siempre, Actualizacion::validarPor()) y lo
+     * firma. Todo o nada: si después de validar la firma no procede (errores, o
+     * advertencias sin comentario), no queda validado nada.
+     * Tests: validar_y_firmar_valida_los_cambios_y_firma,
+     * si_la_firma_no_procede_no_se_valida_nada, con_cambios_sin_validar_no_se_firma_a_secas.
+     */
+    public function validarYFirmar(string $tipo, int $id, int $gerenciaId, ?string $comentario = null): void
+    {
+        $this->resetErrorBag();
+        $this->mensaje = null;
+        [$elemento, $gerencia] = $this->resolver($tipo, $id, $gerenciaId);
+        $this->authorize('firmar', [RevisionInicial::class, $elemento, $gerencia]);
+
+        $cambios = $this->cambiosAValidar($elemento);
+
+        DB::transaction(function () use ($cambios, $tipo, $id, $gerencia, $comentario) {
+            foreach ($cambios as $cambio) {
+                $this->authorize('validar', $cambio);
+                $cambio->validarPor(Auth::user());
+            }
+
+            $elemento = DetectorInconsistencias::consulta(self::TIPOS[$tipo]['modelo'])->findOrFail($id);
+            $hallazgos = (new DetectorInconsistencias)->detectar($elemento);
+            RevisionInicial::registrarFirma($elemento, $gerencia, Auth::user(), $hallazgos, $comentario);
+        });
+
+        $this->mensaje = "«{$elemento->nombre}»: {$cambios->count()} cambio(s) validado(s) y firmado.";
+        $this->dispatch('revision-registrada');
+    }
+
+    /** Una línea de texto por cambio de la propuesta, a partir de Actualizacion::diffLegible(). */
+    private static function lineasDeCambio(Actualizacion $propuesta): array
+    {
+        $diff = $propuesta->diffLegible();
+        $verbos = ['agrega' => 'agregar', 'quita' => 'quitar', 'cambia' => 'cambiar'];
+
+        return [
+            ...array_map(fn ($c) => "{$c['etiqueta']}: {$c['antes']} → {$c['despues']}", $diff['campos']),
+            ...collect($diff['relaciones'])->flatMap(fn ($r) => array_map(
+                fn ($i) => "{$r['etiqueta']}: ".($verbos[$i['op']] ?? $i['op'])." {$i['nombre']}".($i['detalle'] ? " ({$i['detalle']})" : ''),
+                $r['items'],
+            ))->all(),
+        ];
+    }
+
+    /** Propuestas en borrador del elemento que el usuario puede validar. */
+    private function cambiosAValidar(Model $elemento): Collection
+    {
+        return $elemento->actualizaciones()->propuestasPendientes()
+            ->where('estado_id', Estado::borrador()->id)
+            ->get()
+            ->each(fn (Actualizacion $a) => $a->setRelation('actualizable', $elemento))
+            ->filter(fn (Actualizacion $a) => Gate::allows('validar', $a))
+            ->values();
     }
 
     /** @return array{0: Model, 1: Area} */
@@ -156,27 +222,29 @@ class Index extends Component
      * Cada elemento con sus inconsistencias y una entrada por gerencia firmante
      * (revisión registrada, si la hay).
      */
-    private function filas(string $modelo, User $user, array $mapa, DetectorInconsistencias $detector): Collection
+    private function filas(string $modelo, User $user, array $mapa, DetectorInconsistencias $detector, DetectorInconsistencias $previa, Collection $borradores): Collection
     {
         return $this->consultaPara($modelo, $user)->orderBy('nombre')->get()
-            ->map(function (Model $elemento) use ($detector, $mapa) {
+            ->map(function (Model $elemento) use ($detector, $previa, $borradores, $mapa) {
+                $cambios = ($borradores[$elemento->getMorphClass().'#'.$elemento->id] ?? collect())
+                    ->each(fn (Actualizacion $a) => $a->setRelation('actualizable', $elemento));
+
                 $gerencias = RevisionInicial::gerenciasDe($elemento, $mapa)->map(fn (Area $g) => [
                     'gerencia' => $g,
                     'revision' => $elemento->revisionesIniciales->firstWhere('gerencia_id', $g->id),
                 ]);
 
                 $firmadas = $gerencias->filter(fn ($g) => $g['revision']?->firmado_en)->count();
-                $revisadas = $gerencias->filter(fn ($g) => $g['revision']?->revisado_en || $g['revision']?->firmado_en)->count();
 
                 return [
                     'elemento' => $elemento,
                     'hallazgos' => $detector->detectar($elemento),
                     'gerencias' => $gerencias,
-                    'estado' => match (true) {
-                        $gerencias->isNotEmpty() && $firmadas === $gerencias->count() => 'firmado',
-                        $revisadas > 0 => 'revisado',
-                        default => 'pendiente',
-                    },
+                    // Propuestas en borrador (de empleados) y cómo quedaría validándolas.
+                    'cambios' => $cambios,
+                    'lineasCambios' => $cambios->mapWithKeys(fn (Actualizacion $a) => [$a->id => self::lineasDeCambio($a)]),
+                    'hallazgosPrevios' => $cambios->isNotEmpty() ? $previa->detectar($elemento) : null,
+                    'estado' => $gerencias->isNotEmpty() && $firmadas === $gerencias->count() ? 'firmado' : 'pendiente',
                 ];
             });
     }
@@ -230,7 +298,14 @@ class Index extends Component
         $mapa = RevisionInicial::mapaGerencias();
 
         $detector = new DetectorInconsistencias;
-        $filasPorTipo = collect(self::TIPOS)->map(fn ($cfg) => $this->filas($cfg['modelo'], $user, $mapa, $detector));
+        $previa = new DetectorInconsistencias(contarBorradores: true);
+        $borradores = Actualizacion::query()->propuestasPendientes()
+            ->where('estado_id', Estado::borrador()->id)
+            ->with('user')
+            ->latest()
+            ->get()
+            ->groupBy(fn (Actualizacion $a) => $a->actualizable_type.'#'.$a->actualizable_id);
+        $filasPorTipo = collect(self::TIPOS)->map(fn ($cfg) => $this->filas($cfg['modelo'], $user, $mapa, $detector, $previa, $borradores));
         $filas = $this->filtrar($filasPorTipo[$this->tipo] ?? collect());
 
         $pagina = $this->getPage();

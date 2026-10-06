@@ -3,15 +3,14 @@
         abierto: false,
         accion: null,
         tipo: null, id: null, gerenciaId: null,
-        nombre: '', gerencia: '', advertencias: [], enCurso: [],
+        nombre: '', gerencia: '', advertencias: [], enCurso: [], cambios: [],
         comentario: '',
         abrir(datos) {
-            Object.assign(this, datos, { comentario: '', abierto: true });
+            Object.assign(this, { advertencias: [], enCurso: [], cambios: [] }, datos, { comentario: '', abierto: true });
         },
         confirmar() {
-            this.accion === 'firmar'
-                ? $wire.firmar(this.tipo, this.id, this.gerenciaId, this.comentario)
-                : $wire.marcarRevisado(this.tipo, this.id, this.gerenciaId, this.comentario);
+            const metodo = { firmar: 'firmar', validarYFirmar: 'validarYFirmar', revisar: 'marcarRevisado' }[this.accion];
+            $wire.call(metodo, this.tipo, this.id, this.gerenciaId, this.comentario);
         },
      }"
      x-on:revision-registrada.window="abierto = false">
@@ -97,10 +96,8 @@
                 <label class="block text-xs font-semibold text-gray-700 mb-2">Revisión</label>
                 <select wire:model.live="filtroRevision"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="">Todas</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="revisado">Revisado, sin firmar</option>
-                    <option value="firmado">Firmado</option>
+                    <option value="pendiente">Pendientes</option>
+                    <option value="firmado">Firmados</option>
                 </select>
             </div>
             <div>
@@ -171,6 +168,11 @@
                                         <span class="text-xs text-green-700">Sin inconsistencias</span>
                                     @endforelse
                                 </div>
+                                @if ($fila['cambios']->isNotEmpty())
+                                    <div class="mt-1.5 text-xs text-violet-700 font-medium">
+                                        ✎ {{ $fila['cambios']->count() }} cambio(s) propuesto(s) sin validar
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-4 py-3">
                                 <div class="space-y-2">
@@ -201,7 +203,27 @@
                                                         @endcan
                                                     @endif
                                                     @can('firmar', [App\Models\Auditoria\RevisionInicial::class, $elemento, $g])
-                                                        @if ($conErrores)
+                                                        @php
+                                                            $validables = $fila['cambios']->filter(fn ($a) => auth()->user()->can('validar', $a));
+                                                            $previos = collect($fila['hallazgosPrevios']);
+                                                        @endphp
+                                                        @if ($validables->isNotEmpty())
+                                                            @if ($previos->contains('severidad', 'error'))
+                                                                <span class="text-xs text-red-600">Firma bloqueada por errores, aun validando los cambios</span>
+                                                            @else
+                                                                <button type="button"
+                                                                        x-on:click="abrir(@js([
+                                                                            'accion' => 'validarYFirmar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id,
+                                                                            'nombre' => $elemento->nombre, 'gerencia' => $g->nombre,
+                                                                            'advertencias' => $previos->where('severidad', 'advertencia')->pluck('mensaje')->values(),
+                                                                            'enCurso' => $previos->where('severidad', 'en_curso')->pluck('mensaje')->values(),
+                                                                            'cambios' => $validables->map(fn ($a) => ['autor' => $a->user?->name, 'mensaje' => $a->mensaje, 'lineas' => $fila['lineasCambios'][$a->id]])->values(),
+                                                                        ]))"
+                                                                        class="px-2 py-1 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-md">
+                                                                    ✓ Validar y firmar
+                                                                </button>
+                                                            @endif
+                                                        @elseif ($conErrores)
                                                             <span class="text-xs text-red-600" title="Hay que arreglar los errores antes de firmar">Firma bloqueada por errores</span>
                                                         @else
                                                             <button type="button"
@@ -238,14 +260,29 @@
          x-on:keydown.escape.window="abierto = false">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4" x-on:click.outside="abierto = false">
             <div>
-                <h2 class="text-lg font-bold text-gray-900" x-text="accion === 'firmar' ? 'Firmar' : 'Marcar revisado'"></h2>
+                <h2 class="text-lg font-bold text-gray-900" x-text="{ firmar: 'Firmar', validarYFirmar: 'Validar los cambios y firmar', revisar: 'Marcar revisado' }[accion]"></h2>
                 <p class="text-sm text-gray-500">
                     <span class="font-semibold text-gray-700" x-text="nombre"></span>
                     · <span x-text="gerencia"></span>
                 </p>
             </div>
 
-            <template x-if="accion === 'firmar' && enCurso.length">
+            <template x-if="accion === 'validarYFirmar'">
+                <div class="rounded-lg bg-violet-50 border border-violet-200 p-3 text-sm text-violet-900 space-y-2">
+                    <p class="font-semibold">Se validan estos cambios propuestos y después se firma:</p>
+                    <template x-for="c in cambios">
+                        <div>
+                            <p><span class="font-semibold" x-text="c.autor"></span>: <span x-text="c.mensaje"></span></p>
+                            <ul class="list-disc pl-5 text-xs space-y-0.5">
+                                <template x-for="l in c.lineas"><li x-text="l"></li></template>
+                            </ul>
+                        </div>
+                    </template>
+                    <p class="text-xs">Si no estás de acuerdo con alguno, rechazalo desde la pantalla del elemento.</p>
+                </div>
+            </template>
+
+            <template x-if="accion !== 'revisar' && enCurso.length">
                 <div class="rounded-lg bg-sky-50 border border-sky-200 p-3 text-sm text-sky-900">
                     <p class="font-semibold mb-1">Firmás con arreglos validados que todavía esperan al comité:</p>
                     <ul class="list-disc pl-5 space-y-0.5">
@@ -254,7 +291,7 @@
                 </div>
             </template>
 
-            <template x-if="accion === 'firmar' && advertencias.length">
+            <template x-if="accion !== 'revisar' && advertencias.length">
                 <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
                     <p class="font-semibold mb-1">Firmás aceptando estas advertencias:</p>
                     <ul class="list-disc pl-5 space-y-0.5">
@@ -266,8 +303,8 @@
             <div>
                 <label class="block text-xs font-semibold text-gray-700 mb-1">
                     Comentario
-                    <span x-show="accion === 'firmar' && advertencias.length" class="text-red-600">(obligatorio)</span>
-                    <span x-show="! (accion === 'firmar' && advertencias.length)" class="text-gray-400 font-normal">(opcional)</span>
+                    <span x-show="accion !== 'revisar' && advertencias.length" class="text-red-600">(obligatorio)</span>
+                    <span x-show="! (accion !== 'revisar' && advertencias.length)" class="text-gray-400 font-normal">(opcional)</span>
                 </label>
                 <textarea x-model="comentario" rows="3"
                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
@@ -280,9 +317,9 @@
                 <button type="button" x-on:click="abierto = false"
                         class="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Cancelar</button>
                 <button type="button" x-on:click="confirmar()"
-                        :class="accion === 'firmar' ? 'bg-green-600 hover:bg-green-700' : 'bg-indigo-600 hover:bg-indigo-700'"
+                        :class="{ firmar: 'bg-green-600 hover:bg-green-700', validarYFirmar: 'bg-violet-600 hover:bg-violet-700', revisar: 'bg-indigo-600 hover:bg-indigo-700' }[accion]"
                         class="px-3 py-1.5 text-sm font-bold text-white rounded-lg"
-                        x-text="accion === 'firmar' ? 'Firmar' : 'Marcar revisado'"></button>
+                        x-text="{ firmar: 'Firmar', validarYFirmar: 'Validar y firmar', revisar: 'Marcar revisado' }[accion]"></button>
             </div>
         </div>
     </div>

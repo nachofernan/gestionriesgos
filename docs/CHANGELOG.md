@@ -6,6 +6,10 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-06** — Revisión inicial: el gerente firma o no firma (revisar queda para empleados), y
+  **Validar y firmar** valida de una vez los cambios propuestos por su equipo y firma, todo o nada
+  ([D-026](DECISIONES.md#d-026)). Filtro Pendientes / Firmados. Nuevo `Actualizacion::validarPor()`.
+
 - **2026-10-06** — Revisión inicial: un error con su arreglo en una propuesta **validada** deja de
   bloquear la firma y se muestra "en curso" ([D-025](DECISIONES.md#d-025)). Columna
   `arreglos_pendientes`. Además, `app.js` deja de arrancar un segundo Alpine en las páginas con Livewire:

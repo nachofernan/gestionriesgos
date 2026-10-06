@@ -69,6 +69,12 @@ class DetectorInconsistencias
     private ?array $propuestas = null;
 
     /**
+     * Con $contarBorradores proyecta también las propuestas en borrador, como si
+     * el gerente ya las hubiera validado: es la vista previa de "Validar y firmar".
+     */
+    public function __construct(private bool $contarBorradores = false) {}
+
+    /**
      * Inconsistencias de un elemento cargado con consulta(). Si sus propuestas
      * ya validadas que esperan al comité la resuelven, la inconsistencia sale
      * con severidad EN_CURSO: se muestra, pero no bloquea ni pide comentario.
@@ -156,7 +162,7 @@ class DetectorInconsistencias
         $indice = ['propias' => [], 'inversas' => []];
 
         $pendientes = Actualizacion::query()->propuestasPendientes()
-            ->where('estado_id', Estado::validado()?->id)
+            ->whereIn('estado_id', array_filter([Estado::validado()?->id, $this->contarBorradores ? Estado::borrador()?->id : null]))
             ->orderBy('created_at')
             ->get(['id', 'actualizable_type', 'actualizable_id', 'data']);
 

@@ -397,6 +397,28 @@ class Actualizacion extends Model implements HasMedia
     }
 
     /**
+     * Validación de un gerente, por donde pasa todo "validar" de una propuesta
+     * (GestionActualizaciones y "Validar y firmar" de la revisión inicial). Bajo
+     * doble validación registra el voto de su gerencia y valida recién cuando
+     * votaron todas; si no, valida directo. Quien llama ya autorizó con
+     * ActualizacionPolicy::validar().
+     * Tests: DobleValidacionTest, validar_y_firmar_valida_los_cambios_y_firma.
+     */
+    public function validarPor(User $usuario): void
+    {
+        if ($this->requiereDobleValidacion()) {
+            $this->registrarVoto($usuario, true);
+            if ($this->todasLasGerenciasValidaron()) {
+                $this->marcarValidada($usuario);
+            }
+
+            return;
+        }
+
+        $this->marcarValidada($usuario);
+    }
+
+    /**
      * Valida la actualización y, si la entidad relacionada ya estaba en
      * "validado", aplica los cambios en el mismo paso (no espera una
      * aprobación aparte).

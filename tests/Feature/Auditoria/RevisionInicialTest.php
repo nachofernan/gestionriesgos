@@ -105,12 +105,21 @@ class RevisionInicialTest extends TestCase
     }
 
     #[Test]
-    public function si_el_responsable_es_la_gerente_solo_ella_revisa_y_firma(): void
+    public function si_el_responsable_es_la_gerente_solo_ella_firma(): void
     {
         $control = $this->control($this->gerenteSistemas);
 
         $this->assertFalse($this->puede($this->coordinador, 'revisar', $control, $this->sistemas));
-        $this->assertTrue($this->puede($this->gerenteSistemas, 'revisar', $control, $this->sistemas));
+        $this->assertFalse($this->puede($this->gerenteSistemas, 'revisar', $control, $this->sistemas));
+        $this->assertTrue($this->puede($this->gerenteSistemas, 'firmar', $control, $this->sistemas));
+    }
+
+    #[Test]
+    public function el_gerente_firma_pero_no_revisa(): void
+    {
+        $control = $this->control($this->empleadoCoordinacion);
+
+        $this->assertFalse($this->puede($this->gerenteSistemas, 'revisar', $control, $this->sistemas));
         $this->assertTrue($this->puede($this->gerenteSistemas, 'firmar', $control, $this->sistemas));
     }
 
