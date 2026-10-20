@@ -11,7 +11,7 @@
         $pasoInicial = 2;
     } elseif ($errors->hasAny(['impacto_respuestas', 'impacto_respuestas.*'])) {
         $pasoInicial = 3;
-    } elseif ($errors->hasAny(['respuesta', 'fundamento', 'area_id'])) {
+    } elseif ($errors->hasAny(['respuesta', 'fundamento', 'area_id', 'sedes', 'sedes.*'])) {
         $pasoInicial = 4;
     }
 @endphp
@@ -230,6 +230,8 @@
                     </select>
                     @error('area_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
                 </div>
+
+                @include('auditoria.partials.sedes-checkboxes', ['sedes' => $sedes, 'seleccionadas' => []])
             </div>
 
             {{-- Navegación del wizard --}}

@@ -62,7 +62,7 @@ Comité (raíz)
     └── Planta B
 ```
 
-### Los tres roles
+### Los cuatro roles
 
 - **Comité**: no pertenece a ningún área puntual. Opera sobre lo público de toda la
   organización. Es quien da la aprobación final.
@@ -70,6 +70,15 @@ Comité (raíz)
   gestiona la cascada de otro gerente.
 - **Usuario de un área** (sin rol de gerente): gestiona lo que crea en su propio sector; su
   gerente ve y valida lo suyo.
+- **Auditor**: tiene su propia área (por ejemplo, Auditoría Interna) pero su función es
+  transversal. Ve lo validado y lo aprobado de **cualquier** área de la organización, igual que
+  un usuario común vería lo suyo — pero no ve los borradores de áreas que no son la suya. Sobre
+  cualquier elemento que ve (validado o aprobado, de cualquier gerencia) puede **proponer
+  cambios**: campos de la ficha, altas y bajas en controles/objetivos/planes, y recalcular
+  impacto/probabilidad. Esa propuesta siempre nace en borrador y la valida el gerente responsable
+  del elemento — el auditor no puede validar, aprobar, rechazar ni eliminar nada, ni crear
+  elementos nuevos. También puede dejar notas y adjuntos en la Conversación de cualquier elemento
+  que ve, y cancelar sus propias propuestas mientras siguen en borrador.
 
 ### Qué ve cada uno, según el estado
 
@@ -104,15 +113,17 @@ directo), el sistema te bloquea con un error de "No autorizado".
 
 ### Resumen de permisos por rol
 
-| Acción | Usuario | Gerente | Comité |
-|---|---|---|---|
-| Crear elementos | En su sector | En su área y sub-áreas | En cualquier área |
-| Ver borradores | Los propios | Los de su cascada | Ninguno |
-| Validar borradores | No | Sí, los de su cascada | No |
-| Aprobar validados | No | No | Sí |
-| Ver aprobados | Todos | Todos | Todos |
-| Acceso a "Pendientes" | No | Sí | Sí |
-| Acceso a "Vencimientos" | Sí (su área) | Sí (su cascada) | Sí (todo) |
+| Acción | Usuario | Gerente | Comité | Auditor |
+|---|---|---|---|---|
+| Crear elementos | En su sector | En su área y sub-áreas | En cualquier área | No |
+| Ver borradores | Los propios | Los de su cascada | Ninguno | Los de su propia área |
+| Editar directo en borrador | Lo propio | Lo de su cascada | — | Lo propio (su área) |
+| Proponer cambios sobre validado/aprobado | — | — | — | Sobre cualquier elemento, de cualquier área |
+| Validar borradores | No | Sí, los de su cascada | No | No |
+| Aprobar validados | No | No | Sí | No |
+| Ver aprobados | Todos | Todos | Todos | Todos |
+| Acceso a "Pendientes" | No | Sí | Sí | No |
+| Acceso a "Vencimientos" | Sí (su área) | Sí (su cascada) | Sí (todo) | Sí (su área) |
 
 ---
 
@@ -201,9 +212,11 @@ cada una con varias opciones a elección. Las respuestas se suman y dan la **Pro
 - **Respuesta** (obligatorio): "Reducir / Mitigar", "Evitar", "Compartir" o "Aceptar" — el tipo de
   riesgo puede restringir cuáles están disponibles.
 - **Fundamento**: obligatorio si elegiste "Compartir" o "Aceptar"; opcional para las otras dos.
-- **Objetivos**: seleccionás uno o más de una lista de checkboxes (podés dejarlo para después,
-  pero antes de validar el riesgo vas a necesitar al menos uno — ver 5.6).
-- **Área**: por defecto la tuya, se puede cambiar.
+- **Área** (obligatoria): elegís entre tu área y sus sub-áreas. Si sos del comité, podés elegir
+  cualquier área de la organización. El objetivo se asocia después, desde el detalle del riesgo
+  (ver 5.5), ya no desde este paso.
+- **Sedes** (obligatorio, al menos una): La Plata, Mar del Plata, Villa Gesell, Mar de Ajó y
+  Necochea. Marcás las que correspondan; el botón **Todas** las marca de una.
 
 Al final, el botón **Crear Riesgo** guarda todo y te lleva directo al detalle. El riesgo nace en
 estado **Borrador**.
@@ -219,54 +232,56 @@ estado/rol — **Editar** (solo en borrador), **Eliminar**, y los de avance de c
 **Columna izquierda**:
 
 - **Información**: descripción, dos cifras grandes con el **Valor Total** y el **Valor
-  Residual** (se recalculan solos si cambiás controles o planes, sin recargar la página), y una
-  ficha con Estado, Código (ej. R-0001), Impacto, Probabilidad, Criticidad, Respuesta,
-  Fundamento, Área, Usuario que lo creó y fecha de creación.
-- **Gerencias**: qué gerencias comparten este riesgo (ver 5.5).
-- **Objetivos**: los objetivos asociados (ver 5.6 y sección 7).
-- **Controles de Mitigación**: los controles asociados, con su mitigación efectiva (ver 5.6 y
+  Residual** (se recalculan solos si cambiás controles o planes, sin recargar la página; el
+  desglose muestra cuánto descuenta cada lado, controles vs. planes), y una ficha con Estado,
+  Impacto, Probabilidad, Criticidad, Respuesta, Fundamento, Área, **Sedes** ("Todas las sedes"
+  si corresponde a todas), Usuario que lo creó y fecha de creación. Ningún elemento del sistema lleva código: se identifica por su nombre en pantalla.
+- **Objetivos**: los objetivos asociados (ver 5.5 y sección 7).
+- **Controles de Mitigación**: los controles asociados, con su mitigación efectiva (ver 5.5 y
   sección 6).
 
 **Columna derecha**:
 
 - **Planes de Acción**: los planes asociados con su código, estado y % de avance, más un listado
-  anidado de sus tareas (ver 5.6 y sección 8).
-- **Historial de Actualizaciones**: todos los cambios, validaciones, propuestas y votos
+  anidado de sus tareas (ver 5.5 y sección 8).
+- **Historial de Actualizaciones**: todos los cambios, validaciones y propuestas
   registrados (ver sección 10).
 
 ### 5.4. Editar, recalcular y eliminar
 
 **Editar** (solo disponible en borrador): cambiás Nombre, Descripción, Tipo de Riesgo, Respuesta,
-Fundamento, criticidad y Área. **Impacto y Probabilidad se muestran de solo lectura** — no se
+Fundamento, criticidad, Área y Sedes. **Impacto y Probabilidad se muestran de solo lectura** — no se
 tocan desde acá.
 
 **Recalcular impacto y probabilidad**: en la pantalla de edición, debajo de esos dos campos
 bloqueados, hay un link **"Recalcular impacto y probabilidad (vuelve a pasar el wizard)"**. Te
 lleva a una versión corta del asistente (solo las preguntas de probabilidad e impacto, con tus
 respuestas anteriores precargadas) y termina con un botón **Recalcular** que guarda los nuevos
-valores sin tocar el estado del riesgo.
+valores sin tocar el estado del riesgo. Este recálculo está disponible en cualquier estado del
+riesgo salvo **Aprobado**, y nunca para el comité.
+
+**Corregir un solo número sin repetir el cuestionario**: fuera de borrador, además del wizard
+completo de arriba, podés corregir Impacto o Probabilidad puntualmente desde la Ficha del riesgo
+(ver 5.3) como un campo más — igual que Nombre o Respuesta —, con el mismo circuito de propuesta y
+validación que el resto de los campos (ver sección 10). Siguen siendo un entero de 0 a 10, nunca
+texto libre.
+
+**Un riesgo se puede seguir editando toda su vida**, incluso ya Aprobado: la ficha (Nombre,
+Descripción, Tipo de Riesgo, Respuesta, Fundamento, Área, Impacto, Probabilidad, Sedes) se edita
+en cualquier estado desde el bloque de la Ficha, y el cambio se aplica directo o queda como
+propuesta según tu rol y el estado (ver sección 10). Un cambio de sedes queda como una propuesta
+aparte de los otros campos, y se valida o rechaza por separado. El **estado del riesgo nunca retrocede** por
+un cambio posterior a su creación: lo que entra al ciclo borrador → validado → aprobado es cada
+propuesta de cambio, no el riesgo en sí.
 
 **Eliminar**: botón rojo en el detalle. Pide confirmación ("Esta acción no se puede deshacer") y
 lo pasa a estado Borrado (borrado lógico: queda registrado, pero deja de estar activo).
 
-### 5.5. Compartir entre gerencias y doble validación
+### 5.5. Asociar controles, objetivos y planes de acción
 
-En la sección **Gerencias** del detalle, con el riesgo en borrador tenés el botón **Editar**; si
-ya está validado/aprobado, el botón es **Proponer cambio**. En ambos casos entrás en modo
-edición: **Agregar gerencia** abre un buscador, y cada gerencia agregada se puede sacar con una
-**X**. Guardás con **Guardar** (o descartás con **Cancelar**).
-
-- Si el riesgo tiene una sola gerencia, el cambio se aplica al instante.
-- Si el riesgo ya está compartido entre **dos o más gerencias**, cualquier propuesta de cambio
-  (compartirlo con otra más, tocar sus controles, objetivos o planes) dispara la **doble
-  validación**: se abre una ventana que lista qué debe validar cada gerencia involucrada
-  (algunos ítems son obligatorios, otros opcionales), y solo se aplica cuando **todas** las
-  gerencias votan a favor. Si una sola vota en contra, la propuesta queda rechazada. Tu propio
-  voto a favor queda registrado automáticamente al proponer el cambio.
-
-### 5.6. Asociar controles, objetivos y planes de acción
-
-Las tres secciones (Controles, Objetivos, Planes) del detalle del riesgo funcionan igual:
+Las tres secciones (Objetivos, Controles, Planes) del detalle del riesgo, una debajo de la otra,
+funcionan igual. Cada una muestra primero lo que **hoy** forma parte del riesgo y,
+debajo, aparte, las propuestas todavía no resueltas sobre esa misma sección.
 
 1. Con el riesgo en **borrador**, el botón dice **Editar**; en otro estado dice **Proponer
    cambio**.
@@ -275,8 +290,13 @@ Las tres secciones (Controles, Objetivos, Planes) del detalle del riesgo funcion
 3. Cada ítem agregado se puede sacar con una **X**.
 4. Para Controles y Planes, además podés tocar el número de **mitigación** de cada ítem (el valor
    que efectivamente descuenta del riesgo — ver secciones 6 y 8 para el detalle).
-5. **Guardar** aplica los cambios (o crea la propuesta, si corresponde por doble validación);
-   **Cancelar** descarta lo hecho en la edición.
+5. **Guardar** aplica los cambios directo (en borrador, o si sos gerente/comité sobre lo que
+   gestionás) o los deja como propuesta.
+
+**Fuera de borrador, cada alta o baja es su propia propuesta**, no un combo de todo el bloque: se
+valida, aprueba o rechaza una por una, desde su propia tarjeta debajo de la lista vigente — no
+hace falta aceptar o rechazar todo junto. Mientras un ítem tiene una propuesta pendiente, no se
+puede volver a proponer un cambio sobre él hasta que esa propuesta se resuelva.
 
 **Objetivos tiene un mínimo obligatorio de 1**: si intentás sacar el último objetivo asociado,
 el sistema no te deja y muestra "El riesgo debe tener al menos un objetivo asociado." Controles
@@ -296,7 +316,16 @@ Botón **Ver** por fila y **Nuevo Control** arriba a la derecha.
 ### 6.2. Crear y editar un control
 
 Campos: **Nombre** (obligatorio), **Descripción** (opcional), **Valor de Mitigación por
-defecto** (obligatorio, de 1 a 10) y, opcionalmente, **Área** y **Responsable**.
+defecto** (obligatorio, de 1 a 10), **Área** (obligatoria, tu área o una sub-área; el comité puede
+elegir cualquiera) y **Responsable** (opcional: un usuario del área elegida, sus sub-áreas, o
+subiendo hasta la primera gerencia de esa línea — no cualquiera de la organización).
+
+**Si cambiás el Valor de Mitigación por defecto** aparece la opción **"aplicar también a los N
+riesgos asociados"**. Sin tildarla, el cambio solo afecta a los riesgos que se asocien de ahora
+en más; cada riesgo ya asociado conserva su propio número. Tildada (pide confirmación), el nuevo
+valor se aplica de una a **todos** los riesgos ya asociados al control, incluidos los de otras
+áreas — queda registrado en el historial de cada riesgo
+afectado.
 
 Al lado del campo de mitigación aparece un cuadro de **Referencia de Valoración** que orienta
 qué número elegir:
@@ -311,8 +340,17 @@ qué número elegir:
 Es orientativo, no una validación forzada del sistema.
 
 **Editar** solo está disponible mientras el control esté en **Borrador** — botón **Editar** en el
-detalle. Una vez validado, los cambios se hacen desde el historial de Actualizaciones (sección
-10), igual que en Riesgos.
+detalle. Una vez validado, los cambios se proponen desde la Ficha del control (igual que en
+Riesgos, ver 5.4 y sección 10).
+
+### 6.2.1. Pausar un control
+
+Un control puede marcarse **Pausado**, independiente de su estado. Un control pausado **deja de
+mitigar**: aunque siga Aprobado, su valor no descuenta del residual de los riesgos a los que está
+asociado mientras dure la pausa. La asociación y la mitigación cargada no se pierden — al
+reanudarlo, vuelve a descontar como antes. Pausar/reanudar es un campo más de la ficha: pasa por
+el mismo circuito de propuesta y validación que cualquier otro cambio (incluida la opción de
+propagarlo a todos los riesgos asociados, con confirmación).
 
 ### 6.3. Detalle de un control
 
@@ -324,7 +362,7 @@ el Residual de cada riesgo. Al costado, el **Historial de Actualizaciones**.
 ### 6.4. Cómo se asocia un control a un riesgo
 
 **La asociación no se hace desde el Control: se hace desde el Riesgo**, en su sección "Controles
-de Mitigación" (ver 5.6). Ahí, cada control agregado trae por defecto su "mitigación por
+de Mitigación" (ver 5.5). Ahí, cada control agregado trae por defecto su "mitigación por
 defecto", pero podés tocar ese número puntualmente para ese riesgo — el control en sí no cambia,
 solo cambia cuánto mitiga *a ese riesgo específico*.
 
@@ -349,8 +387,9 @@ Fecha Objetivo. Botón **Ver** por fila y **Nuevo Objetivo** arriba a la derecha
 
 Campos: **Nombre** (obligatorio), **Descripción** (opcional), **Fecha Objetivo** (con un
 checkbox **No aplica** que la deshabilita si el objetivo no tiene plazo), **Estratégico**
-(checkbox), **PEIS** (checkbox), **Área** y **Responsable** (opcionales, este último se
-autocompleta con tu usuario).
+(checkbox), **PEIS** (checkbox), **Área** (obligatoria, tu área o una sub-área; el comité puede
+elegir cualquiera) y **Responsable** (opcional, se autocompleta con tu usuario: un usuario del
+área elegida, sus sub-áreas, o subiendo hasta la primera gerencia de esa línea).
 
 **Si marcás PEIS**, aparece una sección con los 5 ítems del catálogo, cada uno como checkbox:
 
@@ -381,7 +420,7 @@ con sus tareas. Al costado, el **Historial de Actualizaciones**.
 ### 7.4. Cómo se asocia un objetivo a un riesgo
 
 Igual que Controles: la asociación vive en el detalle del **Riesgo**, sección "Objetivos" (ver
-5.6). Recordá el mínimo de 1 objetivo por riesgo.
+5.5). Recordá el mínimo de 1 objetivo por riesgo.
 
 ### 7.5. Eliminar un objetivo
 
@@ -395,22 +434,23 @@ elemento no aprobado.
 
 ### 8.1. Listado de Planes de Acción
 
-Columnas: **Código / Nombre** (ej. PA-0001), **Estado**, **Descripción**, **Riesgos** asociados,
-**Avance** (barra de progreso: verde al 100%, ámbar si está en curso, guion si no tiene tareas
-aprobadas todavía), **Vencimiento** (la fecha más lejana entre sus tareas; en rojo con etiqueta
-**"Vencido"** si ya pasó y el avance no llegó al 100%), **Usuario / Área**. Filtros: **Buscar**,
-**Estado**, **Área** (con **Incluir sub-áreas**), **Limpiar filtros**. Se ordena por Código /
-Nombre. Botón **Ver** por fila y **Nuevo Plan** arriba a la derecha.
+Columnas: **Nombre**, **Estado**, **Descripción**, **Riesgos** asociados, **Avance** (barra de
+progreso: verde al 100%, ámbar si está en curso, guion si no tiene tareas aprobadas todavía),
+**Vencimiento** (la fecha pendiente más próxima entre sus tareas sin completar; en rojo con
+etiqueta **"Vencido"** si ya pasó), **Usuario / Área**. Filtros: **Buscar**, **Estado**, **Área**
+(con **Incluir sub-áreas**), **Limpiar filtros**. Se ordena por Nombre. Botón **Ver** por fila y
+**Nuevo Plan** arriba a la derecha.
 
 ### 8.2. Crear y editar un plan de acción
 
-Campos: **Código Identificador** (el sistema sugiere el siguiente correlativo, ej. PA-0002; se
-puede ajustar pero debe ser único), **Nombre** (obligatorio), **Descripción** (opcional),
-**Riesgos Asociados** (checkboxes, cada uno con su valor total a la vista, para elegir cuáles
-mitiga este plan), **Área** y **Responsable** (opcionales).
+Campos: **Nombre** (obligatorio), **Descripción** (opcional), **Área** (obligatoria, tu área o
+una sub-área; el comité puede elegir cualquiera) y **Responsable** (opcional: un usuario del área
+elegida, sus sub-áreas, o subiendo hasta la primera gerencia de esa línea). Los riesgos que
+mitiga este plan ya no se eligen acá: se asocian desde el detalle del riesgo (ver 5.5), igual que
+los controles.
 
 **Editar** solo está disponible en Borrador — botón **Editar** en el detalle. Después de
-validado, los cambios se proponen por Actualizaciones (sección 10).
+validado, los cambios se proponen desde la Ficha del plan (sección 10).
 
 ### 8.3. Cómo se calcula el % de avance de un plan
 
@@ -426,7 +466,7 @@ Ejemplos:
 
 ### 8.4. Detalle de un plan de acción
 
-Muestra Código, Nombre, Estado, Descripción, la barra de **Avance General**, y una ficha con
+Muestra Nombre, Estado, Descripción, la barra de **Avance General**, y una ficha con
 Vencimiento, Área, Responsable y fecha de creación. A la izquierda, los **Riesgos** asociados
 (clic para ver cada uno). A la derecha, el panel **Tareas del Plan** (ver 8.5) y el **Historial
 de Actualizaciones** (sección 10).
@@ -441,7 +481,12 @@ validado/aprobado, **Proponer cambio**. En modo edición podés:
   una, con Nombre, Fecha límite y un slider de Avance (0-100%, de a 5%). Botón **"Crear y
   agregar"**.
 - Cada tarea de la lista se puede quitar con una **X**.
-- **Guardar** aplica los cambios (o los propone, según el estado); **Cancelar** descarta.
+- **Guardar** aplica los cambios.
+
+**Fuera de borrador**, cada alta o baja de tarea es su propia propuesta — se valida/aprueba/
+rechaza una por una, no todo el panel junto — y el avance del plan no se mueve hasta que la
+propuesta se aplica. **En borrador**, o si sos gerente/comité operando directo sobre lo tuyo, el
+panel se guarda de una, como siempre.
 
 ### 8.6. La columna "Plan de acción" en el listado de Riesgos
 
@@ -452,8 +497,7 @@ aparece el texto **"Sin plan"**.
 
 ### 8.7. Eliminar un plan de acción
 
-Botón **Eliminar** en el detalle, con confirmación. Pasa a Borrado; su código (ej. PA-0002) no
-se reutiliza aunque el plan se elimine.
+Botón **Eliminar** en el detalle, con confirmación. Pasa a Borrado (borrado lógico).
 
 ---
 
@@ -463,15 +507,17 @@ se reutiliza aunque el plan se elimine.
 
 Columnas: **Nombre** (en rojo con etiqueta **"Vencida"** si corresponde), **Estado**,
 **Descripción**, **Avance** (barra de progreso: roja si vencida, ámbar en curso, verde al 100%),
-**Fecha** límite, **Planes** a los que pertenece (por código), **Usuario / Área**. Filtros:
+**Fecha** límite, **Planes** a los que pertenece (por nombre), **Usuario / Área**. Filtros:
 **Buscar**, **Estado**, **Área** (con **Incluir sub-áreas**), **Limpiar filtros**. Se ordena por
 Nombre, Avance o Fecha. Botón **Ver** por fila y **Nueva Tarea** arriba a la derecha.
 
 ### 9.2. Crear y editar una tarea
 
 Campos: **Nombre** (obligatorio), **Descripción** (opcional), **Fecha límite** (opcional),
-**Porcentaje de Avance** (slider de 0 a 100% de a 5%, arranca en 0%), **Área** y **Responsable**
-(opcionales, este último se autocompleta con tu usuario).
+**Porcentaje de Avance** (slider de 0 a 100% de a 5%, arranca en 0%), **Área** (obligatoria, tu
+área o una sub-área; el comité puede elegir cualquiera) y **Responsable** (opcional, se
+autocompleta con tu usuario: un usuario del área elegida, sus sub-áreas, o subiendo hasta la
+primera gerencia de esa línea).
 
 **Editar** solo en Borrador. Después de validada, los cambios de avance y demás campos se
 registran vía Actualizaciones (sección 10) — de hecho, para tareas es el mecanismo normal de
@@ -493,47 +539,48 @@ Botón **Eliminar** en el detalle, con confirmación. Pasa a Borrado (borrado l�
 
 ## 10. Actualizaciones, propuestas de cambio y adjuntos
 
-Este mecanismo es común a Riesgos, Controles, Objetivos, Planes de Acción y Tareas: es el panel
-**"Historial de Actualizaciones"** que ves en el detalle de cada uno.
+Este mecanismo es común a Riesgos, Controles, Objetivos, Planes de Acción y Tareas. La pantalla
+de detalle de cada uno separa dos cosas que antes estaban mezcladas:
 
-### Cuándo se usa
+- **Conversación**: notas sueltas y adjuntos, sin ciclo de validación — para dejar un comentario
+  o subir un archivo sin que eso dispare ninguna revisión.
+- **Actividad**: el historial de solo lectura de los cambios efectivamente propuestos y
+  resueltos (creación, cambio, validación, aprobación, rechazo), con su propio modal de detalle.
 
-Mientras un elemento está en **Borrador**, lo editás directo con el botón Editar (ver secciones
-5 a 9). Una vez que pasó a **Validado** o **Aprobado**, ya no hay edición directa: cualquier
-cambio se registra como una nueva entrada en el historial, con botón **"Nueva Actualización"**.
+### Cuándo se usa cada uno
 
-### El formulario de una nueva actualización
+Mientras un elemento está en **Borrador**, se edita directo con el botón **Editar** (ver
+secciones 5 a 9): ahí no hay propuesta, el cambio se aplica al toque. Una vez **Validado** o
+**Aprobado**, ya no hay edición directa de los campos de la Ficha ni de las relaciones
+(controles, objetivos, planes, tareas según el caso): cada cambio pasa por una propuesta.
 
-- **Mensaje** (obligatorio, mínimo 3 caracteres): contás qué estás cambiando o informando. Ej:
-  "Alcanzamos el 75% del trabajo" o "Cambiamos la fecha límite a fin de mes".
-- **Cambios propuestos** (opcional): según el tipo de elemento aparecen campos puntuales para
-  editar (en una Tarea: nombre, descripción, % de avance, fecha; en un Plan: nombre,
-  descripción). Dejás en blanco lo que no querés tocar.
-- **Adjuntos** (opcional): arrastrás o seleccionás archivos — PDF, Word, Excel, JPG o PNG, hasta
-  10 MB por archivo, varios a la vez. Sirven para acompañar la actualización con evidencia
-  (comprobantes, capturas, informes).
+- **Dejar una nota o un adjunto** (sin cambiar nada): se hace desde la **Conversación**, en
+  cualquier estado. No aparece en Pendientes, no se valida ni se aprueba.
+- **Cambiar un campo de la Ficha** (nombre, descripción, respuesta, fundamento, impacto,
+  probabilidad, según la entidad): se edita directo en la Ficha, mandás sólo lo que cambiaste, y
+  queda como propuesta (o se aplica directo si corresponde por tu rol).
+- **Agregar o quitar un control / objetivo / plan / tarea**: se hace desde el bloque
+  correspondiente (ver 5.5, 8.5), y **cada alta o baja es su propia propuesta** — se resuelve una
+  por una, no todo el bloque junto.
 
-### Qué pasa después de guardar
+### Qué pasa después de proponer un cambio
 
-El estado de la propuesta depende de tu rol y de si el riesgo está compartido entre gerencias:
+El estado de la propuesta depende de tu rol:
 
-- Si sos gerente o comité, la actualización nace ya **validada**.
-- Si sos usuario común, nace en **borrador** y necesita que un gerente la valide.
-- Si el elemento pertenece a un riesgo con **doble validación** (compartido entre 2+ gerencias),
-  la propuesta necesita el voto a favor de **todas** las gerencias involucradas antes de
-  aplicarse (ver 5.5).
+- Si sos gerente o comité operando sobre lo que gestionás, el cambio se aplica **directo**, sin
+  pasar por propuesta.
+- Si sos un usuario común, o un gerente proponiendo sobre algo fuera de su cascada, nace una
+  propuesta en **borrador** y necesita que el gerente responsable la valide.
+- Si sos **auditor**, tu propuesta sobre cualquier elemento que veas (validado o aprobado, de
+  cualquier área) siempre nace en **borrador**, aunque el elemento sea de tu propia área.
+- Mientras una propuesta está pendiente, quien la creó puede **Cancelarla** si todavía está en
+  borrador; quien tiene permiso ve **Validar**, **Aprobar** o **Rechazar**. El comité también
+  puede rechazar una propuesta ya validada que está esperando su aprobación.
 
-### Cómo se lee el historial
+### Adjuntos
 
-Cada entrada muestra un ícono según el tipo de evento (creación, cambio, validación, rechazo),
-el mensaje, un badge de estado, quién lo hizo y cuándo, y — si aplica — qué gerencias todavía no
-votaron. Los cambios de campo se muestran como "valor anterior → valor nuevo"; los cambios de
-relaciones muestran qué se agregó, quitó o modificó. Si la propuesta está pendiente y tenés
-permiso, vas a ver botones **Validar**, **Aprobar**, **Rechazar** o, si sos quien la propuso y
-todavía está en borrador, **Cancelar** (para retirarla).
-
-Los adjuntos de cada actualización quedan como links descargables dentro de esa misma entrada
-del historial.
+Se arrastran o seleccionan desde la Conversación — PDF, Word, Excel, JPG o PNG, hasta 10 MB por
+archivo, varios a la vez — y quedan como links descargables ahí mismo, junto con las notas.
 
 ---
 
@@ -575,15 +622,19 @@ tarea, a qué plan de acción pertenece, su % de avance y su fecha.
 - **Riesgo**: la entidad central. Tiene un Valor Total (impacto + probabilidad) y un Valor
   Residual (lo que queda después de descontar controles aprobados y planes completos).
 - **Control**: una medida de mitigación, con un valor de mitigación de 1 a 10 que reduce el
-  riesgo cuando se lo asocia.
+  riesgo cuando se lo asocia. Puede **pausarse**: mientras está pausado, no mitiga.
 - **Objetivo**: un objetivo estratégico al que se vincula un riesgo (mínimo uno por riesgo).
   Puede marcarse como PEIS, en cuyo caso exige elegir al menos un ítem del catálogo fijo de 5.
 - **Plan de Acción**: agrupa tareas y riesgos; su % de avance sale del promedio de sus tareas
   aprobadas.
 - **Tarea**: la unidad de trabajo dentro de un plan, con fecha límite y % de avance propio.
-- **Actualización**: cada entrada del historial de un elemento — un cambio, una validación, una
-  propuesta con o sin adjuntos.
+- **Actualización**: cada entrada de la Conversación o la Actividad de un elemento — una nota,
+  un cambio propuesto, una validación, con o sin adjuntos.
 - **Borrador / Validado / Aprobado / Borrado**: los cuatro estados por los que pasa todo
   elemento del sistema, y que determinan quién puede verlo y editarlo (ver secciones 2 y 3).
-- **Doble validación**: cuando un riesgo está compartido entre dos o más gerencias, cualquier
-  cambio propuesto necesita el voto a favor de todas ellas para aplicarse.
+- **Sede**: la administración central (La Plata) o una de las generadoras de la costa. Cada
+  riesgo corresponde a una, varias o todas. Es informativa: no cambia quién lo ve ni quién lo
+  gestiona.
+- **Auditor**: rol transversal que ve lo validado/aprobado de toda la organización y propone
+  cambios sobre cualquier elemento, sin poder crear, validar, aprobar ni eliminar (ver sección
+  2).

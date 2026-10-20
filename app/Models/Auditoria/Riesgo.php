@@ -156,6 +156,12 @@ class Riesgo extends Model implements HasMedia
         return null;
     }
 
+    /** Sedes a las que corresponde el riesgo (al menos una, D-029). Informativa: no da acceso. */
+    public function sedes(): BelongsToMany
+    {
+        return $this->belongsToMany(Sede::class, 'riesgo_sede')->withTimestamps();
+    }
+
     public function controles(): BelongsToMany
     {
         return $this->belongsToMany(Control::class, 'control_riesgo')

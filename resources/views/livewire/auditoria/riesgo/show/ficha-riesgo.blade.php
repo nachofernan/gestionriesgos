@@ -6,7 +6,7 @@
     @endphp
 
     <x-auditoria.bloque-riesgo ancla="ficha" titulo="Ficha del riesgo"
-        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
+        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty() || $propuestasSedes->isNotEmpty()">
 
         <x-slot:accion>
             @if($puedeActualizar && !$editando)
@@ -48,6 +48,20 @@
                         <dd class="text-gray-700 whitespace-pre-line">{{ $riesgo->fundamento }}</dd>
                     </div>
                 @endif
+                <div class="col-span-3">
+                    <dt class="{{ $label }}">Sedes</dt>
+                    <dd class="flex flex-wrap gap-1.5">
+                        @if($riesgo->sedes->isEmpty())
+                            <span class="text-gray-400 italic">Sin sedes.</span>
+                        @elseif($riesgo->sedes->count() === $todasLasSedes->count())
+                            <span class="text-xs font-semibold rounded-md px-2 py-0.5 bg-indigo-50 text-indigo-700">Todas las sedes</span>
+                        @else
+                            @foreach($riesgo->sedes as $sede)
+                                <span class="text-xs font-semibold rounded-md px-2 py-0.5 bg-gray-100 text-gray-700">{{ $sede->nombre }}</span>
+                            @endforeach
+                        @endif
+                    </dd>
+                </div>
             </dl>
         @else
             <div class="grid grid-cols-6 gap-x-4 gap-y-3">
@@ -103,8 +117,26 @@
                         </a>
                     @endif
                 </div>
-                @if(!empty($bloqueados))
-                    <p class="col-span-6 text-[11px] text-amber-700">Los campos grisados ya tienen una propuesta pendiente: se pueden volver a tocar cuando se resuelva.</p>
+                <div class="col-span-6">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="{{ $label }} !mb-0">Sedes</label>
+                        @unless($sedesBloqueadas)
+                            <button type="button" wire:click="marcarTodasLasSedes" class="text-[11px] font-semibold text-gray-400 hover:text-indigo-600">Todas</button>
+                        @endunless
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 rounded-lg border border-gray-200 p-2.5 {{ $sedesBloqueadas ? 'bg-gray-50' : '' }}">
+                        @foreach($todasLasSedes as $sede)
+                            <label class="flex items-center gap-2 text-sm {{ $sedesBloqueadas ? 'text-gray-400' : 'text-gray-700 cursor-pointer' }}">
+                                <input type="checkbox" wire:model="sedes" value="{{ $sede->id }}" @disabled($sedesBloqueadas)
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50">
+                                {{ $sede->nombre }}
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('sedes') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                @if(!empty($bloqueados) || $sedesBloqueadas)
+                    <p class="col-span-6 text-[11px] text-amber-700">Lo grisado ya tiene una propuesta pendiente: se puede volver a tocar cuando se resuelva.</p>
                 @endif
             </div>
         @endif
@@ -131,6 +163,9 @@
         <x-slot:propuestas>
             @foreach($propuestas as $propuesta)
                 <x-auditoria.propuesta-pendiente :propuesta="$propuesta" parte="campos" :estadoEntidad="$estadoModelo" />
+            @endforeach
+            @foreach($propuestasSedes as $propuesta)
+                <x-auditoria.propuesta-pendiente :propuesta="$propuesta" parte="sedes" :estadoEntidad="$estadoModelo" />
             @endforeach
         </x-slot:propuestas>
     </x-auditoria.bloque-riesgo>

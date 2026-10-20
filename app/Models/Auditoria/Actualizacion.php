@@ -195,8 +195,7 @@ class Actualizacion extends Model implements HasMedia
             $data['propagar_mitigacion'] = true;
         }
 
-        $aplicar = $estadoId === Estado::aprobado()->id
-            || ($estadoId === Estado::validado()->id && $estadoEntidad === 'validado');
+        $aplicar = static::seAplicaAlRegistrar($estadoId, $estadoEntidad);
         if ($aplicar) {
             $data['activated_by'] = $usuario->name;
         }
@@ -222,10 +221,60 @@ class Actualizacion extends Model implements HasMedia
     }
 
     /**
+     * Registra el reemplazo completo de una relación de la entidad (hoy, las sedes
+     * del riesgo desde su ficha). Misma regla de estado inicial y de aplicación
+     * que registrarCambioCampos(): si se aplica en el acto hace el sync; si no,
+     * queda como propuesta y aplicarCambios() hace el sync al validar o aprobar.
+     * $diff es ['agrega' => [[id, nombre]], 'quita' => [...]], para el historial.
+     * Quien llama ya validó los ids y autorizó 'proponer'.
+     * Tests: un_empleado_propone_cambiar_las_sedes_y_se_aplica_al_validar,
+     * un_gerente_cambia_las_sedes_de_un_riesgo_validado_en_el_acto.
+     */
+    public static function registrarCambioSync(Model $entidad, User $usuario, string $mensaje, string $relacion, array $ids, array $diff): self
+    {
+        $estadoId = static::estadoInicialParaCambio($usuario, $entidad->estado?->nombre);
+        $aplicar = static::seAplicaAlRegistrar($estadoId, $entidad->estado?->nombre);
+
+        $data = [
+            'tipo' => 'cambio',
+            'relaciones' => [$relacion => ['sync' => $ids]],
+            'diff' => ['relaciones' => [$relacion => $diff]],
+        ];
+        if ($aplicar) {
+            $data['activated_by'] = $usuario->name;
+        }
+
+        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $relacion, $ids, $estadoId, $data, $aplicar) {
+            $actualizacion = $entidad->actualizaciones()->create([
+                'user_id' => $usuario->id,
+                'mensaje' => $mensaje,
+                'estado_id' => $estadoId,
+                'data' => $data,
+            ]);
+
+            if ($aplicar) {
+                $entidad->$relacion()->sync($ids);
+            }
+
+            return $actualizacion;
+        });
+    }
+
+    /**
+     * Si un cambio recién registrado se aplica en el acto: nace aprobado, o nace
+     * validado sobre una entidad que ya está validada.
+     */
+    private static function seAplicaAlRegistrar(int $estadoId, ?string $estadoEntidad): bool
+    {
+        return $estadoId === Estado::aprobado()->id
+            || ($estadoId === Estado::validado()->id && $estadoEntidad === 'validado');
+    }
+
+    /**
      * Propuestas de cambio que todavía no se aplicaron a su entidad: tipo
      * "cambio", en borrador (espera validación) o validada sin `activated_by`
      * (espera al comité). Con `$parte` se acota a las que tocan esa parte de la
-     * entidad: una relación ('objetivos', 'controles', 'planesAccion', 'tareas') o
+     * entidad: una relación ('objetivos', 'controles', 'planesAccion', 'tareas', 'sedes') o
      * 'campos'. Lo consumen los bloques de riesgo/show para mostrar lo propuesto
      * debajo de lo vigente. Solo lectura.
      * Test: propuestas_pendientes_incluye_solo_cambios_sin_aplicar_y_filtra_por_parte.
@@ -296,7 +345,7 @@ class Actualizacion extends Model implements HasMedia
 
         $partes = [
             'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes de acción',
-            'tareas' => 'Tareas',
+            'tareas' => 'Tareas', 'sedes' => 'Sedes',
         ];
         $relaciones = [];
         foreach ($diff['relaciones'] ?? [] as $parte => $ops) {

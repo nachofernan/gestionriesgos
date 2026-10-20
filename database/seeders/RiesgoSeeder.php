@@ -6,6 +6,7 @@ use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -18,6 +19,7 @@ class RiesgoSeeder extends Seeder
         $users = User::where('id', '>', 1)->whereNotNull('area_id')->where('rol', '!=', 'auditor')->get();
         $objetivoIds = Objetivo::pluck('id')->toArray();
         $respuestas = RespuestaRiesgo::cases();
+        $sedeIds = Sede::pluck('id')->all();
 
         // 15 riesgos: 2 borrado, 3 borrador, 5 validado, 5 aprobado
         $estadoDistribucion = [
@@ -74,6 +76,7 @@ class RiesgoSeeder extends Seeder
                 'user_id' => $user->id,
                 'area_id' => $user->area_id,
             ]);
+            $riesgo->sedes()->sync($sedeIds);
 
             // motivosBloqueoValidacion(): validar exige al menos un objetivo asociado,
             // así que todo riesgo validado/aprobado lo tiene garantizado; en

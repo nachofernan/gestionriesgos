@@ -11,8 +11,8 @@
         'mayor_criticidad' => 'Mayor criticidad','mitigacion_default' => 'Mitigación por defecto', 'pausado' => 'Pausado', 'fecha_objetivo' => 'Fecha objetivo',
         'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
     ];
-    $nombresPartes = ['campos' => 'Datos', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes', 'tareas' => 'Tareas'];
-    $anclas = ['campos' => 'ficha', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes', 'tareas' => 'tareas'];
+    $nombresPartes = ['campos' => 'Datos', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes', 'tareas' => 'Tareas', 'sedes' => 'Sedes'];
+    $anclas = ['campos' => 'ficha', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes', 'tareas' => 'tareas', 'sedes' => 'ficha'];
 
     // Clasifica una entrada: qué es, cómo terminó y qué partes tocó. Lo usan el lateral y el modal.
     $clasificar = function ($a) use ($pendientesIds) {

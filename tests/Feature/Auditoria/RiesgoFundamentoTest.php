@@ -5,9 +5,11 @@ namespace Tests\Feature\Auditoria;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -26,13 +28,14 @@ class RiesgoFundamentoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(EstadoRiesgoSeeder::class);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
         $this->usuario = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
     }
 
     private function datosWizard(array $overrides = []): array
     {
         return array_merge([
+            'sedes' => Sede::pluck('id')->all(),
             'nombre' => 'Riesgo de prueba',
             'tipo_riesgo_id' => TipoRiesgo::factory()->create(['restringe_respuesta' => false])->id,
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
@@ -65,6 +68,7 @@ class RiesgoFundamentoTest extends TestCase
     public function se_crea_el_riesgo_con_fundamento_si_la_respuesta_lo_exige(string $respuestaRiesgo): void
     {
         $respuesta = $this->actingAs($this->usuario)->post(route('auditoria.riesgos.store'), $this->datosWizard([
+            'sedes' => Sede::pluck('id')->all(),
             'respuesta' => $respuestaRiesgo,
             'fundamento' => 'El costo de mitigarlo supera al impacto esperado.',
         ]));
@@ -112,6 +116,7 @@ class RiesgoFundamentoTest extends TestCase
         ]);
 
         $respuesta = $this->actingAs($this->usuario)->put(route('auditoria.riesgos.update', $riesgo), [
+            'sedes' => Sede::pluck('id')->all(),
             'nombre' => $riesgo->nombre,
             'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
             'respuesta' => 'aceptar',
@@ -132,6 +137,7 @@ class RiesgoFundamentoTest extends TestCase
         ]);
 
         $this->actingAs($this->usuario)->put(route('auditoria.riesgos.update', $riesgo), [
+            'sedes' => Sede::pluck('id')->all(),
             'nombre' => $riesgo->nombre,
             'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
             'area_id' => $riesgo->area_id,

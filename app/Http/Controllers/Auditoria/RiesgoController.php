@@ -7,6 +7,7 @@ use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,17 @@ class RiesgoController extends Controller
         'respuesta.required' => 'Debe elegir una respuesta frente al riesgo.',
         'respuesta.not_in' => 'Un riesgo de este tipo no puede compartirse ni aceptarse como respuesta.',
         'fundamento.required_if' => 'Debe fundamentar por qué se eligió esta respuesta frente al riesgo.',
+    ];
+
+    // Al menos una sede (D-029). Las mismas reglas valen en FichaRiesgo fuera de borrador.
+    private const REGLAS_SEDES = [
+        'sedes' => 'required|array|min:1',
+        'sedes.*' => 'integer|exists:sedes,id',
+    ];
+
+    private const MENSAJES_SEDES = [
+        'sedes.required' => 'Elegí al menos una sede.',
+        'sedes.min' => 'Elegí al menos una sede.',
     ];
 
     // reglaRespuesta()/reglaFundamento() viven en Riesgo (ver ahí): las consume
@@ -49,8 +61,9 @@ class RiesgoController extends Controller
         $tiposRiesgo = TipoRiesgo::all();
         $areas = Area::whereIn('id', Auth::user()->idsAreasGestionables())->orderBy('nombre')->get();
         $preguntas = config('riesgo_preguntas');
+        $sedes = Sede::orderBy('id')->get();
 
-        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'preguntas'));
+        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'preguntas', 'sedes'));
     }
 
     /**
@@ -79,14 +92,15 @@ class RiesgoController extends Controller
             'fundamento' => Riesgo::reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => ['required', 'exists:areas,id', Rule::in(Auth::user()->idsAreasGestionables())],
-        ], self::MENSAJES_RESPUESTA + [
+        ] + self::REGLAS_SEDES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + [
             'area_id.required' => 'Debe elegir un área.',
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
 
         $probabilidadRespuestas = $data['probabilidad_respuestas'];
         $impactoRespuestas = $data['impacto_respuestas'];
-        unset($data['probabilidad_respuestas'], $data['impacto_respuestas']);
+        $sedeIds = $data['sedes'];
+        unset($data['probabilidad_respuestas'], $data['impacto_respuestas'], $data['sedes']);
 
         $data['probabilidad'] = array_sum($probabilidadRespuestas);
         $data['impacto'] = array_sum($impactoRespuestas);
@@ -95,6 +109,7 @@ class RiesgoController extends Controller
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
         $data['user_id'] = Auth::id();
         $riesgo = Riesgo::create($data);
+        $riesgo->sedes()->sync($sedeIds);
         $riesgo->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => 'Riesgo creado',
@@ -108,6 +123,7 @@ class RiesgoController extends Controller
                     'probabilidad' => $riesgo->probabilidad,
                     'mayor_criticidad' => $riesgo->mayor_criticidad,
                     'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
+                    'sedes' => $riesgo->sedes()->pluck('nombre')->join(', '),
                 ],
                 // Respuestas guardadas aparte de "campos": ese array lo recorre la
                 // vista de historial esperando valores escalares (ver
@@ -128,7 +144,7 @@ class RiesgoController extends Controller
         // controles.estado, planesAccion.estado y planesAccion.tareas.estado: los necesita
         // el accessor valor_residual (sólo mitigan los controles y planes aprobados, y
         // sólo cuando el plan está al 100%).
-        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado']);
+        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'sedes', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado']);
 
         return view('auditoria.riesgo.show', compact('riesgo'));
     }
@@ -143,14 +159,13 @@ class RiesgoController extends Controller
         }
 
         $tiposRiesgo = TipoRiesgo::orderBy('nombre')->get();
-        // El área actual del riesgo se agrega aunque caiga fuera de la línea del
-        // usuario: si no, el select la perdería silenciosamente al guardar.
-        $areas = Area::whereIn('id', array_merge(Auth::user()->idsAreasGestionables(), [$riesgo->area_id]))
-            ->orderBy('nombre')->get();
+        $areas = Area::whereIn('id', Auth::user()->idsAreasGestionables())->orderBy('nombre')->get();
+        $sedes = Sede::orderBy('id')->get();
+        $riesgo->load('sedes');
 
         $puedeRecalcular = $riesgo->motivoBloqueoRecalculo(Auth::user()) === null;
 
-        return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas', 'puedeRecalcular'));
+        return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas', 'sedes', 'puedeRecalcular'));
     }
 
     /**
@@ -178,7 +193,7 @@ class RiesgoController extends Controller
             'fundamento' => Riesgo::reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => ['required', 'exists:areas,id', Rule::in($areasPermitidas)],
-        ], self::MENSAJES_RESPUESTA + [
+        ] + self::REGLAS_SEDES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + [
             'area_id.required' => 'Debe elegir un área.',
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
@@ -186,8 +201,13 @@ class RiesgoController extends Controller
         $suma = $riesgo->impacto + $riesgo->probabilidad;
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
 
+        $sedeIds = $data['sedes'];
+        unset($data['sedes']);
+        $diffSedes = Sede::diff($riesgo->sedes()->pluck('sedes.id')->all(), $sedeIds);
+
         $original = $riesgo->only(array_keys($data));
         $riesgo->update($data);
+        $riesgo->sedes()->sync($sedeIds);
 
         $diff = [];
         foreach ($data as $campo => $nuevo) {
@@ -200,12 +220,15 @@ class RiesgoController extends Controller
                 $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
             }
         }
-        if (! empty($diff)) {
+        if (! empty($diff) || ! empty($diffSedes)) {
             $riesgo->actualizaciones()->create([
                 'user_id' => Auth::id(),
                 'mensaje' => 'Borrador modificado',
                 'estado_id' => Estado::borrador()->id,
-                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
+                'data' => ['tipo' => 'edicion', 'diff' => array_filter([
+                    'campos' => $diff,
+                    'relaciones' => $diffSedes ? ['sedes' => $diffSedes] : [],
+                ])],
             ]);
         }
 

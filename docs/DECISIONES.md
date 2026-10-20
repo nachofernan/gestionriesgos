@@ -871,3 +871,32 @@ la Policy, los scopes, la revisión inicial, el detector de inconsistencias y la
 ya no se admite un área fuera de la línea del usuario. De paso se arregla que cambiar el área de un
 borrador dejaba la pivot vieja. Tests nuevos en `RiesgoAccesoPorAreaTest`. Se borran
 `DobleValidacionTest` y `GestionAreasTest`. Detalle en [updates/2026-10-20.md](updates/2026-10-20.md).
+
+---
+
+## D-029 — Sedes del riesgo (2026-10-20)
+
+**Decisión.** Nuevo catálogo `Sede` con las sedes reales: "Administración Central - La Plata", "9 de
+Julio - Mar del Plata", "Oscar Smith - Villa Gesell", "Mar de Ajó" y "Necochea" (`SedeSeeder`). Por
+ahora sólo el riesgo se asocia (pivot `riesgo_sede`), a una, varias o todas, y siempre a **al menos
+una**. Se eligen en el alta (paso 4 del wizard) y en el formulario del borrador, con un botón "Todas".
+Fuera de borrador se cambian desde la ficha con el circuito de propuestas de siempre: una propuesta
+aparte de los campos (`Actualizacion::registrarCambioSync()`), que se aplica con un `sync` al validar o
+aprobar. La sede es **informativa**: no interviene en la autorización ni en la visibilidad. La carga
+inicial deja cada riesgo en todas las sedes, porque el Excel no trae el dato.
+
+**Motivo.** La empresa tiene la administración central en La Plata y las generadoras en la costa, y
+hay riesgos que corresponden a una sede, a varias o a todas. La tabla ya existe en el sistema
+original: acá la estructura es genérica y los datos son reales.
+
+**Descartado.**
+- **Filtrar acceso por sede:** obligaría a asignarles sede a los usuarios y a tocar las Policies.
+  No hace falta.
+- **Proponer las sedes junto con los campos en una sola propuesta:** la tarjeta se duplicaría entre la
+  parte "campos" y la parte "sedes".
+- **Extenderlo ya a otras entidades:** queda para cuando se pida.
+
+**Efecto en cascada anotado.** Se suma un camino de registro de propuestas (`registrarCambioSync`) con
+la misma regla de estado inicial que `registrarCambioCampos`, extraída a `seAplicaAlRegistrar()`.
+`RiesgoFactory` asocia todas las sedes sembradas. Los tests que postean el alta o la edición del riesgo
+mandan `sedes`. Tests en `RiesgoSedesTest`.

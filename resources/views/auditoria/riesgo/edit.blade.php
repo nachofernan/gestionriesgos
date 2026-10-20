@@ -128,6 +128,8 @@
                 @error('area_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
             </div>
 
+            @include('auditoria.partials.sedes-checkboxes', ['sedes' => $sedes, 'seleccionadas' => $riesgo->sedes->pluck('id')->all()])
+
             <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <a href="{{ route('auditoria.riesgos.show', $riesgo) }}"
                    class="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">

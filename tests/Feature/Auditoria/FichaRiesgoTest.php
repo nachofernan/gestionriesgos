@@ -10,6 +10,7 @@ use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
@@ -36,7 +37,7 @@ class FichaRiesgoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(EstadoRiesgoSeeder::class);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
         $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);

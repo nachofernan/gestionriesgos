@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-20** — [Sedes del riesgo](updates/2026-10-20b.md) ([D-029](DECISIONES.md#d-029)): catálogo `Sede` (5 sedes reales) y pivot `riesgo_sede`. Al menos una por riesgo; se eligen en el alta y el borrador (botón "Todas") y fuera de borrador se proponen desde la ficha. Informativa, sin efecto en permisos. La carga inicial deja todos los riesgos en todas las sedes.
 - **2026-10-20** — [Se elimina la multigerencia del riesgo](updates/2026-10-20.md) ([D-028](DECISIONES.md#d-028),
   revierte D-003): el riesgo pertenece sólo a su `area_id`; sin `area_riesgo`, votos ni doble validación. Menú
   reordenado (Objetivos | Riesgos | Controles | Planes | Tareas) y, en el show del riesgo, las cards de objetivos,

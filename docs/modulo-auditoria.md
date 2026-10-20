@@ -52,6 +52,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | `Actualizacion` | `actualizaciones` | Historial de actualizaciones polimórfico. Tiene `mensaje`, `data` (JSON) y `user_id`. |
 | `EstadoRiesgo` | `estados_riesgo` | Catálogo: borrador, validado, activo, mitigado, eliminado. |
 | `TipoRiesgo` | `tipos_riesgo` | Catálogo de categorías de riesgo. |
+| `Sede` | `sedes` | Catálogo de sedes (`SedeSeeder`). Un riesgo tiene una o más (pivot `riesgo_sede`), D-029. Informativa: no interviene en la autorización. |
 | `Area` | `areas` | Estructura organizacional jerárquica (`area_padre_id` auto-referencial). |
 | `RevisionInicial` | `revisiones_iniciales` | **Transitorio (D-024).** Revisado y firma de la carga inicial, por elemento (morph `revisable`) y gerencia firmante. Ver la sección *Revisión de la carga inicial*. |
 

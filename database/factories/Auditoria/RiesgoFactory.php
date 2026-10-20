@@ -4,6 +4,7 @@ namespace Database\Factories\Auditoria;
 
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -24,6 +25,12 @@ class RiesgoFactory extends Factory
             'user_id' => User::factory(),
             // estado_id no se fija aquí — el boot() del modelo asigna borrador automáticamente
         ];
+    }
+
+    /** Todo riesgo tiene al menos una sede (D-029): queda en todas las que haya sembradas. */
+    public function configure(): static
+    {
+        return $this->afterCreating(fn (Riesgo $riesgo) => $riesgo->sedes()->sync(Sede::pluck('id')));
     }
 
     public function aprobado(): static

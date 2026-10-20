@@ -4,6 +4,7 @@ namespace Database\Seeders\CargaInicial;
 
 use App\Models\Auditoria\Estado;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\SedeSeeder;
 use Illuminate\Database\Seeder;
 
 /**
@@ -20,7 +21,7 @@ class CargaInicialSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(EstadoRiesgoSeeder::class);
+        $this->call([EstadoRiesgoSeeder::class, SedeSeeder::class]);
         MapeoCargaInicial::$estadoIdPorNombre = Estado::pluck('id', 'nombre')->all();
 
         $this->call([

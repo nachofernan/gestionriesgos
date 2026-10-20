@@ -8,9 +8,11 @@ use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -28,12 +30,13 @@ class RiesgoWizardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(EstadoRiesgoSeeder::class);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
     }
 
     private function datosWizard(array $overrides = []): array
     {
         return array_merge([
+            'sedes' => Sede::pluck('id')->all(),
             'nombre' => 'Riesgo de prueba',
             'descripcion' => 'Descripción de prueba',
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
@@ -115,6 +118,7 @@ class RiesgoWizardTest extends TestCase
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
 
         $respuesta = $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard([
+            'sedes' => Sede::pluck('id')->all(),
             'probabilidad_respuestas' => [1 => 2, 2 => 1],
         ]));
 

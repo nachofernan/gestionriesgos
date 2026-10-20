@@ -40,6 +40,7 @@ class ResumenPropuestas extends Component
         // Bloque (ancla) al que pertenece cada parte que tocan las propuestas.
         $bloques = [
             'campos' => ['ficha', 'Datos'],
+            'sedes' => ['ficha', 'Datos'],
             'objetivos' => ['objetivos', 'Objetivos'],
             'controles' => ['controles', 'Controles'],
             'planesAccion' => ['planes', 'Planes de acción'],

@@ -6,9 +6,11 @@ use App\Enums\Auditoria\TipoArea;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -28,7 +30,7 @@ class RiesgoRecalcularTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(EstadoRiesgoSeeder::class);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
     }
 
     #[Test]
@@ -43,6 +45,7 @@ class RiesgoRecalcularTest extends TestCase
         ]);
 
         $this->actingAs($user)->put(route('auditoria.riesgos.update', $riesgo), [
+            'sedes' => Sede::pluck('id')->all(),
             'nombre' => 'Nombre actualizado',
             'area_id' => $riesgo->area_id,
             'impacto' => 10,

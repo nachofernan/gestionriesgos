@@ -4,6 +4,7 @@ namespace Database\Seeders\CargaInicial;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Sede;
 use Illuminate\Database\Seeder;
 
 /**
@@ -21,6 +22,8 @@ class RiesgoCargaInicialSeeder extends Seeder
     public function run(): void
     {
         $estadoAprobadoId = MapeoCargaInicial::estado('aprobado');
+        // El Excel no trae sede: la carga inicial deja cada riesgo en todas (D-029).
+        $sedeIds = Sede::pluck('id')->all();
 
         foreach ($this->filasCsv('Riesgos.csv') as $fila) {
             [$csvId, , $nombre, $descripcion, $impacto, $probabilidad, $respuestaTxt, $fundamento, $tipoTxt, $areaTxt, $userTxt, $mayorCriticidadTxt] = $fila;
@@ -42,6 +45,7 @@ class RiesgoCargaInicialSeeder extends Seeder
                 'user_id' => MapeoCargaInicial::usuario($userTxt),
                 'area_id' => MapeoCargaInicial::area($areaTxt),
             ]);
+            $riesgo->sedes()->sync($sedeIds);
 
             MapeoCargaInicial::$riesgoIdPorCsvId[(int) $csvId] = $riesgo->id;
         }

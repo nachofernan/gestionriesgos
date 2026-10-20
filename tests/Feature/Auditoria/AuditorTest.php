@@ -15,10 +15,12 @@ use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\Tarea;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
@@ -50,7 +52,7 @@ class AuditorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(EstadoRiesgoSeeder::class);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
 
         $this->gerenciaAuditoria = Area::create(['nombre' => 'Auditoría Interna', 'tipo' => TipoArea::Gerencia]);
         $this->gerenciaA = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
@@ -266,6 +268,7 @@ class AuditorTest extends TestCase
         $this->actingAs($this->auditor)->get(route('auditoria.riesgos.create'))->assertForbidden();
         $this->actingAs($this->auditor)->get(route('auditoria.controles.create'))->assertForbidden();
         $this->actingAs($this->auditor)->post(route('auditoria.riesgos.store'), [
+            'sedes' => Sede::pluck('id')->all(),
             'area_id' => $this->gerenciaAuditoria->id,
         ])->assertForbidden();
 
