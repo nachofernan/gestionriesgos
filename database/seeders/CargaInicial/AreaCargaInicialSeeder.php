@@ -9,7 +9,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Crea el árbol de áreas real de la empresa (30 áreas: CR + las 29 de
+ * Crea el árbol de áreas real de la empresa (31 áreas: CR, RE y las 29 de
  * UsuariosAreas.csv, ver MapeoCargaInicial::AREAS) y un usuario por cada
  * responsable distinto. El área "home" de cada usuario (users.area_id) es la más
  * alta de la jerarquía que ese apellido tiene a cargo — la que no cuelga de otra

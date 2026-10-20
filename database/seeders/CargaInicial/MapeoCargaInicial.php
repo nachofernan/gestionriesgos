@@ -62,6 +62,8 @@ class MapeoCargaInicial
         'PRE' => ['nombre' => 'Prensa', 'padre' => 'CR', 'gerencia' => true, 'responsable' => 'Aversa'],
 
         'FC' => ['nombre' => 'Fortalecimiento Institucional', 'padre' => 'CR', 'gerencia' => true, 'responsable' => 'Mercapidez'],
+
+        'RE' => ['nombre' => 'Riesgos Estratégicos', 'padre' => 'CR', 'gerencia' => true, 'responsable' => 'Zuliani'],
     ];
 
     /**
