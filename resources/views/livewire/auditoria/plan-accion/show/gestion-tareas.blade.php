@@ -24,7 +24,7 @@
 
         @forelse ($seleccionados as $tarea)
             @php
-                $nueva = $agregados->contains($tarea['id']);
+                $recienAgregada = $agregados->contains($tarea['id']);
                 $bloqueada = in_array($tarea['id'], $bloqueados);
                 $avance = (int) $tarea['porcentaje_avance'];
                 $vencida = $tarea['fecha'] && \Carbon\Carbon::parse($tarea['fecha'])->lt($hoy) && $avance < 100;
@@ -32,7 +32,7 @@
             @endphp
             <div wire:key="tarea-{{ $tarea['id'] }}"
                  class="flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors
-                     {{ $nueva ? 'border-dashed border-indigo-300 bg-indigo-50/50' : ($vencida ? 'border-red-100 bg-red-50/40' : 'border-gray-100 bg-gray-50/60') }}
+                     {{ $recienAgregada ? 'border-dashed border-indigo-300 bg-indigo-50/50' : ($vencida ? 'border-red-100 bg-red-50/40' : 'border-gray-100 bg-gray-50/60') }}
                      {{ !$editando ? 'cursor-pointer hover:border-indigo-200 hover:bg-white' : '' }}"
                  @if(!$editando) onclick="Livewire.dispatch('ver-tarea', {id: {{ $tarea['id'] }}})" @endif>
                 <x-auditoria.estado-punto :color="$tarea['estado_color']" :nombre="$tarea['estado'] ?? 'borrador'" soloPunto />
@@ -45,7 +45,7 @@
                         @endif
                     </p>
                 </div>
-                @if($nueva)
+                @if($recienAgregada)
                     <span class="text-[10px] font-bold text-indigo-700">nueva</span>
                 @endif
                 @foreach($marcas[$tarea['id']] ?? [] as $marca)

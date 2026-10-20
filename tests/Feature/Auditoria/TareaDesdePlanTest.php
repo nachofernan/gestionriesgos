@@ -85,6 +85,19 @@ class TareaDesdePlanTest extends TestCase
     }
 
     #[Test]
+    public function el_modal_se_abre_en_un_plan_que_ya_tiene_tareas(): void
+    {
+        // Regresión: la variable del loop de tareas pisaba $nueva y el modal rompía.
+        $this->plan->tareas()->attach(Tarea::factory()->create(['area_id' => $this->sectorAmbiente->id])->id);
+
+        Livewire::actingAs($this->empleadoAmbiente)
+            ->test(GestionTareas::class, ['plan' => $this->plan])
+            ->call('abrirFormNuevaTarea')
+            ->assertOk()
+            ->assertSee('Crear tarea');
+    }
+
+    #[Test]
     public function un_empleado_crea_desde_su_plan_una_tarea_de_otra_area(): void
     {
         $this->crear($this->empleadoAmbiente, [
