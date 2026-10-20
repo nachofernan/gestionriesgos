@@ -70,64 +70,9 @@
         {{-- La historia del riesgo: qué es, a qué amenaza, qué lo mitiga --}}
         <div class="lg:col-span-8 space-y-5 order-2 lg:order-1">
             @livewire('auditoria.riesgo.show.ficha-riesgo', ['riesgo' => $riesgo])
-            {{-- Fichas en JS plano y no Alpine: un x-data envolviendo los componentes deja sin enganchar
-                 sus wire:* (ver actualizaciones/conversacion.blade.php). Se ocultan con `hidden` y no con @if, para
-                 que los tres sigan montados y escuchando eventos. --}}
-            <div id="fichas" class="scroll-mt-24 space-y-3">
-                @php
-                    $pestanas = [
-                        'planes' => ['Planes', $riesgo->planesAccion()->count()],
-                        'controles' => ['Controles', $riesgo->controles()->count()],
-                        'objetivos' => ['Objetivos', $riesgo->objetivos()->count()],
-                    ];
-                @endphp
-                <nav class="grid grid-cols-3 items-center">
-                    @foreach($pestanas as $clave => [$etiqueta, $cantidad])
-                        <button type="button" data-ficha-boton="{{ $clave }}" @if($clave === 'planes') data-activa @endif onclick="mostrarFicha('{{ $clave }}')"
-                            class="relative py-1.5 text-sm font-bold text-center transition-colors
-                                   {{ $clave === 'planes' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-700' }}
-                                   {{ !$loop->first ? 'before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-px before:bg-gray-200' : '' }}">
-                            {{ $etiqueta }} <span class="font-semibold tabular-nums">({{ $cantidad }})</span>
-                        </button>
-                    @endforeach
-                </nav>
-
-                <div data-ficha="planes">
-                    @livewire('auditoria.riesgo.show.gestion-planes', ['riesgo' => $riesgo])
-                </div>
-                <div data-ficha="controles" class="hidden">
-                    @livewire('auditoria.riesgo.show.gestion-controles', ['riesgo' => $riesgo])
-                </div>
-                <div data-ficha="objetivos" class="hidden">
-                    @livewire('auditoria.riesgo.show.gestion-objetivos', ['riesgo' => $riesgo])
-                </div>
-            </div>
-            {{-- Con una ficha en edición, las otras se bloquean: cambiar de ficha la ocultaría a medio editar. --}}
-            <style>
-                #fichas:has([data-editando]) [data-ficha-boton]:not([data-activa]) { opacity: .35; pointer-events: none; }
-            </style>
-            <script>
-                function mostrarFicha(clave) {
-                    if (document.querySelector('#fichas [data-editando]')) return;
-                    document.querySelectorAll('[data-ficha]').forEach(el => el.classList.toggle('hidden', el.dataset.ficha !== clave));
-                    document.querySelectorAll('[data-ficha-boton]').forEach(el => {
-                        const activa = el.dataset.fichaBoton === clave;
-                        el.toggleAttribute('data-activa', activa);
-                        el.classList.toggle('text-gray-900', activa);
-                        el.classList.toggle('text-gray-400', !activa);
-                        el.classList.toggle('hover:text-gray-700', !activa);
-                    });
-                }
-
-                // Los links #planes/#controles/#objetivos de otros bloques cambian de ficha antes de scrollear.
-                document.addEventListener('click', e => {
-                    const a = e.target.closest('a[href^="#"]');
-                    if (!a || !document.querySelector(`[data-ficha="${a.hash.slice(1)}"]`)) return;
-                    e.preventDefault();
-                    mostrarFicha(a.hash.slice(1));
-                    document.getElementById('fichas').scrollIntoView({ behavior: 'smooth' });
-                });
-            </script>
+            @livewire('auditoria.riesgo.show.gestion-objetivos', ['riesgo' => $riesgo])
+            @livewire('auditoria.riesgo.show.gestion-controles', ['riesgo' => $riesgo])
+            @livewire('auditoria.riesgo.show.gestion-planes', ['riesgo' => $riesgo])
             @livewire('auditoria.actualizaciones.conversacion', ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
         </div>
 

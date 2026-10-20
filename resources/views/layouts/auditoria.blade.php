@@ -23,9 +23,9 @@
                         Panel
                     </a>
                     @foreach([
+                        ['auditoria.objetivos', 'Objetivos'],
                         ['auditoria.riesgos', 'Riesgos'],
                         ['auditoria.controles', 'Controles'],
-                        ['auditoria.objetivos', 'Objetivos'],
                         ['auditoria.planes', 'Planes de Acción'],
                         ['auditoria.tareas', 'Tareas'],
                     ] as [$prefix, $label])
