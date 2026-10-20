@@ -3,8 +3,6 @@
         $hoy = now()->startOfDay();
         $agregados = collect($diffEnCurso['agrega'] ?? [])->pluck('id');
         $quitados = $diffEnCurso['quita'] ?? [];
-        $input = 'w-full border-gray-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-indigo-500';
-        $label = 'block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1';
     @endphp
 
     <x-auditoria.bloque-riesgo ancla="tareas" titulo="Tareas" :contador="count($seleccionados)" sujeto="plan"
@@ -12,6 +10,13 @@
         :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
 
         <x-slot:accion>
+            @if($puedeCrearTarea && !$editando)
+                <button type="button" wire:click="abrirFormNuevaTarea"
+                    class="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition-colors">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Nueva tarea
+                </button>
+            @endif
             @if($puedeActualizar && !$editando)
                 @include('livewire.auditoria.riesgo.show.partials.boton-editar', ['modo' => $modo])
             @endif
@@ -73,38 +78,6 @@
                     <button type="button" wire:click="agregar({{ $item['id'] }})" class="text-[11px] font-bold text-gray-500 hover:text-indigo-700">Deshacer</button>
                 </div>
             @endforeach
-
-            {{-- Tarea nueva: se crea en el acto y queda agregada a la selección. --}}
-            @if($creandoTarea)
-                <div class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3 space-y-3">
-                    <p class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-700">Nueva tarea</p>
-                    <div>
-                        <label class="{{ $label }}">Nombre</label>
-                        <input type="text" wire:model="nuevaNombre" class="{{ $input }}">
-                        @error('nuevaNombre') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="{{ $label }}">Fecha límite</label>
-                            <input type="date" wire:model="nuevaFecha" class="{{ $input }}">
-                            @error('nuevaFecha') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="{{ $label }}">Avance (%)</label>
-                            <input type="number" min="0" max="100" step="5" wire:model="nuevaPorcentaje" class="{{ $input }}">
-                            @error('nuevaPorcentaje') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-2">
-                        <button type="button" wire:click="cerrarFormNuevaTarea" class="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800">Cancelar</button>
-                        <button type="button" wire:click="guardarNuevaTarea" wire:loading.attr="disabled" wire:target="guardarNuevaTarea"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60">
-                            <x-auditoria.spinner class="h-3.5 w-3.5" wire:loading wire:target="guardarNuevaTarea" />
-                            Crear y agregar
-                        </button>
-                    </div>
-                </div>
-            @endif
         @endif
 
         <x-slot:pie>
@@ -148,5 +121,88 @@
                 <p class="text-sm text-gray-400 italic px-4 py-3">{{ $busqueda ? 'Sin resultados.' : 'Escribí para buscar tareas.' }}</p>
             @endforelse
         </x-auditoria.modal-buscar>
+    @endif
+
+    {{-- Tarea nueva desde el plan (D-030): cualquier área; queda asociada al plan en el acto. --}}
+    @if($creandoTarea)
+        @php
+            $campo = 'w-full border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500';
+            $etiqueta = 'block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5';
+            $deOtraLinea = $nueva['area_id'] && ! auth()->user()->puedeGestionarArea((int) $nueva['area_id']);
+        @endphp
+        <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-gray-900/40 backdrop-blur-[1px] p-4 overflow-y-auto" wire:click.self="cerrarFormNuevaTarea">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
+                <div class="px-6 pt-5 pb-3 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-extrabold text-gray-900">Nueva tarea</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Se crea y queda agregada a este plan.</p>
+                    </div>
+                    <button type="button" wire:click="cerrarFormNuevaTarea" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="px-6 pb-5 space-y-4">
+                    <div>
+                        <label class="{{ $etiqueta }}">Nombre *</label>
+                        <input type="text" wire:model="nueva.nombre" autofocus class="{{ $campo }} @error('nueva.nombre') border-red-300 @enderror">
+                        @error('nueva.nombre') <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="{{ $etiqueta }}">Descripción</label>
+                        <textarea wire:model="nueva.descripcion" rows="3" class="{{ $campo }}"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="{{ $etiqueta }}">Fecha límite</label>
+                            <input type="date" wire:model="nueva.fecha" class="{{ $campo }}">
+                            @error('nueva.fecha') <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p> @enderror
+                        </div>
+                        <div x-data="{ avance: $wire.entangle('nueva.porcentaje_avance') }">
+                            <label class="{{ $etiqueta }}">Avance <span class="text-gray-700 tabular-nums" x-text="avance + '%'"></span></label>
+                            <input type="range" min="0" max="100" step="5" x-model.number="avance" class="w-full mt-2 accent-indigo-600">
+                            @error('nueva.porcentaje_avance') <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 pt-3 border-t border-gray-100">
+                        <div>
+                            <label class="{{ $etiqueta }}">Área *</label>
+                            <select wire:model.live="nueva.area_id" class="{{ $campo }} @error('nueva.area_id') border-red-300 @enderror">
+                                <option value="">— Elegí un área —</option>
+                                @foreach($areasNueva as $area)
+                                    <option value="{{ $area->id }}">{{ $area->nombre }}</option>
+                                @endforeach
+                            </select>
+                            @error('nueva.area_id') <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="{{ $etiqueta }}">Responsable</label>
+                            <select wire:model="nueva.user_id" class="{{ $campo }} @error('nueva.user_id') border-red-300 @enderror">
+                                <option value="">— Sin asignar —</option>
+                                @foreach($responsablesNueva as $usuario)
+                                    <option value="{{ $usuario->id }}" wire:key="resp-{{ $usuario->id }}">{{ $usuario->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('nueva.user_id') <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    @if($deOtraLinea)
+                        <p class="text-xs text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
+                            Es de un área que no gestionás: la tarea nace en <strong>borrador</strong> y la valida el gerente de esa área.
+                            Vos la vas a seguir viendo desde este plan.
+                        </p>
+                    @endif
+                </div>
+
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2">
+                    <button type="button" wire:click="cerrarFormNuevaTarea" class="px-4 py-2 text-sm font-semibold text-gray-500 hover:text-gray-800">Cancelar</button>
+                    <button type="button" wire:click="guardarNuevaTarea" wire:loading.attr="disabled" wire:target="guardarNuevaTarea"
+                        class="inline-flex items-center gap-1.5 px-5 py-2 text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60">
+                        <x-auditoria.spinner class="h-4 w-4" wire:loading wire:target="guardarNuevaTarea" />
+                        Crear tarea
+                    </button>
+                </div>
+            </div>
+        </div>
     @endif
 </div>

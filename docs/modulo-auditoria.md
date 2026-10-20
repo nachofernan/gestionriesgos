@@ -95,6 +95,15 @@ El rol vive en `users.rol` y el área en `users.area_id`. Las Policies están en
 - `proponer` es originar una propuesta o una nota: fichas, bloques de relaciones, Conversación, recálculo y `ActualizacionController::store*`. Se cumple si hay `update`, o si es un auditor sobre un elemento validado o aprobado (`User::puedeProponerComoAuditor()`).
 - En borrador las dos coinciden, así que las ramas de `sync` directo de los bloques siguen protegidas.
 
+**Tareas creadas desde un plan (D-030).** `PlanAccionPolicy::crearTarea` (quien gestiona el plan, salvo
+el auditor) habilita `GestionTareas::guardarNuevaTarea()`:
+- la tarea admite **cualquier área**;
+- nace validada sólo si la crea un gerente para su propia línea; si no, en borrador;
+- queda asociada al plan en el acto, sin propuesta: el vínculo sigue a la tarea.
+
+`TareaPolicy::view` y `comentar` también habilitan a quien gestiona un plan que contiene la tarea.
+`update`, `validar` y `rechazar` siguen siendo del área de la tarea. Tests: `TareaDesdePlanTest`.
+
 Un usuario con `area_id = null` es superusuario: `esGerente()` da `true` y ve y gestiona todo. Por eso el auditor lleva área propia.
 
 Tests: `AuditorTest`.

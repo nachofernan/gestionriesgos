@@ -328,8 +328,8 @@ El **ciclo completo está construido y andando**: riesgos con impacto/probabilid
 wizard, controles, objetivos, planes de acción y tareas, historial polimórfico de actualizaciones con
 adjuntos, autorización por jerarquía de área con visibilidad por estado, y las pantallas de
 Pendientes, Vencimientos y el Panel de Riesgos (dashboard de situación con sesgo gerencial). Las 6
-fases del cronograma original están cerradas salvo los reportes exportables. La suite ronda los ~475
-tests, 46 archivos en
+fases del cronograma original están cerradas salvo los reportes exportables. La suite ronda los ~487
+tests, 47 archivos en
 `tests/Feature/Auditoria/`.
 
 Lo que sigue abierto vive en `docs/ROADMAP.md` (reportes PDF/Excel, notificaciones, vencimiento

@@ -3,11 +3,15 @@
 namespace App\Livewire\Auditoria\PlanAccion\Show;
 
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
+use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Tarea;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -19,7 +23,8 @@ use Livewire\Component;
  * rechaza por separado, y una tarea con una propuesta pendiente no se puede volver
  * a tocar hasta resolverla. Como el avance del plan sale de sus tareas, una
  * propuesta no mueve ni el avance ni la mitigación hasta aplicarse.
- * También permite crear una tarea nueva sobre la marcha (guardarNuevaTarea()).
+ * También permite crear una tarea nueva, de cualquier área, desde un modal
+ * (guardarNuevaTarea(), D-030): queda asociada en el acto y sigue su propio ciclo.
  * Dispatcha 'plan-actualizado' al persistir un cambio real, para que InfoPlan y
  * GestionActualizaciones (bloques hermanos en la misma pantalla) se refresquen solos.
  */
@@ -38,23 +43,18 @@ class GestionTareas extends Component
     /** Gobierna la visibilidad de los botones de mutar (Editar / Proponer cambio) en la vista. */
     public bool $puedeActualizar = false;
 
-    /**
-     * Crear una tarea nueva desde el bloque es un alta directa, no una propuesta:
-     * pide gestionar el plan y poder crear (el auditor proponer sí, crear no; D-020).
-     */
+    /** Ver PlanAccionPolicy::crearTarea(): quien gestiona el plan, salvo el auditor. */
     public bool $puedeCrearTarea = false;
 
     public string $estadoModelo = 'borrador';
 
     public string $busqueda = '';
 
+    /** Modal de tarea nueva abierto. */
     public bool $creandoTarea = false;
 
-    public string $nuevaNombre = '';
-
-    public string $nuevaFecha = '';
-
-    public int $nuevaPorcentaje = 0;
+    /** @var array{nombre:string, descripcion:string, fecha:string, porcentaje_avance:int, area_id:string, user_id:string} */
+    public array $nueva = [];
 
     /** @var array<int, array{id:int, nombre:string, porcentaje_avance:int, fecha:string|null}> */
     public array $seleccionados = [];
@@ -73,7 +73,8 @@ class GestionTareas extends Component
     {
         $this->planId = $plan->id;
         $this->puedeActualizar = Auth::user()->can('proponer', $plan);
-        $this->puedeCrearTarea = Auth::user()->can('update', $plan) && Auth::user()->can('create', Tarea::class);
+        $this->puedeCrearTarea = Auth::user()->can('crearTarea', $plan);
+        $this->resetFormNuevaTarea();
         $this->cargar();
     }
 
@@ -101,15 +102,12 @@ class GestionTareas extends Component
         $this->editando = false;
         $this->busqueda = '';
         $this->modalAbierto = false;
-        $this->creandoTarea = false;
-        $this->resetFormNuevaTarea();
     }
 
     public function abrirModal(): void
     {
         $this->busqueda = '';
         $this->modalAbierto = true;
-        $this->creandoTarea = false;
     }
 
     public function cerrarModal(): void
@@ -120,69 +118,130 @@ class GestionTareas extends Component
 
     public function abrirFormNuevaTarea(): void
     {
-        $this->creandoTarea = true;
-        $this->modalAbierto = false;
+        $this->authorize('crearTarea', PlanAccion::findOrFail($this->planId));
         $this->resetFormNuevaTarea();
+        $this->resetValidation();
+        $this->modalAbierto = false;
+        $this->creandoTarea = true;
     }
 
     public function cerrarFormNuevaTarea(): void
     {
         $this->creandoTarea = false;
         $this->resetFormNuevaTarea();
+        $this->resetValidation();
     }
 
+    /** Arranca con el área del usuario como sugerencia; se puede elegir cualquiera (D-030). */
     private function resetFormNuevaTarea(): void
     {
-        $this->nuevaNombre = '';
-        $this->nuevaFecha = '';
-        $this->nuevaPorcentaje = 0;
+        $this->nueva = [
+            'nombre' => '',
+            'descripcion' => '',
+            'fecha' => '',
+            'porcentaje_avance' => 0,
+            'area_id' => (string) (Auth::user()->area_id ?? ''),
+            'user_id' => '',
+        ];
+    }
+
+    /** Al cambiar el área, el responsable elegido deja de valer si no corresponde a la nueva. */
+    public function updatedNueva(mixed $valor, string $clave): void
+    {
+        if ($clave === 'area_id' && ! in_array((int) $this->nueva['user_id'], $this->idsResponsables($valor))) {
+            $this->nueva['user_id'] = '';
+        }
+    }
+
+    /** Usuarios que pueden ser responsables de una tarea del área (Area::idsAreasDeResponsables()). */
+    private function idsResponsables(mixed $areaId): array
+    {
+        $area = $areaId ? Area::find($areaId) : null;
+
+        return $area
+            ? User::whereIn('area_id', $area->idsAreasDeResponsables())->pluck('id')->all()
+            : [];
     }
 
     /**
-     * Crea una tarea nueva ya en estado aprobado (no pasa por borrador) y la agrega
-     * directo a $seleccionados, para asociarla al plan en el guardar() posterior.
+     * Crea una tarea desde el plan, para cualquier área, y la asocia al plan en el
+     * acto (D-030): el vínculo no es una propuesta sobre el plan, sigue el destino
+     * de la tarea (si la rechazan queda "borrado" y se oculta; el avance sólo cuenta
+     * las aprobadas). Nace validada si quien la crea es gerente (o comité) y el área
+     * es de su línea; si no, en borrador, y la valida el gerente de esa área.
+     * Tests: TareaDesdePlanTest (un_empleado_crea_desde_su_plan_una_tarea_de_otra_area,
+     * un_gerente_crea_una_tarea_de_su_linea_y_nace_validada,
+     * un_gerente_que_crea_para_otra_area_la_deja_en_borrador).
      */
     public function guardarNuevaTarea(): void
     {
-        $this->authorize('update', PlanAccion::findOrFail($this->planId));
-        $this->authorize('create', Tarea::class);
+        $plan = PlanAccion::findOrFail($this->planId);
+        $this->authorize('crearTarea', $plan);
 
         $this->validate([
-            'nuevaNombre' => 'required|string|max:255',
-            'nuevaFecha' => 'nullable|date',
-            'nuevaPorcentaje' => 'required|integer|min:0|max:100',
+            'nueva.nombre' => 'required|string|max:255',
+            'nueva.descripcion' => 'nullable|string',
+            'nueva.fecha' => 'nullable|date',
+            'nueva.porcentaje_avance' => 'required|integer|min:0|max:100',
+            'nueva.area_id' => 'required|exists:areas,id',
+            'nueva.user_id' => ['nullable', Rule::in($this->idsResponsables($this->nueva['area_id'] ?? null))],
         ], [
-            'nuevaNombre.required' => 'El nombre de la tarea es obligatorio.',
+            'nueva.nombre.required' => 'El nombre de la tarea es obligatorio.',
+            'nueva.area_id.required' => 'Debe elegir un área.',
+            'nueva.user_id.in' => 'El responsable tiene que pertenecer al área elegida, a una de sus sub-áreas o a un área superior de su gerencia.',
         ]);
 
-        $tarea = Tarea::create([
-            'nombre' => $this->nuevaNombre,
-            'fecha' => $this->nuevaFecha ?: null,
-            'porcentaje_avance' => $this->nuevaPorcentaje,
-            'user_id' => Auth::id(),
-        ]);
-        $tarea->actualizaciones()->create([
-            'user_id' => Auth::id(),
-            'mensaje' => 'Tarea creada',
-            'estado_id' => Estado::aprobado()->id,
-            'data' => ['campos' => ['nombre' => $tarea->nombre, 'porcentaje_avance' => $tarea->porcentaje_avance]],
-        ]);
+        $user = Auth::user();
+        $areaId = (int) $this->nueva['area_id'];
+        $estado = $user->esGerente() && $user->puedeGestionarArea($areaId) ? Estado::validado() : Estado::borrador();
 
-        $this->seleccionados[] = [
-            'id' => $tarea->id,
-            'nombre' => $tarea->nombre,
-            'descripcion' => null,
-            'porcentaje_avance' => $tarea->porcentaje_avance,
-            'fecha' => $tarea->fecha?->format('Y-m-d'),
-            'estado' => 'borrador',
-            'estado_color' => 'gray',
-            'area' => null,
-            'user' => Auth::user()->name,
-            'puede_ver' => true,
-            'url' => route('auditoria.tareas.show', $tarea->id),
-        ];
+        $tarea = DB::transaction(function () use ($plan, $user, $areaId, $estado) {
+            $tarea = Tarea::create([
+                'nombre' => $this->nueva['nombre'],
+                'descripcion' => $this->nueva['descripcion'] ?: null,
+                'fecha' => $this->nueva['fecha'] ?: null,
+                'porcentaje_avance' => (int) $this->nueva['porcentaje_avance'],
+                'area_id' => $areaId,
+                'user_id' => $this->nueva['user_id'] ?: null,
+                'estado_id' => $estado->id,
+            ]);
+            $tarea->actualizaciones()->create([
+                'user_id' => $user->id,
+                'mensaje' => "Tarea creada desde el plan «{$plan->nombre}»",
+                'estado_id' => $estado->id,
+                'data' => ['tipo' => 'creacion', 'campos' => [
+                    'nombre' => $tarea->nombre,
+                    'descripcion' => $tarea->descripcion,
+                    'porcentaje_avance' => $tarea->porcentaje_avance,
+                    'fecha' => $tarea->fecha?->format('Y-m-d'),
+                ]],
+            ]);
+
+            $plan->tareas()->attach($tarea->id);
+            $plan->actualizaciones()->create([
+                'user_id' => $user->id,
+                'mensaje' => "Tarea «{$tarea->nombre}» creada desde el plan",
+                'estado_id' => $estado->id,
+                // Registro de algo ya hecho, no una propuesta: el vínculo sigue a la tarea.
+                'data' => ['tipo' => 'edicion', 'activated_by' => $user->name, 'diff' => ['relaciones' => ['tareas' => [
+                    'agrega' => [['id' => $tarea->id, 'nombre' => $tarea->nombre]],
+                ]]]],
+            ]);
+
+            return $tarea;
+        });
 
         $this->cerrarFormNuevaTarea();
+        if (! $this->editando) {
+            $this->cargar();
+        } else {
+            // A mitad de una edición: se suma a lo que está armando, ya asociada.
+            $this->agregar($tarea->id);
+        }
+        $this->dispatch('plan-actualizado');
+        session()->flash('ok', $estado->nombre === 'validado'
+            ? 'Tarea creada y agregada al plan.'
+            : 'Tarea creada en borrador y agregada al plan. La valida el gerente de su área.');
     }
 
     public function agregar(int $tareaId): void
@@ -400,6 +459,11 @@ class GestionTareas extends Component
             'marcas' => $this->marcasDe($propuestas, 'tareas'),
             'diffEnCurso' => $this->editando ? $this->construirDiff($plan) : [],
             'resultados' => $resultados,
+            // Modal de tarea nueva: cualquier área (D-030), y los responsables de la elegida.
+            'areasNueva' => $this->creandoTarea ? Area::orderBy('nombre')->get(['id', 'nombre']) : collect(),
+            'responsablesNueva' => $this->creandoTarea
+                ? User::whereIn('id', $this->idsResponsables($this->nueva['area_id']))->orderBy('name')->get(['id', 'name'])
+                : collect(),
         ]);
     }
 }

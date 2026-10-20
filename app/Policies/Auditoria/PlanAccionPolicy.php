@@ -51,6 +51,16 @@ class PlanAccionPolicy
             || $user->puedeProponerComoAuditor($planAccion->estado?->nombre);
     }
 
+    /**
+     * Crear una tarea nueva desde el plan, para cualquier área (D-030): quien
+     * gestiona el plan, salvo el auditor, que no crea elementos (D-020).
+     * Tests: quien_no_gestiona_el_plan_no_puede_crear_tareas_desde_el, el_auditor_no_crea_tareas_desde_un_plan.
+     */
+    public function crearTarea(User $user, PlanAccion $planAccion): bool
+    {
+        return ! $user->esAuditor() && $this->update($user, $planAccion);
+    }
+
     public function delete(User $user, PlanAccion $planAccion): bool
     {
         return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($planAccion));

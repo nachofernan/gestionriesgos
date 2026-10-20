@@ -900,3 +900,37 @@ original: acá la estructura es genérica y los datos son reales.
 la misma regla de estado inicial que `registrarCambioCampos`, extraída a `seAplicaAlRegistrar()`.
 `RiesgoFactory` asocia todas las sedes sembradas. Los tests que postean el alta o la edición del riesgo
 mandan `sedes`. Tests en `RiesgoSedesTest`.
+
+---
+
+## D-030 — Tareas creadas desde un plan, para cualquier área (2026-10-20)
+
+**Decisión.** Desde un plan, quien lo gestiona (salvo el auditor) crea una tarea con el formulario
+completo (nombre, descripción, fecha, avance, área y responsable) para **cualquier área**:
+- **Estado inicial:** validada si quien la crea es gerente y el área es de su línea; si no, borrador,
+  aunque sea gerente. La valida el gerente del área de la tarea y la aprueba el comité.
+- **El vínculo plan↔tarea va con la tarea:** se asocia en el acto, sin propuesta sobre el plan. Si se
+  rechaza la tarea (`borrado`), desaparece del plan. Mientras no esté aprobada no cuenta para el avance.
+- **Visibilidad:** quien gestiona un plan ve las tareas de ese plan en cualquier estado
+  (`TareaPolicy::view`) y puede comentarlas (`comentar`, que amplía D-027: antes exigía plan y tarea
+  aprobados). Editar, validar y rechazar siguen siendo del área de la tarea.
+
+El alta normal desde el listado de Tareas no cambia.
+
+**Motivo.** Un plan suele necesitar tareas de otras áreas. Caso real: una capacitación de RRHH en un
+plan de Medio Ambiente. Pedírsela al área es un vuelterío; crearla desde el plan y que la valide el
+gerente de esa área mantiene el control sin el ida y vuelta.
+
+**Descartado.**
+- **Circuito propio para el vínculo** (propuesta sobre el plan, que valida el gerente del plan): son dos
+  decisiones que pueden quedar desalineadas, y el avance ya ignora lo no aprobado.
+- **Dejar editar al creador mientras sea borrador:** exigiría un permiso nuevo basado en quién la creó.
+- **Restringirlo a gerentes:** cualquiera que gestiona el plan puede armarlo.
+
+**Efecto en cascada anotado.**
+- Autorización: nueva `PlanAccionPolicy::crearTarea`, y se amplían `TareaPolicy::view` y `comentar`.
+  `scopeVisiblePara` no cambia: el listado de Tareas sigue con su sesgo por área.
+- Se arregla además el log "Tarea creada" del alta rápida, que quedaba en estado aprobado con la tarea
+  en borrador.
+- Tests nuevos en `TareaDesdePlanTest`. En `FichaTareaTest` se invierten los dos casos de D-027 que ahora
+  se permiten.

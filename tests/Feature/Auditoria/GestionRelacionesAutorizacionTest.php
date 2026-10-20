@@ -102,7 +102,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
 
         Livewire::actingAs($this->gerenteAdmin)
             ->test(GestionTareas::class, ['plan' => $plan])
-            ->set('nuevaNombre', 'Tarea intrusa')
+            ->set('nueva.nombre', 'Tarea intrusa')
             ->call('guardarNuevaTarea')
             ->assertForbidden();
     }

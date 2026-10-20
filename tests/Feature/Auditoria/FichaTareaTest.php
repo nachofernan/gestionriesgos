@@ -164,27 +164,32 @@ class FichaTareaTest extends TestCase
     }
 
     #[Test]
-    public function el_comentario_desde_el_plan_no_habilita_si_el_plan_no_esta_aprobado(): void
+    // D-030 amplía D-027: quien gestiona el plan comenta sus tareas en cualquier estado.
+    public function el_comentario_desde_el_plan_vale_aunque_el_plan_no_este_aprobado(): void
     {
         $tarea = $this->tareaAjenaEnMiPlan(estadoPlan: 'borrador');
 
         Livewire::actingAs($this->empleado)
             ->test(Conversacion::class, ['modelType' => 'tarea', 'modelId' => $tarea->id])
-            ->set('mensaje', 'Intento')
+            ->set('mensaje', 'Nota desde el plan')
             ->call('enviar')
-            ->assertForbidden();
+            ->assertHasNoErrors();
+
+        $this->assertCount(1, $tarea->actualizaciones()->get());
     }
 
     #[Test]
-    public function el_comentario_desde_el_plan_no_habilita_si_la_tarea_no_esta_aprobada(): void
+    public function el_comentario_desde_el_plan_vale_aunque_la_tarea_no_este_aprobada(): void
     {
         $tarea = $this->tareaAjenaEnMiPlan(estadoTarea: 'validado');
 
         Livewire::actingAs($this->empleado)
             ->test(Conversacion::class, ['modelType' => 'tarea', 'modelId' => $tarea->id])
-            ->set('mensaje', 'Intento')
+            ->set('mensaje', 'Nota desde el plan')
             ->call('enviar')
-            ->assertForbidden();
+            ->assertHasNoErrors();
+
+        $this->assertCount(1, $tarea->actualizaciones()->get());
     }
 
     #[Test]

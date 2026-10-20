@@ -477,11 +477,23 @@ En el panel "Tareas del Plan": con el plan en **borrador**, botón **Editar**; s
 validado/aprobado, **Proponer cambio**. En modo edición podés:
 
 - **Agregar existente**: abre un buscador para incorporar una tarea ya creada.
-- **Nueva tarea**: abre un formulario inline para crear una tarea nueva y sumarla al plan de
-  una, con Nombre, Fecha límite y un slider de Avance (0-100%, de a 5%). Botón **"Crear y
-  agregar"**.
 - Cada tarea de la lista se puede quitar con una **X**.
 - **Guardar** aplica los cambios.
+
+**Nueva tarea** (botón en el encabezado del panel, si gestionás el plan): abre una ventana con
+los mismos campos que el alta de una tarea: Nombre, Descripción, Fecha límite, Avance, **Área** y
+Responsable. La tarea se crea y **queda agregada al plan en el acto**, sin propuesta aparte.
+
+- **El área puede ser cualquiera**, aunque no sea la tuya. Ejemplo: en un plan de Medio Ambiente
+  hace falta una capacitación de RRHH. La creás desde el plan con área RRHH, sin pedírsela a
+  nadie.
+- **Estado con el que nace**: si sos gerente y el área es de tu línea, nace **validada**. En
+  cualquier otro caso nace en **borrador**, incluso si sos gerente de otra área. Ahí la valida el
+  gerente del área de la tarea, y después la aprueba el comité como cualquier tarea.
+- **Seguís viéndola** desde el plan y podés comentarla, aunque sea de otra área y esté en
+  borrador. Editarla, validarla o rechazarla le corresponde al área de la tarea.
+- Si la rechazan, desaparece del plan. Mientras no esté aprobada, **no cuenta para el avance**
+  del plan.
 
 **Fuera de borrador**, cada alta o baja de tarea es su propia propuesta — se valida/aprueba/
 rechaza una por una, no todo el panel junto — y el avance del plan no se mueve hasta que la

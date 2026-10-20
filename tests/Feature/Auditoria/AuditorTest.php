@@ -276,7 +276,8 @@ class AuditorTest extends TestCase
         Livewire::actingAs($this->auditor)
             ->test(GestionTareas::class, ['plan' => $plan])
             ->assertSet('puedeCrearTarea', false)
-            ->set('nuevaNombre', 'Tarea colada')
+            ->set('nueva.nombre', 'Tarea colada')
+            ->set('nueva.area_id', (string) $this->gerenciaAuditoria->id)
             ->call('guardarNuevaTarea')
             ->assertForbidden();
         $this->assertDatabaseMissing('tareas', ['nombre' => 'Tarea colada']);
