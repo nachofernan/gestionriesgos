@@ -66,7 +66,7 @@ class GestionActualizaciones extends Component
     public array $archivos = [];
 
     /**
-     * Otros bloques hermanos de la misma pantalla (GestionAreas/Objetivos/
+     * Otros bloques hermanos de la misma pantalla (GestionObjetivos/
      * Controles/Planes/Tareas, y este mismo componente en sus propias acciones
      * de validar/aprobar, ver dispatch() más abajo) avisan con
      * "{tipo}-actualizado" cuando persisten un cambio real sobre la entidad; acá
@@ -223,19 +223,13 @@ class GestionActualizaciones extends Component
     /**
      * Valida la actualización y, si la entidad ya estaba en estado "validado",
      * la aprueba en el mismo paso aplicando sus cambios (ver Actualizacion::marcarValidada()).
-     *
-     * Bajo doble validación (riesgo con varias gerencias) esto no valida directo:
-     * registra el voto a favor de la gerencia del usuario y sólo cuando TODAS las
-     * gerencias votaron a favor se marca validada (y se aplica).
      */
     public function validarActualizacion(int $actualizacionId): void
     {
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('validar', $actualizacion);
 
-        $actualizacion->validarPor(Auth::user());
-        // Se dispatcha siempre: aunque falten votos, la tarjeta tiene que mostrar el
-        // nuevo, y un re-render de más en Info* cuando no se aplicó nada no rompe nada.
+        $actualizacion->marcarValidada(Auth::user());
         $this->dispatch("{$this->modelType}-actualizado");
     }
 
@@ -257,18 +251,10 @@ class GestionActualizaciones extends Component
         $this->dispatch("{$this->modelType}-actualizado");
     }
 
-    /**
-     * Rechaza la propuesta. Bajo doble validación deja registrado el voto en contra
-     * de la gerencia; un solo rechazo tumba el cambio y queda todo como estaba.
-     */
     public function rechazarActualizacion(int $actualizacionId): void
     {
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('rechazar', $actualizacion);
-
-        if ($actualizacion->requiereDobleValidacion()) {
-            $actualizacion->registrarVoto(Auth::user(), false);
-        }
 
         $actualizacion->marcarRechazada(Auth::user());
         $this->dispatch("{$this->modelType}-actualizado");
@@ -385,7 +371,7 @@ class GestionActualizaciones extends Component
     {
         $actualizaciones = $this->resolverModelo()
             ->actualizaciones()
-            ->with(['user.area', 'estado', 'media', 'validadoPor', 'aprobadoPor', 'rechazadoPor', 'validacionesGerencia.area', 'validacionesGerencia.user'])
+            ->with(['user.area', 'estado', 'media', 'validadoPor', 'aprobadoPor', 'rechazadoPor'])
             ->latest('created_at')
             ->latest('id')
             ->get();

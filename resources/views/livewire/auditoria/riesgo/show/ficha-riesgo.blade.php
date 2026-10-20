@@ -6,7 +6,7 @@
     @endphp
 
     <x-auditoria.bloque-riesgo ancla="ficha" titulo="Ficha del riesgo"
-        :modo="$modo" :gerencias="$gerencias" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
+        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
 
         <x-slot:accion>
             @if($puedeActualizar && !$editando)

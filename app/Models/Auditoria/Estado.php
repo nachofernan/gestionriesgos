@@ -25,8 +25,8 @@ class Estado extends Model
     /**
      * Orden canónico de estados para listados en toda la app: aprobado primero,
      * luego validado, borrador y por último borrado. Es puramente de presentación
-     * (no afecta el ciclo de negocio en Riesgo::cambioRequiereDobleValidacion() ni
-     * accessors de valor), por eso vive acá y no en el núcleo sagrado.
+     * (no afecta el ciclo de estados ni los accessors de valor), por eso vive acá
+     * y no en el núcleo sagrado.
      */
     public const ORDEN = [
         'aprobado' => 1,

@@ -118,7 +118,7 @@ class Index extends Component
 
     /**
      * Valida todas las propuestas en borrador del elemento que el gerente puede
-     * validar (con el circuito de siempre, Actualizacion::validarPor()) y lo
+     * validar (con el circuito de siempre, Actualizacion::marcarValidada()) y lo
      * firma. Todo o nada: si después de validar la firma no procede (errores, o
      * advertencias sin comentario), no queda validado nada.
      * Tests: validar_y_firmar_valida_los_cambios_y_firma,
@@ -136,7 +136,7 @@ class Index extends Component
         DB::transaction(function () use ($cambios, $tipo, $id, $gerencia, $comentario) {
             foreach ($cambios as $cambio) {
                 $this->authorize('validar', $cambio);
-                $cambio->validarPor(Auth::user());
+                $cambio->marcarValidada(Auth::user());
             }
 
             $elemento = DetectorInconsistencias::consulta(self::TIPOS[$tipo]['modelo'])->findOrFail($id);
@@ -202,20 +202,13 @@ class Index extends Component
             ->with(['user', 'area', 'estado', 'revisionesIniciales.revisadoPor', 'revisionesIniciales.firmadoPor'])
             ->where('estado_id', '!=', Estado::borrado()?->id);
 
-        if ($modelo === Riesgo::class) {
-            $query->with('areas');
-        }
-
         if ($this->miraTodo($user)) {
             return $query;
         }
 
         $ids = $user->area->obtenerIdsSubarbol();
 
-        return $query->where(fn ($q) => $q->where('user_id', $user->id)
-            ->when($modelo === Riesgo::class,
-                fn ($q) => $q->orWhereHas('areas', fn ($a) => $a->whereIn('areas.id', $ids)),
-                fn ($q) => $q->orWhereIn('area_id', $ids)));
+        return $query->where(fn ($q) => $q->where('user_id', $user->id)->orWhereIn('area_id', $ids));
     }
 
     /**
@@ -267,7 +260,7 @@ class Index extends Component
     /**
      * Avance por gerencia sobre los cinco tipos: cuántas firmas lleva, cuántas
      * están revisadas sin firmar, cuántas pendientes y cuántos elementos tienen
-     * errores. Cuenta pares elemento-gerencia (un riesgo compartido suma en cada una).
+     * errores. Cuenta pares elemento-gerencia.
      */
     private function resumen(array $filasPorTipo): Collection
     {

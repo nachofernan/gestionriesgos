@@ -137,7 +137,7 @@ class FichaRiesgo extends Component
 
     public function render()
     {
-        $riesgo = Riesgo::with(['tipoRiesgo', 'area', 'user', 'estado', 'areas'])->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['tipoRiesgo', 'area', 'user', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
         $propuestas = $this->propuestasDe($riesgo, 'campos');
 
@@ -145,8 +145,7 @@ class FichaRiesgo extends Component
             'riesgo' => $riesgo,
             'puedeActualizar' => Auth::user()->can('proponer', $riesgo),
             'puedeRecalcular' => $riesgo->motivoBloqueoRecalculo(Auth::user()) === null,
-            'modo' => $this->modoCambio($riesgo),
-            'gerencias' => $this->nombresGerencias($riesgo),
+            'modo' => $this->modoCambio(),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),
             'tiposRiesgo' => TipoRiesgo::orderBy('nombre')->pluck('nombre', 'id'),

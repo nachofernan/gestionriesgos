@@ -250,12 +250,8 @@ class GestionPlanes extends Component
             $this->dispatch('residual-actualizado', valor: $this->residualActual());
             session()->flash('ok', 'Planes de acción actualizados.');
         } else {
-            // Riesgo compartido entre gerencias: el cambio no se aplica de una,
-            // nace pendiente y el proponente vota a favor por su gerencia (ver
-            // Riesgo::cambioRequiereDobleValidacion()).
-            $modo = $this->modoCambio($riesgo);
-            $dobleValidacion = $modo === 'doble';
-            $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
+            $modo = $this->modoCambio();
+            $estadoId = $this->estadoParaActualizacion();
 
             $data = ['tipo' => 'cambio', 'relaciones' => ['planesAccion' => ['sync' => $sync]]];
             if (! empty($diffRel)) {
@@ -280,7 +276,7 @@ class GestionPlanes extends Component
                 session()->flash('ok', 'Planes de acción actualizados.');
             } else {
                 // Fuera del modo directo, cada alta/baja/cambio es su propia propuesta.
-                $this->proponerPorElemento($riesgo, 'planesAccion', $diffRel, $estadoId, $dobleValidacion, 'plan de acción');
+                $this->proponerPorElemento($riesgo, 'planesAccion', $diffRel, $estadoId, 'plan de acción');
 
                 $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
@@ -399,7 +395,7 @@ class GestionPlanes extends Component
 
     public function render()
     {
-        $riesgoVista = Riesgo::with(['areas', 'planesAccion.estado'])->findOrFail($this->riesgoId);
+        $riesgoVista = Riesgo::with(['planesAccion.estado'])->findOrFail($this->riesgoId);
         $propuestas = $this->propuestasDe($riesgoVista, 'planesAccion');
         $bloqueados = $this->idsConPropuesta($propuestas, 'planesAccion');
         $yaIds = collect($this->seleccionados)->pluck('id')->merge($bloqueados);
@@ -426,8 +422,7 @@ class GestionPlanes extends Component
             : collect();
 
         return view('livewire.auditoria.riesgo.show.gestion-planes', [
-            'modo' => $this->modoCambio($riesgoVista),
-            'gerencias' => $this->nombresGerencias($riesgoVista),
+            'modo' => $this->modoCambio(),
             'bloqueados' => $bloqueados,
             'propuestas' => $propuestas,
             'marcas' => $this->marcasDe($propuestas, 'planesAccion'),

@@ -228,30 +228,6 @@ class PropuestasPorElementoTest extends TestCase
     }
 
     #[Test]
-    public function en_un_riesgo_compartido_cada_propuesta_por_elemento_nace_con_el_voto_del_proponente(): void
-    {
-        $otraGerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
-        $this->riesgo->areas()->syncWithoutDetaching([$otraGerencia->id]);
-        $nuevo = $this->controlAprobado('Control nuevo');
-
-        Livewire::actingAs($this->gerente)
-            ->test(GestionControles::class, ['riesgo' => $this->riesgo])
-            ->call('activarEdicion')
-            ->call('agregar', $nuevo->id)
-            ->call('quitar', $this->control2->id)
-            ->call('guardar');
-
-        $propuestas = $this->propuestas();
-        $this->assertCount(2, $propuestas);
-        foreach ($propuestas as $propuesta) {
-            $this->assertEquals('borrador', $propuesta->estado->nombre);
-            $this->assertTrue($propuesta->validacionesGerencia()->where('area_id', $this->gerencia->id)->value('aprueba'));
-            $this->assertNull($propuesta->validacionesGerencia()->where('area_id', $otraGerencia->id)->first());
-        }
-        $this->assertFalse($this->riesgo->refresh()->controles->pluck('id')->contains($nuevo->id));
-    }
-
-    #[Test]
     public function aplicar_operaciones_por_elemento_no_duplica_un_elemento_ya_asociado(): void
     {
         Actualizacion::aplicarOperacionesPorElemento($this->riesgo, 'controles', [
@@ -317,7 +293,7 @@ class PropuestasPorElementoTest extends TestCase
     // -------------------------------------------------------
 
     #[Test]
-    public function el_modo_de_cambio_del_bloque_depende_del_estado_el_rol_y_las_gerencias(): void
+    public function el_modo_de_cambio_del_bloque_depende_del_estado_y_el_rol(): void
     {
         $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
         $modo = fn (User $user, Riesgo $riesgo) => Livewire::actingAs($user)
@@ -332,9 +308,6 @@ class PropuestasPorElementoTest extends TestCase
         $this->assertEquals('propuesta', $modo($this->empleado, $this->riesgo));
         $this->assertEquals('propuesta', $modo($this->gerente, $aprobado));     // espera al comité
         $this->assertEquals('directo', $modo($comite, $aprobado));
-
-        $this->riesgo->areas()->syncWithoutDetaching([Area::create(['nombre' => 'Otra', 'tipo' => TipoArea::Gerencia])->id]);
-        $this->assertEquals('doble', $modo($this->gerente, $this->riesgo->refresh()));
     }
 
     // -------------------------------------------------------

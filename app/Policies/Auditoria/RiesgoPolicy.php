@@ -7,7 +7,9 @@ use App\Models\User;
 
 /**
  * Autorización de Riesgo por jerarquía de área: gerente gestiona su área y
- * sub-áreas, comité opera en cualquier área (area_id = null).
+ * sub-áreas, comité opera en cualquier área (area_id = null). El riesgo
+ * pertenece sólo a su area_id, como el resto de las entidades.
+ * Tests: RiesgoAccesoPorAreaTest, VisibilidadTest.
  */
 class RiesgoPolicy
 {
@@ -16,8 +18,7 @@ class RiesgoPolicy
      * todo; comité no ve borrador/borrado ajenos (su área es la raíz del árbol,
      * así que puedeGestionarArea() la trataría como ancestro de cualquier otra —
      * hay que cortar antes de llegar ahí); cualquier otro caso requiere
-     * gestionar alguna de las gerencias asociadas al riesgo (ver
-     * Riesgo::puedeGestionarAlgunaArea(), no solo area_id).
+     * gestionar el área del riesgo.
      */
     public function view(User $user, Riesgo $riesgo): bool
     {
@@ -32,7 +33,7 @@ class RiesgoPolicy
             return false;
         }
 
-        return $riesgo->puedeGestionarAlgunaArea($user);
+        return $user->puedeGestionarArea($riesgo->area_id);
     }
 
     public function create(User $user, mixed $areaId = null): bool
@@ -42,7 +43,7 @@ class RiesgoPolicy
 
     public function update(User $user, Riesgo $riesgo): bool
     {
-        return $riesgo->puedeGestionarAlgunaArea($user);
+        return $user->puedeGestionarArea($riesgo->area_id);
     }
 
     /**
@@ -59,43 +60,27 @@ class RiesgoPolicy
 
     public function delete(User $user, Riesgo $riesgo): bool
     {
-        return ! $user->esAuditor() && $riesgo->puedeGestionarAlgunaArea($user);
+        return ! $user->esAuditor() && $user->puedeGestionarArea($riesgo->area_id);
     }
 
     public function validar(User $user, Riesgo $riesgo): bool
     {
         return $user->esGerente()
-            && $riesgo->puedeGestionarAlgunaArea($user)
+            && $user->puedeGestionarArea($riesgo->area_id)
             && $riesgo->estado?->nombre === 'borrador';
     }
 
     public function aprobar(User $user, Riesgo $riesgo): bool
     {
         return $user->esComite()
-            && $riesgo->puedeGestionarAlgunaArea($user)
+            && $user->puedeGestionarArea($riesgo->area_id)
             && $riesgo->estado?->nombre === 'validado';
     }
 
     public function rechazar(User $user, Riesgo $riesgo): bool
     {
         return $user->esGerente()
-            && $riesgo->puedeGestionarAlgunaArea($user)
+            && $user->puedeGestionarArea($riesgo->area_id)
             && $riesgo->estado?->nombre === 'borrador';
-    }
-
-    /**
-     * Gestionar (agregar/quitar) las gerencias asociadas a un riesgo: sólo un
-     * gerente de alguna gerencia asociada, y sólo una vez que el riesgo dejó el
-     * borrador (validado o aprobado). En borrador el riesgo conserva su única
-     * gerencia de origen; compartirlo con otra gerencia es una acción posterior
-     * a la validación. Esta regla es la que garantiza que un borrador siempre
-     * tenga una sola gerencia, y por lo tanto que la doble validación sólo entre
-     * en juego sobre cambios de un riesgo ya validado (ver Riesgo::gerencias()).
-     */
-    public function gestionarGerencias(User $user, Riesgo $riesgo): bool
-    {
-        return $user->esGerente()
-            && $riesgo->puedeGestionarAlgunaArea($user)
-            && in_array($riesgo->estado?->nombre, ['validado', 'aprobado']);
     }
 }

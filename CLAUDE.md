@@ -31,8 +31,8 @@ diseño y se implementa todo lo que toca el núcleo sagrado: la exactitud de la 
 cálculo de riesgo se protege con *presencia*, no con potencia.
 
 **El núcleo sagrado** son las Policies y la autorización por jerarquía de área, `scopeVisiblePara`,
-el cálculo de `valor_total` / `valor_residual` y la mitigación, el ciclo de estados y la doble
-validación entre gerencias. **No se delega.** Un subagente corre aislado: arranca en frío —tiene que
+el cálculo de `valor_total` / `valor_residual` y la mitigación, y el ciclo de estados. **No se
+delega.** Un subagente corre aislado: arranca en frío —tiene que
 releer este archivo, los docs y mapear el código— y no puede preguntar en vivo. Para trabajo de
 juicio eso paga dos veces el contexto y produce menos.
 
@@ -119,12 +119,10 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
    son la fuente de verdad: ninguna vista recalcula el residual por su cuenta.
 
 3. **El ciclo de estados gobierna qué se puede hacer.** `borrador → validado → aprobado` (o
-   `borrado`). Quién puede ver, validar, aprobar o compartir un riesgo depende de su estado, no solo
-   del rol. Un borrador es siempre **mono-gerencia**; compartir un riesgo con otra gerencia sólo se
-   permite tras validarlo. Un riesgo compartido entre dos o más gerencias exige **doble validación**:
-   cada propuesta de cambio la validan todas las gerencias (`validacion_gerencia`), un solo rechazo la
-   tumba. Esta regla está centralizada en `Riesgo::cambioRequiereDobleValidacion()`, no dispersa en
-   los componentes.
+   `borrado`). Quién puede ver, validar o aprobar un riesgo depende de su estado, no solo del rol.
+   Un riesgo pertenece a **una sola área** (`area_id`), como el resto de las entidades: no hay riesgo
+   compartido entre gerencias (D-028). Una propuesta de cambio la valida un gerente de esa área y,
+   si corresponde, la aprueba el comité.
 
 4. **El historial es append-only, polimórfico y auditable.** Los cambios sobre las entidades quedan
    registrados como `Actualizacion` (`morphMany`: quién, qué campo, valor anterior/nuevo, cuándo). El
@@ -328,10 +326,10 @@ consume el accessor del modelo.
 
 El **ciclo completo está construido y andando**: riesgos con impacto/probabilidad calculados por el
 wizard, controles, objetivos, planes de acción y tareas, historial polimórfico de actualizaciones con
-adjuntos, autorización por jerarquía de área con visibilidad por estado, riesgo compartido entre
-gerencias con doble validación, y las pantallas de Pendientes, Vencimientos y el Panel de Riesgos
-(dashboard de situación con sesgo gerencial). Las 6 fases del cronograma original están cerradas
-salvo los reportes exportables. La suite ronda los ~233 tests, 23 archivos en
+adjuntos, autorización por jerarquía de área con visibilidad por estado, y las pantallas de
+Pendientes, Vencimientos y el Panel de Riesgos (dashboard de situación con sesgo gerencial). Las 6
+fases del cronograma original están cerradas salvo los reportes exportables. La suite ronda los ~467
+tests, 45 archivos en
 `tests/Feature/Auditoria/`.
 
 Lo que sigue abierto vive en `docs/ROADMAP.md` (reportes PDF/Excel, notificaciones, vencimiento

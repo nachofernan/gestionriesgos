@@ -4,12 +4,12 @@
     'resolver-actualizacion', que atiende GestionActualizaciones. Al confirmar, el botón
     se deshabilita hasta que el bloque se vuelve a dibujar (no es un wire:click propio,
     así que wire:loading no aplica).
-    Variables: $propuesta, $doble, $btn, $puedeValidar, $puedeAprobar, $puedeRechazar, $puedeRetirar.
+    Variables: $propuesta, $btn, $puedeValidar, $puedeAprobar, $puedeRechazar, $puedeRetirar.
 --}}
 @if($puedeValidar)
     <button type="button" class="{{ $btn }} bg-blue-600 text-white hover:bg-blue-700"
             onclick="if (confirm('¿Validar esta propuesta?')) { this.disabled = true; this.classList.add('opacity-50', 'cursor-wait'); Livewire.dispatch('resolver-actualizacion', { id: {{ $propuesta->id }}, accion: 'validar' }) }">
-        {{ $doble ? 'Votar' : 'Validar' }}
+        Validar
     </button>
 @endif
 @if($puedeAprobar)

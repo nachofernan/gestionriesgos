@@ -97,7 +97,7 @@ class RiesgoWizardTest extends TestCase
     }
 
     #[Test]
-    public function el_area_del_creador_queda_sincronizada_como_gerencia_del_riesgo(): void
+    public function el_riesgo_creado_queda_en_el_area_elegida_y_su_creador_lo_gestiona(): void
     {
         $area = Area::firstOrCreate(['nombre' => 'Área de prueba']);
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
@@ -105,8 +105,8 @@ class RiesgoWizardTest extends TestCase
         $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard());
 
         $riesgo = Riesgo::firstOrFail();
-        $this->assertCount(1, $riesgo->areas);
-        $this->assertEquals($area->id, $riesgo->areas->first()->id);
+        $this->assertEquals($area->id, $riesgo->area_id);
+        $this->assertTrue($user->can('update', $riesgo));
     }
 
     #[Test]

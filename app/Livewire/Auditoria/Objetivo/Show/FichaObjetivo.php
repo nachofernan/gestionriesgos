@@ -141,7 +141,7 @@ class FichaObjetivo extends Component
         return view('livewire.auditoria.objetivo.show.ficha-objetivo', [
             'objetivo' => $objetivo,
             'puedeActualizar' => Auth::user()->can('proponer', $objetivo),
-            'modo' => $this->modoCambio($objetivo),
+            'modo' => $this->modoCambio(),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),
         ]);

@@ -3,15 +3,12 @@
 namespace App\Models\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
-use App\Enums\Auditoria\TipoArea;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -155,9 +152,8 @@ class Actualizacion extends Model implements HasMedia
 
     /**
      * Registra un cambio de campos sobre la entidad. Nace en el estado que le toca
-     * al rol (estadoInicialParaCambio()), o en borrador con el voto a favor del
-     * proponente si el riesgo es compartido (Riesgo::cambioRequiereDobleValidacion());
-     * se aplica en el acto si nace aprobado, o validado sobre una entidad validada.
+     * al rol (estadoInicialParaCambio()); se aplica en el acto si nace aprobado,
+     * o validado sobre una entidad validada.
      * Guarda el diff (antes → después) que pintan el historial y las tarjetas de
      * propuesta. Sale de GestionActualizaciones::guardar() para que también lo use
      * FichaRiesgo. Quien llama ya validó los campos y autorizó 'update'.
@@ -165,14 +161,12 @@ class Actualizacion extends Model implements HasMedia
      * propuesta con 'propagar_mitigacion': cuando se aplique, el nuevo default se
      * lleva a todos los riesgos asociados (Control::propagarMitigacionDefault()).
      * Tests: un_empleado_edita_la_ficha_y_queda_propuesta_solo_con_los_campos_que_cambiaron,
-     * en_un_riesgo_compartido_la_ficha_propone_con_el_voto_del_proponente,
      * como_propuesta_no_propaga_hasta_que_se_aplica.
      */
     public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos, bool $propagarMitigacion = false): self
     {
         $estadoEntidad = $entidad->estado?->nombre;
-        $dobleValidacion = $entidad instanceof Riesgo && $entidad->cambioRequiereDobleValidacion($usuario);
-        $estadoId = $dobleValidacion ? Estado::borrador()->id : static::estadoInicialParaCambio($usuario, $estadoEntidad);
+        $estadoId = static::estadoInicialParaCambio($usuario, $estadoEntidad);
 
         $diff = [];
         foreach ($campos as $campo => $nuevo) {
@@ -201,13 +195,13 @@ class Actualizacion extends Model implements HasMedia
             $data['propagar_mitigacion'] = true;
         }
 
-        $aplicar = ! $dobleValidacion && ($estadoId === Estado::aprobado()->id
-            || ($estadoId === Estado::validado()->id && $estadoEntidad === 'validado'));
+        $aplicar = $estadoId === Estado::aprobado()->id
+            || ($estadoId === Estado::validado()->id && $estadoEntidad === 'validado');
         if ($aplicar) {
             $data['activated_by'] = $usuario->name;
         }
 
-        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $campos, $estadoId, $data, $aplicar, $dobleValidacion) {
+        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $campos, $estadoId, $data, $aplicar) {
             $actualizacion = $entidad->actualizaciones()->create([
                 'user_id' => $usuario->id,
                 'mensaje' => $mensaje,
@@ -223,10 +217,6 @@ class Actualizacion extends Model implements HasMedia
                 }
             }
 
-            if ($dobleValidacion) {
-                $actualizacion->registrarVoto($usuario, true);
-            }
-
             return $actualizacion;
         });
     }
@@ -235,7 +225,7 @@ class Actualizacion extends Model implements HasMedia
      * Propuestas de cambio que todavía no se aplicaron a su entidad: tipo
      * "cambio", en borrador (espera validación) o validada sin `activated_by`
      * (espera al comité). Con `$parte` se acota a las que tocan esa parte de la
-     * entidad: una relación ('objetivos', 'controles', 'planesAccion', 'areas') o
+     * entidad: una relación ('objetivos', 'controles', 'planesAccion', 'tareas') o
      * 'campos'. Lo consumen los bloques de riesgo/show para mostrar lo propuesto
      * debajo de lo vigente. Solo lectura.
      * Test: propuestas_pendientes_incluye_solo_cambios_sin_aplicar_y_filtra_por_parte.
@@ -306,7 +296,7 @@ class Actualizacion extends Model implements HasMedia
 
         $partes = [
             'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes de acción',
-            'areas' => 'Gerencias', 'tareas' => 'Tareas',
+            'tareas' => 'Tareas',
         ];
         $relaciones = [];
         foreach ($diff['relaciones'] ?? [] as $parte => $ops) {
@@ -329,99 +319,14 @@ class Actualizacion extends Model implements HasMedia
         return ['campos' => $campos, 'relaciones' => $relaciones];
     }
 
-    public function validacionesGerencia(): HasMany
-    {
-        return $this->hasMany(ValidacionGerencia::class);
-    }
-
-    // -------------------------------------------------------
-    // Doble validación (riesgos compartidos entre gerencias)
-    // -------------------------------------------------------
-
-    /**
-     * true si esta propuesta pertenece a un riesgo con dos o más gerencias: sólo
-     * en ese caso el cambio no se aplica de una y necesita el voto de todas las
-     * gerencias asociadas. Para el resto de entidades (y riesgos mono-gerencia)
-     * es false y rige el flujo de validación de siempre.
-     */
-    public function requiereDobleValidacion(): bool
-    {
-        $model = $this->actualizable;
-
-        return $model instanceof Riesgo && $model->esMultigerencia();
-    }
-
-    /**
-     * Registra (o cambia) el voto de la gerencia del usuario sobre esta propuesta.
-     * `aprueba` = validar (true) / rechazar (false). Cada gerencia vota una sola
-     * vez; el proponente vota a favor al crear la propuesta. El auditor nunca vota
-     * (D-020): no representa a su gerencia, así que su propuesta espera el voto de
-     * todas las gerencias del riesgo.
-     * Test: la_propuesta_del_auditor_en_un_riesgo_compartido_espera_el_voto_de_todas_las_gerencias.
-     */
-    public function registrarVoto(User $usuario, bool $aprueba): void
-    {
-        $gerencia = $usuario->areaGerencia();
-        if (! $gerencia || $usuario->esAuditor()) {
-            return;
-        }
-
-        $this->validacionesGerencia()->updateOrCreate(
-            ['area_id' => $gerencia->id],
-            ['user_id' => $usuario->id, 'aprueba' => $aprueba],
-        );
-    }
-
-    /** true cuando todas las gerencias asociadas al riesgo votaron a favor. */
-    public function todasLasGerenciasValidaron(): bool
-    {
-        $gerenciaIds = $this->actualizable->gerenciaIds();
-        if (empty($gerenciaIds)) {
-            return false;
-        }
-
-        $aFavor = $this->validacionesGerencia()->where('aprueba', true)->pluck('area_id');
-
-        return collect($gerenciaIds)->every(fn ($id) => $aFavor->contains($id));
-    }
-
-    /** Nombres de las gerencias que todavía no votaron a favor (para mostrar en la UI). */
-    public function gerenciasPendientes(): Collection
-    {
-        $aFavor = $this->validacionesGerencia()->where('aprueba', true)->pluck('area_id');
-
-        return $this->actualizable->areas()
-            ->where('tipo', TipoArea::Gerencia)
-            ->whereNotIn('areas.id', $aFavor)
-            ->pluck('nombre');
-    }
-
-    /**
-     * Validación de un gerente, por donde pasa todo "validar" de una propuesta
-     * (GestionActualizaciones y "Validar y firmar" de la revisión inicial). Bajo
-     * doble validación registra el voto de su gerencia y valida recién cuando
-     * votaron todas; si no, valida directo. Quien llama ya autorizó con
-     * ActualizacionPolicy::validar().
-     * Tests: DobleValidacionTest, validar_y_firmar_valida_los_cambios_y_firma.
-     */
-    public function validarPor(User $usuario): void
-    {
-        if ($this->requiereDobleValidacion()) {
-            $this->registrarVoto($usuario, true);
-            if ($this->todasLasGerenciasValidaron()) {
-                $this->marcarValidada($usuario);
-            }
-
-            return;
-        }
-
-        $this->marcarValidada($usuario);
-    }
-
     /**
      * Valida la actualización y, si la entidad relacionada ya estaba en
      * "validado", aplica los cambios en el mismo paso (no espera una
-     * aprobación aparte).
+     * aprobación aparte). Por acá pasa todo "validar" de una propuesta
+     * (GestionActualizaciones y "Validar y firmar" de la revisión inicial);
+     * quien llama ya autorizó con ActualizacionPolicy::validar().
+     * Tests: validar_y_firmar_valida_los_cambios_y_firma,
+     * una_propuesta_sobre_un_riesgo_validado_se_aplica_con_la_validacion_de_su_gerente.
      */
     public function marcarValidada(User $usuario): void
     {

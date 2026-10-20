@@ -37,7 +37,7 @@ class DetectorInconsistencias
     public static function consulta(string $clase): Builder
     {
         return match ($clase) {
-            Riesgo::class => Riesgo::query()->withCount(['areas', 'objetivos', 'planesAccion', 'controles']),
+            Riesgo::class => Riesgo::query()->withCount(['objetivos', 'planesAccion', 'controles']),
             Control::class => Control::query()->withCount([
                 'riesgos',
                 'riesgos as riesgos_sin_mitigacion_count' => fn ($q) => $q->where('control_riesgo.mitigacion', 0),
@@ -57,7 +57,6 @@ class DetectorInconsistencias
             'objetivos' => [Objetivo::class, 'riesgos'],
             'planesAccion' => [PlanAccion::class, 'riesgos'],
             'controles' => [Control::class, 'riesgos'],
-            'areas' => null,
         ],
         Control::class => ['riesgos' => [Riesgo::class, 'controles']],
         Objetivo::class => ['riesgos' => [Riesgo::class, 'objetivos'], 'peisItems' => null],
@@ -197,10 +196,8 @@ class DetectorInconsistencias
 
     private function reglas(Model $elemento): array
     {
-        $sinArea = $elemento instanceof Riesgo ? $elemento->areas_count === 0 : ! $elemento->area_id;
-
         $hallazgos = [
-            ...($sinArea ? [$this->error('sin_area', 'No tiene área asignada: ninguna gerencia puede firmarlo.')] : []),
+            ...(! $elemento->area_id ? [$this->error('sin_area', 'No tiene área asignada: ninguna gerencia puede firmarlo.')] : []),
             ...(! $elemento->user_id ? [$this->advertencia('sin_responsable', 'No tiene responsable.')] : []),
         ];
 

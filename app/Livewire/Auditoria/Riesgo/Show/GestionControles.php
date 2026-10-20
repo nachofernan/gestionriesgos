@@ -215,12 +215,8 @@ class GestionControles extends Component
             $this->dispatch('residual-actualizado', valor: $this->residualActual());
             session()->flash('ok', 'Controles actualizados.');
         } else {
-            // Riesgo compartido entre gerencias: el cambio no se aplica de una,
-            // nace pendiente y el proponente vota a favor por su gerencia (ver
-            // Riesgo::cambioRequiereDobleValidacion()).
-            $modo = $this->modoCambio($riesgo);
-            $dobleValidacion = $modo === 'doble';
-            $estadoId = $dobleValidacion ? Estado::borrador()->id : $this->estadoParaActualizacion();
+            $modo = $this->modoCambio();
+            $estadoId = $this->estadoParaActualizacion();
 
             $data = ['tipo' => 'cambio', 'relaciones' => ['controles' => ['sync' => $sync]]];
             if (! empty($diffRel)) {
@@ -245,7 +241,7 @@ class GestionControles extends Component
                 session()->flash('ok', 'Controles actualizados.');
             } else {
                 // Fuera del modo directo, cada alta/baja/cambio es su propia propuesta.
-                $this->proponerPorElemento($riesgo, 'controles', $diffRel, $estadoId, $dobleValidacion, 'control');
+                $this->proponerPorElemento($riesgo, 'controles', $diffRel, $estadoId, 'control');
 
                 $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
@@ -365,7 +361,7 @@ class GestionControles extends Component
 
     public function render()
     {
-        $riesgoVista = Riesgo::with(['areas', 'controles.estado'])->findOrFail($this->riesgoId);
+        $riesgoVista = Riesgo::with(['controles.estado'])->findOrFail($this->riesgoId);
         $propuestas = $this->propuestasDe($riesgoVista, 'controles');
         $bloqueados = $this->idsConPropuesta($propuestas, 'controles');
         $yaIds = collect($this->seleccionados)->pluck('id')->merge($bloqueados);
@@ -387,8 +383,7 @@ class GestionControles extends Component
             : collect();
 
         return view('livewire.auditoria.riesgo.show.gestion-controles', [
-            'modo' => $this->modoCambio($riesgoVista),
-            'gerencias' => $this->nombresGerencias($riesgoVista),
+            'modo' => $this->modoCambio(),
             'bloqueados' => $bloqueados,
             'propuestas' => $propuestas,
             'marcas' => $this->marcasDe($propuestas, 'controles'),

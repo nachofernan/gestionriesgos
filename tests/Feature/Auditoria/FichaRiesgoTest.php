@@ -18,8 +18,8 @@ use Tests\TestCase;
 /**
  * Ficha de riesgo/show: edición en el bloque de los datos propios del riesgo fuera
  * de borrador. Manda sólo lo que cambió a Actualizacion::registrarCambioCampos(),
- * que decide si se aplica o queda propuesta (con doble validación si el riesgo es
- * compartido). Un campo con una propuesta pendiente no se vuelve a proponer.
+ * que decide si se aplica o queda propuesta. Un campo con una propuesta pendiente
+ * no se vuelve a proponer.
  */
 class FichaRiesgoTest extends TestCase
 {
@@ -114,20 +114,6 @@ class FichaRiesgoTest extends TestCase
         $this->assertEquals('Descripción original', $this->riesgo->descripcion);
         $ultima = $this->riesgo->actualizaciones()->latest('id')->first();
         $this->assertEquals(['nombre'], array_keys($ultima->data['campos']));
-    }
-
-    #[Test]
-    public function en_un_riesgo_compartido_la_ficha_propone_con_el_voto_del_proponente(): void
-    {
-        $otra = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
-        $this->riesgo->areas()->syncWithoutDetaching([$otra->id]);
-
-        $this->editar($this->gerente, ['nombre' => 'Nombre nuevo'])->assertHasNoErrors();
-
-        $this->assertEquals('Original', $this->riesgo->refresh()->nombre);
-        $act = $this->riesgo->actualizaciones()->sole();
-        $this->assertEquals('borrador', $act->estado->nombre);
-        $this->assertTrue($act->validacionesGerencia()->where('area_id', $this->gerencia->id)->value('aprueba'));
     }
 
     #[Test]

@@ -3,7 +3,6 @@
 namespace App\Models\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
-use App\Enums\Auditoria\TipoArea;
 use App\Models\Concerns\HasVisibilityScope;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -87,52 +86,12 @@ class Riesgo extends Model implements HasMedia
                 }
             }
         });
-
-        // Al crearse, area_riesgo queda con dos cosas: el área puntual del creador
-        // (para que quien lo creó conserve acceso a su propio borrador, ya que
-        // esAncestroOIgual sólo reconoce a un usuario cuya área sea ancestro-o-igual
-        // de la del pivot) y la gerencia resuelta de esa área (para que la gerencia
-        // responsable quede explícitamente asociada). Si el área ya es gerencia,
-        // ambas coinciden y array_unique evita el duplicado. Sin esto, nadie podría
-        // gestionar el riesgo recién creado.
-        static::created(function ($riesgo) {
-            if ($riesgo->area_id) {
-                $gerenciaId = $riesgo->area?->gerencia()?->id;
-                $ids = array_unique(array_filter([$riesgo->area_id, $gerenciaId]));
-                $riesgo->areas()->syncWithoutDetaching($ids);
-            }
-        });
-    }
-
-    /**
-     * Sobrescribe HasVisibilityScope::scopeVisiblePara(): un riesgo es de "área
-     * propia" si CUALQUIERA de sus gerencias asociadas (area_riesgo) cae en el
-     * subárbol del usuario, no solo su area_id. El resto de la trait (público para
-     * aprobado/validado, comité solo ve público) se mantiene igual.
-     */
-    public function scopeVisiblePara(Builder $query, User $user): Builder
-    {
-        if (! $user->area_id) {
-            return $query;
-        }
-
-        $publicoIds = array_filter([Estado::aprobado()?->id, Estado::validado()?->id]);
-
-        if ($user->esComite()) {
-            return $query->whereIn('estado_id', $publicoIds);
-        }
-
-        $propiaIds = $user->area->obtenerIdsSubarbol();
-
-        return $query->where(fn ($q) => $q->whereIn('estado_id', $publicoIds)
-            ->orWhereHas('areas', fn ($sub) => $sub->whereIn('areas.id', $propiaIds))
-        );
     }
 
     /**
      * Sesgo gerencial para paneles y listados de situación: cada usuario ve sólo
-     * los riesgos de su gerencia y sub-áreas (la cascada del organigrama, vía la
-     * relación `areas`), nunca los de gerencias hermanas o primas. El comité y
+     * los riesgos de su gerencia y sub-áreas (la cascada del organigrama sobre
+     * area_id), nunca los de gerencias hermanas o primas. El comité y
      * cualquier usuario sin área propia (superusuario) ven todo. A diferencia de
      * scopeVisiblePara(), NO trata lo aprobado/validado como público a toda la
      * organización —eso rompería el sesgo mostrando otras gerencias— y NO filtra
@@ -147,7 +106,7 @@ class Riesgo extends Model implements HasMedia
 
         $ids = $user->area->obtenerIdsSubarbol();
 
-        return $query->whereHas('areas', fn ($q) => $q->whereIn('areas.id', $ids));
+        return $query->whereIn('area_id', $ids);
     }
 
     public function user(): BelongsTo
@@ -176,56 +135,6 @@ class Riesgo extends Model implements HasMedia
     }
 
     /**
-     * Gerencias a las que pertenece el riesgo, más allá de la que lo creó
-     * (area_id). Un riesgo puede pertenecer a varias; todas tienen los mismos
-     * permisos de gestión (ver RiesgoPolicy). Se sincroniza con el área del
-     * creador al crearse (ver booted()) y se administra después desde el show.
-     */
-    public function areas(): BelongsToMany
-    {
-        return $this->belongsToMany(Area::class, 'area_riesgo')
-            ->withTimestamps();
-    }
-
-    /**
-     * Reemplaza a `$user->puedeGestionarArea($riesgo->area_id)` en RiesgoPolicy:
-     * un usuario puede gestionar el riesgo si puede gestionar alguna de sus
-     * gerencias asociadas. Todas las gerencias asociadas pesan igual (no hay
-     * "propia" vs "ajena"). Sin gerencias asociadas (riesgo sin área), cualquiera
-     * puede gestionarlo, igual que el comportamiento previo de puedeGestionarArea(null).
-     */
-    public function puedeGestionarAlgunaArea(User $user): bool
-    {
-        if ($this->areas->isEmpty()) {
-            return true;
-        }
-
-        return $this->areas->contains(
-            fn (Area $area) => $user->puedeGestionarArea($area->id)
-        );
-    }
-
-    /**
-     * IDs de las gerencias asociadas (las entradas del pivot que son tipo
-     * Gerencia; excluye el área puntual del creador). Es el padrón de gerencias
-     * que deben votar una propuesta de cambio bajo doble validación.
-     */
-    public function gerenciaIds(): array
-    {
-        return $this->areas()->where('tipo', TipoArea::Gerencia)->pluck('areas.id')->all();
-    }
-
-    /**
-     * true si el riesgo pertenece a dos o más gerencias: recién ahí aplica la
-     * doble validación (cada propuesta de cambio necesita el voto de todas). Con
-     * una sola gerencia el flujo es el de siempre (se aplica sin votos).
-     */
-    public function esMultigerencia(): bool
-    {
-        return count($this->gerenciaIds()) >= 2;
-    }
-
-    /**
      * Motivo por el que $user no puede recalcular impacto/probabilidad ahora mismo
      * (null si puede). Disponible en cualquier estado salvo aprobado, y nunca
      * para el comité (su rol es aprobar, no reevaluar impacto/probabilidad).
@@ -247,18 +156,6 @@ class Riesgo extends Model implements HasMedia
         return null;
     }
 
-    /**
-     * Decide si una propuesta de cambio sobre este riesgo tiene que pasar por la
-     * doble validación: sólo cuando es compartido entre gerencias y quien propone
-     * no es el comité. El comité es la cúspide y valida solo, sin depender de las
-     * gerencias. Es la regla única que consultan los componentes que generan
-     * Actualizaciones (GestionActualizaciones/Areas/Controles/Planes/Objetivos).
-     */
-    public function cambioRequiereDobleValidacion(User $user): bool
-    {
-        return $this->esMultigerencia() && ! $user->esComite();
-    }
-
     public function controles(): BelongsToMany
     {
         return $this->belongsToMany(Control::class, 'control_riesgo')
@@ -277,7 +174,7 @@ class Riesgo extends Model implements HasMedia
         return $this->morphMany(Actualizacion::class, 'actualizable')->latest('created_at');
     }
 
-    // Firmas de la revisión de la carga inicial (D-024), una por gerencia.
+    // Firmas de la revisión de la carga inicial (D-024) ante la gerencia del riesgo.
     public function revisionesIniciales(): MorphMany
     {
         return $this->morphMany(RevisionInicial::class, 'revisable');

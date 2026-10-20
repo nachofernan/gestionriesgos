@@ -66,7 +66,6 @@ class AsociacionesOcultasTest extends TestCase
     public function un_control_borrado_no_aparece_en_la_gestion_de_controles_del_riesgo(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id]);
-        $riesgo->areas()->sync([$this->sectC->id, $this->gerProd->id]);
         $borrado = Control::factory()->create(['estado_id' => Estado::borrado()->id]);
         $riesgo->controles()->attach($borrado->id, ['mitigacion' => 5]);
 
@@ -80,7 +79,6 @@ class AsociacionesOcultasTest extends TestCase
     public function guardar_controles_preserva_el_control_borrado_oculto_sin_detacharlo(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id]);
-        $riesgo->areas()->sync([$this->sectC->id, $this->gerProd->id]);
         $borrado = Control::factory()->create(['estado_id' => Estado::borrado()->id]);
         $vigente = Control::factory()->create(['estado_id' => Estado::aprobado()->id]);
         $riesgo->controles()->attach($borrado->id, ['mitigacion' => 5]);
@@ -104,7 +102,6 @@ class AsociacionesOcultasTest extends TestCase
     public function un_objetivo_en_borrador_de_otra_gerencia_no_aparece_para_un_gerente_que_no_lo_gestiona(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id, 'estado_id' => Estado::aprobado()->id]);
-        $riesgo->areas()->sync([$this->sectC->id, $this->gerProd->id, $this->gerAdmin->id]);
 
         $objetivo = Objetivo::create([
             'nombre' => 'Objetivo de B', 'estado_id' => Estado::borrador()->id,
@@ -122,7 +119,6 @@ class AsociacionesOcultasTest extends TestCase
     public function el_mismo_objetivo_en_borrador_si_aparece_para_el_gerente_de_su_propia_gerencia(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id, 'estado_id' => Estado::aprobado()->id]);
-        $riesgo->areas()->sync([$this->sectC->id, $this->gerProd->id]);
 
         $objetivo = Objetivo::create([
             'nombre' => 'Objetivo de B', 'estado_id' => Estado::borrador()->id,
@@ -139,9 +135,8 @@ class AsociacionesOcultasTest extends TestCase
     public function guardar_objetivos_preserva_el_borrador_ajeno_oculto_sin_detacharlo(): void
     {
         // Comité: el mismo actor del reporte original (ve lo público, no los
-        // borradores ajenos) y no dispara doble validación al guardar.
+        // borradores ajenos).
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id, 'estado_id' => Estado::aprobado()->id]);
-        $riesgo->areas()->sync([$this->sectC->id, $this->gerProd->id]);
 
         $ajeno = Objetivo::create([
             'nombre' => 'Objetivo de B', 'estado_id' => Estado::borrador()->id,
@@ -171,7 +166,6 @@ class AsociacionesOcultasTest extends TestCase
     public function un_plan_borrado_no_aparece_en_la_gestion_de_planes_del_riesgo(): void
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id]);
-        $riesgo->areas()->sync([$this->sectC->id, $this->gerProd->id]);
         $borrado = PlanAccion::factory()->create(['estado_id' => Estado::borrado()->id]);
         $riesgo->planesAccion()->attach($borrado->id, ['mitigacion' => 5]);
 

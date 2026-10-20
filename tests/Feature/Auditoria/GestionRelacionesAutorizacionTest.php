@@ -59,7 +59,7 @@ class GestionRelacionesAutorizacionTest extends TestCase
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
         ]);
 
-        return $riesgo->load(['areas', 'estado']);
+        return $riesgo->load('estado');
     }
 
     private function planValidadoProd(): PlanAccion

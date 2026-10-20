@@ -8,7 +8,7 @@
 
     <x-auditoria.bloque-riesgo ancla="planes" titulo="Planes de acción"
         subtitulo="Descuentan del residual cuando están aprobados y al 100%."
-        :modo="$modo" :gerencias="$gerencias" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
+        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
 
         <x-slot:accion>
             @if($puedeActualizar && !$editando)

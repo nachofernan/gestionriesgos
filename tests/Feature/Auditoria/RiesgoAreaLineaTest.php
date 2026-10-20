@@ -102,27 +102,4 @@ class RiesgoAreaLineaTest extends TestCase
         $respuesta->assertSessionHasErrors('area_id');
         $this->assertEquals($this->gerencia->id, $riesgo->fresh()->area_id);
     }
-
-    #[Test]
-    public function editar_un_riesgo_conserva_su_area_aunque_quede_fuera_de_la_linea_del_usuario(): void
-    {
-        // El riesgo vive en la gerencia hermana pero el usuario puede gestionarlo
-        // porque su propia gerencia está asociada en area_riesgo.
-        $riesgo = Riesgo::factory()->borrador()->create([
-            'user_id' => $this->usuario->id,
-            'area_id' => $this->hermana->id,
-        ]);
-        $riesgo->areas()->syncWithoutDetaching([$this->gerencia->id]);
-
-        $respuesta = $this->actingAs($this->usuario)->put(route('auditoria.riesgos.update', $riesgo), [
-            'nombre' => 'Nombre nuevo',
-            'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
-            'area_id' => $this->hermana->id,
-            'respuesta' => 'mitigar',
-        ]);
-
-        $respuesta->assertSessionHasNoErrors();
-        $this->assertEquals('Nombre nuevo', $riesgo->fresh()->nombre);
-        $this->assertEquals($this->hermana->id, $riesgo->fresh()->area_id);
-    }
 }

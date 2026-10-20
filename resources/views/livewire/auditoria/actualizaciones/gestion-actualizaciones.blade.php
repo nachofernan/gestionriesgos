@@ -143,22 +143,6 @@
                             </p>
                         @endif
 
-                        {{-- Doble validación: gerencias que ya votaron a favor y las que faltan --}}
-                        @if($actualizacion->estado?->nombre === 'borrador' && $actualizacion->requiereDobleValidacion())
-                            @php $votosAFavor = $actualizacion->validacionesGerencia()->where('aprueba', true)->with(['area', 'user'])->get(); @endphp
-                            @foreach($votosAFavor as $voto)
-                                <p class="text-[11px] text-gray-500">
-                                    {{ $voto->area->nombre }} validó ({{ $voto->user->name }} — {{ $voto->created_at?->format('d/m/Y H:i') }})
-                                </p>
-                            @endforeach
-                            @php $gerenciasPendientes = $actualizacion->gerenciasPendientes(); @endphp
-                            @if($gerenciasPendientes->isNotEmpty())
-                                <p class="mt-1 text-[11px] font-semibold text-amber-600">
-                                    Pendiente de validación de: {{ $gerenciasPendientes->join(', ') }}
-                                </p>
-                            @endif
-                        @endif
-
                         {{-- Detalle de cambios --}}
                         @if($tieneContenido && !$skipData)
                             <div class="mt-2 p-2 {{ $dataBg }} border {{ $dataBorder }} rounded-lg">

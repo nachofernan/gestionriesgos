@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Lo que comparten los bloques de riesgo/show (Ficha, Gerencias, Objetivos,
+ * Lo que comparten los bloques de riesgo/show (Ficha, Objetivos,
  * Controles, Planes) y de las otras pantallas de detalle (Fichas, Tareas del
  * plan) para mostrar debajo de lo vigente las propuestas de cambio
  * todavía sin aplicar, y para decirle al usuario qué va a pasar cuando guarde.
@@ -20,20 +20,15 @@ trait PropuestasEnBloque
 {
     /**
      * Qué pasa cuando este usuario guarda un cambio en el bloque: 'directo' (se
-     * aplica en el acto), 'propuesta' (queda pendiente de validación) o 'doble'
-     * (riesgo compartido: necesita el voto de todas las gerencias). Es la misma
-     * regla que decide $aplicarAhora en guardar(), que también la consume, para
-     * que la vista y el guardado no puedan contradecirse.
-     * Test: el_modo_de_cambio_del_bloque_depende_del_estado_el_rol_y_las_gerencias.
+     * aplica en el acto) o 'propuesta' (queda pendiente de validación). Es la
+     * misma regla que decide $aplicarAhora en guardar(), que también la consume,
+     * para que la vista y el guardado no puedan contradecirse.
+     * Test: el_modo_de_cambio_del_bloque_depende_del_estado_y_el_rol.
      */
-    private function modoCambio(Model $entidad): string
+    private function modoCambio(): string
     {
         if ($this->estadoModelo === 'borrador') {
             return 'directo';
-        }
-
-        if ($entidad instanceof Riesgo && $entidad->cambioRequiereDobleValidacion(Auth::user())) {
-            return 'doble';
         }
 
         $estadoId = $this->estadoParaActualizacion();
@@ -48,7 +43,7 @@ trait PropuestasEnBloque
     {
         return $entidad->actualizaciones()
             ->propuestasPendientes($parte)
-            ->with(['user', 'estado', 'validadoPor', 'actualizable', 'validacionesGerencia.area', 'validacionesGerencia.user'])
+            ->with(['user', 'estado', 'validadoPor', 'actualizable'])
             ->latest('created_at')
             ->get();
     }
@@ -117,13 +112,11 @@ trait PropuestasEnBloque
      * operación puntual ('agregar' / 'detach' / 'actualizar', ver
      * Actualizacion::aplicarOperacionesPorElemento()) en lugar de un 'sync' del
      * bloque entero: así cada alta, baja o cambio de mitigación se valida, aprueba
-     * o rechaza por separado y no arrastra el estado del resto. Bajo doble
-     * validación el proponente vota a favor de cada una.
+     * o rechaza por separado y no arrastra el estado del resto.
      * Tests: un_empleado_que_agrega_y_quita_controles_genera_una_propuesta_por_elemento,
-     * en_un_riesgo_compartido_cada_propuesta_por_elemento_nace_con_el_voto_del_proponente,
      * un_empleado_que_agrega_y_quita_tareas_genera_una_propuesta_por_elemento.
      */
-    private function proponerPorElemento(Model $entidad, string $relacion, array $diffRel, int $estadoId, bool $dobleValidacion, string $sustantivo): void
+    private function proponerPorElemento(Model $entidad, string $relacion, array $diffRel, int $estadoId, string $sustantivo): void
     {
         $propuestas = [];
         foreach ($diffRel['agrega'] ?? [] as $item) {
@@ -141,9 +134,9 @@ trait PropuestasEnBloque
             ];
         }
 
-        DB::transaction(function () use ($entidad, $relacion, $propuestas, $estadoId, $dobleValidacion) {
+        DB::transaction(function () use ($entidad, $relacion, $propuestas, $estadoId) {
             foreach ($propuestas as [$mensaje, $ops, $diff]) {
-                $actualizacion = $entidad->actualizaciones()->create([
+                $entidad->actualizaciones()->create([
                     'user_id' => Auth::id(),
                     'mensaje' => $mensaje,
                     'estado_id' => $estadoId,
@@ -153,17 +146,7 @@ trait PropuestasEnBloque
                         'diff' => ['relaciones' => [$relacion => $diff]],
                     ],
                 ]);
-
-                if ($dobleValidacion) {
-                    $actualizacion->registrarVoto(Auth::user(), true);
-                }
             }
         });
-    }
-
-    /** Nombres de las gerencias del riesgo, para el texto de la doble validación. */
-    private function nombresGerencias(Riesgo $riesgo): string
-    {
-        return $riesgo->areas->filter->esGerencia()->pluck('nombre')->join(', ', ' y ');
     }
 }

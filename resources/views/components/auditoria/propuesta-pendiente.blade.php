@@ -4,7 +4,7 @@
     cambia, quién y cuándo, en qué punto está y las acciones. En 'campos' (Ficha)
     lista cada campo antes → después y el motivo. El nombre de un elemento propuesto
     abre su modal de resumen. Las acciones disparan 'resolver-actualizacion', que
-    atiende GestionActualizaciones (autoriza y registra el voto); las condiciones
+    atiende GestionActualizaciones (autoriza y resuelve); las condiciones
     de estado de cada botón son las mismas que usa el historial.
     El formato de 'campos' sale de Actualizacion::diffLegible(), compartido con Pendientes.
     Props: propuesta (Actualizacion), parte, estadoEntidad.
@@ -16,26 +16,15 @@
     $diff = $esCampos ? ($data['diff']['campos'] ?? []) : ($data['diff']['relaciones'][$parte] ?? []);
 
     $esperaComite = $propuesta->estado?->nombre === 'validado';
-    $doble = !$esperaComite && $propuesta->requiereDobleValidacion();
-    if ($doble) {
-        $aFavor = $propuesta->validacionesGerencia->where('aprueba', true);
-        $faltan = $propuesta->gerenciasPendientes();
-    }
-    $situacion = match (true) {
-        $esperaComite => 'espera al comité',
-        $doble => 'votos '.$aFavor->count().'/'.($aFavor->count() + $faltan->count()),
-        default => 'espera validación',
-    };
-    $situacionTitulo = $doble
-        ? 'A favor: '.($aFavor->pluck('area.nombre')->join(', ') ?: '—').' · Faltan: '.($faltan->join(', ') ?: '—')
-        : ($esperaComite ? 'Validada por '.($propuesta->validadoPor?->name ?? 'la gerencia') : 'Pendiente de validación de un gerente');
+    $situacion = $esperaComite ? 'espera al comité' : 'espera validación';
+    $situacionTitulo = $esperaComite ? 'Validada por '.($propuesta->validadoPor?->name ?? 'la gerencia') : 'Pendiente de validación de un gerente';
 
     $evento = ['objetivos' => 'ver-objetivo', 'controles' => 'ver-control', 'planesAccion' => 'ver-plan', 'tareas' => 'ver-tarea'][$parte] ?? null;
 
     $camposLegibles = $esCampos ? $propuesta->diffLegible()['campos'] : [];
 
     // Relación: los elementos de la propuesta con su operación. Las propuestas por
-    // elemento traen uno solo; las de bloque (Gerencias, o anteriores al rediseño) varios.
+    // elemento traen uno solo; las de bloque (anteriores al rediseño) varios.
     $items = [];
     foreach (['agrega', 'quita', 'cambia'] as $clave) {
         foreach ($diff[$clave] ?? [] as $elemento) {

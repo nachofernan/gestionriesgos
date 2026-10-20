@@ -85,9 +85,9 @@ El rol vive en `users.rol` y el área en `users.area_id`. Las Policies están en
 | Rol | Ve | Propone / edita | Valida · aprueba | Crea · elimina |
 |---|---|---|---|---|
 | `empleado` | Lo validado o aprobado de todos, más todo lo de su subárbol | Sobre lo de su subárbol. Fuera de borrador, su propuesta nace en borrador | — | En su subárbol |
-| `gerente` | Igual que el empleado | Igual. Fuera de borrador aplica directo, o vota si el riesgo es compartido | Valida lo de su subárbol | En su subárbol |
+| `gerente` | Igual que el empleado | Igual. Fuera de borrador aplica directo | Valida lo de su subárbol | En su subárbol |
 | `comite` | Sólo lo validado o aprobado | Aplica directo sobre lo aprobado | Aprueba, y rechaza lo validado | Ver D-006 |
-| `auditor` | Igual que el empleado | **Sobre cualquier elemento validado o aprobado.** Su propuesta siempre nace en borrador y **no deja voto** | — | — |
+| `auditor` | Igual que el empleado | **Sobre cualquier elemento validado o aprobado.** Su propuesta siempre nace en borrador | — | — |
 
 **`update` y `proponer` (D-020).**
 - `update` es mutar directo: el formulario de un borrador, un alta desde un bloque (nueva tarea), el avance de una tarea.
@@ -110,7 +110,7 @@ Pantalla `auditoria/revision-inicial` (`Livewire\Auditoria\RevisionInicial\Index
 - **Revisado:** lo marca el responsable o quien gestiona el área dentro de la gerencia.
 - **Firma:** la pone el gerente, con o sin revisado previo.
 - **Responsable gerente:** si el responsable es gerente de esa gerencia, sólo esa persona revisa y firma.
-- **Riesgo compartido:** lo firma cada gerencia.
+- **Gerencia firmante:** la del área del elemento (también para el riesgo, D-028).
 - **Comité y auditor:** miran, no revisan ni firman.
 
 **Arreglos.** Se hacen en el show del elemento, con el circuito de propuestas.
@@ -168,7 +168,7 @@ filtra el Responsable con Alpine al cambiar el Área. Tests: `AltaAreaResponsabl
 
 - **`store`**: Impacto y probabilidad salen del wizard. `area_id` es obligatorio y de la línea del
   usuario. No asocia objetivos: se vinculan desde la ficha.
-- **`update`**: `area_id` es obligatorio, de la línea del usuario o el que ya tenía.
+- **`update`**: `area_id` es obligatorio y de la línea del usuario.
 
 ### `PlanAccionController`
 
@@ -214,7 +214,6 @@ app/Livewire/Auditoria/
 │   ├── ResumenPropuestas.php   — banner con las propuestas pendientes del riesgo
 │   ├── FichaRiesgo.php         — datos propios del riesgo, editables en el bloque
 │   ├── InfoRiesgo.php          — tarjeta Valor: total, desglose de mitigación, residual
-│   ├── GestionAreas.php        — gerencias del riesgo
 │   ├── GestionControles.php    — maneja controles de un riesgo (con mitigacion editable)
 │   ├── GestionObjetivos.php    — maneja objetivos de un riesgo (mínimo 1 requerido)
 │   └── GestionPlanes.php       — maneja planes de acción de un riesgo

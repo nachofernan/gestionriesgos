@@ -105,14 +105,6 @@
             {{-- Cuerpo: propuesta de cambio --}}
             <template x-if="item.modo === 'propuesta'">
                 <div class="px-6 py-4 space-y-3">
-                    <template x-if="item.votos">
-                        <p class="text-xs text-gray-500 bg-amber-50 rounded-lg px-3 py-2">
-                            <span class="font-bold text-amber-800">Riesgo compartido:</span>
-                            a favor <span class="font-semibold" x-text="item.votos.a_favor.join(', ') || '—'"></span>
-                            · faltan <span class="font-semibold" x-text="item.votos.faltan.join(', ') || '—'"></span>
-                        </p>
-                    </template>
-
                     <dl class="space-y-1.5" x-show="item.diff.campos.length">
                         <template x-for="fila in item.diff.campos" :key="fila.campo">
                             <div class="text-sm leading-5 grid grid-cols-[7.5rem_1fr] gap-2">

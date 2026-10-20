@@ -28,8 +28,8 @@ use Tests\TestCase;
  * Rol auditor (D-020): ve como un empleado de su área, propone cambios sobre
  * cualquier elemento validado o aprobado (ficha, bloques, conversación,
  * recálculo), sus propuestas nacen en borrador y las valida el gerente que
- * gestiona el elemento. No crea, no elimina, no valida/aprueba/rechaza, no deja
- * voto de gerencia y no ve borradores de otras gerencias.
+ * gestiona el elemento. No crea, no elimina, no valida/aprueba/rechaza y no ve
+ * borradores de otras gerencias.
  */
 class AuditorTest extends TestCase
 {
@@ -251,31 +251,6 @@ class AuditorTest extends TestCase
         $this->assertEquals('Descripción original', $riesgo->refresh()->descripcion);
 
         Livewire::actingAs($this->gerenteA)
-            ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
-            ->call('validarActualizacion', $propuesta->id);
-        $this->assertEquals('Nueva descripción', $riesgo->refresh()->descripcion);
-    }
-
-    #[Test]
-    public function la_propuesta_del_auditor_en_un_riesgo_compartido_espera_el_voto_de_todas_las_gerencias(): void
-    {
-        // El caso feo: el riesgo es compartido con la propia gerencia del auditor.
-        // Aun así no vota: su gerencia tiene que validar por medio de su gerente.
-        $riesgo = $this->riesgo($this->gerenciaA, 'validado');
-        $riesgo->areas()->syncWithoutDetaching([$this->gerenciaAuditoria->id]);
-        $gerenteAuditoria = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerenciaAuditoria->id]);
-
-        $this->proponerDescripcion($this->auditor, $riesgo, 'Nueva descripción')->assertHasNoErrors();
-        $propuesta = $riesgo->actualizaciones()->propuestasPendientes('campos')->sole();
-        $this->assertEquals('borrador', $propuesta->estado->nombre);
-        $this->assertCount(0, $propuesta->validacionesGerencia);
-
-        Livewire::actingAs($this->gerenteA)
-            ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
-            ->call('validarActualizacion', $propuesta->id);
-        $this->assertEquals('Descripción original', $riesgo->refresh()->descripcion);
-
-        Livewire::actingAs($gerenteAuditoria)
             ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
             ->call('validarActualizacion', $propuesta->id);
         $this->assertEquals('Nueva descripción', $riesgo->refresh()->descripcion);

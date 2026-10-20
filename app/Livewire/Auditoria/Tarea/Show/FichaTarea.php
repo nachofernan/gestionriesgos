@@ -144,7 +144,7 @@ class FichaTarea extends Component
         return view('livewire.auditoria.tarea.show.ficha-tarea', [
             'tarea' => $tarea,
             'puedeActualizar' => Auth::user()->can('proponer', $tarea),
-            'modo' => $this->modoCambio($tarea),
+            'modo' => $this->modoCambio(),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),
         ]);

@@ -845,3 +845,29 @@ vez de mandar mails.
 
 **Efecto en cascada anotado.** Cambia quién puede escribir en la ficha de la tarea. `view` y
 `scopeVisiblePara` no cambian: aprobado ya es público. Tests en `FichaTareaTest`.
+
+---
+
+## D-028 — Se elimina la multigerencia del riesgo; revierte D-003 (2026-10-20)
+
+**Decisión.** Un riesgo pertenece a una sola área (`area_id`), como Control, Objetivo, Plan y Tarea. Se
+eliminan la pivot `area_riesgo`, la tabla de votos `validacion_gerencia`, la sección "Gerencias" del
+show, el badge "Compartido" y toda la doble validación. La visibilidad pasa al `scopeVisiblePara` del
+trait `HasVisibilityScope` y `RiesgoPolicy` vuelve a `puedeGestionarArea($riesgo->area_id)`. Una
+propuesta de cambio la valida un gerente del área del riesgo, sin votos. La revisión inicial la firma
+la gerencia del área del riesgo. Revierte D-003 (2026-07-21) y el pivot de áreas del 2026-07-07.
+
+**Motivo.** Fue un malentendido: no existe el riesgo compartido entre gerencias. La estructura
+agregaba un camino de autorización propio del riesgo y la regla más compleja del ciclo, sin uso real
+(0 riesgos compartidos y 0 votos en los datos).
+
+**Descartado.** Conservar `area_riesgo` como mecanismo interno (área del creador + su gerencia): con
+`area_id` alcanza, porque el store obliga a que sea el área del creador o una sub-área, y la jerarquía
+ya da acceso al creador y a su gerente.
+
+**Efecto en cascada anotado.** Cambia la fuente de verdad del acceso al riesgo (pivot → `area_id`) en
+la Policy, los scopes, la revisión inicial, el detector de inconsistencias y las propuestas por bloque.
+`Actualizacion::validarPor()` se va y sus llamadores usan `marcarValidada()`. Al editar un borrador
+ya no se admite un área fuera de la línea del usuario. De paso se arregla que cambiar el área de un
+borrador dejaba la pivot vieja. Tests nuevos en `RiesgoAccesoPorAreaTest`. Se borran
+`DobleValidacionTest` y `GestionAreasTest`. Detalle en [updates/2026-10-20.md](updates/2026-10-20.md).

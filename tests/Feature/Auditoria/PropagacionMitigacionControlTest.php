@@ -19,7 +19,7 @@ use Tests\TestCase;
 /**
  * Cambiar la mitigación por defecto de un control con "aplicar también a los
  * riesgos asociados" pisa la mitigación de todas sus asociaciones —incluidos
- * riesgos compartidos y de otras gerencias— y deja constancia en el historial de
+ * riesgos de otras gerencias— y deja constancia en el historial de
  * cada riesgo afectado. Sin la opción, sólo cambia el default. Si el cambio queda
  * como propuesta, la propagación ocurre recién cuando se aplica.
  */
@@ -41,7 +41,7 @@ class PropagacionMitigacionControlTest extends TestCase
 
     private Riesgo $riesgoB;
 
-    private Riesgo $riesgoCompartido;
+    private Riesgo $riesgoC;
 
     private Riesgo $riesgoAjeno;
 
@@ -62,8 +62,7 @@ class PropagacionMitigacionControlTest extends TestCase
         $valores = ['impacto' => 6, 'probabilidad' => 6];
         $this->riesgoA = Riesgo::factory()->aprobado()->create(['area_id' => $this->gerencia->id] + $valores);
         $this->riesgoB = Riesgo::factory()->aprobado()->create(['area_id' => $this->gerencia->id] + $valores);
-        $this->riesgoCompartido = Riesgo::factory()->aprobado()->create(['area_id' => $this->gerencia->id] + $valores);
-        $this->riesgoCompartido->areas()->syncWithoutDetaching([$this->otraGerencia->id]);
+        $this->riesgoC = Riesgo::factory()->aprobado()->create(['area_id' => $this->gerencia->id] + $valores);
         $this->riesgoAjeno = Riesgo::factory()->aprobado()->create(['area_id' => $this->otraGerencia->id] + $valores);
 
         $this->control = Control::factory()->create([
@@ -74,7 +73,7 @@ class PropagacionMitigacionControlTest extends TestCase
         ]);
         $this->riesgoA->controles()->attach($this->control->id, ['mitigacion' => 3]);
         $this->riesgoB->controles()->attach($this->control->id, ['mitigacion' => 5]);
-        $this->riesgoCompartido->controles()->attach($this->control->id, ['mitigacion' => 4]);
+        $this->riesgoC->controles()->attach($this->control->id, ['mitigacion' => 4]);
         $this->riesgoAjeno->controles()->attach($this->control->id, ['mitigacion' => null]);
     }
 
@@ -102,7 +101,7 @@ class PropagacionMitigacionControlTest extends TestCase
         $this->assertEquals(2, $this->control->fresh()->mitigacion_default);
         $this->assertEquals(3, $this->mitigacionEn($this->riesgoA));
         $this->assertEquals(5, $this->mitigacionEn($this->riesgoB));
-        $this->assertEquals(4, $this->mitigacionEn($this->riesgoCompartido));
+        $this->assertEquals(4, $this->mitigacionEn($this->riesgoC));
         $this->assertEquals(7, $this->residual($this->riesgoB));
         $this->assertCount(0, $this->entradasDePropagacion($this->riesgoB));
     }
@@ -112,7 +111,7 @@ class PropagacionMitigacionControlTest extends TestCase
     {
         Actualizacion::registrarCambioCampos($this->control, $this->comite, 'Baja', ['mitigacion_default' => 2], true);
 
-        foreach ([$this->riesgoA, $this->riesgoB, $this->riesgoCompartido, $this->riesgoAjeno] as $riesgo) {
+        foreach ([$this->riesgoA, $this->riesgoB, $this->riesgoC, $this->riesgoAjeno] as $riesgo) {
             $this->assertEquals(2, $this->mitigacionEn($riesgo));
             $this->assertEquals(10, $this->residual($riesgo));
         }
@@ -137,7 +136,7 @@ class PropagacionMitigacionControlTest extends TestCase
 
         // El pivot null usaba el default viejo (3): el historial lo cuenta así.
         $this->assertEquals(3, $this->entradasDePropagacion($this->riesgoAjeno)->sole()->data['diff']['relaciones']['controles']['cambia'][0]['mitigacion_antes']);
-        $this->assertCount(1, $this->entradasDePropagacion($this->riesgoCompartido));
+        $this->assertCount(1, $this->entradasDePropagacion($this->riesgoC));
     }
 
     #[Test]
@@ -175,7 +174,7 @@ class PropagacionMitigacionControlTest extends TestCase
 
         $this->assertEquals(2, $this->control->fresh()->mitigacion_default);
         $this->assertEquals(2, $this->mitigacionEn($this->riesgoB));
-        $this->assertEquals(2, $this->mitigacionEn($this->riesgoCompartido));
+        $this->assertEquals(2, $this->mitigacionEn($this->riesgoC));
     }
 
     #[Test]

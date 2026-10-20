@@ -2,7 +2,7 @@
     Barra inferior de un bloque en edición: agregar, resumen en vivo de lo que se
     va a guardar (agrega / quita / cambia), cancelar y guardar. El botón principal
     dice "Guardar" o "Enviar propuesta" según `modo`. `diff` null = el bloque no
-    calcula resumen (Gerencias); el guardado se habilita siempre.
+    calcula resumen; el guardado se habilita siempre.
     Variables: $modo, $diff (?array), $agregarLabel.
 --}}
 @php

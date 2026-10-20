@@ -138,7 +138,7 @@ class FichaPlan extends Component
         return view('livewire.auditoria.plan-accion.show.ficha-plan', [
             'plan' => $plan,
             'puedeActualizar' => Auth::user()->can('proponer', $plan),
-            'modo' => $this->modoCambio($plan),
+            'modo' => $this->modoCambio(),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),
         ]);

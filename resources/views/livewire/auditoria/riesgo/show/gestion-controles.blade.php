@@ -7,7 +7,7 @@
 
     <x-auditoria.bloque-riesgo ancla="controles" titulo="Controles de mitigación"
         subtitulo="Descuentan del residual sólo los controles aprobados y no pausados."
-        :modo="$modo" :gerencias="$gerencias" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
+        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
 
         <x-slot:accion>
             @if($puedeActualizar && !$editando)

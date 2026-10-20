@@ -18,8 +18,7 @@ Se revisan uno por uno los **riesgos, controles, objetivos, planes de acción y 
 | **Comité de Riesgo y Auditoría** | Ven el avance de **todas** las gerencias, en solo lectura. No revisan ni firman. |
 
 - **Si el responsable de un elemento es el gerente**, nadie más lo revisa: lo firma sólo esa persona.
-- **Un riesgo compartido entre varias gerencias** lo firma **cada una**. Queda firmado recién cuando
-  firmaron todas.
+- Cada elemento lo firma **la gerencia de su área**.
 
 ---
 
@@ -93,8 +92,6 @@ lugar de **Firmar**:
   comentario, no se valida ni se firma nada.
 - **Mientras haya cambios sin validar, no se puede firmar a secas.** Si el gerente no está de
   acuerdo con alguno, lo rechaza desde la ficha del elemento y después firma.
-- En un riesgo compartido, validar equivale a dejar el voto de su gerencia. Los demás votos siguen
-  haciendo falta.
 
 ---
 

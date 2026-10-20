@@ -184,7 +184,7 @@ class DetectorInconsistenciasTest extends TestCase
     public function un_riesgo_sin_area_es_un_error(): void
     {
         $riesgo = $this->riesgoCompleto();
-        $riesgo->areas()->detach();
+        $riesgo->update(['area_id' => null]);
 
         $this->assertSame('error', $this->hallazgos($riesgo)['sin_area']);
     }

@@ -101,8 +101,8 @@ class Control extends Model implements HasMedia
     /**
      * Lleva la mitigación por defecto (ya guardada) a todas las asociaciones con
      * riesgos: la opción "aplicar también a los riesgos asociados" al cambiar el
-     * default. Pisa todas, incluidos riesgos compartidos y de otras gerencias, sin
-     * pasar por su doble validación (ver DECISIONES). Cada riesgo cuyo valor cambia
+     * default. Pisa todas, incluidos riesgos de otras gerencias, sin pasar por
+     * su validación (ver DECISIONES). Cada riesgo cuyo valor cambia
      * recibe una Actualizacion ya aplicada con el mismo diff que una propuesta de
      * mitigación, para que su historial cuente el cambio. $antes es el default
      * previo, que vale para las asociaciones con pivot en null. La llaman

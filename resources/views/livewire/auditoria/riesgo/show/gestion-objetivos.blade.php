@@ -6,7 +6,7 @@
 
     <x-auditoria.bloque-riesgo ancla="objetivos" titulo="Objetivos"
         subtitulo="A qué objetivos estratégicos amenaza este riesgo."
-        :modo="$modo" :gerencias="$gerencias" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
+        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
 
         <x-slot:accion>
             @if($puedeActualizar && !$editando)

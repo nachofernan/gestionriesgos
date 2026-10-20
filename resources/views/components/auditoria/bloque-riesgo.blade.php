@@ -1,9 +1,9 @@
 {{--
     Contenedor común de los bloques de riesgo/show (Ficha, Objetivos, Controles,
-    Planes, Gerencias) y de control/show. Arriba lo vigente (slot por defecto); abajo, aparte y en
+    Planes) y de control/show. Arriba lo vigente (slot por defecto); abajo, aparte y en
     ámbar punteado, lo que está en propuesta y todavía no forma parte del riesgo
     (slot `propuestas`). Mientras se edita, el borde y una franja explican qué va
-    a pasar al guardar según `modo` ('directo' | 'propuesta' | 'doble').
+    a pasar al guardar según `modo` ('directo' | 'propuesta').
     `sujeto` nombra la entidad en los textos ('riesgo' | 'control' | 'objetivo' | 'tarea').
     Slots: accion (botón del encabezado), pie (barra de edición), propuestas.
 --}}
@@ -13,7 +13,6 @@
     'contador' => null,
     'subtitulo' => null,
     'modo' => null,
-    'gerencias' => '',
     'editando' => false,
     'hayPropuestas' => false,
     'compacto' => false,
@@ -57,10 +56,6 @@
                 @switch($modo)
                     @case('directo')
                         Los cambios se aplican {{ $al }} en cuanto guardes.
-                        @break
-                    @case('doble')
-                        <strong>Riesgo compartido.</strong> Vas a armar una propuesta: lo vigente no cambia hasta que
-                        voten a favor {{ $gerencias }}. Tu gerencia vota a favor al enviarla.
                         @break
                     @default
                         Vas a armar una <strong>propuesta</strong>: lo vigente no cambia hasta que se valide.

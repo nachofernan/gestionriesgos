@@ -4,7 +4,6 @@ namespace App\Policies\Auditoria;
 
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\RevisionInicial;
-use App\Models\Auditoria\Riesgo;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
@@ -86,13 +85,11 @@ class RevisionInicialPolicy
             : null;
     }
 
-    /** Áreas del elemento que caen en esta gerencia (un riesgo puede tener varias). */
+    /** El área del elemento, si cae en esta gerencia. */
     private function areasEnGerencia(Model $elemento, Area $gerencia)
     {
-        $areas = $elemento instanceof Riesgo
-            ? $elemento->areas->push($elemento->area)->filter()
-            : collect([$elemento->area])->filter();
-
-        return $areas->filter(fn (Area $area) => $area->gerencia()?->is($gerencia))->pluck('id')->unique();
+        return collect([$elemento->area])
+            ->filter(fn (?Area $area) => $area?->gerencia()?->is($gerencia))
+            ->pluck('id');
     }
 }

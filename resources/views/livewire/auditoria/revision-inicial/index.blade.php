@@ -178,10 +178,6 @@
                                 <div class="space-y-2">
                                     @forelse ($fila['gerencias'] as ['gerencia' => $g, 'revision' => $r])
                                         <div class="flex flex-wrap items-center gap-2">
-                                            @if ($fila['gerencias']->count() > 1)
-                                                <span class="text-xs font-semibold text-gray-500">{{ $g->nombre }}:</span>
-                                            @endif
-
                                             @if ($r?->firmado_en)
                                                 <span class="text-xs text-green-700 font-semibold">✓ Firmado</span>
                                                 <span class="text-xs text-gray-400">{{ $r->firmadoPor?->name }} · {{ $r->firmado_en->format('d/m/Y') }}</span>

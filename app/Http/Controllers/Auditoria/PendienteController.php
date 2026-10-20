@@ -226,14 +226,6 @@ class PendienteController extends Controller
         $tipo = $tipo ?: null;
         $data = $actualizacion->data ?? [];
 
-        $votos = null;
-        if ($actualizacion->estado?->nombre === 'borrador' && $actualizacion->requiereDobleValidacion()) {
-            $votos = [
-                'a_favor' => $actualizacion->validacionesGerencia()->where('aprueba', true)->with('area')->get()->pluck('area.nombre')->all(),
-                'faltan' => $actualizacion->gerenciasPendientes()->all(),
-            ];
-        }
-
         return [
             'modo' => 'propuesta',
             'clave' => "actualizacion-{$actualizacion->id}",
@@ -245,7 +237,6 @@ class PendienteController extends Controller
             'fecha' => $actualizacion->created_at?->diffForHumans(),
             'fecha_completa' => $actualizacion->created_at?->format('d/m/Y H:i'),
             'situacion' => $actualizacion->estado?->nombre === 'validado' ? 'Espera al comité' : 'Espera validación',
-            'votos' => $votos,
             'mensaje' => $actualizacion->mensaje,
             'diff' => $actualizacion->diffLegible(),
             'propagar_mitigacion' => ! empty($data['propagar_mitigacion']),

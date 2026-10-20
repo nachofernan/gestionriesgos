@@ -272,7 +272,7 @@ class GestionTareas extends Component
 
         $estadoId = $this->estadoParaActualizacion();
 
-        if ($this->modoCambio($plan) === 'directo') {
+        if ($this->modoCambio() === 'directo') {
             // Se aplica en el acto: activated_by lo rotula "aplicado" en el historial.
             $plan->tareas()->sync($ids);
             $plan->actualizaciones()->create([
@@ -288,7 +288,7 @@ class GestionTareas extends Component
             ]);
             session()->flash('ok', 'Tareas actualizadas.');
         } else {
-            $this->proponerPorElemento($plan, 'tareas', $diffRel, $estadoId, false, 'tarea');
+            $this->proponerPorElemento($plan, 'tareas', $diffRel, $estadoId, 'tarea');
             session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
         }
 
@@ -394,7 +394,7 @@ class GestionTareas extends Component
             : collect();
 
         return view('livewire.auditoria.plan-accion.show.gestion-tareas', [
-            'modo' => $this->modoCambio($plan),
+            'modo' => $this->modoCambio(),
             'bloqueados' => $bloqueados,
             'propuestas' => $propuestas,
             'marcas' => $this->marcasDe($propuestas, 'tareas'),

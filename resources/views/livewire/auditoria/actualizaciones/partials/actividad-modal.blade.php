@@ -168,18 +168,12 @@
                                     $pasos = collect();
                                     if (!$x['esNota']) {
                                         $pasos->push(['bg-gray-400', $x['tipo'] === 'creacion' ? 'Creado' : ($x['tipo'] === 'cambio' ? 'Propuesto' : 'Registrado'), $autor?->name, $a->created_at]);
-                                        foreach ($a->validacionesGerencia->sortBy('created_at') as $voto) {
-                                            $pasos->push([$voto->aprueba ? 'bg-emerald-500' : 'bg-red-500',
-                                                ($voto->area?->nombre ?? 'Gerencia').($voto->aprueba ? ' votó a favor' : ' votó en contra'),
-                                                $voto->user?->name, $voto->created_at]);
-                                        }
                                         if ($a->validado_por_id) $pasos->push(['bg-blue-500', 'Validada', $a->validadoPor?->name, $a->validado_en]);
                                         if ($a->aprobado_por_id) $pasos->push(['bg-emerald-600', 'Aprobada', $a->aprobadoPor?->name, $a->aprobado_en]);
                                         if ($a->rechazado_por_id) $pasos->push(['bg-red-500', 'Rechazada', $a->rechazadoPor?->name, $a->rechazado_en]);
                                         if (!empty($data['activated_by']) && !$a->aprobado_por_id) $pasos->push(['bg-emerald-500', 'Aplicada', $data['activated_by'], null]);
                                         if ($x['estado'] === 'borrado' && !$a->rechazado_por_id) $pasos->push(['bg-gray-400', 'Retirada', null, $a->updated_at]);
                                     }
-                                    $faltan = $x['pendiente'] && $a->requiereDobleValidacion() ? $a->gerenciasPendientes() : collect();
                                 @endphp
                                 <li id="act-det-{{ $a->id }}" wire:key="act-det-{{ $a->id }}" class="relative pl-7 scroll-mt-10">
                                     <span class="absolute left-0 top-4 w-[15px] h-[15px] rounded-full ring-4 ring-gray-50 {{ $x['punto'] }}"></span>
@@ -299,7 +293,7 @@
                                             @endif
 
                                             {{-- Circuito --}}
-                                            @if($pasos->count() > 1 || $faltan->isNotEmpty())
+                                            @if($pasos->count() > 1)
                                                 <div>
                                                     <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Circuito</p>
                                                     <ol class="flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px]">
@@ -309,13 +303,7 @@
                                                                 <span class="font-semibold text-gray-800">{{ $texto }}</span>
                                                                 <span class="text-gray-500">{{ collect([$quien, $cuando?->format('d/m H:i')])->filter()->join(' · ') }}</span>
                                                             </li>
-                                                            @unless($loop->last && $faltan->isEmpty())<li class="text-gray-300">→</li>@endunless
-                                                        @endforeach
-                                                        @foreach($faltan as $gerencia)
-                                                            <li class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-amber-300 bg-amber-50 pl-1.5 pr-2.5 py-0.5">
-                                                                <span class="w-2 h-2 rounded-full border border-amber-400"></span>
-                                                                <span class="font-semibold text-amber-800">Falta {{ $gerencia }}</span>
-                                                            </li>
+                                                            @unless($loop->last)<li class="text-gray-300">→</li>@endunless
                                                         @endforeach
                                                     </ol>
                                                 </div>

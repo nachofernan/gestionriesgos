@@ -395,37 +395,16 @@ class VisibilidadTest extends TestCase
     }
 
     // -------------------------------------------------------
-    // Policy update/validar: riesgo con más de una gerencia asociada
+    // Policy update/validar: gerente de otra gerencia
     // -------------------------------------------------------
 
     #[Test]
-    public function gerente_de_gerencia_adicional_asociada_puede_gestionar_el_riesgo(): void
-    {
-        // r pertenece originalmente a gerAdmin (sectA); se asocia también gerProd (sectC)
-        $r = $this->riesgo($this->borradorId, $this->sectA);
-        $r->areas()->syncWithoutDetaching([$this->sectC->id]);
-
-        $this->assertTrue($this->policy()->update($this->grassi, $r));
-        $this->assertTrue($this->policy()->validar($this->grassi, $r));
-    }
-
-    #[Test]
-    public function gerente_sin_ninguna_gerencia_asociada_no_puede_gestionar_el_riesgo(): void
+    public function gerente_de_otra_gerencia_no_puede_gestionar_el_riesgo(): void
     {
         $r = $this->riesgo($this->borradorId, $this->sectA);
 
         $this->assertFalse($this->policy()->update($this->grassi, $r));
         $this->assertFalse($this->policy()->validar($this->grassi, $r));
-    }
-
-    #[Test]
-    public function scope_visible_para_incluye_borrador_por_gerencia_adicional_asociada(): void
-    {
-        // r es de gerAdmin (sectA); se asocia también gerProd (sectC), donde está grassi
-        $r = $this->riesgo($this->borradorId, $this->sectA);
-        $r->areas()->syncWithoutDetaching([$this->sectC->id]);
-
-        $this->assertContains($r->id, $this->idsVisibles($this->grassi));
     }
 
     // -------------------------------------------------------
@@ -439,7 +418,6 @@ class VisibilidadTest extends TestCase
         // gerencia), sigue SIN poder ver ni gestionar el borrador: el acceso baja por
         // el subárbol propio, no se comparte lateralmente entre sectores.
         $r = $this->riesgo($this->borradorId, $this->sectA);
-        $r->load('areas');
 
         $this->assertNotContains($r->id, $this->idsVisibles($this->tito));
         $this->assertFalse($this->policy()->view($this->tito, $r));

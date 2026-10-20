@@ -6,6 +6,10 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-20** — [Se elimina la multigerencia del riesgo](updates/2026-10-20.md) ([D-028](DECISIONES.md#d-028),
+  revierte D-003): el riesgo pertenece sólo a su `area_id`; sin `area_riesgo`, votos ni doble validación. Menú
+  reordenado (Objetivos | Riesgos | Controles | Planes | Tareas) y, en el show del riesgo, las cards de objetivos,
+  controles y planes apiladas en vez de en solapas.
 - **2026-10-06** — Quien gestiona un plan aprobado puede comentar las tareas aprobadas de ese plan, aunque sean de
   otra gerencia ([D-027](DECISIONES.md#d-027)). La tabla de valoración también aparece al editar un control ya
   validado/aprobado (ficha del control).

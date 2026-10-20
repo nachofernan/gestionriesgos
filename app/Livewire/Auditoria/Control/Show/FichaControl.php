@@ -148,7 +148,7 @@ class FichaControl extends Component
         return view('livewire.auditoria.control.show.ficha-control', [
             'control' => $control,
             'puedeActualizar' => Auth::user()->can('proponer', $control),
-            'modo' => $this->modoCambio($control),
+            'modo' => $this->modoCambio(),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),
             'afectados' => $afectados,

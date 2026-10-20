@@ -19,7 +19,7 @@ use Tests\TestCase;
 /**
  * Revisión de la carga inicial (D-024): quién revisa y quién firma cada
  * elemento ante cada gerencia, y las reglas de la firma (errores bloquean,
- * advertencias exigen comentario, riesgo compartido firma cada gerencia).
+ * advertencias exigen comentario, cada elemento lo firma la gerencia de su área).
  */
 class RevisionInicialTest extends TestCase
 {
@@ -206,21 +206,16 @@ class RevisionInicialTest extends TestCase
     }
 
     #[Test]
-    public function un_riesgo_compartido_queda_firmado_cuando_firman_todas_sus_gerencias(): void
+    public function un_riesgo_lo_firma_solo_la_gerencia_de_su_area(): void
     {
         $riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->sistemas->id, 'user_id' => $this->gerenteSistemas->id]);
-        $riesgo->areas()->syncWithoutDetaching([$this->finanzas->id]);
-        $riesgo->load('areas');
 
-        // La responsable es gerente de Sistemas: eso no le quita a Finanzas su propia firma.
-        $this->assertTrue($this->puede($this->gerenteFinanzas, 'firmar', $riesgo, $this->finanzas));
+        $this->assertTrue($this->puede($this->gerenteSistemas, 'firmar', $riesgo, $this->sistemas));
+        $this->assertFalse($this->puede($this->gerenteFinanzas, 'firmar', $riesgo, $this->finanzas));
         $this->assertFalse($this->puede($this->gerenteFinanzas, 'firmar', $riesgo, $this->sistemas));
-        $this->assertFalse($this->puede($this->gerenteSistemas, 'firmar', $riesgo, $this->finanzas));
-
-        RevisionInicial::registrarFirma($riesgo, $this->sistemas, $this->gerenteSistemas, []);
         $this->assertFalse(RevisionInicial::firmadoPorTodas($riesgo->load('revisionesIniciales')));
 
-        RevisionInicial::registrarFirma($riesgo, $this->finanzas, $this->gerenteFinanzas, []);
+        RevisionInicial::registrarFirma($riesgo, $this->sistemas, $this->gerenteSistemas, []);
         $this->assertTrue(RevisionInicial::firmadoPorTodas($riesgo->load('revisionesIniciales')));
     }
 }

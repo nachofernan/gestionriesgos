@@ -124,9 +124,7 @@ class RevisionInicial extends Model
     }
 
     /**
-     * True si firmaron todas las gerencias del elemento (un riesgo compartido
-     * necesita la firma de cada una). Requiere `revisionesIniciales` cargadas.
-     * Tests: un_riesgo_compartido_queda_firmado_cuando_firman_todas_sus_gerencias.
+     * True si firmó la gerencia del elemento. Requiere `revisionesIniciales` cargadas.
      */
     public static function firmadoPorTodas(Model $elemento): bool
     {
@@ -146,28 +144,19 @@ class RevisionInicial extends Model
     }
 
     /**
-     * Gerencias que tienen que firmar un elemento: la de su área, o en un
-     * riesgo la de cada una de sus áreas (area_riesgo), sin repetir. Vacía si
-     * el elemento no tiene área, lo que el detector marca como error.
+     * Gerencia que tiene que firmar un elemento: la de su área. Vacía si el
+     * elemento no tiene área, lo que el detector marca como error. Se devuelve
+     * como colección porque así la consumen la pantalla y la policy.
      *
      * @return Collection<int, Area>
      */
     public static function gerenciasDe(Model $elemento, ?array $mapa = null): Collection
     {
-        if ($mapa !== null) {
-            $areaIds = $elemento instanceof Riesgo ? $elemento->areas->pluck('id') : collect([$elemento->area_id]);
+        $gerencia = $mapa !== null
+            ? ($mapa[$elemento->area_id] ?? null)
+            : $elemento->area?->gerencia();
 
-            return $areaIds->map(fn ($id) => $mapa[$id] ?? null)->filter()->unique('id')->values();
-        }
-
-        $areas = $elemento instanceof Riesgo
-            ? $elemento->areas
-            : collect([$elemento->area])->filter();
-
-        return $areas->map(fn (Area $area) => $area->gerencia())
-            ->filter()
-            ->unique('id')
-            ->values();
+        return collect([$gerencia])->filter()->values();
     }
 
     /**

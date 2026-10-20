@@ -168,10 +168,7 @@ class RiesgoController extends Controller
                 ->with('error', 'El riesgo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
-        // Se admite el área que el riesgo ya tenía aunque quede fuera de la línea
-        // del usuario: puede gestionarlo por estar asociado a otra de sus gerencias
-        // (ver Riesgo::puedeGestionarAlgunaArea()) y no debería verse forzado a moverlo.
-        $areasPermitidas = array_merge(Auth::user()->idsAreasGestionables(), [$riesgo->area_id]);
+        $areasPermitidas = Auth::user()->idsAreasGestionables();
 
         $data = $request->validate([
             'nombre' => 'required|string|max:255',
@@ -233,9 +230,8 @@ class RiesgoController extends Controller
      * recalcular impacto/probabilidad de un riesgo ya creado, en vez de permitir
      * cargarlos a mano en update(). En borrador se aplica directo (log tipo
      * 'edicion', igual que update(): el riesgo todavía no fue validado por
-     * nadie). Fuera de borrador es una propuesta de cambio más: sigue la misma
-     * doble validación de un riesgo multigerencia y el mismo arranque de estado
-     * según el rol de quien la crea que GestionActualizaciones::guardar()
+     * nadie). Fuera de borrador es una propuesta de cambio más: sigue el mismo
+     * arranque de estado según el rol de quien la crea que GestionActualizaciones::guardar()
      * (Actualizacion::estadoInicialParaCambio()), para no crear un segundo
      * camino con reglas distintas.
      */
@@ -285,21 +281,18 @@ class RiesgoController extends Controller
                     'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff], 'respuestas' => $respuestas],
                 ]);
             } else {
-                $dobleValidacion = $riesgo->cambioRequiereDobleValidacion(Auth::user());
-                $estadoId = $dobleValidacion
-                    ? Estado::borrador()->id
-                    : Actualizacion::estadoInicialParaCambio(Auth::user(), $riesgo->estado?->nombre);
+                $estadoId = Actualizacion::estadoInicialParaCambio(Auth::user(), $riesgo->estado?->nombre);
 
-                $aplicar = ! $dobleValidacion && $estadoId === Estado::validado()->id
+                $aplicar = $estadoId === Estado::validado()->id
                     && $riesgo->estado?->nombre === 'validado';
 
-                DB::transaction(function () use ($riesgo, $nuevos, $diff, $respuestas, $estadoId, $aplicar, $dobleValidacion) {
+                DB::transaction(function () use ($riesgo, $nuevos, $diff, $respuestas, $estadoId, $aplicar) {
                     $data = ['tipo' => 'cambio', 'campos' => $nuevos, 'diff' => ['campos' => $diff], 'respuestas' => $respuestas];
                     if ($aplicar) {
                         $data['activated_by'] = Auth::user()->name;
                     }
 
-                    $actualizacion = $riesgo->actualizaciones()->create([
+                    $riesgo->actualizaciones()->create([
                         'user_id' => Auth::id(),
                         'mensaje' => 'Impacto y probabilidad recalculados',
                         'estado_id' => $estadoId,
@@ -308,10 +301,6 @@ class RiesgoController extends Controller
 
                     if ($aplicar) {
                         $riesgo->update($nuevos);
-                    }
-
-                    if ($dobleValidacion) {
-                        $actualizacion->registrarVoto(Auth::user(), true);
                     }
                 });
             }
