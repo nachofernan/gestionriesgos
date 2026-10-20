@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
+use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use Illuminate\Http\Request;
@@ -17,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 class PlanAccionController extends Controller
 {
-    use OpcionesAreaResponsable;
+    use OpcionesAreaResponsable, RechazaElemento;
 
     public function index()
     {
@@ -196,12 +198,18 @@ class PlanAccionController extends Controller
         return back()->with('ok', 'Plan aprobado correctamente.');
     }
 
-    public function rechazar(PlanAccion $planAccion)
+    /** Rechazo con motivo (D-031). No se rechaza si un riesgo vigente lo necesita. */
+    public function rechazar(Request $request, PlanAccion $planAccion)
     {
         $this->authorize('rechazar', $planAccion);
+        $motivo = $this->motivoRechazo($request);
+
+        if ($bloqueo = $planAccion->motivoBloqueoRechazo()) {
+            return back()->with('error', $bloqueo);
+        }
 
         $planAccion->update(['estado_id' => Estado::borrado()->id]);
-        $this->logAprobado($planAccion, 'Rechazado por '.Auth::user()->name);
+        Actualizacion::registrarRechazo($planAccion, Auth::user(), $motivo);
 
         return back()->with('ok', 'Plan rechazado.');
     }

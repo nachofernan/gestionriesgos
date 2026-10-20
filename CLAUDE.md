@@ -122,7 +122,8 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
    `borrado`). Quién puede ver, validar o aprobar un riesgo depende de su estado, no solo del rol.
    Un riesgo pertenece a **una sola área** (`area_id`), como el resto de las entidades: no hay riesgo
    compartido entre gerencias (D-028). Una propuesta de cambio la valida un gerente de esa área y,
-   si corresponde, la aprueba el comité.
+   si corresponde, la aprueba el comité. Rechazar es definitivo (`borrado`): el gerente rechaza
+   borradores y el comité lo validado que le llega, y **todo rechazo lleva motivo** (D-031).
 
 4. **El historial es append-only, polimórfico y auditable.** Los cambios sobre las entidades quedan
    registrados como `Actualizacion` (`morphMany`: quién, qué campo, valor anterior/nuevo, cuándo). El
@@ -328,8 +329,8 @@ El **ciclo completo está construido y andando**: riesgos con impacto/probabilid
 wizard, controles, objetivos, planes de acción y tareas, historial polimórfico de actualizaciones con
 adjuntos, autorización por jerarquía de área con visibilidad por estado, y las pantallas de
 Pendientes, Vencimientos y el Panel de Riesgos (dashboard de situación con sesgo gerencial). Las 6
-fases del cronograma original están cerradas salvo los reportes exportables. La suite ronda los ~487
-tests, 47 archivos en
+fases del cronograma original están cerradas salvo los reportes exportables. La suite ronda los ~500
+tests, 49 archivos en
 `tests/Feature/Auditoria/`.
 
 Lo que sigue abierto vive en `docs/ROADMAP.md` (reportes PDF/Excel, notificaciones, vencimiento

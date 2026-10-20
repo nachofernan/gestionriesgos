@@ -90,4 +90,26 @@ class Objetivo extends Model implements HasMedia
         return $this->belongsToMany(PeisItem::class, 'objetivo_peis_item')
             ->withTimestamps();
     }
+
+    /**
+     * Motivo por el que este objetivo no se puede rechazar (null si se puede): es el
+     * único objetivo validado o aprobado de algún riesgo validado o aprobado, que
+     * sin él quedaría incumpliendo Riesgo::motivosBloqueoValidacion() (D-031). Lo
+     * consulta ObjetivoController::rechazar().
+     * Test: no_se_rechaza_el_unico_objetivo_valido_de_un_riesgo_validado.
+     */
+    public function motivoBloqueoRechazo(): ?string
+    {
+        $vigentes = ['validado', 'aprobado'];
+
+        $riesgo = $this->riesgos()->with(['estado', 'objetivos.estado'])->get()
+            ->filter(fn (Riesgo $r) => in_array($r->estado?->nombre, $vigentes))
+            ->first(fn (Riesgo $r) => ! $r->objetivos->contains(
+                fn (Objetivo $o) => $o->id !== $this->id && in_array($o->estado?->nombre, $vigentes)
+            ));
+
+        return $riesgo
+            ? "No se puede rechazar: es el único objetivo vigente del riesgo «{$riesgo->nombre}». Primero hay que resolver ese riesgo."
+            : null;
+    }
 }

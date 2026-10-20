@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
+use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PeisItem;
@@ -18,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ObjetivoController extends Controller
 {
-    use OpcionesAreaResponsable;
+    use OpcionesAreaResponsable, RechazaElemento;
 
     public function index()
     {
@@ -233,12 +235,18 @@ class ObjetivoController extends Controller
         return back()->with('ok', 'Objetivo aprobado correctamente.');
     }
 
-    public function rechazar(Objetivo $objetivo)
+    /** Rechazo con motivo (D-031). No se rechaza si un riesgo vigente lo necesita. */
+    public function rechazar(Request $request, Objetivo $objetivo)
     {
         $this->authorize('rechazar', $objetivo);
+        $motivo = $this->motivoRechazo($request);
+
+        if ($bloqueo = $objetivo->motivoBloqueoRechazo()) {
+            return back()->with('error', $bloqueo);
+        }
 
         $objetivo->update(['estado_id' => Estado::borrado()->id]);
-        $this->logAprobado($objetivo, 'Rechazado por '.Auth::user()->name);
+        Actualizacion::registrarRechazo($objetivo, Auth::user(), $motivo);
 
         return back()->with('ok', 'Objetivo rechazado.');
     }

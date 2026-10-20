@@ -43,6 +43,7 @@ class Actualizacion extends Model implements HasMedia
         'aprobado_en',
         'rechazado_por_id',
         'rechazado_en',
+        'motivo_rechazo',
     ];
 
     protected static function booted()
@@ -407,12 +408,37 @@ class Actualizacion extends Model implements HasMedia
         });
     }
 
-    public function marcarRechazada(User $usuario): void
+    /**
+     * Rechaza la propuesta con su motivo, que es obligatorio (D-031): quien llama ya
+     * lo validó y autorizó con ActualizacionPolicy::rechazar().
+     * Test: rechazar_una_propuesta_exige_motivo_y_lo_guarda.
+     */
+    public function marcarRechazada(User $usuario, string $motivo): void
     {
         $this->update([
             'estado_id' => Estado::borrado()->id,
             'rechazado_por_id' => $usuario->id,
             'rechazado_en' => now(),
+            'motivo_rechazo' => $motivo,
+        ]);
+    }
+
+    /**
+     * Registro append-only del rechazo de un elemento (no de una propuesta): queda en
+     * su historial como rechazo, con quién, cuándo y el motivo (D-031). Antes se
+     * registraba en estado aprobado y la actividad lo pintaba como "Aplicada".
+     * Lo usan los *Controller::rechazar() vía Concerns\RechazaElemento.
+     */
+    public static function registrarRechazo(Model $entidad, User $usuario, string $motivo): self
+    {
+        return $entidad->actualizaciones()->create([
+            'user_id' => $usuario->id,
+            'mensaje' => "Rechazado por {$usuario->name}: {$motivo}",
+            'estado_id' => Estado::borrado()->id,
+            'rechazado_por_id' => $usuario->id,
+            'rechazado_en' => now(),
+            'motivo_rechazo' => $motivo,
+            'data' => ['tipo' => 'rechazo'],
         ]);
     }
 

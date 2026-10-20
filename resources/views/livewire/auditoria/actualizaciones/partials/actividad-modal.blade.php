@@ -195,11 +195,21 @@
                                             </div>
                                             <div class="shrink-0 flex flex-col items-end gap-1">
                                                 <span class="text-[10px] font-bold uppercase tracking-wide rounded-md px-2 py-0.5 {{ $x['clase'] }}">{{ $x['resultado'] }}</span>
+                                                @if($x['chipTarea'])
+                                                    <span class="text-[10px] font-bold uppercase tracking-wide rounded-md px-2 py-0.5 {{ $x['chipTarea'][1] }}" title="Estado actual de la tarea">{{ $x['chipTarea'][0] }}</span>
+                                                @endif
                                                 @if($a->estado)
                                                     <x-auditoria.estado-badge :estado="$a->estado" size="sm" />
                                                 @endif
                                             </div>
                                         </div>
+
+                                        {{-- Motivo de un rechazo de propuesta (en el rechazo de un elemento ya va en el mensaje). D-031. --}}
+                                        @if($a->motivo_rechazo && $x['tipo'] !== 'rechazo')
+                                            <p class="mx-4 mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+                                                <span class="font-bold">Motivo del rechazo:</span> {{ $a->motivo_rechazo }}
+                                            </p>
+                                        @endif
 
                                         @if($x['partes'])
                                             <div class="px-4 pb-2 flex flex-wrap gap-1">
@@ -332,8 +342,8 @@
                                                                 class="mt-2 px-3 py-1 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-lg hover:bg-blue-100">Validar</button>
                                                         @endcan
                                                         @can('rechazar', $a)
-                                                            <button wire:click="rechazarActualizacion({{ $a->id }})" wire:confirm="¿Rechazar esta actualización?"
-                                                                class="mt-2 px-3 py-1 bg-red-50 text-red-700 text-[11px] font-bold rounded-lg hover:bg-red-100">Rechazar</button>
+                                                            <x-auditoria.boton-rechazar :actualizacionId="$a->id"
+                                                                clase="mt-2 px-3 py-1 bg-red-50 text-red-700 text-[11px] font-bold rounded-lg hover:bg-red-100" />
                                                         @endcan
                                                     @endif
                                                     @if($estadoModelo === 'aprobado')

@@ -298,11 +298,8 @@
                         {{-- Rechazar: solo cuando el elemento ya salió del borrador --}}
                         @if($estadoModelo !== 'borrador')
                             @can('rechazar', $actualizacion)
-                                <button wire:click="rechazarActualizacion({{ $actualizacion->id }})"
-                                        wire:confirm="¿Rechazar esta actualización?"
-                                        class="px-2.5 py-1 bg-red-50 text-red-700 text-[11px] font-bold rounded-lg hover:bg-red-100 transition-colors">
-                                    Rechazar
-                                </button>
+                                <x-auditoria.boton-rechazar :actualizacionId="$actualizacion->id"
+                                    clase="px-2.5 py-1 bg-red-50 text-red-700 text-[11px] font-bold rounded-lg hover:bg-red-100 transition-colors" />
                             @endcan
                         @endif
 

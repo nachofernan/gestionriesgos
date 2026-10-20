@@ -77,8 +77,17 @@ class RiesgoPolicy
             && $riesgo->estado?->nombre === 'validado';
     }
 
+    /**
+     * Rechazo definitivo (pasa a borrado): el gerente sobre un borrador de su área,
+     * o el comité sobre lo validado que le llega para aprobar (D-031). El motivo lo
+     * exige el controlador. Tests: RechazoComiteTest.
+     */
     public function rechazar(User $user, Riesgo $riesgo): bool
     {
+        if ($user->esComite() && $riesgo->estado?->nombre === 'validado') {
+            return $user->puedeGestionarArea($riesgo->area_id);
+        }
+
         return $user->esGerente()
             && $user->puedeGestionarArea($riesgo->area_id)
             && $riesgo->estado?->nombre === 'borrador';

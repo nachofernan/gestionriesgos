@@ -101,10 +101,15 @@ class ActualizacionController extends Controller
         return back()->with('ok', 'Actualización aprobada y cambios aplicados.');
     }
 
-    public function rechazar(Actualizacion $actualizacion)
+    /** Rechazo con motivo obligatorio (D-031). */
+    public function rechazar(Request $request, Actualizacion $actualizacion)
     {
         $this->authorize('rechazar', $actualizacion);
-        $actualizacion->marcarRechazada(Auth::user());
+        $motivo = $request->validate(['motivo' => 'required|string|min:3|max:2000'], [
+            'motivo.required' => 'Contá por qué se rechaza.',
+            'motivo.min' => 'Contá por qué se rechaza.',
+        ])['motivo'];
+        $actualizacion->marcarRechazada(Auth::user(), $motivo);
 
         return back()->with('ok', 'Actualización rechazada.');
     }

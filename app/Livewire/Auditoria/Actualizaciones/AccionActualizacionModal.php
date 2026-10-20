@@ -19,13 +19,22 @@ use Livewire\Component;
  */
 class AccionActualizacionModal extends Component
 {
-    public bool   $abierto         = false;
-    public ?int   $actualizacionId = null;
-    public string $accion          = '';
-    public string $mensaje         = '';
-    public string $entidadNombre   = '';
-    public array  $diff            = [];
-    public ?string $error          = null;
+    public bool $abierto = false;
+
+    public ?int $actualizacionId = null;
+
+    public string $accion = '';
+
+    public string $mensaje = '';
+
+    public string $entidadNombre = '';
+
+    public array $diff = [];
+
+    public ?string $error = null;
+
+    /** Obligatorio al rechazar (D-031). */
+    public string $motivo = '';
 
     #[On('abrir-accion-actualizacion')]
     public function abrir(int $actualizacionId, string $accion): void
@@ -33,30 +42,38 @@ class AccionActualizacionModal extends Component
         $this->reset();
 
         $actualizacion = Actualizacion::with('actualizable')->find($actualizacionId);
-        if (!$actualizacion || !Gate::forUser(Auth::user())->allows($accion, $actualizacion)) {
+        if (! $actualizacion || ! Gate::forUser(Auth::user())->allows($accion, $actualizacion)) {
             return;
         }
 
         $this->actualizacionId = $actualizacion->id;
-        $this->accion          = $accion;
-        $this->mensaje         = $actualizacion->mensaje;
-        $this->entidadNombre   = $actualizacion->actualizable?->nombre ?? '';
-        $this->diff            = $actualizacion->data['diff']['campos'] ?? [];
-        $this->abierto         = true;
+        $this->accion = $accion;
+        $this->mensaje = $actualizacion->mensaje;
+        $this->entidadNombre = $actualizacion->actualizable?->nombre ?? '';
+        $this->diff = $actualizacion->data['diff']['campos'] ?? [];
+        $this->abierto = true;
     }
 
     public function confirmar(): void
     {
         $actualizacion = Actualizacion::find($this->actualizacionId);
-        if (!$actualizacion || !Gate::forUser(Auth::user())->allows($this->accion, $actualizacion)) {
+        if (! $actualizacion || ! Gate::forUser(Auth::user())->allows($this->accion, $actualizacion)) {
             $this->error = 'Ya no es posible realizar esta acción.';
+
             return;
         }
 
+        if ($this->accion === 'rechazar') {
+            $this->validate(['motivo' => 'required|string|min:3|max:2000'], [
+                'motivo.required' => 'Contá por qué se rechaza.',
+                'motivo.min' => 'Contá por qué se rechaza.',
+            ]);
+        }
+
         match ($this->accion) {
-            'validar'  => $actualizacion->marcarValidada(Auth::user()),
-            'aprobar'  => $actualizacion->marcarAprobada(Auth::user()),
-            'rechazar' => $actualizacion->marcarRechazada(Auth::user()),
+            'validar' => $actualizacion->marcarValidada(Auth::user()),
+            'aprobar' => $actualizacion->marcarAprobada(Auth::user()),
+            'rechazar' => $actualizacion->marcarRechazada(Auth::user(), trim($this->motivo)),
         };
 
         $this->abierto = false;

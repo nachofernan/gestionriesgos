@@ -57,6 +57,16 @@
                     </div>
                 @endif
 
+                {{-- Motivo: obligatorio en todo rechazo (D-031) --}}
+                @if($accion === 'rechazar')
+                    <div class="px-6 py-4 border-b border-gray-100">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Motivo del rechazo *</label>
+                        <textarea wire:model="motivo" rows="3" placeholder="Queda registrado en el historial"
+                            class="w-full border-gray-200 rounded-lg text-sm focus:border-red-400 focus:ring-red-400 @error('motivo') border-red-300 @enderror"></textarea>
+                        @error('motivo') <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p> @enderror
+                    </div>
+                @endif
+
                 {{-- Error --}}
                 @if($error)
                     <div class="px-6 py-2.5 bg-red-50 border-b border-red-100">

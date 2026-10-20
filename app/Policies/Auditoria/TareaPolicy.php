@@ -96,8 +96,13 @@ class TareaPolicy
             && $tarea->estado?->nombre === 'validado';
     }
 
+    /** Ver RiesgoPolicy::rechazar() (D-031). Tests: RechazoComiteTest. */
     public function rechazar(User $user, Tarea $tarea): bool
     {
+        if ($user->esComite() && $tarea->estado?->nombre === 'validado') {
+            return $user->puedeGestionarArea($this->areaEfectiva($tarea));
+        }
+
         return $user->esGerente()
             && $user->puedeGestionarArea($this->areaEfectiva($tarea))
             && $tarea->estado?->nombre === 'borrador';

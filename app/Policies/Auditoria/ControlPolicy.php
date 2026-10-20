@@ -70,8 +70,13 @@ class ControlPolicy
             && $control->estado?->nombre === 'validado';
     }
 
+    /** Ver RiesgoPolicy::rechazar() (D-031). Tests: RechazoComiteTest. */
     public function rechazar(User $user, Control $control): bool
     {
+        if ($user->esComite() && $control->estado?->nombre === 'validado') {
+            return $user->puedeGestionarArea($this->areaEfectiva($control));
+        }
+
         return $user->esGerente()
             && $user->puedeGestionarArea($this->areaEfectiva($control))
             && $control->estado?->nombre === 'borrador';

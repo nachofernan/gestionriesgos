@@ -223,7 +223,8 @@ class GestionTareas extends Component
                 'mensaje' => "Tarea «{$tarea->nombre}» creada desde el plan",
                 'estado_id' => $estado->id,
                 // Registro de algo ya hecho, no una propuesta: el vínculo sigue a la tarea.
-                'data' => ['tipo' => 'edicion', 'activated_by' => $user->name, 'diff' => ['relaciones' => ['tareas' => [
+                // tarea_creada: la actividad muestra al lado el estado actual de la tarea (D-031).
+                'data' => ['tipo' => 'edicion', 'activated_by' => $user->name, 'tarea_creada' => $tarea->id, 'diff' => ['relaciones' => ['tareas' => [
                     'agrega' => [['id' => $tarea->id, 'nombre' => $tarea->nombre]],
                 ]]]],
             ]);

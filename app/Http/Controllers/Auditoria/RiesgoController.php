@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auditoria;
 
+use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
@@ -21,6 +22,8 @@ use Illuminate\Validation\Rule;
  */
 class RiesgoController extends Controller
 {
+    use RechazaElemento;
+
     private const MENSAJES_RESPUESTA = [
         'respuesta.required' => 'Debe elegir una respuesta frente al riesgo.',
         'respuesta.not_in' => 'Un riesgo de este tipo no puede compartirse ni aceptarse como respuesta.',
@@ -419,16 +422,18 @@ class RiesgoController extends Controller
         return back()->with('ok', 'Riesgo aprobado correctamente.');
     }
 
-    public function rechazar(Riesgo $riesgo)
+    /** Rechazo con motivo (D-031). */
+    public function rechazar(Request $request, Riesgo $riesgo)
     {
         $this->authorize('rechazar', $riesgo);
+        $motivo = $this->motivoRechazo($request);
 
         $riesgo->update([
             'estado_id' => Estado::borrado()->id,
             'rechazado_por_id' => Auth::id(),
             'rechazado_en' => now(),
         ]);
-        $this->logAprobado($riesgo, 'Rechazado por '.Auth::user()->name);
+        Actualizacion::registrarRechazo($riesgo, Auth::user(), $motivo);
 
         return back()->with('ok', 'Riesgo rechazado.');
     }

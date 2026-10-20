@@ -9,6 +9,7 @@ use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Tarea;
 use App\Models\User;
+use App\Services\Auditoria\ValidacionMasivaService;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -238,10 +239,55 @@ class TareaDesdePlanTest extends TestCase
     {
         $tarea = $this->tareaDeRrhhEnBorrador();
 
-        $this->actingAs($this->gerenteRrhh)->post(route('auditoria.tareas.rechazar', $tarea));
+        $this->actingAs($this->gerenteRrhh)->post(route('auditoria.tareas.rechazar', $tarea), ['motivo' => 'Ya se dictó este año']);
 
         Livewire::actingAs($this->empleadoAmbiente)
             ->test(GestionTareas::class, ['plan' => $this->plan])
             ->assertSet('seleccionados', fn ($sel) => ! collect($sel)->pluck('id')->contains($tarea->id));
+    }
+
+    // -------------------------------------------------------
+    // Actividad del plan sobre sus tareas (D-031)
+    // -------------------------------------------------------
+
+    #[Test]
+    public function rechazar_la_tarea_lo_deja_en_la_actividad_del_plan_con_el_motivo(): void
+    {
+        $tarea = $this->tareaDeRrhhEnBorrador();
+
+        $this->actingAs($this->gerenteRrhh)->post(route('auditoria.tareas.rechazar', $tarea), ['motivo' => 'Ya se dictó este año']);
+
+        $entrada = $this->plan->actualizaciones()->where('data->tipo', 'estado_tarea')->sole();
+        $this->assertSame('rechazada', $entrada->data['evento']);
+        $this->assertSame('Ya se dictó este año', $entrada->data['motivo']);
+        $this->assertEquals($this->gerenteRrhh->id, $entrada->user_id);
+        $this->assertStringContainsString('fue rechazada por', $entrada->mensaje);
+
+        // El alta original queda intacta (append-only) y marca qué tarea creó.
+        $alta = $this->plan->actualizaciones()->where('data->tarea_creada', $tarea->id)->sole();
+        $this->assertSame('edicion', $alta->data['tipo']);
+    }
+
+    #[Test]
+    public function validar_la_tarea_lo_deja_en_la_actividad_del_plan(): void
+    {
+        $tarea = $this->tareaDeRrhhEnBorrador();
+
+        $this->actingAs($this->gerenteRrhh)->post(route('auditoria.tareas.validar', $tarea));
+
+        $this->assertSame('validada', $this->plan->actualizaciones()->where('data->tipo', 'estado_tarea')->sole()->data['evento']);
+    }
+
+    #[Test]
+    public function validar_el_plan_en_cascada_lo_deja_en_la_actividad_del_plan(): void
+    {
+        $plan = PlanAccion::factory()->create(['area_id' => $this->sectorAmbiente->id, 'estado_id' => Estado::borrador()->id]);
+        $tarea = Tarea::factory()->create(['area_id' => $this->sectorAmbiente->id, 'estado_id' => Estado::borrador()->id]);
+        $plan->tareas()->attach($tarea->id);
+
+        $resultado = (new ValidacionMasivaService)->ejecutar($plan, 'validar', [], [['tipo' => 'tarea', 'id' => $tarea->id]], $this->gerenteAmbiente);
+
+        $this->assertTrue($resultado['ok'] ?? false);
+        $this->assertSame('validada', $plan->actualizaciones()->where('data->tipo', 'estado_tarea')->sole()->data['evento']);
     }
 }

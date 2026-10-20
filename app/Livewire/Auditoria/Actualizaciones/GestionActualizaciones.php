@@ -119,18 +119,18 @@ class GestionActualizaciones extends Component
 
     /**
      * Resuelve una propuesta desde la tarjeta que la muestra dentro de su bloque
-     * (Objetivos/Controles/Planes/Gerencias/Ficha en riesgo/show). No tiene lógica
-     * propia: delega en los métodos de abajo, que son los que autorizan y manejan
-     * el voto de la doble validación.
+     * (Objetivos/Controles/Planes/Ficha en riesgo/show y los bloques de otras
+     * pantallas). No tiene lógica propia: delega en los métodos de abajo, que son
+     * los que autorizan. Rechazar trae el motivo (D-031).
      * Test: resolver_desde_la_tarjeta_pasa_por_la_autorizacion_de_cada_accion.
      */
     #[On('resolver-actualizacion')]
-    public function resolver(int $id, string $accion): void
+    public function resolver(int $id, string $accion, string $motivo = ''): void
     {
         match ($accion) {
             'validar' => $this->validarActualizacion($id),
             'aprobar' => $this->aprobarActualizacion($id),
-            'rechazar' => $this->rechazarActualizacion($id),
+            'rechazar' => $this->rechazarActualizacion($id, $motivo),
             'cancelar' => $this->cancelarActualizacion($id),
         };
     }
@@ -251,12 +251,20 @@ class GestionActualizaciones extends Component
         $this->dispatch("{$this->modelType}-actualizado");
     }
 
-    public function rechazarActualizacion(int $actualizacionId): void
+    /** Rechaza con motivo obligatorio (D-031). Test: rechazar_una_propuesta_exige_motivo_y_lo_guarda. */
+    public function rechazarActualizacion(int $actualizacionId, string $motivo = ''): void
     {
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('rechazar', $actualizacion);
 
-        $actualizacion->marcarRechazada(Auth::user());
+        if (mb_strlen(trim($motivo)) < 3) {
+            $this->addError('motivo', 'Contá por qué se rechaza.');
+            session()->flash('error', 'Para rechazar hace falta un motivo.');
+
+            return;
+        }
+
+        $actualizacion->marcarRechazada(Auth::user(), trim($motivo));
         $this->dispatch("{$this->modelType}-actualizado");
     }
 
@@ -402,6 +410,19 @@ class GestionActualizaciones extends Component
             // Resuelve tipo_riesgo_id → nombre en la entrada de creación de un riesgo
             // (una consulta liviana; para el resto de entidades queda vacío e inocuo).
             'tiposRiesgo' => TipoRiesgo::pluck('nombre', 'id'),
+            // Estado actual de las tareas creadas desde este plan, para el chip de su alta (D-031).
+            'estadosTareasCreadas' => $this->estadosTareasCreadas($actualizaciones),
         ]);
+    }
+
+    /** [tarea_id => nombre del estado actual] de las entradas "creada desde el plan". Una sola consulta. */
+    private function estadosTareasCreadas($actualizaciones): array
+    {
+        $ids = $actualizaciones->pluck('data.tarea_creada')->filter()->unique()->values();
+
+        return $ids->isEmpty()
+            ? []
+            : Tarea::withTrashed()->with('estado')->whereIn('id', $ids)->get()
+                ->mapWithKeys(fn (Tarea $t) => [$t->id => $t->estado?->nombre])->all();
     }
 }

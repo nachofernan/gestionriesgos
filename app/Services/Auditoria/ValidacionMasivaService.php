@@ -261,6 +261,11 @@ class ValidacionMasivaService
                 'data' => null,
             ]);
         }
+
+        // La actividad del plan también registra el cambio de estado de sus tareas (D-031).
+        if ($entidad instanceof Tarea) {
+            $entidad->registrarEnSusPlanes($accion === 'validar' ? 'validada' : 'aprobada', $usuario);
+        }
     }
 
     // -------------------------------------------------------

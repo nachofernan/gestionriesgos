@@ -186,10 +186,20 @@
                                 </button>
                             </template>
 
+                            {{-- Rechazo de un elemento con motivo obligatorio (D-031). --}}
                             <template x-if="item.puede_rechazar && item.modo === 'entidad'">
-                                <form :action="item.url_rechazar" method="POST" onsubmit="return confirm('¿Rechazar este elemento?')">
+                                <form :action="item.url_rechazar" method="POST" class="flex items-center gap-2"
+                                      x-data="{ pidiendo: false, motivo: '' }"
+                                      x-on:submit="if (motivo.trim().length < 3) $event.preventDefault()">
                                     @csrf
-                                    <button type="submit" class="px-3 py-1.5 bg-red-50 text-red-700 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors">
+                                    <button type="button" x-show="!pidiendo" x-on:click="pidiendo = true"
+                                        class="px-3 py-1.5 bg-red-50 text-red-700 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors">
+                                        Rechazar
+                                    </button>
+                                    <input type="text" name="motivo" x-show="pidiendo" x-cloak x-model="motivo" placeholder="Motivo del rechazo *"
+                                        class="w-56 border-gray-200 rounded-lg text-xs focus:border-red-400 focus:ring-red-400">
+                                    <button type="submit" x-show="pidiendo" x-cloak :disabled="motivo.trim().length < 3"
+                                        class="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 disabled:opacity-40">
                                         Rechazar
                                     </button>
                                 </form>

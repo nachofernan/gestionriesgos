@@ -50,12 +50,8 @@
     @endif
 @endcan
 
+{{-- Gerente sobre un borrador, o comité sobre lo validado (D-031). Pide motivo. --}}
 @can('rechazar', $item)
-    <form action="{{ route('auditoria.' . $routePrefix . '.rechazar', $item) }}" method="POST" class="inline"
-          onsubmit="return confirm('¿Rechazar este elemento?')">
-        @csrf
-        <button type="submit" class="{{ $btn }} bg-red-50 text-red-700 hover:bg-red-100">
-            Rechazar
-        </button>
-    </form>
+    <x-auditoria.boton-rechazar :url="route('auditoria.' . $routePrefix . '.rechazar', $item)"
+        :clase="$btn . ' bg-red-50 text-red-700 hover:bg-red-100'" />
 @endcan

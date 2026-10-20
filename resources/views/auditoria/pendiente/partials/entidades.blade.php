@@ -41,13 +41,8 @@
                                 </button>
                             @endif
                             @if($detalle['puede_rechazar'])
-                                <form action="{{ $detalle['url_rechazar'] }}" method="POST"
-                                      onsubmit="return confirm('¿Rechazar este elemento?')">
-                                    @csrf
-                                    <button type="submit" class="px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors">
-                                        Rechazar
-                                    </button>
-                                </form>
+                                <x-auditoria.boton-rechazar :url="$detalle['url_rechazar']"
+                                    clase="px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors" />
                             @endif
                         </div>
                     </template>

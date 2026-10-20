@@ -934,3 +934,44 @@ gerente de esa área mantiene el control sin el ida y vuelta.
   en borrador.
 - Tests nuevos en `TareaDesdePlanTest`. En `FichaTareaTest` se invierten los dos casos de D-027 que ahora
   se permiten.
+
+---
+
+## D-031 — El comité rechaza lo validado; todo rechazo lleva motivo; el plan registra lo que pasa con sus tareas (2026-10-20)
+
+**Decisión.**
+1. **El comité rechaza lo validado** que le llega para aprobar, en las cinco entidades (riesgo,
+   control, objetivo, plan y tarea). El rechazo es definitivo (`borrado`), igual que el del gerente
+   sobre un borrador.
+   - No se puede rechazar un **plan** que sea el único plan vigente de un riesgo validado o aprobado que
+     se mitiga, ni un **objetivo** que sea el único objetivo vigente de un riesgo así
+     (`PlanAccion/Objetivo::motivoBloqueoRechazo()`). El rechazo se frena y se explica: primero hay que
+     resolver ese riesgo.
+2. **Todo rechazo lleva motivo obligatorio**: gerente o comité, de un elemento o de una propuesta.
+   - El de un elemento queda en su historial como un registro de rechazo
+     (`Actualizacion::registrarRechazo()`), con estado borrado, quién, cuándo y `motivo_rechazo`.
+     Antes se registraba en estado aprobado y la actividad lo pintaba como "Aplicada".
+   - El de una propuesta queda en `actualizaciones.motivo_rechazo`.
+3. **La actividad del plan registra el cambio de estado de sus tareas.** Cuando una tarea del plan se
+   valida, se aprueba o se rechaza, se agrega en el plan una entrada append-only (`tipo =>
+   estado_tarea`) con quién y el motivo. La entrada de alta de una tarea creada desde el plan
+   (`tarea_creada`) muestra su estado actual.
+
+**Motivo.** Al probar D-030, el comité no tenía cómo frenar algo validado, salvo aprobarlo. Un rechazo
+sin explicación no le sirve a quien lo recibe. Y el plan mostraba en verde una tarea que en realidad
+había sido rechazada.
+
+**Descartado.**
+- **Devolver a borrador en vez de rechazar:** sería un estado que retrocede, algo que no existe en el
+  ciclo, y no resuelve el problema de los dependientes.
+- **Motivo opcional, o sólo para el comité:** el rechazo sin explicación era justamente el problema.
+- **Reescribir la entrada original del plan:** el historial es append-only (axioma 4).
+
+**Efecto en cascada anotado.**
+- Autorización y ciclo: cambia `rechazar` en las cinco policies.
+- Esquema: `actualizaciones.motivo_rechazo`.
+- `marcarRechazada()` exige el motivo, y sus llamadores lo piden. Hay un componente nuevo,
+  `x-auditoria.boton-rechazar`, en todos los puntos de rechazo, y el modal de Pendientes pide el motivo.
+- `ValidacionMasivaService` también registra en el plan las tareas que valida o aprueba en cascada.
+- Tests: `RechazoComiteTest`, `MotivoRechazoTest`, y casos nuevos en `TareaDesdePlanTest`. Los tests que
+  rechazaban sin motivo ahora lo mandan.

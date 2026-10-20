@@ -82,4 +82,33 @@ class Tarea extends Model implements HasMedia
         return $this->belongsToMany(PlanAccion::class, 'plan_accion_tarea')
             ->withTimestamps();
     }
+
+    /**
+     * Deja en la actividad de cada plan que contiene la tarea una entrada con su
+     * cambio de estado ('validada' | 'aprobada' | 'rechazada'), quién y el motivo
+     * (D-031). Append-only: no es una propuesta ni entra al ciclo (sin estado),
+     * y no es una nota (lleva data). La llaman TareaController::validar/aprobar/rechazar
+     * y ValidacionMasivaService (cascada desde el plan).
+     * Tests: rechazar_la_tarea_lo_deja_en_la_actividad_del_plan_con_el_motivo,
+     * validar_el_plan_en_cascada_lo_deja_en_la_actividad_del_plan.
+     */
+    public function registrarEnSusPlanes(string $evento, User $usuario, ?string $motivo = null): void
+    {
+        $mensaje = "La tarea «{$this->nombre}» fue {$evento} por {$usuario->name}".($motivo ? ": {$motivo}" : '');
+
+        foreach ($this->planesAccion()->get() as $plan) {
+            $plan->actualizaciones()->create([
+                'user_id' => $usuario->id,
+                'mensaje' => $mensaje,
+                'estado_id' => null,
+                'data' => array_filter([
+                    'tipo' => 'estado_tarea',
+                    'tarea_id' => $this->id,
+                    'tarea' => $this->nombre,
+                    'evento' => $evento,
+                    'motivo' => $motivo,
+                ]),
+            ]);
+        }
+    }
 }

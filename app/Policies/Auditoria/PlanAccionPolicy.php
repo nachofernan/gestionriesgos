@@ -80,8 +80,16 @@ class PlanAccionPolicy
             && $planAccion->estado?->nombre === 'validado';
     }
 
+    /**
+     * Ver RiesgoPolicy::rechazar() (D-031). Si un riesgo lo necesita, el
+     * controlador lo bloquea (PlanAccion::motivoBloqueoRechazo()). Tests: RechazoComiteTest.
+     */
     public function rechazar(User $user, PlanAccion $planAccion): bool
     {
+        if ($user->esComite() && $planAccion->estado?->nombre === 'validado') {
+            return $user->puedeGestionarArea($this->areaEfectiva($planAccion));
+        }
+
         return $user->esGerente()
             && $user->puedeGestionarArea($this->areaEfectiva($planAccion))
             && $planAccion->estado?->nombre === 'borrador';

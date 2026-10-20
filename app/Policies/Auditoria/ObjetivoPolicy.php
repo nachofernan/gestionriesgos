@@ -70,8 +70,16 @@ class ObjetivoPolicy
             && $objetivo->estado?->nombre === 'validado';
     }
 
+    /**
+     * Ver RiesgoPolicy::rechazar() (D-031). Si un riesgo lo necesita, el
+     * controlador lo bloquea (Objetivo::motivoBloqueoRechazo()). Tests: RechazoComiteTest.
+     */
     public function rechazar(User $user, Objetivo $objetivo): bool
     {
+        if ($user->esComite() && $objetivo->estado?->nombre === 'validado') {
+            return $user->puedeGestionarArea($this->areaEfectiva($objetivo));
+        }
+
         return $user->esGerente()
             && $user->puedeGestionarArea($this->areaEfectiva($objetivo))
             && $objetivo->estado?->nombre === 'borrador';

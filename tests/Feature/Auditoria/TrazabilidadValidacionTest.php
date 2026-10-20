@@ -73,7 +73,7 @@ class TrazabilidadValidacionTest extends TestCase
         $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create(['user_id' => $gerente->id]);
 
-        $this->actingAs($gerente)->post(route('auditoria.riesgos.rechazar', $riesgo));
+        $this->actingAs($gerente)->post(route('auditoria.riesgos.rechazar', $riesgo), ['motivo' => 'No corresponde']);
 
         $riesgo->refresh();
         $this->assertEquals($gerente->id, $riesgo->rechazado_por_id);
@@ -130,7 +130,7 @@ class TrazabilidadValidacionTest extends TestCase
             'data' => ['tipo' => 'cambio', 'campos' => ['nombre' => 'Nuevo nombre']],
         ]);
 
-        $actualizacion->marcarRechazada($gerente);
+        $actualizacion->marcarRechazada($gerente, 'No corresponde');
 
         $actualizacion->refresh();
         $this->assertEquals($gerente->id, $actualizacion->rechazado_por_id);

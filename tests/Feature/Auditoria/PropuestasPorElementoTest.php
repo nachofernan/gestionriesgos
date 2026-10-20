@@ -153,7 +153,7 @@ class PropuestasPorElementoTest extends TestCase
 
         Livewire::actingAs($this->gerente)
             ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $this->riesgo->id, 'variante' => 'timeline'])
-            ->call('rechazarActualizacion', $baja->id);
+            ->call('rechazarActualizacion', $baja->id, 'No corresponde');
 
         $this->assertTrue($this->riesgo->refresh()->controles->pluck('id')->contains($this->control1->id));
         $this->assertEquals('borrado', $baja->refresh()->estado->nombre);

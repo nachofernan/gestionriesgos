@@ -2,6 +2,7 @@
 
 namespace App\Models\Auditoria;
 
+use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Concerns\HasVisibilityScope;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -138,5 +139,27 @@ class PlanAccion extends Model implements HasMedia
     public function getEstaVencidoAttribute(): bool
     {
         return $this->vencimiento !== null && $this->vencimiento->lt(now()->startOfDay());
+    }
+
+    /**
+     * Motivo por el que este plan no se puede rechazar (null si se puede): es el
+     * único plan validado o aprobado de algún riesgo validado o aprobado con
+     * respuesta mitigar, que sin él quedaría incumpliendo
+     * Riesgo::motivosBloqueoValidacion() (D-031). Lo consulta PlanAccionController::rechazar().
+     * Test: no_se_rechaza_el_unico_plan_valido_de_un_riesgo_validado_que_mitiga.
+     */
+    public function motivoBloqueoRechazo(): ?string
+    {
+        $vigentes = ['validado', 'aprobado'];
+
+        $riesgo = $this->riesgos()->with(['estado', 'planesAccion.estado'])->get()
+            ->filter(fn (Riesgo $r) => in_array($r->estado?->nombre, $vigentes) && $r->respuesta === RespuestaRiesgo::Mitigar)
+            ->first(fn (Riesgo $r) => ! $r->planesAccion->contains(
+                fn (PlanAccion $p) => $p->id !== $this->id && in_array($p->estado?->nombre, $vigentes)
+            ));
+
+        return $riesgo
+            ? "No se puede rechazar: es el único plan vigente del riesgo «{$riesgo->nombre}», que se mitiga con un plan. Primero hay que resolver ese riesgo."
+            : null;
     }
 }

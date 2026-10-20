@@ -589,6 +589,20 @@ El estado de la propuesta depende de tu rol:
   borrador; quien tiene permiso ve **Validar**, **Aprobar** o **Rechazar**. El comité también
   puede rechazar una propuesta ya validada que está esperando su aprobación.
 
+### Rechazar
+
+- **Todo rechazo pide un motivo.** Al tocar **Rechazar** se abre un cuadro para escribirlo, y sin
+  motivo no se puede confirmar. El motivo queda en el historial del elemento.
+- **Quién rechaza un elemento:** el gerente, mientras el elemento está en **borrador**; el
+  **comité**, cuando ya está **validado** y le llegó para aprobar. El rechazo es definitivo: el
+  elemento pasa a **Borrado**.
+- **Lo que no se puede rechazar:** un plan de acción o un objetivo que un riesgo validado o
+  aprobado necesita (por ejemplo, el único plan vigente de un riesgo que se mitiga). El sistema
+  avisa cuál es el riesgo: primero hay que resolver ese riesgo.
+- **Tareas de un plan:** cuando una tarea del plan se valida, se aprueba o se rechaza, la Actividad
+  del plan lo registra, con quién y, si fue rechazada, el motivo. La entrada de una tarea creada
+  desde el plan muestra además su estado actual ("hoy: rechazada", "hoy: validada", etc.).
+
 ### Adjuntos
 
 Se arrastran o seleccionan desde la Conversación — PDF, Word, Excel, JPG o PNG, hasta 10 MB por
@@ -608,7 +622,8 @@ esperando tu revisión.
   área de la organización, más las propuestas de cambio en ese mismo estado.
 
 Podés **validar**, **aprobar** o **rechazar** cada ítem directamente desde ahí, sin tener que
-entrar al detalle uno por uno. También hay un botón para exportar el listado a PDF, útil para
+entrar al detalle uno por uno. El comité también puede rechazar lo validado. Todo rechazo pide
+un motivo (ver sección 10). También hay un botón para exportar el listado a PDF, útil para
 llevarlo a una reunión.
 
 ---

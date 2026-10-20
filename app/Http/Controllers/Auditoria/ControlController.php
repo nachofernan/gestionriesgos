@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
+use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use Illuminate\Http\Request;
@@ -17,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ControlController extends Controller
 {
-    use OpcionesAreaResponsable;
+    use OpcionesAreaResponsable, RechazaElemento;
 
     public function index()
     {
@@ -207,12 +209,14 @@ class ControlController extends Controller
         return back()->with('ok', 'Control aprobado correctamente.');
     }
 
-    public function rechazar(Control $control)
+    /** Rechazo con motivo (D-031). */
+    public function rechazar(Request $request, Control $control)
     {
         $this->authorize('rechazar', $control);
+        $motivo = $this->motivoRechazo($request);
 
         $control->update(['estado_id' => Estado::borrado()->id]);
-        $this->logAprobado($control, 'Rechazado por '.Auth::user()->name);
+        Actualizacion::registrarRechazo($control, Auth::user(), $motivo);
 
         return back()->with('ok', 'Control rechazado.');
     }

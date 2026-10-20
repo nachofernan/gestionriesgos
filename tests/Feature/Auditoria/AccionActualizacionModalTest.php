@@ -102,6 +102,7 @@ class AccionActualizacionModalTest extends TestCase
         Livewire::actingAs($this->canela)
             ->test(AccionActualizacionModal::class)
             ->call('abrir', $actualizacion->id, 'rechazar')
+            ->set('motivo', 'No corresponde')
             ->call('confirmar')
             ->assertDispatched('actualizacion-procesada', id: $actualizacion->id);
 

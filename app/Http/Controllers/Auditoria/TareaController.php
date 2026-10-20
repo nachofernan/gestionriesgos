@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
+use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Tarea;
 use Illuminate\Http\Request;
@@ -18,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  */
 class TareaController extends Controller
 {
-    use OpcionesAreaResponsable;
+    use OpcionesAreaResponsable, RechazaElemento;
 
     public function index()
     {
@@ -162,6 +164,7 @@ class TareaController extends Controller
             'estado_id' => Estado::validado()->id,
             'data' => ['tipo' => 'validacion'],
         ]);
+        $tarea->registrarEnSusPlanes('validada', Auth::user());
 
         return back()->with('ok', 'Tarea validada correctamente.');
     }
@@ -192,17 +195,23 @@ class TareaController extends Controller
 
             $tarea->update(['estado_id' => Estado::aprobado()->id]);
             $this->logAprobado($tarea, 'Aprobado por '.Auth::user()->name);
+            $tarea->registrarEnSusPlanes('aprobada', Auth::user());
         });
 
         return back()->with('ok', 'Tarea aprobada correctamente.');
     }
 
-    public function rechazar(Tarea $tarea)
+    /** Rechazo con motivo (D-031); queda también en la actividad de sus planes. */
+    public function rechazar(Request $request, Tarea $tarea)
     {
         $this->authorize('rechazar', $tarea);
+        $motivo = $this->motivoRechazo($request);
 
-        $tarea->update(['estado_id' => Estado::borrado()->id]);
-        $this->logAprobado($tarea, 'Rechazado por '.Auth::user()->name);
+        DB::transaction(function () use ($tarea, $motivo) {
+            $tarea->update(['estado_id' => Estado::borrado()->id]);
+            Actualizacion::registrarRechazo($tarea, Auth::user(), $motivo);
+            $tarea->registrarEnSusPlanes('rechazada', Auth::user(), $motivo);
+        });
 
         return back()->with('ok', 'Tarea rechazada.');
     }

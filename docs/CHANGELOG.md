@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-20** — [Rechazo del comité y motivo de rechazo](updates/2026-10-20d.md) ([D-031](DECISIONES.md#d-031)): el comité rechaza lo validado (sin dejar a un riesgo vigente sin su plan u objetivo), todo rechazo pide motivo, y la actividad del plan registra cuándo sus tareas se validan, se aprueban o se rechazan. Fix: el rechazo de un elemento se registraba como aprobado y se veía verde.
 - **2026-10-20** — [Tareas desde un plan, para cualquier área](updates/2026-10-20c.md) ([D-030](DECISIONES.md#d-030)): "Nueva tarea" en el plan abre un modal con el formulario completo y admite cualquier área. Nace validada si la crea un gerente de esa línea; si no, en borrador para que la valide el área de la tarea. Queda asociada al plan en el acto, y quien gestiona el plan la ve y la comenta. Fix: el alta rápida dejaba el log "Tarea creada" en aprobado.
 - **2026-10-20** — [Sedes del riesgo](updates/2026-10-20b.md) ([D-029](DECISIONES.md#d-029)): catálogo `Sede` (5 sedes reales) y pivot `riesgo_sede`. Al menos una por riesgo; se eligen en el alta y el borrador (botón "Todas") y fuera de borrador se proponen desde la ficha. Informativa, sin efecto en permisos. La carga inicial deja todos los riesgos en todas las sedes.
 - **2026-10-20** — [Se elimina la multigerencia del riesgo](updates/2026-10-20.md) ([D-028](DECISIONES.md#d-028),

@@ -15,7 +15,15 @@
     $anclas = ['campos' => 'ficha', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes', 'tareas' => 'tareas', 'sedes' => 'ficha'];
 
     // Clasifica una entrada: qué es, cómo terminó y qué partes tocó. Lo usan el lateral y el modal.
-    $clasificar = function ($a) use ($pendientesIds) {
+    // Estado actual de una tarea creada desde el plan, para el chip de su alta (D-031).
+    $chipsTarea = [
+        'borrador' => ['hoy: en borrador', 'text-gray-600 bg-gray-100'],
+        'validado' => ['hoy: validada', 'text-blue-700 bg-blue-100'],
+        'aprobado' => ['hoy: aprobada', 'text-emerald-700 bg-emerald-100'],
+        'borrado' => ['hoy: rechazada', 'text-red-700 bg-red-100'],
+    ];
+
+    $clasificar = function ($a) use ($pendientesIds, $estadosTareasCreadas, $chipsTarea) {
         $data = $a->data ?? [];
         $tipo = $data['tipo'] ?? ($data ? 'legacy' : 'mensaje');
         $estado = $a->estado?->nombre;
@@ -23,17 +31,24 @@
         $esNota = $a->estado_id === null && empty($data);
         $diff = $data['diff'] ?? [];
         $partes = array_merge(!empty($diff['campos']) ? ['campos'] : [], array_keys($diff['relaciones'] ?? []));
+        $chipTarea = isset($data['tarea_creada']) ? ($chipsTarea[$estadosTareasCreadas[$data['tarea_creada']] ?? ''] ?? null) : null;
 
         [$grupo, $punto, $resultado, $clase] = match (true) {
             $esNota => ['nota', 'bg-gray-300', 'Nota', 'text-gray-500 bg-gray-100'],
             $pendiente => ['pendiente', 'bg-amber-400', 'Pendiente', 'text-amber-800 bg-amber-100'],
+            // Cambio de estado de una tarea del plan (Tarea::registrarEnSusPlanes, D-031).
+            $tipo === 'estado_tarea' => match ($data['evento'] ?? null) {
+                'rechazada' => ['rechazada', 'bg-red-400', 'Tarea rechazada', 'text-red-700 bg-red-100'],
+                'aprobada' => ['aplicada', 'bg-emerald-500', 'Tarea aprobada', 'text-emerald-700 bg-emerald-100'],
+                default => ['estado', 'bg-blue-500', 'Tarea validada', 'text-blue-700 bg-blue-100'],
+            },
             $estado === 'borrado' => ['rechazada', 'bg-red-400', $a->rechazado_por_id ? 'Rechazada' : 'Retirada', 'text-red-700 bg-red-100'],
             $tipo === 'creacion' => ['alta', 'bg-gray-500', 'Alta', 'text-gray-700 bg-gray-100'],
             in_array($tipo, ['validacion', 'activacion']) => ['estado', 'bg-blue-500', 'Cambio de estado', 'text-blue-700 bg-blue-100'],
             default => ['aplicada', 'bg-emerald-500', 'Aplicada', 'text-emerald-700 bg-emerald-100'],
         };
 
-        return compact('data', 'tipo', 'estado', 'pendiente', 'esNota', 'diff', 'partes', 'grupo', 'punto', 'resultado', 'clase');
+        return compact('data', 'tipo', 'estado', 'pendiente', 'esNota', 'diff', 'partes', 'grupo', 'punto', 'resultado', 'clase', 'chipTarea');
     };
 
     $clasificadas = $actualizaciones->map(fn ($a) => ['a' => $a] + $clasificar($a));
@@ -84,8 +99,10 @@
                             {{ $actualizacion->user?->name ?? '—' }} · {{ $actualizacion->created_at?->diffForHumans() }}
                         </span>
                     </span>
-                    @if($x['pendiente'])
+                    @if($x['pendiente'] || $x['grupo'] === 'rechazada' || $x['tipo'] === 'estado_tarea')
                         <span class="mt-0.5 shrink-0 text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 {{ $x['clase'] }}">{{ $x['resultado'] }}</span>
+                    @elseif($x['chipTarea'])
+                        <span class="mt-0.5 shrink-0 text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 {{ $x['chipTarea'][1] }}">{{ $x['chipTarea'][0] }}</span>
                     @endif
                 </button>
             </li>
