@@ -3,11 +3,13 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\NaturalezaSeeder;
 use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -33,7 +35,7 @@ class RiesgoAreaLineaTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, NaturalezaSeeder::class]);
 
         $raiz = Area::create(['nombre' => 'Comité']);
         $this->gerencia = Area::create(['nombre' => 'Gerencia Propia', 'area_padre_id' => $raiz->id]);
@@ -47,6 +49,7 @@ class RiesgoAreaLineaTest extends TestCase
     {
         return array_merge([
             'sedes' => Sede::pluck('id')->all(),
+            'naturalezas' => [Naturaleza::value('id')],
             'nombre' => 'Riesgo de prueba',
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
@@ -98,6 +101,7 @@ class RiesgoAreaLineaTest extends TestCase
 
         $respuesta = $this->actingAs($this->usuario)->put(route('auditoria.riesgos.update', $riesgo), [
             'sedes' => Sede::pluck('id')->all(),
+            'naturalezas' => [Naturaleza::value('id')],
             'nombre' => $riesgo->nombre,
             'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
             'area_id' => $this->hermana->id,

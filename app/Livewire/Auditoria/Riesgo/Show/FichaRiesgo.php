@@ -5,6 +5,7 @@ namespace App\Livewire\Auditoria\Riesgo\Show;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Actualizacion;
+use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
@@ -15,11 +16,12 @@ use Livewire\Component;
 
 /**
  * Ficha de riesgo/show: los datos propios del riesgo (descripción, respuesta,
- * fundamento, tipo, valoración, sedes) y, debajo, las propuestas pendientes
+ * fundamento, tipo, valoración, sedes, naturalezas) y, debajo, las propuestas pendientes
  * sobre ellos. Fuera de borrador se edita en el mismo bloque, como el resto: el
  * formulario arranca con los valores vigentes, y al guardar se manda sólo lo que
  * cambió a Actualizacion::registrarCambioCampos() (los campos) y a
- * Actualizacion::registrarCambioSync() (las sedes, como propuesta aparte); cada
+ * Actualizacion::registrarCambioSync() (las sedes, y las naturalezas con su
+ * fundamento, cada una como propuesta aparte); cada
  * una decide si se aplica o queda como propuesta. En borrador se edita con el
  * formulario completo (RiesgoController::edit). Lo que ya tiene una propuesta
  * pendiente no se puede volver a proponer hasta resolverla.
@@ -39,6 +41,12 @@ class FichaRiesgo extends Component
 
     /** Ids de las sedes marcadas en el formulario (al menos una, D-029). */
     public array $sedes = [];
+
+    /** Ids de las naturalezas marcadas (al menos una, D-032). */
+    public array $naturalezas = [];
+
+    /** Obligatorio con dos o más naturalezas; viaja en la propuesta de naturalezas. */
+    public ?string $fundamentoNaturaleza = null;
 
     /** Motivo del cambio: queda como mensaje de la Actualizacion. */
     public string $mensaje = '';
@@ -64,6 +72,8 @@ class FichaRiesgo extends Component
             return [$campo => $valor instanceof \BackedEnum ? $valor->value : $valor];
         })->all();
         $this->sedes = $riesgo->sedes()->pluck('sedes.id')->map(fn ($id) => (string) $id)->all();
+        $this->naturalezas = $riesgo->naturalezas()->pluck('naturalezas.id')->map(fn ($id) => (string) $id)->all();
+        $this->fundamentoNaturaleza = $riesgo->fundamento_naturaleza;
         $this->mensaje = '';
         $this->resetValidation();
         $this->editando = true;
@@ -77,21 +87,23 @@ class FichaRiesgo extends Component
     public function cancelarEdicion(): void
     {
         $this->editando = false;
-        $this->reset(['form', 'sedes', 'mensaje']);
+        $this->reset(['form', 'sedes', 'naturalezas', 'fundamentoNaturaleza', 'mensaje']);
         $this->resetValidation();
     }
 
     /**
      * Valida el formulario en el borde, arma los campos que realmente cambiaron
      * (dejando afuera los que tienen una propuesta pendiente) y los registra; si
-     * cambiaron las sedes, las registra en una propuesta aparte.
+     * cambiaron las sedes, las registra en una propuesta aparte. Lo mismo con las
+     * naturalezas y su fundamento, que van juntos en una sola propuesta.
      * Tests: un_campo_con_propuesta_pendiente_no_se_vuelve_a_proponer,
      * la_ficha_devuelve_403_a_un_gerente_de_otra_gerencia,
-     * con_una_propuesta_de_sedes_pendiente_no_se_vuelven_a_proponer.
+     * con_una_propuesta_de_sedes_pendiente_no_se_vuelven_a_proponer,
+     * un_empleado_propone_naturalezas_con_fundamento_y_se_aplican_juntos_al_validar.
      */
     public function guardar(): void
     {
-        $riesgo = Riesgo::with(['estado', 'sedes'])->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['estado', 'sedes', 'naturalezas'])->findOrFail($this->riesgoId);
         $this->authorize('proponer', $riesgo);
 
         $exigenFundamento = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
@@ -106,7 +118,13 @@ class FichaRiesgo extends Component
             'form.probabilidad' => 'required|integer|min:0|max:10',
             'sedes' => 'required|array|min:1',
             'sedes.*' => 'integer|exists:sedes,id',
+            'naturalezas' => 'required|array|min:1',
+            'naturalezas.*' => 'integer|exists:naturalezas,id',
+            'fundamentoNaturaleza' => Riesgo::reglaFundamentoNaturaleza($this->naturalezas),
         ], [
+            'naturalezas.required' => 'Elegí al menos una naturaleza.',
+            'naturalezas.min' => 'Elegí al menos una naturaleza.',
+            'fundamentoNaturaleza.required' => 'Con más de una naturaleza, fundamentá por qué.',
             'sedes.required' => 'Elegí al menos una sede.',
             'sedes.min' => 'Elegí al menos una sede.',
             'mensaje.required' => 'Contá brevemente por qué se cambia.',
@@ -130,7 +148,16 @@ class FichaRiesgo extends Component
             ? Sede::diff($riesgo->sedes->pluck('id')->all(), $sedeIds)
             : [];
 
-        if (empty($campos) && empty($diffSedes)) {
+        $naturalezaIds = array_map('intval', $this->naturalezas);
+        $fundamentoNaturaleza = count($naturalezaIds) >= 2 && filled($this->fundamentoNaturaleza) ? $this->fundamentoNaturaleza : null;
+        $diffNaturalezas = [];
+        $cambiaFundamento = false;
+        if ($this->propuestasDe($riesgo, 'naturalezas')->isEmpty()) {
+            $diffNaturalezas = Naturaleza::diff($riesgo->naturalezas->pluck('id')->all(), $naturalezaIds);
+            $cambiaFundamento = (string) $riesgo->fundamento_naturaleza !== (string) $fundamentoNaturaleza;
+        }
+
+        if (empty($campos) && empty($diffSedes) && empty($diffNaturalezas) && ! $cambiaFundamento) {
             $this->addError('form', 'No hay cambios para guardar.');
 
             return;
@@ -142,6 +169,12 @@ class FichaRiesgo extends Component
         }
         if (! empty($diffSedes)) {
             $registradas->push(Actualizacion::registrarCambioSync($riesgo, Auth::user(), $this->mensaje, 'sedes', $sedeIds, $diffSedes));
+        }
+        if (! empty($diffNaturalezas) || $cambiaFundamento) {
+            $registradas->push(Actualizacion::registrarCambioSync(
+                $riesgo, Auth::user(), $this->mensaje, 'naturalezas', $naturalezaIds, $diffNaturalezas,
+                $cambiaFundamento ? ['fundamento_naturaleza' => $fundamentoNaturaleza] : [],
+            ));
         }
 
         $this->dispatch('riesgo-actualizado');
@@ -166,16 +199,23 @@ class FichaRiesgo extends Component
 
     public function render()
     {
-        $riesgo = Riesgo::with(['tipoRiesgo', 'area', 'user', 'estado', 'sedes'])->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['tipoRiesgo', 'area', 'user', 'estado', 'sedes', 'naturalezas'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
-        $propuestas = $this->propuestasDe($riesgo, 'campos');
+        $propuestasCampos = $this->propuestasDe($riesgo, 'campos');
         $propuestasSedes = $this->propuestasDe($riesgo, 'sedes');
+        $propuestasNaturalezas = $this->propuestasDe($riesgo, 'naturalezas');
+        // La propuesta de naturalezas trae su fundamento en 'campos': se muestra una
+        // sola vez, en su tarjeta de naturalezas.
+        $propuestas = $propuestasCampos->reject(fn ($p) => isset($p->data['diff']['relaciones']));
 
         return view('livewire.auditoria.riesgo.show.ficha-riesgo', [
             'riesgo' => $riesgo,
             'todasLasSedes' => Sede::orderBy('id')->get(),
             'propuestasSedes' => $propuestasSedes,
             'sedesBloqueadas' => $propuestasSedes->isNotEmpty(),
+            'todasLasNaturalezas' => Naturaleza::with('referencias')->orderBy('id')->get(),
+            'propuestasNaturalezas' => $propuestasNaturalezas,
+            'naturalezasBloqueadas' => $propuestasNaturalezas->isNotEmpty(),
             'puedeActualizar' => Auth::user()->can('proponer', $riesgo),
             'puedeRecalcular' => $riesgo->motivoBloqueoRecalculo(Auth::user()) === null,
             'modo' => $this->modoCambio(),

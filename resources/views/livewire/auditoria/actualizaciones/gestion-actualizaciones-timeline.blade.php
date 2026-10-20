@@ -6,13 +6,13 @@
 --}}
 @php
     $etiquetasCampos = [
-        'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta', 'fundamento' => 'Fundamento',
+        'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta', 'fundamento' => 'Fundamento', 'fundamento_naturaleza' => 'Fundamento de naturaleza',
         'tipo_riesgo_id' => 'Tipo de riesgo', 'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
         'mayor_criticidad' => 'Mayor criticidad','mitigacion_default' => 'Mitigación por defecto', 'pausado' => 'Pausado', 'fecha_objetivo' => 'Fecha objetivo',
         'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
     ];
-    $nombresPartes = ['campos' => 'Datos', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes', 'tareas' => 'Tareas', 'sedes' => 'Sedes'];
-    $anclas = ['campos' => 'ficha', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes', 'tareas' => 'tareas', 'sedes' => 'ficha'];
+    $nombresPartes = ['campos' => 'Datos', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes', 'tareas' => 'Tareas', 'sedes' => 'Sedes', 'naturalezas' => 'Naturalezas'];
+    $anclas = ['campos' => 'ficha', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes', 'tareas' => 'tareas', 'sedes' => 'ficha', 'naturalezas' => 'ficha'];
 
     // Clasifica una entrada: qué es, cómo terminó y qué partes tocó. Lo usan el lateral y el modal.
     // Estado actual de una tarea creada desde el plan, para el chip de su alta (D-031).

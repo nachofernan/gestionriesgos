@@ -40,6 +40,7 @@ class Riesgo extends Model implements HasMedia
         'mayor_criticidad',
         'respuesta',
         'fundamento',
+        'fundamento_naturaleza',
         'tipo_riesgo_id',
         'estado_id',
         'user_id',
@@ -160,6 +161,12 @@ class Riesgo extends Model implements HasMedia
     public function sedes(): BelongsToMany
     {
         return $this->belongsToMany(Sede::class, 'riesgo_sede')->withTimestamps();
+    }
+
+    /** Naturalezas del riesgo (al menos una, D-032). Informativa: no da acceso ni cambia el valor. */
+    public function naturalezas(): BelongsToMany
+    {
+        return $this->belongsToMany(Naturaleza::class, 'naturaleza_riesgo')->withTimestamps();
     }
 
     public function controles(): BelongsToMany
@@ -361,5 +368,15 @@ class Riesgo extends Model implements HasMedia
         $exigen = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
 
         return ['nullable', 'string', 'required_if:respuesta,'.implode(',', $exigen)];
+    }
+
+    /**
+     * Con dos o más naturalezas hay que fundamentar por qué (D-032); con una sola
+     * el fundamento no aplica. La consumen RiesgoController y FichaRiesgo.
+     * Test: con_dos_naturalezas_el_fundamento_es_obligatorio.
+     */
+    public static function reglaFundamentoNaturaleza(array $naturalezas): array
+    {
+        return ['nullable', 'string', Rule::requiredIf(count($naturalezas) >= 2)];
     }
 }

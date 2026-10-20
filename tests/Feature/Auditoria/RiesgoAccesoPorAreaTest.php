@@ -5,6 +5,7 @@ namespace Tests\Feature\Auditoria;
 use App\Enums\Auditoria\TipoArea;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Policies\Auditoria\ActualizacionPolicy;
 use App\Policies\Auditoria\RiesgoPolicy;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\NaturalezaSeeder;
 use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -42,7 +44,7 @@ class RiesgoAccesoPorAreaTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, NaturalezaSeeder::class]);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
         $this->subarea = Area::create(['nombre' => 'Sistemas', 'area_padre_id' => $this->gerencia->id]);
@@ -99,6 +101,7 @@ class RiesgoAccesoPorAreaTest extends TestCase
         $this->actingAs($this->gerenteAjeno)->get(route('auditoria.riesgos.show', $riesgo))->assertForbidden();
         $this->actingAs($this->gerenteAjeno)->put(route('auditoria.riesgos.update', $riesgo), [
             'sedes' => Sede::pluck('id')->all(),
+            'naturalezas' => [Naturaleza::value('id')],
             'nombre' => 'Intento ajeno',
             'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
             'area_id' => $this->otraGerencia->id,

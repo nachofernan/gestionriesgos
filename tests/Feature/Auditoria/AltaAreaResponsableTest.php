@@ -5,6 +5,7 @@ namespace Tests\Feature\Auditoria;
 use App\Enums\Auditoria\TipoArea;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
@@ -12,6 +13,7 @@ use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\NaturalezaSeeder;
 use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -53,7 +55,7 @@ class AltaAreaResponsableTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, NaturalezaSeeder::class]);
 
         $raiz = Area::create(['nombre' => 'Comité', 'tipo' => TipoArea::Gerencia]);
         $this->gerencia = Area::create(['nombre' => 'Gerencia Propia', 'area_padre_id' => $raiz->id, 'tipo' => TipoArea::Gerencia]);
@@ -304,6 +306,7 @@ class AltaAreaResponsableTest extends TestCase
         $this->actingAs($this->aieta)
             ->post(route('auditoria.riesgos.store'), $this->datosRiesgo([
                 'sedes' => Sede::pluck('id')->all(),
+                'naturalezas' => [Naturaleza::value('id')],
                 'area_id' => $this->sistemas->id, 'objetivos' => [$objetivo->id],
             ]))
             ->assertSessionHasNoErrors();
@@ -325,6 +328,7 @@ class AltaAreaResponsableTest extends TestCase
     {
         return array_merge([
             'sedes' => Sede::pluck('id')->all(),
+            'naturalezas' => [Naturaleza::value('id')],
             'nombre' => 'Riesgo de prueba',
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],

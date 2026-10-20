@@ -5,7 +5,7 @@
     // Arranca el wizard en el primer paso que tenga errores de validación,
     // para que no queden escondidos en un paso que Alpine no muestra de entrada.
     $pasoInicial = 1;
-    if ($errors->hasAny(['nombre', 'descripcion', 'tipo_riesgo_id'])) {
+    if ($errors->hasAny(['nombre', 'descripcion', 'tipo_riesgo_id', 'naturalezas', 'naturalezas.*', 'fundamento_naturaleza'])) {
         $pasoInicial = 1;
     } elseif ($errors->hasAny(['probabilidad_respuestas', 'probabilidad_respuestas.*'])) {
         $pasoInicial = 2;
@@ -82,6 +82,8 @@
                     </select>
                     @error('tipo_riesgo_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
                 </div>
+
+                @include('auditoria.partials.naturalezas-checkboxes', ['naturalezas' => $naturalezas, 'seleccionadas' => [], 'fundamento' => null, 'enWizard' => true])
             </div>
 
             {{-- Paso 2: preguntas de probabilidad --}}
@@ -262,20 +264,9 @@
         </div>
     </form>
 
-    {{-- Panel de referencia: tipos de riesgo --}}
+    {{-- Panel de referencia: tipos de riesgo y naturalezas --}}
     <div class="shrink-0">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-3 sticky top-6">
-            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Referencia de Tipos</h2>
-            <div class="space-y-2" id="tipo-riesgo-ref">
-                @foreach ($tiposRiesgo as $tipo)
-                    <div id="ref-tipo-{{ $tipo->id }}"
-                        class="p-3 rounded-lg border border-gray-100 transition-all duration-200">
-                        <p class="text-xs font-bold text-gray-800 mb-1">{{ $tipo->nombre }}</p>
-                        <p class="text-xs text-gray-500 leading-relaxed">{{ $tipo->descripcion }}</p>
-                    </div>
-                @endforeach
-            </div>
-        </div>
+        @include('auditoria.partials.referencia-riesgo', ['naturalezasMarcadas' => old('naturalezas', [])])
     </div>
     </div>
 
@@ -287,6 +278,9 @@
             paso: pasoInicial,
             nombre: @js(old('nombre', '')),
             tipoRiesgoId: @js((string) old('tipo_riesgo_id', '')),
+            // Los usa el partial naturalezas-checkboxes (D-032).
+            naturalezas: @js(collect(old('naturalezas', []))->map(fn ($id) => (string) $id)->values()),
+            fundamentoNaturaleza: @js(old('fundamento_naturaleza', '') ?? ''),
             // Objeto y no array: con un array vacío, responder primero la última pregunta estira el
             // length y las siguientes respuestas ya no disparan la reactividad de pasoCompleto.
             probabilidad: Object.assign({}, @json(collect(old('probabilidad_respuestas', []))->map(fn($v) => (int) $v))),
@@ -339,7 +333,10 @@
             },
             get pasoCompleto() {
                 if (this.paso === 1) {
-                    return this.nombre.trim() !== '' && this.tipoRiesgoId !== '';
+                    // Al menos una naturaleza; con dos o más, fundamento (D-032).
+                    const naturalezaOk = this.naturalezas.length > 0
+                        && (this.naturalezas.length < 2 || this.fundamentoNaturaleza.trim() !== '');
+                    return this.nombre.trim() !== '' && this.tipoRiesgoId !== '' && naturalezaOk;
                 }
                 if (this.paso === 2) {
                     return Object.keys(this.probabilidad).length === {{ count($preguntas['probabilidad']) }};

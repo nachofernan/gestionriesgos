@@ -975,3 +975,41 @@ había sido rechazada.
 - `ValidacionMasivaService` también registra en el plan las tareas que valida o aprueba en cascada.
 - Tests: `RechazoComiteTest`, `MotivoRechazoTest`, y casos nuevos en `TareaDesdePlanTest`. Los tests que
   rechazaban sin motivo ahora lo mandan.
+
+---
+
+## D-032 — Naturaleza del riesgo (2026-10-20)
+
+**Decisión.** Nuevo catálogo `Naturaleza` con las cuatro naturalezas del riesgo: "Derechos humanos y
+estándares laborales", "Medioambiente", "Anticorrupción" y "Gobernanza" (`NaturalezaSeeder`). Cada una
+trae sus ejemplos y sus referencias (los principios "Las empresas deben…"), en una tabla aparte
+(`naturaleza_referencias`, una fila por principio). Un riesgo tiene **una o más** (pivot
+`naturaleza_riesgo`), siempre al menos una. **Con dos o más hay que fundamentar por qué**
+(`riesgos.fundamento_naturaleza`); con una sola el fundamento no aplica y se guarda vacío.
+Convive con el tipo de riesgo, que no cambia.
+
+- Se elige en el paso 1 del alta y en el formulario del borrador. El panel de referencia de esas
+  pantallas pasa a tener dos solapas: tipos de riesgo y naturalezas (con ejemplos y referencias).
+- Fuera de borrador se cambia desde la ficha con el circuito de propuestas. Las naturalezas y su
+  fundamento viajan **en una sola propuesta** (`registrarCambioSync()` acepta campos atados a la
+  relación): se validan o se rechazan juntos.
+- Es **informativa**: no interviene en la autorización, la visibilidad ni el valor del riesgo.
+- La carga inicial la infiere del tipo de riesgo (Ambiental → Medioambiente, Corrupción →
+  Anticorrupción, Seguridad e Higiene → Derechos humanos, el resto → Gobernanza), una sola por riesgo.
+
+**Motivo.** La empresa clasifica los riesgos por su naturaleza ESG, además de por el tipo. Las
+referencias se guardan como entidad desde ahora para poder darles más peso después sin migrar texto.
+
+**Descartado.**
+- **Reemplazar el tipo de riesgo:** son clasificaciones distintas; tocaría el wizard, el panel y los
+  tipos que restringen la respuesta.
+- **Fundamento como campo suelto en la propuesta de campos:** se podía validar el cambio de
+  naturalezas y rechazar el fundamento, y dejar un riesgo con dos naturalezas sin fundamento.
+- **Dejar sin naturaleza los riesgos de la carga inicial:** se eligió inferirla para que la regla
+  "al menos una" se cumpla en todos; la revisión inicial puede corregirla.
+
+**Efecto en cascada anotado.** Esquema: `naturalezas`, `naturaleza_referencias`,
+`naturaleza_riesgo` y `riesgos.fundamento_naturaleza`. `registrarCambioSync()` suma un parámetro
+`$campos`. `ResumenPropuestas` cuenta una propuesta una vez por bloque. `RiesgoFactory` asocia la
+primera naturaleza sembrada. Los tests que postean el alta o la edición del riesgo mandan
+`naturalezas` y siembran `NaturalezaSeeder`. Tests en `RiesgoNaturalezasTest`.

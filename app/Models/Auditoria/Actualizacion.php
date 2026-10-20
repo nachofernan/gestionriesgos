@@ -227,11 +227,14 @@ class Actualizacion extends Model implements HasMedia
      * que registrarCambioCampos(): si se aplica en el acto hace el sync; si no,
      * queda como propuesta y aplicarCambios() hace el sync al validar o aprobar.
      * $diff es ['agrega' => [[id, nombre]], 'quita' => [...]], para el historial.
+     * $campos son campos que viajan atados a la relación en la misma propuesta (el
+     * fundamento de las naturalezas, D-032): se validan o rechazan juntos.
      * Quien llama ya validó los ids y autorizó 'proponer'.
      * Tests: un_empleado_propone_cambiar_las_sedes_y_se_aplica_al_validar,
-     * un_gerente_cambia_las_sedes_de_un_riesgo_validado_en_el_acto.
+     * un_gerente_cambia_las_sedes_de_un_riesgo_validado_en_el_acto,
+     * un_empleado_propone_naturalezas_con_fundamento_y_se_aplican_juntos_al_validar.
      */
-    public static function registrarCambioSync(Model $entidad, User $usuario, string $mensaje, string $relacion, array $ids, array $diff): self
+    public static function registrarCambioSync(Model $entidad, User $usuario, string $mensaje, string $relacion, array $ids, array $diff, array $campos = []): self
     {
         $estadoId = static::estadoInicialParaCambio($usuario, $entidad->estado?->nombre);
         $aplicar = static::seAplicaAlRegistrar($estadoId, $entidad->estado?->nombre);
@@ -241,11 +244,17 @@ class Actualizacion extends Model implements HasMedia
             'relaciones' => [$relacion => ['sync' => $ids]],
             'diff' => ['relaciones' => [$relacion => $diff]],
         ];
+        if (! empty($campos)) {
+            $data['campos'] = $campos;
+            $data['diff']['campos'] = collect($campos)
+                ->map(fn ($nuevo, $campo) => ['antes' => $entidad->$campo, 'despues' => $nuevo])
+                ->all();
+        }
         if ($aplicar) {
             $data['activated_by'] = $usuario->name;
         }
 
-        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $relacion, $ids, $estadoId, $data, $aplicar) {
+        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $relacion, $ids, $campos, $estadoId, $data, $aplicar) {
             $actualizacion = $entidad->actualizaciones()->create([
                 'user_id' => $usuario->id,
                 'mensaje' => $mensaje,
@@ -255,6 +264,9 @@ class Actualizacion extends Model implements HasMedia
 
             if ($aplicar) {
                 $entidad->$relacion()->sync($ids);
+                if (! empty($campos)) {
+                    $entidad->update($campos);
+                }
             }
 
             return $actualizacion;
@@ -315,7 +327,7 @@ class Actualizacion extends Model implements HasMedia
 
         $etiquetas = [
             'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
-            'fundamento' => 'Fundamento', 'tipo_riesgo_id' => 'Tipo de riesgo',
+            'fundamento' => 'Fundamento', 'fundamento_naturaleza' => 'Fundamento de naturaleza', 'tipo_riesgo_id' => 'Tipo de riesgo',
             'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
             'mitigacion_default' => 'Mitigación', 'pausado' => 'Pausado', 'fecha_objetivo' => 'Fecha objetivo',
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
@@ -346,7 +358,7 @@ class Actualizacion extends Model implements HasMedia
 
         $partes = [
             'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes de acción',
-            'tareas' => 'Tareas', 'sedes' => 'Sedes',
+            'tareas' => 'Tareas', 'sedes' => 'Sedes', 'naturalezas' => 'Naturalezas',
         ];
         $relaciones = [];
         foreach ($diff['relaciones'] ?? [] as $parte => $ops) {

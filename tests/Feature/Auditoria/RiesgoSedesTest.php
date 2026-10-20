@@ -6,11 +6,13 @@ use App\Enums\Auditoria\TipoArea;
 use App\Livewire\Auditoria\Actualizaciones\GestionActualizaciones;
 use App\Livewire\Auditoria\Riesgo\Show\FichaRiesgo;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\NaturalezaSeeder;
 use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -34,7 +36,7 @@ class RiesgoSedesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, NaturalezaSeeder::class]);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
         $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
@@ -55,6 +57,7 @@ class RiesgoSedesTest extends TestCase
             'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
             'respuesta' => 'mitigar',
             'area_id' => $this->gerencia->id,
+            'naturalezas' => [Naturaleza::value('id')],
         ], $overrides);
     }
 
@@ -114,6 +117,7 @@ class RiesgoSedesTest extends TestCase
             'respuesta' => 'mitigar',
             'area_id' => $this->gerencia->id,
             'sedes' => [$necochea->id],
+            'naturalezas' => [Naturaleza::value('id')],
         ])->assertSessionHasNoErrors();
 
         $this->assertEquals([$necochea->id], $riesgo->fresh()->sedes->pluck('id')->all());

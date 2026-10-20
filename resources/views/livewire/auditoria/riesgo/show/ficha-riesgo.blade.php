@@ -6,7 +6,7 @@
     @endphp
 
     <x-auditoria.bloque-riesgo ancla="ficha" titulo="Ficha del riesgo"
-        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty() || $propuestasSedes->isNotEmpty()">
+        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty() || $propuestasSedes->isNotEmpty() || $propuestasNaturalezas->isNotEmpty()">
 
         <x-slot:accion>
             @if($puedeActualizar && !$editando)
@@ -62,6 +62,22 @@
                         @endif
                     </dd>
                 </div>
+                <div class="col-span-3">
+                    <dt class="{{ $label }}">Naturaleza</dt>
+                    <dd class="flex flex-wrap gap-1.5">
+                        @forelse($riesgo->naturalezas as $naturaleza)
+                            <span class="text-xs font-semibold rounded-md px-2 py-0.5 bg-teal-50 text-teal-700">{{ $naturaleza->nombre }}</span>
+                        @empty
+                            <span class="text-gray-400 italic">Sin naturaleza.</span>
+                        @endforelse
+                    </dd>
+                </div>
+                @if($riesgo->fundamento_naturaleza)
+                    <div class="col-span-3">
+                        <dt class="{{ $label }}">Fundamento de la naturaleza</dt>
+                        <dd class="text-gray-700 whitespace-pre-line">{{ $riesgo->fundamento_naturaleza }}</dd>
+                    </div>
+                @endif
             </dl>
         @else
             <div class="grid grid-cols-6 gap-x-4 gap-y-3">
@@ -135,7 +151,28 @@
                     </div>
                     @error('sedes') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
-                @if(!empty($bloqueados) || $sedesBloqueadas)
+                <div class="col-span-6">
+                    <label class="{{ $label }}">Naturaleza</label>
+                    <div class="grid grid-cols-2 gap-1.5 rounded-lg border border-gray-200 p-2.5 {{ $naturalezasBloqueadas ? 'bg-gray-50' : '' }}">
+                        @foreach($todasLasNaturalezas as $naturaleza)
+                            <label class="flex items-center gap-2 text-sm {{ $naturalezasBloqueadas ? 'text-gray-400' : 'text-gray-700 cursor-pointer' }}" title="{{ $naturaleza->ejemplos }}">
+                                <input type="checkbox" wire:model.live="naturalezas" value="{{ $naturaleza->id }}" @disabled($naturalezasBloqueadas)
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50">
+                                {{ $naturaleza->nombre }}
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('naturalezas') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                @if(count($naturalezas) >= 2)
+                    <div class="col-span-6">
+                        <label class="{{ $label }} !text-red-600">Fundamento de la naturaleza *</label>
+                        <textarea wire:model="fundamentoNaturaleza" rows="2" class="{{ $input }}" @disabled($naturalezasBloqueadas)
+                            placeholder="Por qué el riesgo tiene más de una naturaleza..."></textarea>
+                        @error('fundamentoNaturaleza') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                @endif
+                @if(!empty($bloqueados) || $sedesBloqueadas || $naturalezasBloqueadas)
                     <p class="col-span-6 text-[11px] text-amber-700">Lo grisado ya tiene una propuesta pendiente: se puede volver a tocar cuando se resuelva.</p>
                 @endif
             </div>
@@ -166,6 +203,9 @@
             @endforeach
             @foreach($propuestasSedes as $propuesta)
                 <x-auditoria.propuesta-pendiente :propuesta="$propuesta" parte="sedes" :estadoEntidad="$estadoModelo" />
+            @endforeach
+            @foreach($propuestasNaturalezas as $propuesta)
+                <x-auditoria.propuesta-pendiente :propuesta="$propuesta" parte="naturalezas" :estadoEntidad="$estadoModelo" />
             @endforeach
         </x-slot:propuestas>
     </x-auditoria.bloque-riesgo>

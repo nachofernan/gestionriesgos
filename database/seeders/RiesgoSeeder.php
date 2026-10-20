@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
@@ -20,6 +21,7 @@ class RiesgoSeeder extends Seeder
         $objetivoIds = Objetivo::pluck('id')->toArray();
         $respuestas = RespuestaRiesgo::cases();
         $sedeIds = Sede::pluck('id')->all();
+        $naturalezaIdPorNombre = Naturaleza::pluck('id', 'nombre');
 
         // 15 riesgos: 2 borrado, 3 borrador, 5 validado, 5 aprobado
         $estadoDistribucion = [
@@ -77,6 +79,7 @@ class RiesgoSeeder extends Seeder
                 'area_id' => $user->area_id,
             ]);
             $riesgo->sedes()->sync($sedeIds);
+            $riesgo->naturalezas()->sync([$naturalezaIdPorNombre[NaturalezaSeeder::paraTipo($riesgo->tipoRiesgo?->nombre)]]);
 
             // motivosBloqueoValidacion(): validar exige al menos un objetivo asociado,
             // así que todo riesgo validado/aprobado lo tiene garantizado; en

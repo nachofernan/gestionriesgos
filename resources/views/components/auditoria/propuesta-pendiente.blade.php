@@ -64,8 +64,17 @@
                     </p>
                 </div>
             @empty
-                <p class="text-sm text-gray-800">{{ $propuesta->mensaje }}</p>
+                @if(empty($data['diff']['campos']))
+                    <p class="text-sm text-gray-800">{{ $propuesta->mensaje }}</p>
+                @endif
             @endforelse
+            {{-- Campos que viajan atados a la relación (el fundamento de las naturalezas, D-032). --}}
+            @foreach($propuesta->diffLegible()['campos'] as $fila)
+                <p class="pl-7 text-xs leading-5 text-gray-600">
+                    <span class="font-semibold text-gray-500">{{ $fila['etiqueta'] }}:</span>
+                    <span class="font-semibold text-gray-900">{{ \Illuminate\Support\Str::limit($fila['despues'], 160) }}</span>
+                </p>
+            @endforeach
             <p class="pl-7 text-[11px] text-gray-400 truncate">
                 {{ $propuesta->user?->name ?? '—' }} · <time title="{{ $propuesta->created_at?->format('d/m/Y H:i') }}">{{ $propuesta->created_at?->diffForHumans() }}</time>
                 · <span class="font-semibold {{ $esperaComite ? 'text-blue-600' : 'text-amber-700' }}" title="{{ $situacionTitulo }}">{{ $situacion }}</span>

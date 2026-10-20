@@ -78,6 +78,13 @@
                 @error('tipo_riesgo_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
             </div>
 
+            @include('auditoria.partials.naturalezas-checkboxes', [
+                'naturalezas' => $naturalezas,
+                'seleccionadas' => $riesgo->naturalezas->pluck('id')->all(),
+                'fundamento' => $riesgo->fundamento_naturaleza,
+                'enWizard' => false,
+            ])
+
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Respuesta *</label>
                 <select name="respuesta" x-model="respuesta"
@@ -144,20 +151,9 @@
         </div>
     </form>
 
-    {{-- Panel de referencia: tipos de riesgo --}}
+    {{-- Panel de referencia: tipos de riesgo y naturalezas --}}
     <div class="w-96 shrink-0">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-3 sticky top-6">
-            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Referencia de Tipos</h2>
-            <div class="space-y-2" id="tipo-riesgo-ref">
-                @foreach ($tiposRiesgo as $tipo)
-                    <div id="ref-tipo-{{ $tipo->id }}"
-                        class="p-3 rounded-lg border border-gray-100 transition-all duration-200">
-                        <p class="text-xs font-bold text-gray-800 mb-1">{{ $tipo->nombre }}</p>
-                        <p class="text-xs text-gray-500 leading-relaxed">{{ $tipo->descripcion }}</p>
-                    </div>
-                @endforeach
-            </div>
-        </div>
+        @include('auditoria.partials.referencia-riesgo', ['naturalezasMarcadas' => old('naturalezas', $riesgo->naturalezas->pluck('id')->all())])
     </div>
     </div>
 

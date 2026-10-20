@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-20** — [Naturaleza del riesgo](updates/2026-10-20e.md) ([D-032](DECISIONES.md#d-032)): catálogo de 4 naturalezas con ejemplos y referencias. Un riesgo tiene una o más; con dos o más se fundamenta. Se elige en el alta (paso 1) y el borrador, y fuera de borrador se propone desde la ficha junto con su fundamento. El panel de referencia del alta pasa a tener solapas Tipos / Naturalezas. La carga inicial la infiere del tipo.
 - **2026-10-20** — Carga inicial: nueva gerencia **Riesgos Estratégicos** (RE, cuelga del comité) con Zuliani de gerente, para los riesgos, objetivos, planes y tareas que traen los CSV actualizados.
 - **2026-10-20** — [Rechazo del comité y motivo de rechazo](updates/2026-10-20d.md) ([D-031](DECISIONES.md#d-031)): el comité rechaza lo validado (sin dejar a un riesgo vigente sin su plan u objetivo), todo rechazo pide motivo, y la actividad del plan registra cuándo sus tareas se validan, se aprueban o se rechazan. Fix: el rechazo de un elemento se registraba como aprobado y se veía verde.
 - **2026-10-20** — [Tareas desde un plan, para cualquier área](updates/2026-10-20c.md) ([D-030](DECISIONES.md#d-030)): "Nueva tarea" en el plan abre un modal con el formulario completo y admite cualquier área. Nace validada si la crea un gerente de esa línea; si no, en borrador para que la valide el área de la tarea. Queda asociada al plan en el acto, y quien gestiona el plan la ve y la comenta. Fix: el alta rápida dejaba el log "Tarea creada" en aprobado.

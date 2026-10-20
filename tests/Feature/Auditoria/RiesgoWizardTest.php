@@ -5,6 +5,7 @@ namespace Tests\Feature\Auditoria;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
@@ -12,6 +13,7 @@ use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
+use Database\Seeders\NaturalezaSeeder;
 use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -30,13 +32,14 @@ class RiesgoWizardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class]);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, NaturalezaSeeder::class]);
     }
 
     private function datosWizard(array $overrides = []): array
     {
         return array_merge([
             'sedes' => Sede::pluck('id')->all(),
+            'naturalezas' => [Naturaleza::value('id')],
             'nombre' => 'Riesgo de prueba',
             'descripcion' => 'Descripción de prueba',
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
@@ -119,6 +122,7 @@ class RiesgoWizardTest extends TestCase
 
         $respuesta = $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard([
             'sedes' => Sede::pluck('id')->all(),
+            'naturalezas' => [Naturaleza::value('id')],
             'probabilidad_respuestas' => [1 => 2, 2 => 1],
         ]));
 
