@@ -5,6 +5,7 @@ use App\Http\Controllers\Auditoria\ControlController;
 use App\Http\Controllers\Auditoria\ObjetivoController;
 use App\Http\Controllers\Auditoria\PendienteController;
 use App\Http\Controllers\Auditoria\PlanAccionController;
+use App\Http\Controllers\Auditoria\ReporteController;
 use App\Http\Controllers\Auditoria\RiesgoController;
 use App\Http\Controllers\Auditoria\TareaController;
 use App\Http\Controllers\Auditoria\VencimientoController;
@@ -31,6 +32,9 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // Panel de situación (mapa de calor, distribución, accesos rápidos)
     // -------------------------------------------------------------------
     Route::view('panel', 'auditoria.panel.index')->name('panel.index');
+    Route::get('panel/reporte/{reporte}', [ReporteController::class, 'exportar'])
+        ->whereIn('reporte', ['gerencia', 'tipo', 'evolucion', 'planes'])
+        ->name('panel.reporte');
 
     // -------------------------------------------------------------------
     // Riesgos

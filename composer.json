@@ -10,6 +10,7 @@
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "livewire/livewire": "^4.2",
+        "maatwebsite/excel": "^4.0",
         "spatie/laravel-medialibrary": "^11.22"
     },
     "require-dev": {

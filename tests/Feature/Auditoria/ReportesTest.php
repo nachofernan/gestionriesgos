@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\TipoArea;
+use App\Exports\Auditoria\ReporteExport;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -20,6 +21,7 @@ use App\Services\Auditoria\Reportes\ReportePorTipo;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -267,5 +269,49 @@ class ReportesTest extends TestCase
         $this->assertSame(1, $admin['planes_sin_avance']);
         $this->assertSame(1, $admin['tareas_vencidas']);
         $this->assertTrue(collect($datos['planes'])->firstWhere('id', $vencido->id)['vencido']);
+    }
+
+    #[Test]
+    public function la_descarga_en_excel_requiere_estar_logueado(): void
+    {
+        $this->get(route('auditoria.panel.reporte', 'gerencia'))->assertRedirect(route('login'));
+    }
+
+    #[Test]
+    public function la_descarga_en_excel_trae_solo_la_cascada_del_gerente(): void
+    {
+        Excel::fake();
+        $this->riesgo($this->gerAdmin);
+        $this->riesgo($this->gerProd);
+
+        $this->actingAs($this->canela)
+            ->get(route('auditoria.panel.reporte', ['reporte' => 'gerencia', 'soloAprobados' => 1]))
+            ->assertOk();
+
+        Excel::assertDownloaded('reporte-gerencia-'.now()->format('Ymd').'.xlsx', function (ReporteExport $export) {
+            $filas = $export->sheets()[0]->array();
+
+            // Dos filas de encabezado, una gerencia y el total.
+            return count($filas) === 6 && $filas[2][0] === 'Ger. Admin' && $filas[3] === array_replace($filas[3], [0 => 'Total', 1 => 1]);
+        });
+    }
+
+    #[Test]
+    public function cada_reporte_se_descarga_en_excel_sin_errores(): void
+    {
+        $this->planCon($this->riesgo($this->gerAdmin, extra: ['aprobado_en' => now()]), today()->addDay()->toDateString(), 30);
+
+        foreach (['gerencia', 'tipo', 'evolucion', 'planes'] as $reporte) {
+            $this->actingAs($this->comite)
+                ->get(route('auditoria.panel.reporte', $reporte))
+                ->assertOk()
+                ->assertDownload('reporte-'.$reporte.'-'.now()->format('Ymd').'.xlsx');
+        }
+    }
+
+    #[Test]
+    public function un_reporte_inexistente_da_404(): void
+    {
+        $this->actingAs($this->comite)->get('/auditoria/panel/reporte/cualquiera')->assertNotFound();
     }
 }

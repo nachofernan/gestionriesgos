@@ -20,8 +20,17 @@ class ReportePorTipo extends Reporte
             ->values()
             ->all();
 
+        $gerencias = $riesgos->map(fn ($r) => $this->gerenciaDe($r->area_id))->unique()->sort()->values()->all();
+
         return [
-            'gerencias' => $riesgos->map(fn ($r) => $this->gerenciaDe($r->area_id))->unique()->sort()->values()->all(),
+            'encabezado' => 'Tipo de riesgo',
+            'gerencias' => $gerencias,
+            'grupos' => [
+                ['clave' => 'inherente', 'titulo' => 'Criticidad inherente', 'columnas' => self::CRITICIDADES],
+                ['clave' => 'residual', 'titulo' => 'Criticidad residual', 'columnas' => self::CRITICIDADES],
+                ['clave' => 'plan', 'titulo' => 'Plan de acción', 'columnas' => self::SITUACIONES_PLAN],
+                ['clave' => 'gerencias', 'titulo' => 'Por gerencia', 'columnas' => array_combine($gerencias, $gerencias)],
+            ],
             'filas' => $filas,
             'totales' => ['nombre' => 'Total'] + $this->conteos($riesgos),
         ];

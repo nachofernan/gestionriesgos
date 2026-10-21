@@ -57,26 +57,25 @@ class PanelRiesgosTest extends TestCase
     #[Test]
     public function el_gerente_ve_solo_los_riesgos_de_su_cascada_no_los_de_otra_gerencia(): void
     {
-        $propio = $this->crearRiesgo('aprobado', $this->gerAdmin);
-        $ajeno = $this->crearRiesgo('aprobado', $this->gerProd);
+        $this->crearRiesgo('aprobado', $this->gerAdmin);
+        $this->crearRiesgo('aprobado', $this->gerProd);
 
         Livewire::actingAs($this->canela)
             ->test(PanelRiesgos::class)
             ->assertViewHas('total', 1)
-            ->assertViewHas('riesgosJs', fn ($js) => collect($js)->pluck('id')->contains($propio->id)
-                && ! collect($js)->pluck('id')->contains($ajeno->id));
+            ->set('pestana', 'gerencia')
+            ->assertViewHas('reporte', fn ($r) => collect($r['filas'])->pluck('nombre')->all() === ['Ger. Admin']);
     }
 
     #[Test]
     public function una_subarea_de_la_propia_gerencia_si_entra_al_panel(): void
     {
         $subArea = Area::create(['nombre' => 'Contaduría', 'area_padre_id' => $this->gerAdmin->id]);
-        $propio = $this->crearRiesgo('aprobado', $subArea);
+        $this->crearRiesgo('aprobado', $subArea);
 
         Livewire::actingAs($this->canela)
             ->test(PanelRiesgos::class)
-            ->assertViewHas('total', 1)
-            ->assertViewHas('riesgosJs', fn ($js) => collect($js)->pluck('id')->contains($propio->id));
+            ->assertViewHas('total', 1);
     }
 
     #[Test]
@@ -118,15 +117,38 @@ class PanelRiesgosTest extends TestCase
     }
 
     #[Test]
-    public function el_riel_residual_refleja_la_mitigacion_de_un_control_aprobado(): void
+    public function los_kpis_del_resumen_muestran_la_criticidad_inherente_y_la_residual(): void
     {
-        $riesgo = $this->crearRiesgo('aprobado', $this->gerAdmin, 5, 5); // valor_total = 10
+        $riesgo = $this->crearRiesgo('aprobado', $this->gerAdmin, 7, 7); // 14 = crítico
         $control = Control::factory()->create(['estado_id' => Estado::aprobado()->id]);
-        $riesgo->controles()->attach($control, ['mitigacion' => 4]); // residual = 6
+        $riesgo->controles()->attach($control, ['mitigacion' => 5]); // residual 9 = bajo
 
         Livewire::actingAs($this->canela)
             ->test(PanelRiesgos::class)
-            ->assertViewHas('pistaInherente', fn ($p) => $p[10] === 1 && array_sum($p) === 1)
-            ->assertViewHas('pistaResidual', fn ($p) => $p[6] === 1 && array_sum($p) === 1);
+            ->assertViewHas('kpis', fn ($k) => $k['inherente']['critico'] === 1 && $k['residual']['bajo'] === 1);
+    }
+
+    #[Test]
+    public function cada_pestana_de_reporte_renderiza_y_ofrece_su_excel(): void
+    {
+        $this->crearRiesgo('aprobado', $this->gerAdmin);
+
+        $componente = Livewire::actingAs($this->canela)->test(PanelRiesgos::class)
+            ->assertViewHas('urlExcel', null);
+
+        foreach (['gerencia', 'tipo', 'evolucion', 'planes'] as $pestana) {
+            $componente->set('pestana', $pestana)
+                ->assertOk()
+                ->assertViewHas('urlExcel', fn ($url) => str_contains($url, '/panel/reporte/'.$pestana));
+        }
+    }
+
+    #[Test]
+    public function una_pestana_inexistente_en_la_url_cae_en_el_resumen(): void
+    {
+        Livewire::actingAs($this->canela)
+            ->withQueryParams(['pestana' => 'cualquiera'])
+            ->test(PanelRiesgos::class)
+            ->assertSet('pestana', 'resumen');
     }
 }

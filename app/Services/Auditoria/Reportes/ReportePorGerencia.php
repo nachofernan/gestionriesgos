@@ -23,9 +23,18 @@ class ReportePorGerencia extends Reporte
             ->values()
             ->all();
 
+        $tipos = TipoRiesgo::orderBy('nombre')->pluck('nombre')->all();
+        $naturalezas = Naturaleza::orderBy('id')->pluck('nombre')->all();
+
         return [
-            'tipos' => TipoRiesgo::orderBy('nombre')->pluck('nombre')->all(),
-            'naturalezas' => Naturaleza::orderBy('id')->pluck('nombre')->all(),
+            'encabezado' => 'Gerencia',
+            'grupos' => [
+                ['clave' => 'tipos', 'titulo' => 'Por tipo', 'columnas' => array_combine($tipos, $tipos)],
+                ['clave' => 'naturalezas', 'titulo' => 'Por naturaleza', 'columnas' => array_combine($naturalezas, $naturalezas)],
+                ['clave' => 'inherente', 'titulo' => 'Criticidad inherente', 'columnas' => self::CRITICIDADES],
+                ['clave' => 'residual', 'titulo' => 'Criticidad residual', 'columnas' => self::CRITICIDADES],
+                ['clave' => 'plan', 'titulo' => 'Plan de acción', 'columnas' => self::SITUACIONES_PLAN],
+            ],
             'filas' => $filas,
             'totales' => ['nombre' => 'Total'] + $this->conteos($riesgos),
         ];
