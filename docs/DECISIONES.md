@@ -1013,3 +1013,54 @@ referencias se guardan como entidad desde ahora para poder darles más peso desp
 `$campos`. `ResumenPropuestas` cuenta una propuesta una vez por bloque. `RiesgoFactory` asocia la
 primera naturaleza sembrada. Los tests que postean el alta o la edición del riesgo mandan
 `naturalezas` y siembran `NaturalezaSeeder`. Tests en `RiesgoNaturalezasTest`.
+
+---
+
+## D-033 — El panel es el hub de reportes, descargables en Excel (2026-10-21)
+
+**Decisión.** El Panel de Riesgos se reorganiza en **pestañas internas** (sin ítems nuevos en el
+menú): *Resumen* más los cuatro reportes pedidos, cada uno con su botón **"Descargar Excel"** que
+respeta los filtros de la pantalla.
+
+- **Resumen:** KPIs de criticidad *inherente → residual*, riesgos con plan vencido, accesos de una
+  línea a Pendientes y Vencimientos, y la matriz de calor. Se quitan los rieles "antes y después".
+- **(a) Por gerencia** y **(b) Por tipo:** tablas cruzadas con total, tipo / naturaleza / gerencia,
+  criticidad inherente y residual (Crítico / Moderado / Bajo; el "menor" del pedido es nuestro
+  "Bajo") y situación de plan.
+- **(c) Evolución:** rango **desde–hasta** libre. Muestra aprobados al inicio, aprobados y
+  rechazados en el período y aprobados al final (por tipo y por gerencia), y el avance de cada plan
+  al inicio y al final.
+- **(d) Planes y tareas:** por gerencia, con los riesgos que mitiga cada plan, en fecha / vencido y
+  con / sin avance. El Excel suma el detalle de tareas.
+
+Definiciones:
+- **Gerencia de un riesgo o plan:** `Area::gerencia()` de su área. Lo que cuelga de la raíz cae en
+  "Comité de Riesgo".
+- **Situación de plan del riesgo:** *sin plan* si no tiene planes validados o aprobados; *vencido*
+  si alguno `esta_vencido`; *vigente* en otro caso.
+- **Naturaleza** es N:M: un riesgo cuenta en cada una y esas columnas no suman el total.
+- **Movimiento de riesgos:** sale de `aprobado_en` / `rechazado_en`. Los aprobados sin
+  `aprobado_en` (carga inicial) cuentan como previos al período y la pantalla avisa cuántos son.
+- **Avance de un plan a una fecha:** se reconstruye desde el historial. Parte del
+  `porcentaje_avance` actual de sus tareas aprobadas y deshace los cambios aplicados después de esa
+  fecha (ediciones de borrador o propuestas activadas, fechadas por su aprobación o validación).
+
+Mismo universo que el panel (D-007): sesgo gerencial, nunca borradores ni borrados, toggle "solo
+aprobados". Los números salen de una sola fuente, `app/Services/Auditoria/Reportes/`, que consumen la
+pestaña y el Excel (`ReporteController` + `app/Exports/Auditoria/`). El valor del riesgo sigue
+saliendo de los accessors del modelo.
+
+**Motivo.** Era el único punto abierto del cronograma original. El panel anterior era más
+presentación que lectura. Quien pidió los reportes habló de "sesiones del comité", pero ese concepto
+no existe en el sistema.
+
+**Descartado.**
+- **Entidad "Sesión del comité":** suma migración, CRUD y policy para algo que un rango de fechas ya
+  resuelve. Si se formaliza, se monta encima eligiendo dos sesiones como rango.
+- **Pantalla de reportes aparte en el menú:** el usuario quiere todo dentro del panel.
+- **Clasificar solo por el residual:** se muestran las dos para ver cuánto bajan controles y planes.
+- **PDF:** queda abierto en el ROADMAP.
+
+**Efecto en cascada anotado.** Nueva dependencia `maatwebsite/excel` (^4). Ruta
+`auditoria.panel.reporte`. `PanelRiesgos` pierde los rieles (`distribucionPorValor`, `riesgosJs`).
+Tests en `ReportesTest` y `PanelRiesgosTest`.

@@ -6,7 +6,8 @@ Estado del trabajo pendiente. Se actualiza a medida que se completan o surgen í
 
 Las 6 fases del cronograma inicial (`docs/CRONOGRAMA_ORIGINAL.txt`) están completas al 97% según el análisis del 2026-06-26 (`docs/ANALISIS_AVANCES_EJECUTIVO_2026-06-26.txt`). El único punto abierto del cronograma original es:
 
-- [ ] **Reportes exportables a PDF/Excel** (Fase 5). Infraestructura de listados/filtros ya lista; falta la exportación en sí.
+- [x] ~~**Reportes exportables a Excel** (Fase 5)~~ — 2026-10-21, pestañas del Panel de Riesgos ([D-033](DECISIONES.md#d-033)).
+- [ ] **Reportes en PDF.** Los cuatro reportes del panel ya existen; falta definir si hace falta además del Excel.
 
 ## Próximos pasos (fuera del cronograma original)
 
@@ -51,7 +52,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 
 Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida todavía — antes de tomarlos hay que confirmar con el usuario:
 
-- Reportes PDF/Excel: falta definir qué formato de reporte (por riesgo individual, consolidado por área, por plan de acción) y si el motivo de exportación es auditoría interna o para terceros.
+- Sesiones del comité: hoy la Evolución usa un rango libre de fechas (D-033). Si se quiere elegir "entre la sesión X y la Y", falta una entidad Sesión (fecha, acta).
 - Notificaciones: falta definir canal (email, in-app, ambos) y qué eventos disparan aviso.
 - Vencimiento propio del Plan de Acción: hoy `planes_accion` sigue sin columna de fecha, así que la pantalla de Vencimientos lista sólo tareas y no existe el aviso de "esta tarea vence después de su plan". El **2026-08-20** se corrigió la fórmula derivada (`PlanAccion::vencimiento`/`esta_vencido`, ver [D-011](DECISIONES.md#d-011)): ahora usa la fecha pendiente más próxima en vez de la más lejana, lo que arregla el badge "Vencido" del plan sin tocar el esquema. Sigue pendiente si se quiere el aviso de inconsistencia real: eso exige fecha propia (`fecha_limite` nullable) con la cascada ya anotada — migración → modelo (`$fillable` + `$casts`) → formularios create/edit → show del plan → factory y seeders → fila de plan en Vencimientos → aviso no bloqueante al asociar tareas en `GestionTareas` + marca de inconsistencia en el show del plan.
 - Pendientes: aprobación/validación en bloque (varios ítems a la vez con un modal previo que liste todo lo que se va a hacer). Se evaluó al construir la pantalla de Pendientes y se decidió no hacerlo todavía — requiere resolver el análisis de prerequisitos bloqueantes/opcionales por cada ítem seleccionado, no sólo por uno.
@@ -59,4 +60,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-10-20.*
+*Última revisión: 2026-10-21.*

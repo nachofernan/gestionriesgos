@@ -157,6 +157,10 @@ GET/POST/PUT/DELETE /auditoria/planes/{...}     → PlanAccionController (resour
 
 # Tareas
 GET/POST/PUT/DELETE /auditoria/tareas/{...}     → TareaController (resource completo)
+
+# Panel de Riesgos y reportes (D-033)
+GET    /auditoria/panel                         → vista con <livewire:auditoria.panel-riesgos>
+GET    /auditoria/panel/reporte/{reporte}       → ReporteController@exportar (gerencia|tipo|evolucion|planes → .xlsx)
 POST   /auditoria/tareas/{tarea}/actualizaciones → ActualizacionTareaController@store
 ```
 
@@ -211,6 +215,20 @@ Componente central heredado del diseño anterior (antes de la refactorización a
 - `$idsParaAsociar` — checkboxes de asociaciones (controles a riesgos, tareas a planes, etc.)
 
 **Flujo de guardado:** `guardar()` despacha al método privado correspondiente (`guardarRiesgo()`, `guardarControl()`, etc.) según `$modalTipo`.
+
+### `PanelRiesgos` (Panel de Riesgos y reportes, D-007 y D-033)
+
+Sólo lectura, con sesgo gerencial (`Riesgo::scopeDeCascadaArea`). Pestañas internas en `$pestana`
+(`#[Url]`): `resumen` (KPIs inherente → residual, accesos a Pendientes y Vencimientos y matriz de
+calor), `gerencia`, `tipo`, `evolucion` (con `$desde`/`$hasta`) y `planes`. Filtros comunes:
+`$soloAprobados`, `$filtroTipo`, `$filtroRespuesta`. Vistas en `livewire/auditoria/panel-riesgos` +
+`livewire/auditoria/panel/{pestaña}`.
+
+Los números de los reportes salen de `app/Services/Auditoria/Reportes/`: `Reporte` (base: universo,
+gerencia de un área, situación de plan, conteos) y `ReportePorGerencia`, `ReportePorTipo`,
+`ReporteEvolucion`, `ReportePlanes`, con los filtros en `FiltrosReporte`. Los consumen la pestaña y
+la descarga: `ReporteController@exportar` arma `Exports\Auditoria\ReporteExport` (un libro con
+hojas `HojaExport`) con `maatwebsite/excel`. Tests: `ReportesTest`, `PanelRiesgosTest`.
 
 ---
 
