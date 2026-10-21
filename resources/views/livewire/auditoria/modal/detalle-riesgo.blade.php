@@ -93,6 +93,9 @@
                             <div class="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
                                 <x-auditoria.estado-punto :estado="$obj->estado" soloPunto size="sm" />
                                 <span class="flex-1 text-xs font-medium text-gray-700 truncate">{{ $obj->nombre }}</span>
+                                @if($obj->peis)
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">PEIS</span>
+                                @endif
                                 @if($obj->estrategico ?? false)
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 shrink-0">E</span>
                                 @endif

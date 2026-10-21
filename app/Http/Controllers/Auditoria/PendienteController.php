@@ -207,7 +207,8 @@ class PendienteController extends Controller
                 ['etiqueta' => 'Pausado', 'valor' => $item->pausado ? 'Sí' : 'No'],
             ],
             'objetivo' => [
-                ['etiqueta' => 'Fecha objetivo', 'valor' => $item->fecha_objetivo?->format('d/m/Y') ?? '—'],
+                ['etiqueta' => 'PEIS', 'valor' => $item->peis ? 'Sí' : 'No'],
+                ['etiqueta' => 'Fecha objetivo','valor' => $item->fecha_objetivo?->format('d/m/Y') ?? '—'],
             ],
             'plan' => [
                 ['etiqueta' => 'Avance', 'valor' => $item->avance !== null ? $item->avance.'%' : 'Sin tareas aprobadas'],

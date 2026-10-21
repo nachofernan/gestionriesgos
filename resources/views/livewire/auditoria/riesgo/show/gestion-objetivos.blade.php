@@ -89,7 +89,12 @@
                     class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-50 transition-colors border border-gray-100 hover:border-indigo-200">
                     <div class="flex items-center justify-between gap-2">
                         <span class="font-semibold text-sm text-gray-800 truncate">{{ $obj->nombre }}</span>
-                        <x-auditoria.estado-badge :estado="$obj->estado" size="xs" class="shrink-0" />
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            @if($obj->peis)
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">PEIS</span>
+                            @endif
+                            <x-auditoria.estado-badge :estado="$obj->estado" size="xs" />
+                        </div>
                     </div>
                     <p class="mt-0.5 text-[11px] text-gray-500 truncate">
                         {{ collect([$obj->area?->nombre, $obj->fecha_objetivo ? 'meta '.$obj->fecha_objetivo->format('d/m/Y') : null])->filter()->join(' · ') }}

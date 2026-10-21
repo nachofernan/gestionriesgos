@@ -3,10 +3,10 @@
         abierto: false,
         accion: null,
         tipo: null, id: null, gerenciaId: null,
-        nombre: '', gerencia: '', advertencias: [], enCurso: [], cambios: [],
+        nombre: '', peis: false, gerencia: '', advertencias: [], enCurso: [], cambios: [],
         comentario: '',
         abrir(datos) {
-            Object.assign(this, { advertencias: [], enCurso: [], cambios: [] }, datos, { comentario: '', abierto: true });
+            Object.assign(this, { peis: false, advertencias: [], enCurso: [], cambios: [] }, datos, { comentario: '', abierto: true });
         },
         confirmar() {
             const metodo = { firmar: 'firmar', validarYFirmar: 'validarYFirmar', revisar: 'marcarRevisado' }[this.accion];
@@ -147,6 +147,9 @@
                             <td class="px-6 py-3">
                                 <a href="{{ route($tipos[$tipo]['ruta'], $elemento) }}"
                                    class="font-semibold text-indigo-700 hover:underline">{{ $elemento->nombre }}</a>
+                                @if($tipo === 'objetivo' && $elemento->peis)
+                                    <span class="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 align-middle">PEIS</span>
+                                @endif
                                 <div class="text-xs text-gray-400 mt-0.5">{{ $elemento->estado?->nombre }}</div>
                             </td>
                             <td class="px-4 py-3 text-gray-600">
@@ -192,7 +195,7 @@
                                                     @if (! $r?->revisado_en)
                                                         @can('revisar', [App\Models\Auditoria\RevisionInicial::class, $elemento, $g])
                                                             <button type="button"
-                                                                    x-on:click="abrir(@js(['accion' => 'revisar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id, 'nombre' => $elemento->nombre, 'gerencia' => $g->nombre, 'advertencias' => [], 'enCurso' => []]))"
+                                                                    x-on:click="abrir(@js(['accion' => 'revisar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id, 'nombre' => $elemento->nombre, 'peis' => $tipo === 'objetivo' && $elemento->peis, 'gerencia' => $g->nombre, 'advertencias' => [],'enCurso' => []]))"
                                                                     class="px-2 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md">
                                                                 Marcar revisado
                                                             </button>
@@ -210,7 +213,7 @@
                                                                 <button type="button"
                                                                         x-on:click="abrir(@js([
                                                                             'accion' => 'validarYFirmar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id,
-                                                                            'nombre' => $elemento->nombre, 'gerencia' => $g->nombre,
+                                                                            'nombre' => $elemento->nombre, 'peis' => $tipo === 'objetivo' && $elemento->peis, 'gerencia' => $g->nombre,
                                                                             'advertencias' => $previos->where('severidad', 'advertencia')->pluck('mensaje')->values(),
                                                                             'enCurso' => $previos->where('severidad', 'en_curso')->pluck('mensaje')->values(),
                                                                             'cambios' => $validables->map(fn ($a) => ['autor' => $a->user?->name, 'mensaje' => $a->mensaje, 'lineas' => $fila['lineasCambios'][$a->id]])->values(),
@@ -223,7 +226,7 @@
                                                             <span class="text-xs text-red-600" title="Hay que arreglar los errores antes de firmar">Firma bloqueada por errores</span>
                                                         @else
                                                             <button type="button"
-                                                                    x-on:click="abrir(@js(['accion' => 'firmar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id, 'nombre' => $elemento->nombre, 'gerencia' => $g->nombre, 'advertencias' => $advertencias, 'enCurso' => $enCurso]))"
+                                                                    x-on:click="abrir(@js(['accion' => 'firmar', 'tipo' => $tipo, 'id' => $elemento->id, 'gerenciaId' => $g->id, 'nombre' => $elemento->nombre, 'peis' => $tipo === 'objetivo' && $elemento->peis, 'gerencia' => $g->nombre, 'advertencias' => $advertencias,'enCurso' => $enCurso]))"
                                                                     class="px-2 py-1 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-md">
                                                                 ✓ Firmar
                                                             </button>
@@ -259,6 +262,7 @@
                 <h2 class="text-lg font-bold text-gray-900" x-text="{ firmar: 'Firmar', validarYFirmar: 'Validar los cambios y firmar', revisar: 'Marcar revisado' }[accion]"></h2>
                 <p class="text-sm text-gray-500">
                     <span class="font-semibold text-gray-700" x-text="nombre"></span>
+                    <span x-show="peis" x-cloak class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 align-middle">PEIS</span>
                     · <span x-text="gerencia"></span>
                 </p>
             </div>
