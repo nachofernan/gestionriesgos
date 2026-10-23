@@ -31,7 +31,7 @@ respuestas.
 
 ---
 
-## Un control puede pausarse, y cambiar su mitigación por defecto pisa a todos sus riesgos
+## ~~Un control puede pausarse~~, y cambiar su mitigación por defecto pisa a todos sus riesgos
 
 *Anotada el 2026-09-29. Ya implementado para mostrarlo en vivo ([D-017](DECISIONES.md#d-017), [D-019](DECISIONES.md#d-019)); falta confirmar que la regla es la que quieren.*
 
@@ -58,6 +58,8 @@ aprobación.
 - ¿Un control pausado debería seguir contando de alguna forma (por ejemplo, avisar que el riesgo
   quedó más expuesto), o sólo dejar de descontar?
 - ¿Pausar debe pasar por aprobación, o basta con que lo haga quien gestiona el control?
+
+**Respuesta (2026-10-23):** la pausa no existe en su forma de trabajar; se quitó ([D-034](DECISIONES.md#d-034)). El punto 1 sigue abierto.
 
 ---
 
@@ -111,7 +113,7 @@ gerencias**: Administración y Finanzas (31), Medio Ambiente, Seguridad e Higien
 Legales (23), RRHH (10) y Producción (8). Pasa lo mismo con 19 asociaciones de sus planes de acción.
 
 Hoy el riesgo pertenece sólo a su gerencia: Fortalecimiento Institucional no aparece como gerencia
-del riesgo ni vota sus cambios. Pero cuando cambia o se pausa uno de sus controles, el valor residual
+del riesgo ni vota sus cambios. Pero cuando cambia uno de sus controles, el valor residual
 de riesgos ajenos cambia.
 
 - ¿Fortalecimiento Institucional es un área transversal, dueña de controles que aplican a toda la

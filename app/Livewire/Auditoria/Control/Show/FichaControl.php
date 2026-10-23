@@ -16,9 +16,7 @@ use Livewire\Component;
  * fuera de borrador se edita en el bloque y guardar() manda sólo lo que cambió a
  * Actualizacion::registrarCambioCampos(); en borrador se edita con el formulario
  * completo (ControlController::edit). Si cambia la mitigación por defecto, ofrece
- * llevar el nuevo valor a todos los riesgos asociados ($propagar). También
- * propone pausar/reanudar el control (`pausado`: mientras está pausado no mitiga,
- * ver Control::mitiga()); es un campo más y sigue el mismo ciclo de propuesta.
+ * llevar el nuevo valor a todos los riesgos asociados ($propagar).
  */
 class FichaControl extends Component
 {
@@ -30,7 +28,7 @@ class FichaControl extends Component
 
     public bool $editando = false;
 
-    /** @var array{nombre:string, descripcion:?string, mitigacion_default:int, pausado:bool} */
+    /** @var array{nombre:string, descripcion:?string, mitigacion_default:int} */
     public array $form = [];
 
     /** Motivo del cambio: queda como mensaje de la Actualizacion. */
@@ -39,7 +37,7 @@ class FichaControl extends Component
     /** "Aplicar también a los riesgos asociados": ver Control::propagarMitigacionDefault(). */
     public bool $propagar = false;
 
-    private const CAMPOS = ['nombre', 'descripcion', 'mitigacion_default', 'pausado'];
+    private const CAMPOS = ['nombre', 'descripcion', 'mitigacion_default'];
 
     #[On('control-actualizado')]
     public function refrescar(): void {}
@@ -85,7 +83,6 @@ class FichaControl extends Component
             'form.nombre' => 'required|string|max:255',
             'form.descripcion' => 'nullable|string',
             'form.mitigacion_default' => 'required|integer|min:1|max:10',
-            'form.pausado' => 'boolean',
         ], ['mensaje.required' => 'Contá brevemente por qué se cambia.']);
 
         $bloqueados = $this->camposConPropuesta($this->propuestasDe($control, 'campos'));

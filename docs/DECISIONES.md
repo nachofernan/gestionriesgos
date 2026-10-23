@@ -1064,3 +1064,21 @@ no existe en el sistema.
 **Efecto en cascada anotado.** Nueva dependencia `maatwebsite/excel` (^4). Ruta
 `auditoria.panel.reporte`. `PanelRiesgos` pierde los rieles (`distribucionPorValor`, `riesgosJs`).
 Tests en `ReportesTest` y `PanelRiesgosTest`.
+
+---
+
+## D-034 — Se quita la pausa de controles; revierte D-019 (2026-10-23)
+
+**Decisión.** Los controles dejan de poder pausarse. Se elimina la columna `controles.pausado` (se
+borra su migración: no hay base desplegada) y `Control::mitiga()` vuelve a ser sólo "está aprobado".
+Fuera también el checkbox de la ficha, los badges "Pausado", la advertencia de la revisión inicial y
+la fila en Pendientes. El punto 3 de D-019 (el `confirm()` al propagar la mitigación) **se mantiene**:
+no dependía de la pausa.
+
+**Motivo.** Se mostró en vivo y los clientes dictaminaron que el concepto no existe en su forma de
+trabajar. Un control que deja de aplicar se rechaza o se desasocia del riesgo.
+
+**Efecto en cascada anotado.** Cambia el residual (núcleo): un control aprobado siempre descuenta.
+Lo cubren `un_control_no_aprobado_no_baja_el_valor_residual` y
+`la_mitigacion_del_plan_y_la_de_los_controles_aprobados_se_suman`. Se borra `PausaControlTest`.
+

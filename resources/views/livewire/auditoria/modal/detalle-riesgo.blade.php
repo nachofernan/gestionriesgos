@@ -63,15 +63,9 @@
                                 <div class="flex-1 min-w-0">
                                     <span class="text-xs font-medium text-gray-700 block truncate">
                                         {{ $ctrl->nombre }}
-                                        @if($ctrl->pausado)
-                                            <span class="ml-1 inline-flex items-center gap-1 align-middle text-[9px] font-bold uppercase text-orange-700 bg-orange-50 rounded-full px-1.5 py-0.5">
-                                                <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>Pausado
-                                            </span>
-                                        @endif
                                     </span>
                                 </div>
-                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 {{ $ctrl->pausado ? 'bg-orange-50 text-orange-600 border border-orange-100 line-through' : 'bg-blue-50 text-blue-600 border border-blue-100' }}"
-                                      @if($ctrl->pausado) title="Control pausado: no descuenta" @endif>
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-blue-50 text-blue-600 border border-blue-100">
                                     Mit: {{ $ctrl->pivot->mitigacion ?? $ctrl->mitigacion_default }}
                                 </span>
                             </div>

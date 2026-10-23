@@ -106,19 +106,13 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
                                     <x-auditoria.estado-badge :estado="$control->estado" />
-                                    @if($control->pausado)
-                                        <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-orange-700 bg-orange-50 rounded-full px-2 py-0.5">
-                                            <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>Pausado
-                                        </span>
-                                    @endif
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-gray-600 text-xs">
                                 {{ Str::limit($control->descripcion, 50) ?? '—' }}
                             </td>
                             <td class="px-4 py-4 text-center">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $control->pausado ? 'bg-orange-50 text-orange-600 line-through' : 'bg-blue-100 text-blue-800' }}"
-                                      @if($control->pausado) title="Control pausado: no descuenta" @endif>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
                                     {{ $control->mitigacion_default }}
                                 </span>
                             </td>

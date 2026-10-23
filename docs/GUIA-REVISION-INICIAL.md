@@ -53,7 +53,6 @@ Para cada elemento, el sistema muestra sus inconsistencias con tres colores:
 | Control | La mitigación por defecto está en 0. |
 | Control | Mitiga 0 en alguno de sus riesgos. |
 | Control | No mitiga ningún riesgo. |
-| Control | Está pausado (mientras esté pausado no mitiga). |
 | Objetivo | No tiene riesgos asociados. |
 | Plan de acción | No tiene riesgos asociados. |
 | Plan de acción | No tiene tareas. |

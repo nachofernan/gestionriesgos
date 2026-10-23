@@ -6,7 +6,7 @@
     @endphp
 
     <x-auditoria.bloque-riesgo ancla="controles" titulo="Controles de mitigación"
-        subtitulo="Descuentan del residual sólo los controles aprobados y no pausados."
+        subtitulo="Descuentan del residual sólo los controles aprobados."
         :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
 
         <x-slot:accion>
@@ -19,7 +19,6 @@
             @php
                 $nuevo = $agregados->contains($ctrl['id']);
                 $mitiga = $ctrl['mitiga'] ?? false;
-                $pausado = $ctrl['pausado'] ?? false;
                 $bloqueado = in_array($ctrl['id'], $bloqueados);
             @endphp
             <div wire:key="ctrl-{{ $ctrl['id'] }}"
@@ -31,11 +30,6 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-gray-800 truncate">
                         {{ $ctrl['nombre'] }}
-                        @if($pausado)
-                            <span class="ml-1 inline-flex items-center gap-1 align-middle text-[10px] font-bold uppercase tracking-wider text-orange-700 bg-orange-50 rounded-full px-2 py-0.5">
-                                <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>Pausado
-                            </span>
-                        @endif
                     </p>
                     <p class="text-[11px] text-gray-500 truncate">
                         {{ $ctrl['area'] ?? '—' }}
@@ -64,8 +58,8 @@
                     </button>
                 @else
                     <span class="shrink-0 min-w-[3rem] text-center text-xs font-extrabold rounded-lg px-2 py-1 tabular-nums
-                                 {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : ($pausado ? 'text-orange-600 line-through bg-orange-50 border border-dashed border-orange-200' : 'text-gray-400 bg-white border border-dashed border-gray-200') }}"
-                          title="{{ $mitiga ? 'Descuenta del residual' : ($pausado ? 'Control pausado: no descuenta hasta reanudarlo' : 'No descuenta hasta que el control esté aprobado') }}">
+                                 {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : 'text-gray-400 bg-white border border-dashed border-gray-200' }}"
+                          title="{{ $mitiga ? 'Descuenta del residual' : 'No descuenta hasta que el control esté aprobado' }}">
                         −{{ $ctrl['mitigacion'] }}
                     </span>
                 @endif

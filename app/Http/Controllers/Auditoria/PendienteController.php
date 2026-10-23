@@ -204,11 +204,10 @@ class PendienteController extends Controller
             ],
             'control' => [
                 ['etiqueta' => 'Mitigación por defecto', 'valor' => $item->mitigacion_default],
-                ['etiqueta' => 'Pausado', 'valor' => $item->pausado ? 'Sí' : 'No'],
             ],
             'objetivo' => [
                 ['etiqueta' => 'PEIS', 'valor' => $item->peis ? 'Sí' : 'No'],
-                ['etiqueta' => 'Fecha objetivo','valor' => $item->fecha_objetivo?->format('d/m/Y') ?? '—'],
+                ['etiqueta' => 'Fecha objetivo', 'valor' => $item->fecha_objetivo?->format('d/m/Y') ?? '—'],
             ],
             'plan' => [
                 ['etiqueta' => 'Avance', 'valor' => $item->avance !== null ? $item->avance.'%' : 'Sin tareas aprobadas'],

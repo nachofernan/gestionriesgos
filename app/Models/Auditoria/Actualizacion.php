@@ -329,7 +329,7 @@ class Actualizacion extends Model implements HasMedia
             'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
             'fundamento' => 'Fundamento', 'fundamento_naturaleza' => 'Fundamento de naturaleza', 'tipo_riesgo_id' => 'Tipo de riesgo',
             'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
-            'mitigacion_default' => 'Mitigación', 'pausado' => 'Pausado', 'fecha_objetivo' => 'Fecha objetivo',
+            'mitigacion_default' => 'Mitigación', 'fecha_objetivo' => 'Fecha objetivo',
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
         ];
         $formatear = function ($campo, $valor) use ($tiposRiesgo) {

@@ -200,17 +200,16 @@ class DetectorInconsistenciasTest extends TestCase
     }
 
     #[Test]
-    public function un_control_con_mitigacion_en_cero_pausado_o_sin_riesgos_es_advertencia(): void
+    public function un_control_con_mitigacion_en_cero_o_sin_riesgos_es_advertencia(): void
     {
         $completo = Control::factory()->create(['area_id' => $this->area->id, 'mitigacion_default' => 3]);
         $completo->riesgos()->attach(Riesgo::factory()->create(['area_id' => $this->area->id])->id);
         $this->assertSame([], $this->hallazgos($completo));
 
-        $enCero = Control::factory()->create(['area_id' => $this->area->id, 'mitigacion_default' => 0, 'pausado' => true]);
+        $enCero = Control::factory()->create(['area_id' => $this->area->id, 'mitigacion_default' => 0]);
         $this->assertSame([
             'mitigacion_en_cero' => 'advertencia',
             'sin_riesgos' => 'advertencia',
-            'pausado' => 'advertencia',
         ], $this->hallazgos($enCero));
 
         $completo->riesgos()->attach(Riesgo::factory()->create(['area_id' => $this->area->id])->id, ['mitigacion' => 0]);

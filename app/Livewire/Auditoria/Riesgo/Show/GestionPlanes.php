@@ -360,7 +360,7 @@ class GestionPlanes extends Component
         $this->esBorrador = $this->estadoModelo === 'borrador';
         $this->exigePlan = $riesgo->respuesta === RespuestaRiesgo::Mitigar;
 
-        // Sólo los controles aprobados y no pausados mitigan (misma regla que el accessor valor_residual).
+        // Sólo los controles aprobados mitigan (misma regla que el accessor valor_residual).
         $this->mitigacionControlesBase = (int) $riesgo->controles
             ->filter(fn ($c) => $c->mitiga())
             ->sum(fn ($c) => $c->pivot->mitigacion ?? $c->mitigacion_default);

@@ -252,9 +252,6 @@ class DetectorInconsistencias
         if ($control->riesgos_count === 0) {
             $hallazgos[] = $this->advertencia('sin_riesgos', 'No mitiga ningún riesgo.');
         }
-        if ($control->pausado) {
-            $hallazgos[] = $this->advertencia('pausado', 'Está pausado: no mitiga.');
-        }
 
         return $hallazgos;
     }

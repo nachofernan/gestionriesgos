@@ -343,15 +343,6 @@ Es orientativo, no una validación forzada del sistema.
 detalle. Una vez validado, los cambios se proponen desde la Ficha del control (igual que en
 Riesgos, ver 5.4 y sección 10).
 
-### 6.2.1. Pausar un control
-
-Un control puede marcarse **Pausado**, independiente de su estado. Un control pausado **deja de
-mitigar**: aunque siga Aprobado, su valor no descuenta del residual de los riesgos a los que está
-asociado mientras dure la pausa. La asociación y la mitigación cargada no se pierden — al
-reanudarlo, vuelve a descontar como antes. Pausar/reanudar es un campo más de la ficha: pasa por
-el mismo circuito de propuesta y validación que cualquier otro cambio (incluida la opción de
-propagarlo a todos los riesgos asociados, con confirmación).
-
 ### 6.3. Detalle de un control
 
 Muestra: la **mitigación por defecto** en grande, Estado, Área, quién lo registró y cuándo. Una
@@ -649,7 +640,7 @@ tarea, a qué plan de acción pertenece, su % de avance y su fecha.
 - **Riesgo**: la entidad central. Tiene un Valor Total (impacto + probabilidad) y un Valor
   Residual (lo que queda después de descontar controles aprobados y planes completos).
 - **Control**: una medida de mitigación, con un valor de mitigación de 1 a 10 que reduce el
-  riesgo cuando se lo asocia. Puede **pausarse**: mientras está pausado, no mitiga.
+  riesgo cuando se lo asocia (sólo descuenta una vez aprobado).
 - **Objetivo**: un objetivo estratégico al que se vincula un riesgo (mínimo uno por riesgo).
   Puede marcarse como PEIS, en cuyo caso exige elegir al menos un ítem del catálogo fijo de 5.
 - **Plan de Acción**: agrupa tareas y riesgos; su % de avance sale del promedio de sus tareas

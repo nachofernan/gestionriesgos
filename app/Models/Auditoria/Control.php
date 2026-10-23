@@ -31,13 +31,8 @@ class Control extends Model implements HasMedia
         'descripcion',
         'mitigacion_default',
         'estado_id',
-        'pausado',
         'user_id',
         'area_id',
-    ];
-
-    protected $casts = [
-        'pausado' => 'boolean',
     ];
 
     protected static function booted()
@@ -88,14 +83,14 @@ class Control extends Model implements HasMedia
 
     /**
      * Regla única de si el control descuenta del residual de sus riesgos: sólo si
-     * está aprobado y no pausado. Pausar conserva la asociación y el valor del
-     * pivot, pero deja de mitigar hasta reanudar. La consumen Riesgo::getMitigacionControlesAttribute()
-     * y las pantallas que muestran o previsualizan el descuento (requiere `estado` cargado).
-     * Tests: un_control_pausado_no_baja_el_residual, un_control_reanudado_vuelve_a_mitigar.
+     * está aprobado. La consumen Riesgo::getMitigacionControlesAttribute() y las
+     * pantallas que muestran o previsualizan el descuento (requiere `estado` cargado).
+     * Tests: un_control_no_aprobado_no_baja_el_valor_residual,
+     * la_mitigacion_del_plan_y_la_de_los_controles_aprobados_se_suman.
      */
     public function mitiga(): bool
     {
-        return $this->estado?->nombre === 'aprobado' && ! $this->pausado;
+        return $this->estado?->nombre === 'aprobado';
     }
 
     /**
