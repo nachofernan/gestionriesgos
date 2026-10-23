@@ -4,16 +4,16 @@ namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Dimension;
 use App\Models\Auditoria\Estado;
-use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
+use Database\Seeders\DimensionSeeder;
 use Database\Seeders\EstadoRiesgoSeeder;
-use Database\Seeders\NaturalezaSeeder;
 use Database\Seeders\SedeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -32,14 +32,14 @@ class RiesgoWizardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, NaturalezaSeeder::class]);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, DimensionSeeder::class]);
     }
 
     private function datosWizard(array $overrides = []): array
     {
         return array_merge([
             'sedes' => Sede::pluck('id')->all(),
-            'naturalezas' => [Naturaleza::value('id')],
+            'dimensiones' => [Dimension::value('id')],
             'nombre' => 'Riesgo de prueba',
             'descripcion' => 'Descripción de prueba',
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
@@ -116,13 +116,13 @@ class RiesgoWizardTest extends TestCase
     }
 
     #[Test]
-    public function el_wizard_exige_las_cinco_respuestas_de_cada_dimension(): void
+    public function el_wizard_exige_las_cinco_respuestas_de_cada_eje(): void
     {
         $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
 
         $respuesta = $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard([
             'sedes' => Sede::pluck('id')->all(),
-            'naturalezas' => [Naturaleza::value('id')],
+            'dimensiones' => [Dimension::value('id')],
             'probabilidad_respuestas' => [1 => 2, 2 => 1],
         ]));
 

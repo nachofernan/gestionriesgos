@@ -5,16 +5,16 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Naturaleza del riesgo (D-032): catálogo con sus ejemplos y sus referencias
+ * Dimensión del riesgo (D-032): catálogo con sus ejemplos y sus referencias
  * (los principios "Las empresas deben…"), y el riesgo se asocia a una o más.
- * Con dos o más, el riesgo fundamenta por qué (fundamento_naturaleza).
- * Las filas las crea NaturalezaSeeder.
+ * Con dos o más, el riesgo fundamenta por qué (fundamento_dimension).
+ * Las filas las crea DimensionSeeder.
  */
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('naturalezas', function (Blueprint $table) {
+        Schema::create('dimensiones', function (Blueprint $table) {
             $table->id();
             $table->string('nombre')->unique();
             $table->text('ejemplos')->nullable();
@@ -22,34 +22,34 @@ return new class extends Migration
             $table->softDeletes();
         });
 
-        Schema::create('naturaleza_referencias', function (Blueprint $table) {
+        Schema::create('dimension_referencias', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('naturaleza_id')->constrained('naturalezas')->cascadeOnDelete();
+            $table->foreignId('dimension_id')->constrained('dimensiones')->cascadeOnDelete();
             $table->text('texto');
             $table->unsignedSmallInteger('orden')->default(0);
             $table->timestamps();
         });
 
-        Schema::create('naturaleza_riesgo', function (Blueprint $table) {
+        Schema::create('dimension_riesgo', function (Blueprint $table) {
             $table->foreignId('riesgo_id')->constrained('riesgos')->cascadeOnDelete();
-            $table->foreignId('naturaleza_id')->constrained('naturalezas')->cascadeOnDelete();
+            $table->foreignId('dimension_id')->constrained('dimensiones')->cascadeOnDelete();
             $table->timestamps();
 
-            $table->primary(['riesgo_id', 'naturaleza_id']);
+            $table->primary(['riesgo_id', 'dimension_id']);
         });
 
         Schema::table('riesgos', function (Blueprint $table) {
-            $table->text('fundamento_naturaleza')->nullable()->after('fundamento');
+            $table->text('fundamento_dimension')->nullable()->after('fundamento');
         });
     }
 
     public function down(): void
     {
         Schema::table('riesgos', function (Blueprint $table) {
-            $table->dropColumn('fundamento_naturaleza');
+            $table->dropColumn('fundamento_dimension');
         });
-        Schema::dropIfExists('naturaleza_riesgo');
-        Schema::dropIfExists('naturaleza_referencias');
-        Schema::dropIfExists('naturalezas');
+        Schema::dropIfExists('dimension_riesgo');
+        Schema::dropIfExists('dimension_referencias');
+        Schema::dropIfExists('dimensiones');
     }
 };

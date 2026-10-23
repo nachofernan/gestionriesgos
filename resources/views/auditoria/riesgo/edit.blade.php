@@ -78,10 +78,10 @@
                 @error('tipo_riesgo_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
             </div>
 
-            @include('auditoria.partials.naturalezas-checkboxes', [
-                'naturalezas' => $naturalezas,
-                'seleccionadas' => $riesgo->naturalezas->pluck('id')->all(),
-                'fundamento' => $riesgo->fundamento_naturaleza,
+            @include('auditoria.partials.dimensiones-checkboxes', [
+                'dimensiones' => $dimensiones,
+                'seleccionadas' => $riesgo->dimensiones->pluck('id')->all(),
+                'fundamento' => $riesgo->fundamento_dimension,
                 'enWizard' => false,
             ])
 
@@ -151,9 +151,9 @@
         </div>
     </form>
 
-    {{-- Panel de referencia: tipos de riesgo y naturalezas --}}
+    {{-- Panel de referencia: tipos de riesgo y dimensiones --}}
     <div class="w-96 shrink-0">
-        @include('auditoria.partials.referencia-riesgo', ['naturalezasMarcadas' => old('naturalezas', $riesgo->naturalezas->pluck('id')->all())])
+        @include('auditoria.partials.referencia-riesgo', ['dimensionesMarcadas' => old('dimensiones', $riesgo->dimensiones->pluck('id')->all())])
     </div>
     </div>
 

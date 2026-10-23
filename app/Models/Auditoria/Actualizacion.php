@@ -228,11 +228,11 @@ class Actualizacion extends Model implements HasMedia
      * queda como propuesta y aplicarCambios() hace el sync al validar o aprobar.
      * $diff es ['agrega' => [[id, nombre]], 'quita' => [...]], para el historial.
      * $campos son campos que viajan atados a la relación en la misma propuesta (el
-     * fundamento de las naturalezas, D-032): se validan o rechazan juntos.
+     * fundamento de las dimensiones, D-032): se validan o rechazan juntos.
      * Quien llama ya validó los ids y autorizó 'proponer'.
      * Tests: un_empleado_propone_cambiar_las_sedes_y_se_aplica_al_validar,
      * un_gerente_cambia_las_sedes_de_un_riesgo_validado_en_el_acto,
-     * un_empleado_propone_naturalezas_con_fundamento_y_se_aplican_juntos_al_validar.
+     * un_empleado_propone_dimensiones_con_fundamento_y_se_aplican_juntos_al_validar.
      */
     public static function registrarCambioSync(Model $entidad, User $usuario, string $mensaje, string $relacion, array $ids, array $diff, array $campos = []): self
     {
@@ -327,7 +327,7 @@ class Actualizacion extends Model implements HasMedia
 
         $etiquetas = [
             'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
-            'fundamento' => 'Fundamento', 'fundamento_naturaleza' => 'Fundamento de naturaleza', 'tipo_riesgo_id' => 'Tipo de riesgo',
+            'fundamento' => 'Fundamento', 'fundamento_dimension' => 'Fundamento de dimensión', 'tipo_riesgo_id' => 'Tipo de riesgo',
             'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
             'mitigacion_default' => 'Mitigación', 'fecha_objetivo' => 'Fecha objetivo',
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
@@ -358,7 +358,7 @@ class Actualizacion extends Model implements HasMedia
 
         $partes = [
             'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes de acción',
-            'tareas' => 'Tareas', 'sedes' => 'Sedes', 'naturalezas' => 'Naturalezas',
+            'tareas' => 'Tareas', 'sedes' => 'Sedes', 'dimensiones' => 'Dimensiones',
         ];
         $relaciones = [];
         foreach ($diff['relaciones'] ?? [] as $parte => $ops) {

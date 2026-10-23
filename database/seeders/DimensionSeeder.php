@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Models\Auditoria\Naturaleza;
+use App\Models\Auditoria\Dimension;
 use Illuminate\Database\Seeder;
 
-/** Las naturalezas del riesgo con sus ejemplos y referencias (D-032). Idempotente. */
-class NaturalezaSeeder extends Seeder
+/** Las dimensiones del riesgo con sus ejemplos y referencias (D-032). Idempotente. */
+class DimensionSeeder extends Seeder
 {
-    public const NATURALEZAS = [
+    public const DIMENSIONES = [
         'Derechos humanos y estándares laborales' => [
             'ejemplos' => 'Seguridad y salud en el trabajo, EPP, protección contra el acoso o violencia laboral, diversidad de género, no discriminación, salario justo, trabajo digno, respeto a las comunidades, prohibición del trabajo infantil, libertad de asociación, etc.',
             'referencias' => [
@@ -44,7 +44,7 @@ class NaturalezaSeeder extends Seeder
     ];
 
     /**
-     * Naturaleza que se infiere del tipo de riesgo, para los riesgos que se
+     * Dimensión que se infiere del tipo de riesgo, para los riesgos que se
      * cargan sin ella (carga inicial y datos de desarrollo).
      */
     public static function paraTipo(?string $nombreTipo): string
@@ -59,12 +59,12 @@ class NaturalezaSeeder extends Seeder
 
     public function run(): void
     {
-        foreach (self::NATURALEZAS as $nombre => $datos) {
-            $naturaleza = Naturaleza::firstOrCreate(['nombre' => $nombre], ['ejemplos' => $datos['ejemplos']]);
+        foreach (self::DIMENSIONES as $nombre => $datos) {
+            $dimension = Dimension::firstOrCreate(['nombre' => $nombre], ['ejemplos' => $datos['ejemplos']]);
 
-            if ($naturaleza->referencias()->doesntExist()) {
+            if ($dimension->referencias()->doesntExist()) {
                 foreach ($datos['referencias'] as $orden => $texto) {
-                    $naturaleza->referencias()->create(['texto' => $texto, 'orden' => $orden]);
+                    $dimension->referencias()->create(['texto' => $texto, 'orden' => $orden]);
                 }
             }
         }

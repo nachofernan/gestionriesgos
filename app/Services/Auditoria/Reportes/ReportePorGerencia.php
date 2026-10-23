@@ -2,12 +2,12 @@
 
 namespace App\Services\Auditoria\Reportes;
 
-use App\Models\Auditoria\Naturaleza;
+use App\Models\Auditoria\Dimension;
 use App\Models\Auditoria\TipoRiesgo;
 
 /**
  * Reporte (a): riesgos por gerencia, con el total y los cortes por tipo,
- * naturaleza, criticidad inherente/residual y situación de plan.
+ * dimensión, criticidad inherente/residual y situación de plan.
  * Tests: ReportesTest (el_reporte_por_gerencia_*).
  */
 class ReportePorGerencia extends Reporte
@@ -24,13 +24,13 @@ class ReportePorGerencia extends Reporte
             ->all();
 
         $tipos = TipoRiesgo::orderBy('nombre')->pluck('nombre')->all();
-        $naturalezas = Naturaleza::orderBy('id')->pluck('nombre')->all();
+        $dimensiones = Dimension::orderBy('id')->pluck('nombre')->all();
 
         return [
             'encabezado' => 'Gerencia',
             'grupos' => [
                 ['clave' => 'tipos', 'titulo' => 'Por tipo', 'columnas' => array_combine($tipos, $tipos)],
-                ['clave' => 'naturalezas', 'titulo' => 'Por naturaleza', 'columnas' => array_combine($naturalezas, $naturalezas)],
+                ['clave' => 'dimensiones', 'titulo' => 'Por dimensión', 'columnas' => array_combine($dimensiones, $dimensiones)],
                 ['clave' => 'inherente', 'titulo' => 'Criticidad inherente', 'columnas' => self::CRITICIDADES],
                 ['clave' => 'residual', 'titulo' => 'Criticidad residual', 'columnas' => self::CRITICIDADES],
                 ['clave' => 'plan', 'titulo' => 'Plan de acción', 'columnas' => self::SITUACIONES_PLAN],

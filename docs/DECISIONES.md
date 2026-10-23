@@ -1082,3 +1082,22 @@ trabajar. Un control que deja de aplicar se rechaza o se desasocia del riesgo.
 Lo cubren `un_control_no_aprobado_no_baja_el_valor_residual` y
 `la_mitigacion_del_plan_y_la_de_los_controles_aprobados_se_suman`. Se borra `PausaControlTest`.
 
+---
+
+## D-035 — La "naturaleza del riesgo" pasa a llamarse "dimensión del riesgo" (2026-10-23)
+
+**Decisión.** Cambia sólo el nombre del concepto de D-032; las reglas siguen iguales (una o más por
+riesgo, fundamento con dos o más, propuesta atada al fundamento, informativa). El renombre es
+completo, por el glosario (axioma 7): modelo `Dimension` / `DimensionReferencia`, tablas
+`dimensiones`, `dimension_referencias`, `dimension_riesgo`, columna `riesgos.fundamento_dimension`,
+`DimensionSeeder` y `RiesgoDimensionesTest`. En pantalla dice "Dimensión". Se editó la migración
+original en el lugar: no hay base desplegada.
+
+**Motivo.** Es el nombre que usa la empresa.
+
+**Efecto en cascada anotado.** Para que "dimensión" nombre una sola cosa, lo que antes se llamaba
+así en el wizard (impacto y probabilidad) pasa a decir "eje": comentarios, la variable `$eje` del
+modal de actividad y el test `el_wizard_exige_las_cinco_respuestas_de_cada_eje`. Las propuestas y el
+historial guardan las claves nuevas (`dimensiones`, `fundamento_dimension`), así que hay que re-migrar
+la base local.
+

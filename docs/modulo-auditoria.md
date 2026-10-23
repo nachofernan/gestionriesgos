@@ -53,7 +53,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | `EstadoRiesgo` | `estados_riesgo` | Catálogo: borrador, validado, activo, mitigado, eliminado. |
 | `TipoRiesgo` | `tipos_riesgo` | Catálogo de categorías de riesgo. |
 | `Sede` | `sedes` | Catálogo de sedes (`SedeSeeder`). Un riesgo tiene una o más (pivot `riesgo_sede`), D-029. Informativa: no interviene en la autorización. |
-| `Naturaleza` | `naturalezas` | Catálogo de naturalezas del riesgo (`NaturalezaSeeder`), con ejemplos y `referencias` (`NaturalezaReferencia`, tabla `naturaleza_referencias`). Un riesgo tiene una o más (pivot `naturaleza_riesgo`); con dos o más, `riesgos.fundamento_naturaleza` es obligatorio. D-032. Informativa. |
+| `Dimension` | `dimensiones` | Catálogo de dimensiones del riesgo (`DimensionSeeder`), con ejemplos y `referencias` (`DimensionReferencia`, tabla `dimension_referencias`). Un riesgo tiene una o más (pivot `dimension_riesgo`); con dos o más, `riesgos.fundamento_dimension` es obligatorio. D-032, renombrada en D-035. Informativa. |
 | `Area` | `areas` | Estructura organizacional jerárquica (`area_padre_id` auto-referencial). |
 | `RevisionInicial` | `revisiones_iniciales` | **Transitorio (D-024).** Revisado y firma de la carga inicial, por elemento (morph `revisable`) y gerencia firmante. Ver la sección *Revisión de la carga inicial*. |
 

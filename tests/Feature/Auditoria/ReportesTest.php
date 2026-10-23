@@ -6,8 +6,8 @@ use App\Enums\Auditoria\TipoArea;
 use App\Exports\Auditoria\ReporteExport;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Dimension;
 use App\Models\Auditoria\Estado;
-use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
@@ -163,17 +163,17 @@ class ReportesTest extends TestCase
     }
 
     #[Test]
-    public function el_reporte_por_gerencia_cuenta_un_riesgo_en_cada_una_de_sus_naturalezas(): void
+    public function el_reporte_por_gerencia_cuenta_un_riesgo_en_cada_una_de_sus_dimensiones(): void
     {
-        $a = Naturaleza::create(['nombre' => 'Operativo']);
-        $b = Naturaleza::create(['nombre' => 'Legal']);
+        $a = Dimension::create(['nombre' => 'Operativo']);
+        $b = Dimension::create(['nombre' => 'Legal']);
         $riesgo = $this->riesgo($this->gerAdmin);
-        $riesgo->naturalezas()->sync([$a->id, $b->id]);
+        $riesgo->dimensiones()->sync([$a->id, $b->id]);
 
         $fila = (new ReportePorGerencia($this->comite, new FiltrosReporte))->datos()['totales'];
 
         $this->assertSame(1, $fila['total']);
-        $this->assertSame(['Operativo' => 1, 'Legal' => 1], $fila['naturalezas']);
+        $this->assertSame(['Operativo' => 1, 'Legal' => 1], $fila['dimensiones']);
     }
 
     #[Test]

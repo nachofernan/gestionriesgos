@@ -4,13 +4,13 @@ namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Auditoria\Area;
-use App\Models\Auditoria\Naturaleza;
+use App\Models\Auditoria\Dimension;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
 use App\Models\User;
+use Database\Seeders\DimensionSeeder;
 use Database\Seeders\EstadoRiesgoSeeder;
-use Database\Seeders\NaturalezaSeeder;
 use Database\Seeders\SedeSeeder;
 use Database\Seeders\TipoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,7 +36,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, NaturalezaSeeder::class]);
+        $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, DimensionSeeder::class]);
 
         $this->corrupcion = TipoRiesgo::factory()->create([
             'nombre' => 'Corrupción',
@@ -53,7 +53,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
     {
         return array_merge([
             'sedes' => Sede::pluck('id')->all(),
-            'naturalezas' => [Naturaleza::value('id')],
+            'dimensiones' => [Dimension::value('id')],
             'nombre' => 'Riesgo de prueba',
             'tipo_riesgo_id' => $this->corrupcion->id,
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
@@ -87,7 +87,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
     {
         $respuesta = $this->actingAs($this->usuario)->post(route('auditoria.riesgos.store'), $this->datosWizard([
             'sedes' => Sede::pluck('id')->all(),
-            'naturalezas' => [Naturaleza::value('id')],
+            'dimensiones' => [Dimension::value('id')],
             'respuesta' => 'evitar',
             'fundamento' => 'Se discontinúa el proceso que lo origina.',
         ]));
@@ -101,7 +101,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
     {
         $respuesta = $this->actingAs($this->usuario)->post(route('auditoria.riesgos.store'), $this->datosWizard([
             'sedes' => Sede::pluck('id')->all(),
-            'naturalezas' => [Naturaleza::value('id')],
+            'dimensiones' => [Dimension::value('id')],
             'tipo_riesgo_id' => $this->operacional->id,
             'respuesta' => 'compartir',
             'fundamento' => 'Se transfiere el riesgo a la aseguradora.',
@@ -122,7 +122,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
 
         $respuesta = $this->actingAs($this->usuario)->put(route('auditoria.riesgos.update', $riesgo), [
             'sedes' => Sede::pluck('id')->all(),
-            'naturalezas' => [Naturaleza::value('id')],
+            'dimensiones' => [Dimension::value('id')],
             'nombre' => $riesgo->nombre,
             'tipo_riesgo_id' => $this->corrupcion->id,
             'respuesta' => 'compartir',

@@ -1,7 +1,7 @@
 <?php
 
 // Preguntas del wizard de creación de riesgos para calcular impacto y
-// probabilidad (0-10 cada una) como suma de las 5 respuestas de su dimensión.
+// probabilidad (0-10 cada una) como suma de las 5 respuestas de su eje.
 return [
     'probabilidad' => [
         ['id' => 1, 'pregunta' => '¿Este riesgo ya ocurrió en el pasado en esta área o similares?', 'opciones' => [

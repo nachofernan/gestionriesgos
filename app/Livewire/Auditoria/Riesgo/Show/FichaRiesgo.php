@@ -5,7 +5,7 @@ namespace App\Livewire\Auditoria\Riesgo\Show;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Actualizacion;
-use App\Models\Auditoria\Naturaleza;
+use App\Models\Auditoria\Dimension;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
@@ -16,11 +16,11 @@ use Livewire\Component;
 
 /**
  * Ficha de riesgo/show: los datos propios del riesgo (descripción, respuesta,
- * fundamento, tipo, valoración, sedes, naturalezas) y, debajo, las propuestas pendientes
+ * fundamento, tipo, valoración, sedes, dimensiones) y, debajo, las propuestas pendientes
  * sobre ellos. Fuera de borrador se edita en el mismo bloque, como el resto: el
  * formulario arranca con los valores vigentes, y al guardar se manda sólo lo que
  * cambió a Actualizacion::registrarCambioCampos() (los campos) y a
- * Actualizacion::registrarCambioSync() (las sedes, y las naturalezas con su
+ * Actualizacion::registrarCambioSync() (las sedes, y las dimensiones con su
  * fundamento, cada una como propuesta aparte); cada
  * una decide si se aplica o queda como propuesta. En borrador se edita con el
  * formulario completo (RiesgoController::edit). Lo que ya tiene una propuesta
@@ -42,11 +42,11 @@ class FichaRiesgo extends Component
     /** Ids de las sedes marcadas en el formulario (al menos una, D-029). */
     public array $sedes = [];
 
-    /** Ids de las naturalezas marcadas (al menos una, D-032). */
-    public array $naturalezas = [];
+    /** Ids de las dimensiones marcadas (al menos una, D-032). */
+    public array $dimensiones = [];
 
-    /** Obligatorio con dos o más naturalezas; viaja en la propuesta de naturalezas. */
-    public ?string $fundamentoNaturaleza = null;
+    /** Obligatorio con dos o más dimensiones; viaja en la propuesta de dimensiones. */
+    public ?string $fundamentoDimension = null;
 
     /** Motivo del cambio: queda como mensaje de la Actualizacion. */
     public string $mensaje = '';
@@ -72,8 +72,8 @@ class FichaRiesgo extends Component
             return [$campo => $valor instanceof \BackedEnum ? $valor->value : $valor];
         })->all();
         $this->sedes = $riesgo->sedes()->pluck('sedes.id')->map(fn ($id) => (string) $id)->all();
-        $this->naturalezas = $riesgo->naturalezas()->pluck('naturalezas.id')->map(fn ($id) => (string) $id)->all();
-        $this->fundamentoNaturaleza = $riesgo->fundamento_naturaleza;
+        $this->dimensiones = $riesgo->dimensiones()->pluck('dimensiones.id')->map(fn ($id) => (string) $id)->all();
+        $this->fundamentoDimension = $riesgo->fundamento_dimension;
         $this->mensaje = '';
         $this->resetValidation();
         $this->editando = true;
@@ -87,7 +87,7 @@ class FichaRiesgo extends Component
     public function cancelarEdicion(): void
     {
         $this->editando = false;
-        $this->reset(['form', 'sedes', 'naturalezas', 'fundamentoNaturaleza', 'mensaje']);
+        $this->reset(['form', 'sedes', 'dimensiones', 'fundamentoDimension', 'mensaje']);
         $this->resetValidation();
     }
 
@@ -95,15 +95,15 @@ class FichaRiesgo extends Component
      * Valida el formulario en el borde, arma los campos que realmente cambiaron
      * (dejando afuera los que tienen una propuesta pendiente) y los registra; si
      * cambiaron las sedes, las registra en una propuesta aparte. Lo mismo con las
-     * naturalezas y su fundamento, que van juntos en una sola propuesta.
+     * dimensiones y su fundamento, que van juntos en una sola propuesta.
      * Tests: un_campo_con_propuesta_pendiente_no_se_vuelve_a_proponer,
      * la_ficha_devuelve_403_a_un_gerente_de_otra_gerencia,
      * con_una_propuesta_de_sedes_pendiente_no_se_vuelven_a_proponer,
-     * un_empleado_propone_naturalezas_con_fundamento_y_se_aplican_juntos_al_validar.
+     * un_empleado_propone_dimensiones_con_fundamento_y_se_aplican_juntos_al_validar.
      */
     public function guardar(): void
     {
-        $riesgo = Riesgo::with(['estado', 'sedes', 'naturalezas'])->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['estado', 'sedes', 'dimensiones'])->findOrFail($this->riesgoId);
         $this->authorize('proponer', $riesgo);
 
         $exigenFundamento = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
@@ -118,13 +118,13 @@ class FichaRiesgo extends Component
             'form.probabilidad' => 'required|integer|min:0|max:10',
             'sedes' => 'required|array|min:1',
             'sedes.*' => 'integer|exists:sedes,id',
-            'naturalezas' => 'required|array|min:1',
-            'naturalezas.*' => 'integer|exists:naturalezas,id',
-            'fundamentoNaturaleza' => Riesgo::reglaFundamentoNaturaleza($this->naturalezas),
+            'dimensiones' => 'required|array|min:1',
+            'dimensiones.*' => 'integer|exists:dimensiones,id',
+            'fundamentoDimension' => Riesgo::reglaFundamentoDimension($this->dimensiones),
         ], [
-            'naturalezas.required' => 'Elegí al menos una naturaleza.',
-            'naturalezas.min' => 'Elegí al menos una naturaleza.',
-            'fundamentoNaturaleza.required' => 'Con más de una naturaleza, fundamentá por qué.',
+            'dimensiones.required' => 'Elegí al menos una dimensión.',
+            'dimensiones.min' => 'Elegí al menos una dimensión.',
+            'fundamentoDimension.required' => 'Con más de una dimensión, fundamentá por qué.',
             'sedes.required' => 'Elegí al menos una sede.',
             'sedes.min' => 'Elegí al menos una sede.',
             'mensaje.required' => 'Contá brevemente por qué se cambia.',
@@ -148,16 +148,16 @@ class FichaRiesgo extends Component
             ? Sede::diff($riesgo->sedes->pluck('id')->all(), $sedeIds)
             : [];
 
-        $naturalezaIds = array_map('intval', $this->naturalezas);
-        $fundamentoNaturaleza = count($naturalezaIds) >= 2 && filled($this->fundamentoNaturaleza) ? $this->fundamentoNaturaleza : null;
-        $diffNaturalezas = [];
+        $dimensionIds = array_map('intval', $this->dimensiones);
+        $fundamentoDimension = count($dimensionIds) >= 2 && filled($this->fundamentoDimension) ? $this->fundamentoDimension : null;
+        $diffDimensiones = [];
         $cambiaFundamento = false;
-        if ($this->propuestasDe($riesgo, 'naturalezas')->isEmpty()) {
-            $diffNaturalezas = Naturaleza::diff($riesgo->naturalezas->pluck('id')->all(), $naturalezaIds);
-            $cambiaFundamento = (string) $riesgo->fundamento_naturaleza !== (string) $fundamentoNaturaleza;
+        if ($this->propuestasDe($riesgo, 'dimensiones')->isEmpty()) {
+            $diffDimensiones = Dimension::diff($riesgo->dimensiones->pluck('id')->all(), $dimensionIds);
+            $cambiaFundamento = (string) $riesgo->fundamento_dimension !== (string) $fundamentoDimension;
         }
 
-        if (empty($campos) && empty($diffSedes) && empty($diffNaturalezas) && ! $cambiaFundamento) {
+        if (empty($campos) && empty($diffSedes) && empty($diffDimensiones) && ! $cambiaFundamento) {
             $this->addError('form', 'No hay cambios para guardar.');
 
             return;
@@ -170,10 +170,10 @@ class FichaRiesgo extends Component
         if (! empty($diffSedes)) {
             $registradas->push(Actualizacion::registrarCambioSync($riesgo, Auth::user(), $this->mensaje, 'sedes', $sedeIds, $diffSedes));
         }
-        if (! empty($diffNaturalezas) || $cambiaFundamento) {
+        if (! empty($diffDimensiones) || $cambiaFundamento) {
             $registradas->push(Actualizacion::registrarCambioSync(
-                $riesgo, Auth::user(), $this->mensaje, 'naturalezas', $naturalezaIds, $diffNaturalezas,
-                $cambiaFundamento ? ['fundamento_naturaleza' => $fundamentoNaturaleza] : [],
+                $riesgo, Auth::user(), $this->mensaje, 'dimensiones', $dimensionIds, $diffDimensiones,
+                $cambiaFundamento ? ['fundamento_dimension' => $fundamentoDimension] : [],
             ));
         }
 
@@ -199,13 +199,13 @@ class FichaRiesgo extends Component
 
     public function render()
     {
-        $riesgo = Riesgo::with(['tipoRiesgo', 'area', 'user', 'estado', 'sedes', 'naturalezas'])->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['tipoRiesgo', 'area', 'user', 'estado', 'sedes', 'dimensiones'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
         $propuestasCampos = $this->propuestasDe($riesgo, 'campos');
         $propuestasSedes = $this->propuestasDe($riesgo, 'sedes');
-        $propuestasNaturalezas = $this->propuestasDe($riesgo, 'naturalezas');
-        // La propuesta de naturalezas trae su fundamento en 'campos': se muestra una
-        // sola vez, en su tarjeta de naturalezas.
+        $propuestasDimensiones = $this->propuestasDe($riesgo, 'dimensiones');
+        // La propuesta de dimensiones trae su fundamento en 'campos': se muestra una
+        // sola vez, en su tarjeta de dimensiones.
         $propuestas = $propuestasCampos->reject(fn ($p) => isset($p->data['diff']['relaciones']));
 
         return view('livewire.auditoria.riesgo.show.ficha-riesgo', [
@@ -213,9 +213,9 @@ class FichaRiesgo extends Component
             'todasLasSedes' => Sede::orderBy('id')->get(),
             'propuestasSedes' => $propuestasSedes,
             'sedesBloqueadas' => $propuestasSedes->isNotEmpty(),
-            'todasLasNaturalezas' => Naturaleza::with('referencias')->orderBy('id')->get(),
-            'propuestasNaturalezas' => $propuestasNaturalezas,
-            'naturalezasBloqueadas' => $propuestasNaturalezas->isNotEmpty(),
+            'todasLasDimensiones' => Dimension::with('referencias')->orderBy('id')->get(),
+            'propuestasDimensiones' => $propuestasDimensiones,
+            'dimensionesBloqueadas' => $propuestasDimensiones->isNotEmpty(),
             'puedeActualizar' => Auth::user()->can('proponer', $riesgo),
             'puedeRecalcular' => $riesgo->motivoBloqueoRecalculo(Auth::user()) === null,
             'modo' => $this->modoCambio(),

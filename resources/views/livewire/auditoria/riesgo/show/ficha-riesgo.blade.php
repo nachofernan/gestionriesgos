@@ -6,7 +6,7 @@
     @endphp
 
     <x-auditoria.bloque-riesgo ancla="ficha" titulo="Ficha del riesgo"
-        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty() || $propuestasSedes->isNotEmpty() || $propuestasNaturalezas->isNotEmpty()">
+        :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty() || $propuestasSedes->isNotEmpty() || $propuestasDimensiones->isNotEmpty()">
 
         <x-slot:accion>
             @if($puedeActualizar && !$editando)
@@ -63,19 +63,19 @@
                     </dd>
                 </div>
                 <div class="col-span-3">
-                    <dt class="{{ $label }}">Naturaleza</dt>
+                    <dt class="{{ $label }}">Dimensión</dt>
                     <dd class="flex flex-wrap gap-1.5">
-                        @forelse($riesgo->naturalezas as $naturaleza)
-                            <span class="text-xs font-semibold rounded-md px-2 py-0.5 bg-teal-50 text-teal-700">{{ $naturaleza->nombre }}</span>
+                        @forelse($riesgo->dimensiones as $dimension)
+                            <span class="text-xs font-semibold rounded-md px-2 py-0.5 bg-teal-50 text-teal-700">{{ $dimension->nombre }}</span>
                         @empty
-                            <span class="text-gray-400 italic">Sin naturaleza.</span>
+                            <span class="text-gray-400 italic">Sin dimensión.</span>
                         @endforelse
                     </dd>
                 </div>
-                @if($riesgo->fundamento_naturaleza)
+                @if($riesgo->fundamento_dimension)
                     <div class="col-span-3">
-                        <dt class="{{ $label }}">Fundamento de la naturaleza</dt>
-                        <dd class="text-gray-700 whitespace-pre-line">{{ $riesgo->fundamento_naturaleza }}</dd>
+                        <dt class="{{ $label }}">Fundamento de la dimensión</dt>
+                        <dd class="text-gray-700 whitespace-pre-line">{{ $riesgo->fundamento_dimension }}</dd>
                     </div>
                 @endif
             </dl>
@@ -152,27 +152,27 @@
                     @error('sedes') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div class="col-span-6">
-                    <label class="{{ $label }}">Naturaleza</label>
-                    <div class="grid grid-cols-2 gap-1.5 rounded-lg border border-gray-200 p-2.5 {{ $naturalezasBloqueadas ? 'bg-gray-50' : '' }}">
-                        @foreach($todasLasNaturalezas as $naturaleza)
-                            <label class="flex items-center gap-2 text-sm {{ $naturalezasBloqueadas ? 'text-gray-400' : 'text-gray-700 cursor-pointer' }}" title="{{ $naturaleza->ejemplos }}">
-                                <input type="checkbox" wire:model.live="naturalezas" value="{{ $naturaleza->id }}" @disabled($naturalezasBloqueadas)
+                    <label class="{{ $label }}">Dimensión</label>
+                    <div class="grid grid-cols-2 gap-1.5 rounded-lg border border-gray-200 p-2.5 {{ $dimensionesBloqueadas ? 'bg-gray-50' : '' }}">
+                        @foreach($todasLasDimensiones as $dimension)
+                            <label class="flex items-center gap-2 text-sm {{ $dimensionesBloqueadas ? 'text-gray-400' : 'text-gray-700 cursor-pointer' }}" title="{{ $dimension->ejemplos }}">
+                                <input type="checkbox" wire:model.live="dimensiones" value="{{ $dimension->id }}" @disabled($dimensionesBloqueadas)
                                     class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50">
-                                {{ $naturaleza->nombre }}
+                                {{ $dimension->nombre }}
                             </label>
                         @endforeach
                     </div>
-                    @error('naturalezas') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    @error('dimensiones') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
-                @if(count($naturalezas) >= 2)
+                @if(count($dimensiones) >= 2)
                     <div class="col-span-6">
-                        <label class="{{ $label }} !text-red-600">Fundamento de la naturaleza *</label>
-                        <textarea wire:model="fundamentoNaturaleza" rows="2" class="{{ $input }}" @disabled($naturalezasBloqueadas)
-                            placeholder="Por qué el riesgo tiene más de una naturaleza..."></textarea>
-                        @error('fundamentoNaturaleza') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                        <label class="{{ $label }} !text-red-600">Fundamento de la dimensión *</label>
+                        <textarea wire:model="fundamentoDimension" rows="2" class="{{ $input }}" @disabled($dimensionesBloqueadas)
+                            placeholder="Por qué el riesgo tiene más de una dimensión..."></textarea>
+                        @error('fundamentoDimension') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 @endif
-                @if(!empty($bloqueados) || $sedesBloqueadas || $naturalezasBloqueadas)
+                @if(!empty($bloqueados) || $sedesBloqueadas || $dimensionesBloqueadas)
                     <p class="col-span-6 text-[11px] text-amber-700">Lo grisado ya tiene una propuesta pendiente: se puede volver a tocar cuando se resuelva.</p>
                 @endif
             </div>
@@ -204,8 +204,8 @@
             @foreach($propuestasSedes as $propuesta)
                 <x-auditoria.propuesta-pendiente :propuesta="$propuesta" parte="sedes" :estadoEntidad="$estadoModelo" />
             @endforeach
-            @foreach($propuestasNaturalezas as $propuesta)
-                <x-auditoria.propuesta-pendiente :propuesta="$propuesta" parte="naturalezas" :estadoEntidad="$estadoModelo" />
+            @foreach($propuestasDimensiones as $propuesta)
+                <x-auditoria.propuesta-pendiente :propuesta="$propuesta" parte="dimensiones" :estadoEntidad="$estadoModelo" />
             @endforeach
         </x-slot:propuestas>
     </x-auditoria.bloque-riesgo>

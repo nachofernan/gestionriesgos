@@ -68,7 +68,7 @@
                     <p class="text-sm text-gray-800">{{ $propuesta->mensaje }}</p>
                 @endif
             @endforelse
-            {{-- Campos que viajan atados a la relación (el fundamento de las naturalezas, D-032). --}}
+            {{-- Campos que viajan atados a la relación (el fundamento de las dimensiones, D-032). --}}
             @foreach($propuesta->diffLegible()['campos'] as $fila)
                 <p class="pl-7 text-xs leading-5 text-gray-600">
                     <span class="font-semibold text-gray-500">{{ $fila['etiqueta'] }}:</span>

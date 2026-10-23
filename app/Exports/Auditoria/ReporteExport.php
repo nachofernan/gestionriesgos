@@ -20,7 +20,7 @@ class ReporteExport implements Export, WithMultipleSheets
     public function sheets(): array
     {
         return match ($this->reporte) {
-            'gerencia' => [$this->hojaCruzada('Por gerencia', 'Las columnas por naturaleza no suman el total: un riesgo puede tener más de una.')],
+            'gerencia' => [$this->hojaCruzada('Por gerencia', 'Las columnas por dimensión no suman el total: un riesgo puede tener más de una.')],
             'tipo' => [$this->hojaCruzada('Por tipo')],
             'evolucion' => $this->hojasEvolucion(),
             'planes' => $this->hojasPlanes(),

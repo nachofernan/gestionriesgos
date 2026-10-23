@@ -15,7 +15,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 
 - [ ] Notificaciones automáticas (estimado original: 1 semana) — ej. avisar a un responsable cuando vence una tarea o cuando le asignan un riesgo
 - [ ] Auditoría detallada por usuario (estimado original: 1 semana) — más allá del historial de `Actualizacion` ya existente
-- [ ] **Naturalezas del riesgo: darle más entidad a las referencias** ([D-032](DECISIONES.md#d-032)). Hoy se ven como ayuda en el panel del alta. Queda ver si se asocian al riesgo, se filtran en el panel, etc. Falta además el texto completo de la referencia de Gobernanza (llegó cortado).
+- [ ] **Dimensiones del riesgo: darle más entidad a las referencias** ([D-032](DECISIONES.md#d-032), [D-035](DECISIONES.md#d-035)). Hoy se ven como ayuda en el panel del alta. Queda ver si se asocian al riesgo, se filtran en el panel, etc. Falta además el texto completo de la referencia de Gobernanza (llegó cortado).
 - [ ] **El comité no debería poder crear elementos** — hoy crea y al redirigir al show del borrador recién creado se come un 403. El `create()` de las 5 policies usa `puedeGestionarArea()` y el comité cuelga del área raíz, así que da `true`, pero `view()` le corta el borrador. Se resuelve junto con los permisos particulares en la migración del módulo al sistema real (decisión del 2026-07-17), no antes.
 
 ## En curso / recién cerrado
@@ -60,4 +60,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-10-21.*
+*Última revisión: 2026-10-23.*

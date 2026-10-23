@@ -41,7 +41,7 @@ class ResumenPropuestas extends Component
         $bloques = [
             'campos' => ['ficha', 'Datos'],
             'sedes' => ['ficha', 'Datos'],
-            'naturalezas' => ['ficha', 'Datos'],
+            'dimensiones' => ['ficha', 'Datos'],
             'objetivos' => ['objetivos', 'Objetivos'],
             'controles' => ['controles', 'Controles'],
             'planesAccion' => ['planes', 'Planes de acción'],
@@ -50,7 +50,7 @@ class ResumenPropuestas extends Component
         foreach ($propuestas as $propuesta) {
             $diff = $propuesta->data['diff'] ?? [];
             $partes = array_merge(isset($diff['campos']) ? ['campos'] : [], array_keys($diff['relaciones'] ?? []));
-            // Una propuesta cuenta una vez por bloque: la de naturalezas trae también
+            // Una propuesta cuenta una vez por bloque: la de dimensiones trae también
             // su fundamento (campos) y los dos caen en la ficha.
             $bloquesDeLaPropuesta = collect($partes)->filter(fn ($p) => isset($bloques[$p]))->map(fn ($p) => $bloques[$p])->unique(0);
             foreach ($bloquesDeLaPropuesta as [$ancla, $etiqueta]) {

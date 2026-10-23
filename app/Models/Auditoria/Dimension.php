@@ -8,31 +8,31 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Naturaleza del riesgo (D-032): derechos humanos, medioambiente,
- * anticorrupción, gobernanza. Catálogo fijo (NaturalezaSeeder), con ejemplos y
+ * Dimensión del riesgo (D-032): derechos humanos, medioambiente,
+ * anticorrupción, gobernanza. Catálogo fijo (DimensionSeeder), con ejemplos y
  * las referencias que la definen. Un riesgo tiene una o más. Es informativa:
  * no interviene en la autorización ni en el valor del riesgo.
  */
-class Naturaleza extends Model
+class Dimension extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'naturalezas';
+    protected $table = 'dimensiones';
 
     protected $fillable = ['nombre', 'ejemplos'];
 
     public function referencias(): HasMany
     {
-        return $this->hasMany(NaturalezaReferencia::class)->orderBy('orden');
+        return $this->hasMany(DimensionReferencia::class)->orderBy('orden');
     }
 
     public function riesgos(): BelongsToMany
     {
-        return $this->belongsToMany(Riesgo::class, 'naturaleza_riesgo')->withTimestamps();
+        return $this->belongsToMany(Riesgo::class, 'dimension_riesgo')->withTimestamps();
     }
 
     /**
-     * Diff entre dos juegos de naturalezas, mismo formato que Sede::diff():
+     * Diff entre dos juegos de dimensiones, mismo formato que Sede::diff():
      * ['agrega' => [['id', 'nombre']], 'quita' => [...]], vacío si no cambió nada.
      * Lo usan RiesgoController::update() y FichaRiesgo::guardar().
      */

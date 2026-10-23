@@ -6,8 +6,8 @@ use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Dimension;
 use App\Models\Auditoria\Estado;
-use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
@@ -42,16 +42,16 @@ class RiesgoController extends Controller
         'sedes.min' => 'Elegí al menos una sede.',
     ];
 
-    // Al menos una naturaleza; con dos o más, fundamento (D-032). Mismas reglas en FichaRiesgo.
-    private const REGLAS_NATURALEZAS = [
-        'naturalezas' => 'required|array|min:1',
-        'naturalezas.*' => 'integer|exists:naturalezas,id',
+    // Al menos una dimensión; con dos o más, fundamento (D-032). Mismas reglas en FichaRiesgo.
+    private const REGLAS_DIMENSIONES = [
+        'dimensiones' => 'required|array|min:1',
+        'dimensiones.*' => 'integer|exists:dimensiones,id',
     ];
 
-    private const MENSAJES_NATURALEZAS = [
-        'naturalezas.required' => 'Elegí al menos una naturaleza.',
-        'naturalezas.min' => 'Elegí al menos una naturaleza.',
-        'fundamento_naturaleza.required' => 'Con más de una naturaleza, fundamentá por qué.',
+    private const MENSAJES_DIMENSIONES = [
+        'dimensiones.required' => 'Elegí al menos una dimensión.',
+        'dimensiones.min' => 'Elegí al menos una dimensión.',
+        'fundamento_dimension.required' => 'Con más de una dimensión, fundamentá por qué.',
     ];
 
     // reglaRespuesta()/reglaFundamento() viven en Riesgo (ver ahí): las consume
@@ -78,14 +78,14 @@ class RiesgoController extends Controller
         $areas = Area::whereIn('id', Auth::user()->idsAreasGestionables())->orderBy('nombre')->get();
         $preguntas = config('riesgo_preguntas');
         $sedes = Sede::orderBy('id')->get();
-        $naturalezas = Naturaleza::with('referencias')->orderBy('id')->get();
+        $dimensiones = Dimension::with('referencias')->orderBy('id')->get();
 
-        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'preguntas', 'sedes', 'naturalezas'));
+        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'preguntas', 'sedes', 'dimensiones'));
     }
 
     /**
      * Impacto y probabilidad no se cargan a mano: se calculan como la suma de
-     * las 5 respuestas (0-2 cada una) del wizard de creación para cada dimensión
+     * las 5 respuestas (0-2 cada una) del wizard de creación para cada eje
      * (ver config/riesgo_preguntas.php). `mayor_criticidad` sólo puede quedar en
      * true si esa suma total es >= 14; el checkbox del request es una propuesta,
      * la suma es la que decide. Los objetivos no se asocian en el alta: se
@@ -109,8 +109,8 @@ class RiesgoController extends Controller
             'fundamento' => Riesgo::reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => ['required', 'exists:areas,id', Rule::in(Auth::user()->idsAreasGestionables())],
-            'fundamento_naturaleza' => Riesgo::reglaFundamentoNaturaleza((array) $request->input('naturalezas')),
-        ] + self::REGLAS_SEDES + self::REGLAS_NATURALEZAS, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_NATURALEZAS + [
+            'fundamento_dimension' => Riesgo::reglaFundamentoDimension((array) $request->input('dimensiones')),
+        ] + self::REGLAS_SEDES + self::REGLAS_DIMENSIONES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_DIMENSIONES + [
             'area_id.required' => 'Debe elegir un área.',
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
@@ -118,10 +118,10 @@ class RiesgoController extends Controller
         $probabilidadRespuestas = $data['probabilidad_respuestas'];
         $impactoRespuestas = $data['impacto_respuestas'];
         $sedeIds = $data['sedes'];
-        $naturalezaIds = $data['naturalezas'];
-        unset($data['probabilidad_respuestas'], $data['impacto_respuestas'], $data['sedes'], $data['naturalezas']);
-        // Con una sola naturaleza el fundamento no aplica: no queda uno huérfano.
-        $data['fundamento_naturaleza'] = count($naturalezaIds) >= 2 ? $data['fundamento_naturaleza'] : null;
+        $dimensionIds = $data['dimensiones'];
+        unset($data['probabilidad_respuestas'], $data['impacto_respuestas'], $data['sedes'], $data['dimensiones']);
+        // Con una sola dimensión el fundamento no aplica: no queda uno huérfano.
+        $data['fundamento_dimension'] = count($dimensionIds) >= 2 ? $data['fundamento_dimension'] : null;
 
         $data['probabilidad'] = array_sum($probabilidadRespuestas);
         $data['impacto'] = array_sum($impactoRespuestas);
@@ -131,7 +131,7 @@ class RiesgoController extends Controller
         $data['user_id'] = Auth::id();
         $riesgo = Riesgo::create($data);
         $riesgo->sedes()->sync($sedeIds);
-        $riesgo->naturalezas()->sync($naturalezaIds);
+        $riesgo->dimensiones()->sync($dimensionIds);
         $riesgo->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => 'Riesgo creado',
@@ -146,8 +146,8 @@ class RiesgoController extends Controller
                     'mayor_criticidad' => $riesgo->mayor_criticidad,
                     'tipo_riesgo_id' => $riesgo->tipo_riesgo_id,
                     'sedes' => $riesgo->sedes()->pluck('nombre')->join(', '),
-                    'naturalezas' => $riesgo->naturalezas()->pluck('nombre')->join(', '),
-                    'fundamento_naturaleza' => $riesgo->fundamento_naturaleza,
+                    'dimensiones' => $riesgo->dimensiones()->pluck('nombre')->join(', '),
+                    'fundamento_dimension' => $riesgo->fundamento_dimension,
                 ],
                 // Respuestas guardadas aparte de "campos": ese array lo recorre la
                 // vista de historial esperando valores escalares (ver
@@ -168,7 +168,7 @@ class RiesgoController extends Controller
         // controles.estado, planesAccion.estado y planesAccion.tareas.estado: los necesita
         // el accessor valor_residual (sólo mitigan los controles y planes aprobados, y
         // sólo cuando el plan está al 100%).
-        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'sedes', 'naturalezas', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado']);
+        $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'sedes', 'dimensiones', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado']);
 
         return view('auditoria.riesgo.show', compact('riesgo'));
     }
@@ -185,12 +185,12 @@ class RiesgoController extends Controller
         $tiposRiesgo = TipoRiesgo::orderBy('nombre')->get();
         $areas = Area::whereIn('id', Auth::user()->idsAreasGestionables())->orderBy('nombre')->get();
         $sedes = Sede::orderBy('id')->get();
-        $naturalezas = Naturaleza::with('referencias')->orderBy('id')->get();
-        $riesgo->load(['sedes', 'naturalezas']);
+        $dimensiones = Dimension::with('referencias')->orderBy('id')->get();
+        $riesgo->load(['sedes', 'dimensiones']);
 
         $puedeRecalcular = $riesgo->motivoBloqueoRecalculo(Auth::user()) === null;
 
-        return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas', 'sedes', 'naturalezas', 'puedeRecalcular'));
+        return view('auditoria.riesgo.edit', compact('riesgo', 'tiposRiesgo', 'areas', 'sedes', 'dimensiones', 'puedeRecalcular'));
     }
 
     /**
@@ -218,8 +218,8 @@ class RiesgoController extends Controller
             'fundamento' => Riesgo::reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => ['required', 'exists:areas,id', Rule::in($areasPermitidas)],
-            'fundamento_naturaleza' => Riesgo::reglaFundamentoNaturaleza((array) $request->input('naturalezas')),
-        ] + self::REGLAS_SEDES + self::REGLAS_NATURALEZAS, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_NATURALEZAS + [
+            'fundamento_dimension' => Riesgo::reglaFundamentoDimension((array) $request->input('dimensiones')),
+        ] + self::REGLAS_SEDES + self::REGLAS_DIMENSIONES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_DIMENSIONES + [
             'area_id.required' => 'Debe elegir un área.',
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
@@ -228,16 +228,16 @@ class RiesgoController extends Controller
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
 
         $sedeIds = $data['sedes'];
-        $naturalezaIds = $data['naturalezas'];
-        unset($data['sedes'], $data['naturalezas']);
-        $data['fundamento_naturaleza'] = count($naturalezaIds) >= 2 ? $data['fundamento_naturaleza'] : null;
+        $dimensionIds = $data['dimensiones'];
+        unset($data['sedes'], $data['dimensiones']);
+        $data['fundamento_dimension'] = count($dimensionIds) >= 2 ? $data['fundamento_dimension'] : null;
         $diffSedes = Sede::diff($riesgo->sedes()->pluck('sedes.id')->all(), $sedeIds);
-        $diffNaturalezas = Naturaleza::diff($riesgo->naturalezas()->pluck('naturalezas.id')->all(), $naturalezaIds);
+        $diffDimensiones = Dimension::diff($riesgo->dimensiones()->pluck('dimensiones.id')->all(), $dimensionIds);
 
         $original = $riesgo->only(array_keys($data));
         $riesgo->update($data);
         $riesgo->sedes()->sync($sedeIds);
-        $riesgo->naturalezas()->sync($naturalezaIds);
+        $riesgo->dimensiones()->sync($dimensionIds);
 
         $diff = [];
         foreach ($data as $campo => $nuevo) {
@@ -250,7 +250,7 @@ class RiesgoController extends Controller
                 $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
             }
         }
-        $relaciones = array_filter(['sedes' => $diffSedes, 'naturalezas' => $diffNaturalezas]);
+        $relaciones = array_filter(['sedes' => $diffSedes, 'dimensiones' => $diffDimensiones]);
         if (! empty($diff) || ! empty($relaciones)) {
             $riesgo->actualizaciones()->create([
                 'user_id' => Auth::id(),

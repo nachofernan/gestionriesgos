@@ -283,10 +283,10 @@
                                             {{-- Respuestas del wizard (alta o recálculo) --}}
                                             @if(!empty($data['respuestas']))
                                                 <div class="grid sm:grid-cols-2 gap-2">
-                                                    @foreach($data['respuestas'] as $dimension => $respuestas)
+                                                    @foreach($data['respuestas'] as $eje => $respuestas)
                                                         <div class="rounded-lg border border-gray-200 px-3 py-2">
                                                             <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                                                                Wizard · {{ ucfirst($dimension) }} <span class="text-gray-600">= {{ array_sum((array) $respuestas) }}</span>
+                                                                Wizard · {{ ucfirst($eje) }} <span class="text-gray-600">= {{ array_sum((array) $respuestas) }}</span>
                                                             </p>
                                                             <div class="flex gap-1">
                                                                 @foreach((array) $respuestas as $i => $r)

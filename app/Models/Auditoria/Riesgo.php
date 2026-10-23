@@ -40,7 +40,7 @@ class Riesgo extends Model implements HasMedia
         'mayor_criticidad',
         'respuesta',
         'fundamento',
-        'fundamento_naturaleza',
+        'fundamento_dimension',
         'tipo_riesgo_id',
         'estado_id',
         'user_id',
@@ -163,10 +163,10 @@ class Riesgo extends Model implements HasMedia
         return $this->belongsToMany(Sede::class, 'riesgo_sede')->withTimestamps();
     }
 
-    /** Naturalezas del riesgo (al menos una, D-032). Informativa: no da acceso ni cambia el valor. */
-    public function naturalezas(): BelongsToMany
+    /** Dimensiones del riesgo (al menos una, D-032). Informativa: no da acceso ni cambia el valor. */
+    public function dimensiones(): BelongsToMany
     {
-        return $this->belongsToMany(Naturaleza::class, 'naturaleza_riesgo')->withTimestamps();
+        return $this->belongsToMany(Dimension::class, 'dimension_riesgo')->withTimestamps();
     }
 
     public function controles(): BelongsToMany
@@ -371,12 +371,12 @@ class Riesgo extends Model implements HasMedia
     }
 
     /**
-     * Con dos o más naturalezas hay que fundamentar por qué (D-032); con una sola
+     * Con dos o más dimensiones hay que fundamentar por qué (D-032); con una sola
      * el fundamento no aplica. La consumen RiesgoController y FichaRiesgo.
-     * Test: con_dos_naturalezas_el_fundamento_es_obligatorio.
+     * Test: con_dos_dimensiones_el_fundamento_es_obligatorio.
      */
-    public static function reglaFundamentoNaturaleza(array $naturalezas): array
+    public static function reglaFundamentoDimension(array $dimensiones): array
     {
-        return ['nullable', 'string', Rule::requiredIf(count($naturalezas) >= 2)];
+        return ['nullable', 'string', Rule::requiredIf(count($dimensiones) >= 2)];
     }
 }

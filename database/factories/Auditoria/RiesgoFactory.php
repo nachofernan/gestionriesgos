@@ -2,8 +2,8 @@
 
 namespace Database\Factories\Auditoria;
 
+use App\Models\Auditoria\Dimension;
 use App\Models\Auditoria\Estado;
-use App\Models\Auditoria\Naturaleza;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
@@ -30,13 +30,13 @@ class RiesgoFactory extends Factory
 
     /**
      * Todo riesgo tiene al menos una sede (D-029): queda en todas las que haya
-     * sembradas. Y al menos una naturaleza (D-032): la primera sembrada.
+     * sembradas. Y al menos una dimensión (D-032): la primera sembrada.
      */
     public function configure(): static
     {
         return $this->afterCreating(function (Riesgo $riesgo) {
             $riesgo->sedes()->sync(Sede::pluck('id'));
-            $riesgo->naturalezas()->sync(Naturaleza::orderBy('id')->limit(1)->pluck('id'));
+            $riesgo->dimensiones()->sync(Dimension::orderBy('id')->limit(1)->pluck('id'));
         });
     }
 

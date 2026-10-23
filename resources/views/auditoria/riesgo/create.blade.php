@@ -5,7 +5,7 @@
     // Arranca el wizard en el primer paso que tenga errores de validación,
     // para que no queden escondidos en un paso que Alpine no muestra de entrada.
     $pasoInicial = 1;
-    if ($errors->hasAny(['nombre', 'descripcion', 'tipo_riesgo_id', 'naturalezas', 'naturalezas.*', 'fundamento_naturaleza'])) {
+    if ($errors->hasAny(['nombre', 'descripcion', 'tipo_riesgo_id', 'dimensiones', 'dimensiones.*', 'fundamento_dimension'])) {
         $pasoInicial = 1;
     } elseif ($errors->hasAny(['probabilidad_respuestas', 'probabilidad_respuestas.*'])) {
         $pasoInicial = 2;
@@ -83,7 +83,7 @@
                     @error('tipo_riesgo_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
                 </div>
 
-                @include('auditoria.partials.naturalezas-checkboxes', ['naturalezas' => $naturalezas, 'seleccionadas' => [], 'fundamento' => null, 'enWizard' => true])
+                @include('auditoria.partials.dimensiones-checkboxes', ['dimensiones' => $dimensiones, 'seleccionadas' => [], 'fundamento' => null, 'enWizard' => true])
             </div>
 
             {{-- Paso 2: preguntas de probabilidad --}}
@@ -264,9 +264,9 @@
         </div>
     </form>
 
-    {{-- Panel de referencia: tipos de riesgo y naturalezas --}}
+    {{-- Panel de referencia: tipos de riesgo y dimensiones --}}
     <div class="shrink-0">
-        @include('auditoria.partials.referencia-riesgo', ['naturalezasMarcadas' => old('naturalezas', [])])
+        @include('auditoria.partials.referencia-riesgo', ['dimensionesMarcadas' => old('dimensiones', [])])
     </div>
     </div>
 
@@ -278,9 +278,9 @@
             paso: pasoInicial,
             nombre: @js(old('nombre', '')),
             tipoRiesgoId: @js((string) old('tipo_riesgo_id', '')),
-            // Los usa el partial naturalezas-checkboxes (D-032).
-            naturalezas: @js(collect(old('naturalezas', []))->map(fn ($id) => (string) $id)->values()),
-            fundamentoNaturaleza: @js(old('fundamento_naturaleza', '') ?? ''),
+            // Los usa el partial dimensiones-checkboxes (D-032).
+            dimensiones: @js(collect(old('dimensiones', []))->map(fn ($id) => (string) $id)->values()),
+            fundamentoDimension: @js(old('fundamento_dimension', '') ?? ''),
             // Objeto y no array: con un array vacío, responder primero la última pregunta estira el
             // length y las siguientes respuestas ya no disparan la reactividad de pasoCompleto.
             probabilidad: Object.assign({}, @json(collect(old('probabilidad_respuestas', []))->map(fn($v) => (int) $v))),
@@ -333,10 +333,10 @@
             },
             get pasoCompleto() {
                 if (this.paso === 1) {
-                    // Al menos una naturaleza; con dos o más, fundamento (D-032).
-                    const naturalezaOk = this.naturalezas.length > 0
-                        && (this.naturalezas.length < 2 || this.fundamentoNaturaleza.trim() !== '');
-                    return this.nombre.trim() !== '' && this.tipoRiesgoId !== '' && naturalezaOk;
+                    // Al menos una dimensión; con dos o más, fundamento (D-032).
+                    const dimensionOk = this.dimensiones.length > 0
+                        && (this.dimensiones.length < 2 || this.fundamentoDimension.trim() !== '');
+                    return this.nombre.trim() !== '' && this.tipoRiesgoId !== '' && dimensionOk;
                 }
                 if (this.paso === 2) {
                     return Object.keys(this.probabilidad).length === {{ count($preguntas['probabilidad']) }};

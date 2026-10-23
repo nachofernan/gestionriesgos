@@ -43,7 +43,7 @@ abstract class Reporte
 
         return $this->consultaRiesgos()
             ->whereHas('estado', fn ($q) => $q->whereIn('nombre', $estados))
-            ->with(['estado', 'tipoRiesgo', 'naturalezas', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado'])
+            ->with(['estado', 'tipoRiesgo', 'dimensiones', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado'])
             ->orderBy('nombre')
             ->get();
     }
@@ -114,7 +114,7 @@ abstract class Reporte
 
     /**
      * Conteos de un grupo de riesgos en todos los cortes que usan los reportes
-     * (a) y (b): total, por tipo, por naturaleza (N:M, no suma el total), por
+     * (a) y (b): total, por tipo, por dimensión (N:M, no suma el total), por
      * gerencia, criticidad inherente y residual, y situación de plan.
      */
     protected function conteos(Collection $riesgos): array
@@ -122,7 +122,7 @@ abstract class Reporte
         $fila = [
             'total' => $riesgos->count(),
             'tipos' => [],
-            'naturalezas' => [],
+            'dimensiones' => [],
             'gerencias' => [],
             'inherente' => array_fill_keys(array_keys(self::CRITICIDADES), 0),
             'residual' => array_fill_keys(array_keys(self::CRITICIDADES), 0),
@@ -133,8 +133,8 @@ abstract class Reporte
             $tipo = $r->tipoRiesgo?->nombre ?? 'Sin tipo';
             $fila['tipos'][$tipo] = ($fila['tipos'][$tipo] ?? 0) + 1;
 
-            foreach ($r->naturalezas as $n) {
-                $fila['naturalezas'][$n->nombre] = ($fila['naturalezas'][$n->nombre] ?? 0) + 1;
+            foreach ($r->dimensiones as $n) {
+                $fila['dimensiones'][$n->nombre] = ($fila['dimensiones'][$n->nombre] ?? 0) + 1;
             }
 
             $gerencia = $this->gerenciaDe($r->area_id);
