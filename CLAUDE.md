@@ -113,8 +113,10 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
 
 2. **El valor de un riesgo se deriva de datos, nunca se calcula "a ojo" en una vista.**
    `valor_total = impacto + probabilidad`. `valor_residual` descuenta la mitigación de los controles
-   **en estado aprobado** más la de los planes de acción **al 100% de avance**, y nunca baja de 0.
-   Un control en borrador/validado no baja el valor; un plan incompleto no descuenta nada. Estos
+   **en estado aprobado**, regulada por su efectividad, más la de los planes de acción **aprobados, en
+   proporción a su avance**, y nunca baja de 0. Las dos proporciones se redondean **hacia abajo**: sólo
+   al 100% se mitiga el valor entero (D-036, D-037). Un control o plan en borrador/validado no baja el
+   valor; un plan al 99% no mitiga el valor entero. Estos
    accessors calculados viven en el modelo `Riesgo`, se consumen con las relaciones eager-loaded, y
    son la fuente de verdad: ninguna vista recalcula el residual por su cuenta.
 
@@ -236,8 +238,8 @@ cien en re-testear cosas ya probadas.
 
 - **Toda regla de este núcleo lleva test antes de considerarse terminada.** Camino feliz + casos de
   permisos (los 403 esperados) + el caso feo (un gerente que no debería poder validar la propuesta de
-  otra gerencia, un control en borrador que no debe bajar el residual, un plan incompleto que no
-  descuenta). Nada de "test pendiente para después" acá.
+  otra gerencia, un control en borrador que no debe bajar el residual, un plan al 99% que no
+  mitiga el valor entero). Nada de "test pendiente para después" acá.
 - Tests de integración reales contra la MySQL de XAMPP con `RefreshDatabase`, no mocks de DB.
 - Nombres en español descriptivo: `un_riesgo_se_crea_con_estado_borrador_por_defecto`.
 

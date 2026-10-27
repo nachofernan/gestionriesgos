@@ -82,7 +82,7 @@ class FichaTareaTest extends TestCase
         $propuesta = $this->tarea->actualizaciones()->propuestasPendientes('campos')->sole();
         $this->assertEquals(['porcentaje_avance' => 100], $propuesta->data['campos']);
         $this->assertEquals(80, $this->tarea->fresh()->porcentaje_avance);
-        $this->assertEquals(16, $this->residual());
+        $this->assertEquals(12, $this->residual()); // plan al 80%: 6 × 80% = 4,8 → 4 (D-037)
 
         $propuesta->marcarAprobada($this->comite);
 

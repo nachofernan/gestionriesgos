@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-27** — **Mitigación proporcional de los planes** ([D-037](DECISIONES.md#d-037)): un plan aprobado descuenta en proporción a su avance, no sólo al 100% (6 al 80% → 4). El redondeo de planes y de la efectividad de controles pasa a ser hacia abajo: sólo al 100% se mitiga el valor entero. Cambia el axioma 2 de CLAUDE.md.
 - **2026-10-27** — **Efectividad de los controles** ([D-036](DECISIONES.md#d-036)): nueva columna `controles.efectividad` (0-100, default 100). La mitigación que descuenta cada control es `round(nominal × efectividad / 100)`. Se carga en el alta y el borrador y se propone desde la ficha. Las pantallas muestran "2 de 4" cuando la efectividad es menor a 100. Tests en `EfectividadControlTest`.
 - **2026-10-23** — La naturaleza del riesgo pasa a llamarse **dimensión del riesgo** ([D-035](DECISIONES.md#d-035)): renombre completo de modelo, tablas, columna, seeder, pantallas y tests. Mismas reglas. En el código del wizard, impacto y probabilidad pasan a llamarse "ejes" para no chocar.
 - **2026-10-23** — Se quita la pausa de controles ([D-034](DECISIONES.md#d-034), revierte D-019): fuera la columna `controles.pausado`, el checkbox de la ficha y los badges. Un control aprobado siempre descuenta del residual.

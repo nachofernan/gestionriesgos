@@ -111,11 +111,12 @@ class Control extends Model implements HasMedia
     /**
      * Regla única del redondeo de la efectividad, para quien sólo tiene los
      * números (las previews de GestionControles, que trabajan sobre arrays).
-     * Redondeo provisorio: round() genérico (D-036).
+     * Hacia abajo: sólo al 100% mitiga el valor entero (D-037, reemplaza el round
+     * de D-036). Test: un_control_al_99_no_mitiga_el_valor_entero.
      */
     public static function aplicarEfectividad(int $nominal, int $efectividad): int
     {
-        return (int) round($nominal * $efectividad / 100);
+        return intdiv($nominal * $efectividad, 100);
     }
 
     /**

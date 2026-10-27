@@ -13,7 +13,7 @@ use Livewire\Component;
  * usuario puede ver, con la mitigación que este plan aporta a cada uno y su total
  * → residual (accessors de Riesgo). Sólo lectura: la asociación se gestiona desde
  * cada riesgo. Se refresca con 'plan-actualizado' porque un cambio en las tareas
- * mueve el avance del plan y, al llegar al 100%, el residual de sus riesgos.
+ * mueve el avance del plan y, con él, el residual de sus riesgos.
  */
 class RiesgosPlan extends Component
 {
@@ -39,7 +39,8 @@ class RiesgosPlan extends Component
         return view('livewire.auditoria.plan-accion.show.riesgos-plan', [
             'riesgos' => Estado::ordenarColeccion($riesgos),
             'ocultos' => $plan->riesgos()->count() - $riesgos->count(),
-            'mitiga' => $plan->estado?->nombre === 'aprobado' && $plan->estaCompleto(),
+            'plan' => $plan,
+            'mitiga' => $plan->mitiga(),
         ]);
     }
 }

@@ -167,7 +167,7 @@ class RiesgoController extends Controller
         $this->authorize('view', $riesgo);
         // controles.estado, planesAccion.estado y planesAccion.tareas.estado: los necesita
         // el accessor valor_residual (sólo mitigan los controles y planes aprobados, y
-        // sólo cuando el plan está al 100%).
+        // el plan en proporción a su avance).
         $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'sedes', 'dimensiones', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado']);
 
         return view('auditoria.riesgo.show', compact('riesgo'));

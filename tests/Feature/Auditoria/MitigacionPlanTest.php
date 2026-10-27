@@ -24,8 +24,9 @@ use Tests\TestCase;
  * 1) Sólo los controles en estado "aprobado" descuentan mitigación.
  * 2) El avance del plan promedia sólo las tareas aprobadas; las tareas en estado
  *    "borrado" quedan fuera del plan (no cuentan ni se muestran).
- * 3) La mitigación de un plan sólo cuenta cuando el plan está al 100% de avance,
- *    combinada de forma aditiva con la de los controles.
+ * 3) La mitigación de un plan aprobado cuenta en proporción a su avance (promedio
+ *    exacto de las tareas aprobadas, hacia abajo, D-037), combinada de forma
+ *    aditiva con la de los controles.
  */
 class MitigacionPlanTest extends TestCase
 {
@@ -79,14 +80,43 @@ class MitigacionPlanTest extends TestCase
     }
 
     #[Test]
-    public function un_plan_por_debajo_del_100_no_afecta_el_valor_residual()
+    public function un_plan_al_80_mitiga_el_80_por_ciento_redondeado_hacia_abajo()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $plan = $this->planCon(80);
+
+        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+
+        $this->assertEquals(12, $riesgo->fresh()->valor_residual); // 6 × 80% = 4,8 → 4
+    }
+
+    #[Test]
+    public function un_plan_al_99_no_mitiga_el_valor_entero()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
         $plan = $this->planCon(99);
 
         $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
 
-        $this->assertEquals(16, $riesgo->fresh()->valor_residual); // sin descuento
+        $this->assertEquals(11, $riesgo->fresh()->valor_residual); // 6 × 99% = 5,94 → 5
+    }
+
+    #[Test]
+    public function un_plan_casi_completo_no_mitiga_el_valor_entero()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $plan = PlanAccion::factory()->create(['estado_id' => Estado::aprobado()->id]);
+        $plan->tareas()->attach([
+            $this->tareaConEstado(100, 'aprobado')->id,
+            $this->tareaConEstado(100, 'aprobado')->id,
+            $this->tareaConEstado(99, 'aprobado')->id,
+        ]);
+
+        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+
+        // En pantalla figura 100% (99,67 redondeado), pero no mitiga el valor entero.
+        $this->assertEquals(100, PlanAccion::with('tareas.estado')->find($plan->id)->avance);
+        $this->assertEquals(11, $riesgo->fresh()->valor_residual); // 6 × 99,67% = 5,98 → 5
     }
 
     #[Test]
@@ -118,10 +148,10 @@ class MitigacionPlanTest extends TestCase
     }
 
     #[Test]
-    public function el_preview_en_vivo_de_planes_solo_cuenta_los_aprobados_al_100()
+    public function el_preview_en_vivo_de_planes_cuenta_los_aprobados_en_proporcion_a_su_avance()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $aprobado = $this->planCon(100);
+        $aprobado = $this->planCon(50);
         $aprobado->update(['estado_id' => Estado::aprobado()->id]);
         $validado = $this->planCon(100);
         $validado->update(['estado_id' => Estado::validado()->id]);
@@ -133,7 +163,21 @@ class MitigacionPlanTest extends TestCase
             ->call('actualizarMitigacion', $aprobado->id, 6)
             ->call('agregar', $validado->id)
             ->call('actualizarMitigacion', $validado->id, 5)
-            ->assertDispatched('residual-actualizado', valor: 10); // 16 - 6 (el validado no descuenta)
+            ->assertDispatched('residual-actualizado', valor: 13); // 16 - 3 (6 al 50%; el validado no descuenta)
+    }
+
+    #[Test]
+    public function la_preview_de_gestion_controles_usa_la_mitigacion_proporcional_de_los_planes()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $riesgo->planesAccion()->attach($this->planCon(50)->id, ['mitigacion' => 6]); // descuenta 3
+        $control = Control::factory()->create(['estado_id' => Estado::aprobado()->id, 'mitigacion_default' => 2]);
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(GestionControles::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->call('agregar', $control->id)
+            ->assertDispatched('residual-actualizado', valor: 11); // 16 - 2 - 3
     }
 
     #[Test]
@@ -176,8 +220,8 @@ class MitigacionPlanTest extends TestCase
 
         $riesgo = $riesgo->fresh();
         $this->assertEquals(5, $riesgo->mitigacion_controles); // el control en borrador no cuenta
-        $this->assertEquals(6, $riesgo->mitigacion_planes);    // el plan al 50% no cuenta
-        $this->assertEquals(5, $riesgo->valor_residual);       // 16 - 5 - 6
+        $this->assertEquals(8, $riesgo->mitigacion_planes);    // 6 + 4 × 50%
+        $this->assertEquals(3, $riesgo->valor_residual);       // 16 - 5 - 8
     }
 
     #[Test]

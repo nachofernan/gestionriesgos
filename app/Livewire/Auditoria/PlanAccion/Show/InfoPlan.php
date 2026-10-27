@@ -9,7 +9,7 @@ use Livewire\Component;
 /**
  * Tarjeta lateral de planaccion/show: el avance (promedio de las tareas
  * aprobadas, PlanAccion::avance) como protagonista, si ya descuenta del residual
- * de sus riesgos (aprobado y al 100%), el vencimiento y quién lo gestiona. Se
+ * de sus riesgos (aprobado, según su avance), el vencimiento y quién lo gestiona. Se
  * refresca con 'plan-actualizado' (Ficha, Tareas o el historial aplicaron un
  * cambio), mismo mecanismo que InfoRiesgo.
  */

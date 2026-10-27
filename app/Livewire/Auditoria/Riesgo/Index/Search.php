@@ -122,7 +122,7 @@ class Search extends Component
         // controles.estado, planesAccion.estado y planesAccion.tareas.estado: los
         // necesita el accessor valor_residual, que este listado muestra y usa para
         // ordenar. planesAccion excluye "borrado" (no aportan mitigación de todos
-        // modos: PlanAccion::estaCompleto() sólo cuenta estado "aprobado", así que
+        // modos: PlanAccion::mitiga() sólo cuenta estado "aprobado", así que
         // filtrarlos acá no cambia el cálculo) para no mostrarlos en la columna
         // "Plan de acción".
         $query = Riesgo::query()

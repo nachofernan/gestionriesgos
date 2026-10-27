@@ -213,9 +213,9 @@ class Riesgo extends Model implements HasMedia
      * Resta al valor_total la mitigación efectiva de los controles asociados (el
      * valor del pivot si fue ajustado para este riesgo puntual, o mitigacion_default
      * del control, regulado por la efectividad del control, D-036) más la de los
-     * planes de acción que estén aprobados y al 100% de
-     * avance. Sólo mitigan los controles y planes en estado "aprobado": uno en
-     * borrador/validado no baja el valor del riesgo, aunque esté completo. El
+     * planes de acción aprobados en proporción a su avance (D-037). Las dos se
+     * redondean hacia abajo. Sólo mitigan los controles y planes en estado
+     * "aprobado": uno en borrador/validado no baja el valor del riesgo. El
      * residual nunca baja de 0. Consumir con `controles.estado` y
      * `planesAccion.estado`/`planesAccion.tareas.estado` eager-loaded.
      */
@@ -228,7 +228,7 @@ class Riesgo extends Model implements HasMedia
      * Parte del residual que descuentan los controles: sólo los que mitigan
      * (Control::mitiga(): los aprobados), con la mitigación
      * del pivot (o mitigacion_default del control) regulada por su efectividad y
-     * redondeada por control (Control::mitigacionEfectiva()). Separada de
+     * redondeada hacia abajo por control (Control::mitigacionEfectiva()). Separada de
      * valor_residual para que la ficha pueda mostrar el desglose sin recalcularlo.
      * Tests: el_desglose_de_mitigacion_separa_controles_y_planes_y_cuadra_con_el_residual,
      * la_mitigacion_efectiva_se_redondea_por_control.
@@ -241,16 +241,18 @@ class Riesgo extends Model implements HasMedia
     }
 
     /**
-     * Parte del residual que descuentan los planes: sólo los aprobados y al 100%
-     * de avance, con la mitigación del pivot. Ver getMitigacionControlesAttribute().
+     * Parte del residual que descuentan los planes: sólo los aprobados
+     * (PlanAccion::mitiga()), con la mitigación del pivot en proporción a su
+     * avance y hacia abajo (PlanAccion::mitigacionEfectiva(), D-037). Ver
+     * getMitigacionControlesAttribute().
+     * Tests: un_plan_al_80_mitiga_el_80_por_ciento_redondeado_hacia_abajo,
+     * el_desglose_de_mitigacion_separa_controles_y_planes_y_cuadra_con_el_residual.
      */
     public function getMitigacionPlanesAttribute(): int
     {
-        return (int) $this->planesAccion->sum(function ($plan) {
-            $aporta = $plan->estado?->nombre === 'aprobado' && $plan->estaCompleto();
-
-            return $aporta ? ($plan->pivot->mitigacion ?? 0) : 0;
-        });
+        return (int) $this->planesAccion
+            ->filter(fn ($plan) => $plan->mitiga())
+            ->sum(fn ($plan) => $plan->mitigacionEfectiva((int) ($plan->pivot->mitigacion ?? 0)));
     }
 
     /**

@@ -18,8 +18,8 @@ use Tests\TestCase;
 
 /**
  * Efectividad del control (D-036): regula cuánto de su mitigación nominal (pivot
- * o mitigacion_default) descuenta del residual. round(nominal × efectividad / 100),
- * por cada par control-riesgo. Se cambia como cualquier campo del control.
+ * o mitigacion_default) descuenta del residual. floor(nominal × efectividad / 100),
+ * por cada par control-riesgo (D-037). Se cambia como cualquier campo del control.
  */
 class EfectividadControlTest extends TestCase
 {
@@ -88,7 +88,7 @@ class EfectividadControlTest extends TestCase
     #[Test]
     public function la_mitigacion_efectiva_se_redondea_por_control(): void
     {
-        $riesgo = $this->riesgoConControl(50, 3); // 1,5 → 2
+        $riesgo = $this->riesgoConControl(50, 3); // 1,5 → 1
         $otro = Control::factory()->create([
             'estado_id' => Estado::aprobado()->id,
             'mitigacion_default' => 3,
@@ -96,8 +96,14 @@ class EfectividadControlTest extends TestCase
         ]);
         $riesgo->controles()->attach($otro->id, ['mitigacion' => 3]);
 
-        // 2 + 2 = 4, no round(1,5 + 1,5) = 3.
-        $this->assertEquals(12, $this->residual($riesgo));
+        // 1 + 1 = 2, no floor(1,5 + 1,5) = 3.
+        $this->assertEquals(14, $this->residual($riesgo));
+    }
+
+    #[Test]
+    public function un_control_al_99_no_mitiga_el_valor_entero(): void
+    {
+        $this->assertEquals(13, $this->residual($this->riesgoConControl(99, 4))); // 3,96 → 3
     }
 
     #[Test]
@@ -119,7 +125,7 @@ class EfectividadControlTest extends TestCase
         $riesgo = $this->riesgoConControl(50, 4); // residual 14
         $nuevo = Control::factory()->create([
             'estado_id' => Estado::aprobado()->id,
-            'mitigacion_default' => 3,
+            'mitigacion_default' => 5,
             'efectividad' => 50,
         ]);
 
@@ -127,7 +133,7 @@ class EfectividadControlTest extends TestCase
             ->test(GestionControles::class, ['riesgo' => $riesgo])
             ->call('activarEdicion')
             ->call('agregar', $nuevo->id)
-            ->assertDispatched('residual-actualizado', valor: 12); // 16 - 2 - 2
+            ->assertDispatched('residual-actualizado', valor: 12); // 16 - 2 - 2 (5 × 50% = 2,5 → 2)
     }
 
     #[Test]

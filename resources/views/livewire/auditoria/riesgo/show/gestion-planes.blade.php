@@ -7,7 +7,7 @@
     @endphp
 
     <x-auditoria.bloque-riesgo ancla="planes" titulo="Planes de acción"
-        subtitulo="Descuentan del residual cuando están aprobados y al 100%."
+        subtitulo="Aprobados, descuentan del residual en proporción a su avance."
         :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
 
         <x-slot:accion>
@@ -21,7 +21,8 @@
                 $planModel = $planesConTareas[$plan['id']] ?? null;
                 $avance = $plan['avg_avance'];
                 $completo = $avance === 100;
-                $mitiga = $completo && ($plan['estado'] ?? null) === 'aprobado';
+                $mitiga = ($plan['estado'] ?? null) === 'aprobado';
+                $efectiva = \App\Models\Auditoria\PlanAccion::aplicarAvance((int) $plan['mitigacion'], (int) ($plan['suma_avance'] ?? 0), (int) ($plan['tareas_aprobadas'] ?? 0));
                 $nuevo = $agregados->contains($plan['id']);
                 $bloqueado = in_array($plan['id'], $bloqueados);
                 // Sólo tareas aprobadas: las validadas/borrador son trabajo en curso que se ve en el plan.
@@ -67,8 +68,8 @@
                     @else
                         <span class="shrink-0 min-w-[3rem] text-center text-xs font-extrabold rounded-lg px-2 py-1 tabular-nums
                                      {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : 'text-gray-400 bg-white border border-dashed border-gray-200' }}"
-                              title="{{ $mitiga ? 'Descuenta del residual' : 'Descuenta recién cuando el plan esté aprobado y al 100%' }}">
-                            −{{ $plan['mitigacion'] }}
+                              title="{{ $mitiga ? 'Descuenta del residual según el avance' : 'Descuenta recién cuando el plan esté aprobado' }}">
+                            −{{ $efectiva }}@if($efectiva !== (int) $plan['mitigacion']) <span class="font-medium opacity-60">de {{ $plan['mitigacion'] }}</span>@endif
                         </span>
                     @endif
                 </div>

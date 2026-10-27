@@ -74,8 +74,8 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 ### Accessors calculados en Riesgo
 
 - **`valor_total`**: `impacto + probabilidad` (0–20)
-- **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control, y la regula por la `efectividad` del control: `round(nominal × efectividad / 100)`, por cada control antes de sumar (D-036).
-- **`mitigacion_planes`**: Σ `pivot->mitigacion` de los planes **aprobados y al 100%** de avance.
+- **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control, y la regula por la `efectividad` del control: `floor(nominal × efectividad / 100)`, por cada control antes de sumar (D-036, D-037).
+- **`mitigacion_planes`**: Σ `pivot->mitigacion` de los planes **aprobados**, en proporción al promedio exacto de avance de sus tareas aprobadas: `floor(nominal × Σ avance / (cantidad × 100))` (`PlanAccion::mitigacionEfectiva()` / `aplicarAvance()`, D-037). Sin tareas aprobadas, 0.
 - **`valor_residual`**: `valor_total − mitigacion_controles − mitigacion_planes` (mínimo 0).
 
 ---

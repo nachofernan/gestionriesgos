@@ -15,7 +15,7 @@ use Livewire\Component;
 /**
  * Gestión de los Planes de Acción asociados a un Riesgo (patrón $seleccionados
  * en memoria → guardar()), incluyendo el valor de mitigación por plan: lo que el
- * plan descuenta del valor residual del riesgo cuando llega al 100% de avance.
+ * plan descuenta del valor residual del riesgo en proporción a su avance.
  * Si el riesgo está en borrador, sincroniza directo; si no, la asociación queda
  * como una Actualizacion (propuesta de cambio) que se aplica de inmediato sólo si
  * el estado resultante lo amerita (ver estadoParaActualizacion()). Emite
@@ -55,7 +55,7 @@ class GestionPlanes extends Component
     /** Mitigación de los controles ya asociados, base fija del preview de residual. */
     public int $mitigacionControlesBase = 0;
 
-    /** @var array<int, array{id:int, nombre:string, mitigacion:int, avg_avance:?int}> */
+    /** @var array<int, array{id:int, nombre:string, mitigacion:int, avg_avance:?int, suma_avance:int, tareas_aprobadas:int}> */
     public array $seleccionados = [];
 
     /**
@@ -118,7 +118,7 @@ class GestionPlanes extends Component
     }
 
     /**
-     * Ajusta la mitigación que el plan aplicará al llegar al 100% (0-20, acotado al
+     * Ajusta la mitigación nominal del plan, la que aplica al 100% (0-20, acotado al
      * valor_total del riesgo ya que no tiene sentido mitigar más que el riesgo entero).
      */
     public function actualizarMitigacion(int $planId, int $valor): void
@@ -160,6 +160,8 @@ class GestionPlanes extends Component
             'area' => $plan->area?->nombre,
             'mitigacion' => 0,
             'avg_avance' => $plan->avance,
+            'suma_avance' => (int) $plan->tareasAprobadas()->sum('porcentaje_avance'),
+            'tareas_aprobadas' => $plan->tareasAprobadas()->count(),
             'tareas_count' => $plan->tareas->count(),
             'vencimiento' => $plan->vencimiento?->format('d/m/Y'),
             'puede_ver' => Auth::user()->can('view', $plan),
@@ -320,16 +322,16 @@ class GestionPlanes extends Component
 
     /**
      * Residual = valor total menos la mitigación ya persistida de los controles
-     * menos la de los planes seleccionados que estén aprobados y al 100% de avance
-     * (no persiste, es sólo feedback en vivo). Un plan validado/borrador o por
-     * debajo del 100% no descuenta nada, misma regla que
-     * Riesgo::getValorResidualAttribute.
+     * menos la de los planes seleccionados que estén aprobados, en proporción a su
+     * avance (no persiste, es sólo feedback en vivo). Misma regla que
+     * Riesgo::getValorResidualAttribute, vía PlanAccion::aplicarAvance() (D-037).
+     * Test: el_preview_en_vivo_de_planes_cuenta_los_aprobados_en_proporcion_a_su_avance.
      */
     private function residualActual(): int
     {
         $mitigacionPlanes = collect($this->seleccionados)
-            ->filter(fn ($p) => ($p['estado'] ?? null) === 'aprobado' && ($p['avg_avance'] ?? null) === 100)
-            ->sum('mitigacion');
+            ->filter(fn ($p) => ($p['estado'] ?? null) === 'aprobado')
+            ->sum(fn ($p) => PlanAccion::aplicarAvance((int) $p['mitigacion'], (int) ($p['suma_avance'] ?? 0), (int) ($p['tareas_aprobadas'] ?? 0)));
 
         return max(0, $this->valorTotal - $this->mitigacionControlesBase - $mitigacionPlanes);
     }
@@ -384,6 +386,8 @@ class GestionPlanes extends Component
                 'area' => $p->area?->nombre,
                 'mitigacion' => (int) ($p->pivot->mitigacion ?? 0),
                 'avg_avance' => $p->avance,
+                'suma_avance' => (int) $p->tareasAprobadas()->sum('porcentaje_avance'),
+                'tareas_aprobadas' => $p->tareasAprobadas()->count(),
                 'tareas_count' => $p->tareas->count(),
                 'vencimiento' => $p->vencimiento?->format('d/m/Y'),
                 'puede_ver' => true,

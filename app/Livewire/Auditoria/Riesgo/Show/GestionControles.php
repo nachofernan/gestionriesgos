@@ -44,7 +44,7 @@ class GestionControles extends Component
 
     public string $estadoModelo = 'borrador';
 
-    /** Mitigación de los planes ya asociados que están al 100%, base fija del preview de residual. */
+    /** Mitigación de los planes ya asociados (aprobados, según su avance), base fija del preview de residual. */
     public int $mitigacionPlanesBase = 0;
 
     /** @var array<int, array{id:int, nombre:string, mitigacion:int, efectividad:int}> */
@@ -287,7 +287,7 @@ class GestionControles extends Component
     /**
      * Residual = valor total del riesgo menos la mitigación de los controles
      * seleccionados que estén en estado "aprobado" menos la ya persistida de los
-     * planes al 100% (no persiste, es sólo para feedback en vivo). Refleja la misma
+     * planes (no persiste, es sólo para feedback en vivo). Refleja la misma
      * regla que Riesgo::getValorResidualAttribute: un control no aprobado no mitiga,
      * y el que mitiga lo hace regulado por su efectividad (D-036).
      * Test: la_preview_de_gestion_controles_cuadra_con_el_residual_del_modelo.
@@ -326,12 +326,8 @@ class GestionControles extends Component
         $this->valorTotal = $riesgo->valor_total;
         $this->esBorrador = $this->estadoModelo === 'borrador';
 
-        // Sólo los planes aprobados y al 100% mitigan (misma regla que el accessor valor_residual).
-        $this->mitigacionPlanesBase = (int) $riesgo->planesAccion->sum(function ($p) {
-            $aporta = $p->estado?->nombre === 'aprobado' && $p->estaCompleto();
-
-            return $aporta ? ($p->pivot->mitigacion ?? 0) : 0;
-        });
+        // Lo que descuentan los planes sale del accessor del modelo (aprobados, en proporción a su avance).
+        $this->mitigacionPlanesBase = $riesgo->mitigacion_planes;
 
         $user = Auth::user();
 

@@ -1135,3 +1135,37 @@ consume `Control::mitigacionEfectiva()`. La preview de `GestionControles` usa la
 `GestionPlanes` pasa a leer el accessor `mitigacion_controles` en vez de repetir el cálculo. Hay una
 migración nueva y los controles existentes quedan en 100, así que no cambian. Tests en
 `EfectividadControlTest`.
+
+---
+
+## D-037 — Los planes mitigan en proporción a su avance; redondeo hacia abajo (2026-10-27)
+
+**Decisión.** Un plan de acción aprobado descuenta del residual **en proporción a su avance**, en vez
+de descontar sólo al 100%. Revierte la regla "un plan incompleto no descuenta nada" (axioma 2 de
+CLAUDE.md, que se reescribe). Además, el redondeo de los planes **y** el de la efectividad de los
+controles (D-036) es **hacia abajo**, en lugar del `round` provisorio:
+
+- Plan: `floor(nominal × Σ avance / (cantidad × 100))` sobre las tareas aprobadas, en enteros. Usa
+  el **promedio exacto**, no el `avance` redondeado que se muestra. Por ejemplo, tareas al 100, 100 y
+  99 con mitigación 6 se ven al 100% pero descuentan 5. Sin tareas aprobadas descuenta 0.
+- Control: `floor(nominal × efectividad / 100)`. Un control que mitiga 4 descuenta 3 al 99% y 1 si
+  mitiga 3 al 50%.
+- El plan sigue teniendo que estar aprobado (`PlanAccion::mitiga()`, igual que `Control::mitiga()`).
+- La regla vive en `PlanAccion::mitigacionEfectiva()` / `aplicarAvance()` y en
+  `Control::aplicarEfectividad()`. Las pantallas muestran "−4 de 6" cuando la mitigación efectiva no
+  es la nominal.
+
+**Motivo.** Un plan al 80% ya hizo buena parte del trabajo y no descontaba nada. Con el redondeo hacia
+abajo, el valor entero se mitiga sólo al llegar al 100%: con `round`, un 99% ya mitigaba todo. Que
+falte el último punto expresa que el plan no está completo o que el control no es perfecto.
+
+**Descartado.**
+- **Usar el `avance` redondeado de pantalla:** un 99,67% se convertía en 100 y mitigaba entero.
+- **Descontar en cualquier estado:** el estado sigue gobernando, como en los controles.
+
+**Efecto en cascada anotado.** Núcleo: cambia el residual de todo riesgo con planes aprobados a medio
+avance o con controles de efectividad < 100, en fichas, listados, panel y reportes. `Riesgo::
+getMitigacionPlanesAttribute()` consume `PlanAccion::mitigacionEfectiva()`. La preview de
+`GestionPlanes` usa `aplicarAvance()` y `GestionControles` pasa a leer el accessor
+`mitigacion_planes`. Textos de "al 100%" ajustados en las fichas del plan y del riesgo. Tests en
+`MitigacionPlanTest` y `EfectividadControlTest`.

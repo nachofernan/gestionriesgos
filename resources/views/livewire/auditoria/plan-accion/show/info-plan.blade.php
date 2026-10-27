@@ -13,9 +13,9 @@
     };
     $mitigacion = match (true) {
         $planAccion->riesgos_count === 0 => 'Sin riesgos asociados',
-        $aprobado && $completo => 'Descuenta del residual en '.$planAccion->riesgos_count.' '.($planAccion->riesgos_count === 1 ? 'riesgo' : 'riesgos'),
-        $completo => 'Completo: descuenta cuando se apruebe el plan',
-        default => 'Descuenta del residual al llegar al 100%',
+        $aprobado && $avance !== null => 'Descuenta del residual en '.$planAccion->riesgos_count.' '.($planAccion->riesgos_count === 1 ? 'riesgo' : 'riesgos').', según su avance',
+        $aprobado => 'Descuenta del residual a medida que avancen sus tareas',
+        default => 'Descuenta según su avance cuando se apruebe el plan',
     };
 @endphp
 <section id="avance" class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">

@@ -153,7 +153,7 @@ class PlanShowTest extends TestCase
         $this->propuestas()->sole()->marcarAprobada($this->comite);
 
         $this->assertEquals(67, $this->plan->fresh()->avance);
-        $this->assertEquals(16, $residual());
+        $this->assertEquals(12, $residual()); // 100/100/0: 6 × 66,67% = 4 (D-037)
     }
 
     #[Test]
