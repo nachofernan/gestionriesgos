@@ -34,6 +34,7 @@
                     <p class="text-[11px] text-gray-500 truncate">
                         {{ $ctrl['area'] ?? '—' }}
                         @if($editando) · default {{ $ctrl['mitigacion_default'] }} @endif
+                        @if(($ctrl['efectividad'] ?? 100) < 100) · efectividad {{ $ctrl['efectividad'] }}% @endif
                     </p>
                 </div>
                 @if($nuevo)
@@ -60,7 +61,7 @@
                     <span class="shrink-0 min-w-[3rem] text-center text-xs font-extrabold rounded-lg px-2 py-1 tabular-nums
                                  {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : 'text-gray-400 bg-white border border-dashed border-gray-200' }}"
                           title="{{ $mitiga ? 'Descuenta del residual' : 'No descuenta hasta que el control esté aprobado' }}">
-                        −{{ $ctrl['mitigacion'] }}
+                        −{{ \App\Models\Auditoria\Control::aplicarEfectividad((int) $ctrl['mitigacion'], (int) ($ctrl['efectividad'] ?? 100)) }}@if(($ctrl['efectividad'] ?? 100) < 100) <span class="font-medium opacity-60">de {{ $ctrl['mitigacion'] }}</span>@endif
                     </span>
                 @endif
             </div>

@@ -47,6 +47,11 @@
                     <input type="number" min="1" max="10" wire:model.live.debounce.300ms="form.mitigacion_default" class="{{ $input }}" @disabled($bloq('mitigacion_default'))>
                     @error('form.mitigacion_default') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
+                <div class="col-span-2">
+                    <label class="{{ $label }}">Efectividad (0-100 %)</label>
+                    <input type="number" min="0" max="100" wire:model="form.efectividad" class="{{ $input }}" @disabled($bloq('efectividad'))>
+                    @error('form.efectividad') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
 
                 @if($cantidadAfectados > 0)
                     <div class="col-span-6 rounded-xl border px-3 py-2.5 transition-colors {{ $propagar ? 'border-indigo-300 bg-indigo-50/60' : 'border-gray-200 bg-gray-50/60' }}">

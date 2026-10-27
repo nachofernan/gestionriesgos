@@ -22,6 +22,13 @@
         </p>
     </div>
     <p class="mx-4 mt-2 text-[11px] text-gray-400">Es el valor con el que se asocia a un riesgo; cada riesgo puede ajustarlo.</p>
+    <div class="mx-4 mt-3 flex items-center justify-between rounded-xl px-4 py-2.5 {{ $control->efectividad < 100 ? 'bg-amber-50' : 'bg-gray-50' }}">
+        <p class="text-[10px] font-bold uppercase tracking-widest {{ $control->efectividad < 100 ? 'text-amber-700' : 'text-gray-500' }}">Efectividad</p>
+        <p class="text-lg font-black tabular-nums {{ $control->efectividad < 100 ? 'text-amber-700' : 'text-gray-600' }}">{{ $control->efectividad }}%</p>
+    </div>
+    @if($control->efectividad < 100)
+        <p class="mx-4 mt-2 text-[11px] text-gray-400">Cada riesgo recibe esa parte de la mitigación, redondeada.</p>
+    @endif
 
     <dl class="mx-4 mt-3 mb-4 text-sm divide-y divide-gray-100">
         <div class="flex items-center justify-between py-1.5">

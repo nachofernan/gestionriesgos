@@ -329,7 +329,7 @@ class Actualizacion extends Model implements HasMedia
             'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
             'fundamento' => 'Fundamento', 'fundamento_dimension' => 'Fundamento de dimensión', 'tipo_riesgo_id' => 'Tipo de riesgo',
             'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
-            'mitigacion_default' => 'Mitigación', 'fecha_objetivo' => 'Fecha objetivo',
+            'mitigacion_default' => 'Mitigación', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
         ];
         $formatear = function ($campo, $valor) use ($tiposRiesgo) {
@@ -341,7 +341,7 @@ class Actualizacion extends Model implements HasMedia
                 'tipo_riesgo_id' => $tiposRiesgo[$valor] ?? '#'.$valor,
                 'respuesta' => RespuestaRiesgo::tryFrom($valor)?->label() ?? $valor,
                 'fecha_objetivo', 'fecha' => Carbon::parse($valor)->format('d/m/Y'),
-                'porcentaje_avance' => $valor.'%',
+                'porcentaje_avance', 'efectividad' => $valor.'%',
                 default => is_bool($valor) ? ($valor ? 'Sí' : 'No') : $valor,
             };
         };

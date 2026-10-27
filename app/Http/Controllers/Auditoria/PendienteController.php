@@ -204,6 +204,7 @@ class PendienteController extends Controller
             ],
             'control' => [
                 ['etiqueta' => 'Mitigación por defecto', 'valor' => $item->mitigacion_default],
+                ['etiqueta' => 'Efectividad', 'valor' => $item->efectividad.'%'],
             ],
             'objetivo' => [
                 ['etiqueta' => 'PEIS', 'valor' => $item->peis ? 'Sí' : 'No'],

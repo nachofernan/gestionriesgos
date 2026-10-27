@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-10-27** — **Efectividad de los controles** ([D-036](DECISIONES.md#d-036)): nueva columna `controles.efectividad` (0-100, default 100). La mitigación que descuenta cada control es `round(nominal × efectividad / 100)`. Se carga en el alta y el borrador y se propone desde la ficha. Las pantallas muestran "2 de 4" cuando la efectividad es menor a 100. Tests en `EfectividadControlTest`.
 - **2026-10-23** — La naturaleza del riesgo pasa a llamarse **dimensión del riesgo** ([D-035](DECISIONES.md#d-035)): renombre completo de modelo, tablas, columna, seeder, pantallas y tests. Mismas reglas. En el código del wizard, impacto y probabilidad pasan a llamarse "ejes" para no chocar.
 - **2026-10-23** — Se quita la pausa de controles ([D-034](DECISIONES.md#d-034), revierte D-019): fuera la columna `controles.pausado`, el checkbox de la ficha y los badges. Un control aprobado siempre descuenta del residual.
 - **2026-10-21** — Panel de reportes ([D-033](DECISIONES.md#d-033)): el Panel de Riesgos pasa a tener pestañas (Resumen, Por gerencia, Por tipo, Evolución desde–hasta, Planes y tareas), cada reporte descargable en Excel con los filtros activos. Criticidad inherente y residual lado a lado; se quitan los rieles antes/después. Nueva dependencia `maatwebsite/excel`.

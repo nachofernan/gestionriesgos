@@ -49,6 +49,7 @@ class ControlController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'mitigacion_default' => 'required|integer|min:1|max:10',
+            'efectividad' => 'sometimes|required|integer|min:0|max:100',
         ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
 
         $data['user_id'] = $data['user_id'] ?? Auth::id();
@@ -61,6 +62,7 @@ class ControlController extends Controller
                 'nombre' => $control->nombre,
                 'descripcion' => $control->descripcion,
                 'mitigacion_default' => $control->mitigacion_default,
+                'efectividad' => $control->efectividad,
             ]],
         ]);
 
@@ -109,6 +111,7 @@ class ControlController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'mitigacion_default' => 'required|integer|min:1|max:10',
+            'efectividad' => 'sometimes|required|integer|min:0|max:100',
         ] + $this->reglasAreaResponsable($request, $control->area_id, $control->user_id), self::MENSAJES_AREA_RESPONSABLE);
         $propagar = $request->boolean('propagar_mitigacion');
 

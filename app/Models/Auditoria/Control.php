@@ -17,7 +17,8 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 /**
  * Control de mitigación aplicable a uno o más Riesgo (many-to-many con
  * `mitigacion` en el pivot: el valor de mitigación efectivo para ese riesgo
- * puntual, que puede diferir de `mitigacion_default`). Ciclo de vida de estado
+ * puntual, que puede diferir de `mitigacion_default`). La `efectividad` (0-100)
+ * regula cuánto de esa mitigación se aplica (D-036). Ciclo de vida de estado
  * borrador → validado → aprobado/borrado.
  */
 class Control extends Model implements HasMedia
@@ -30,6 +31,7 @@ class Control extends Model implements HasMedia
         'nombre',
         'descripcion',
         'mitigacion_default',
+        'efectividad',
         'estado_id',
         'user_id',
         'area_id',
@@ -91,6 +93,29 @@ class Control extends Model implements HasMedia
     public function mitiga(): bool
     {
         return $this->estado?->nombre === 'aprobado';
+    }
+
+    /**
+     * Mitigación que aplica de verdad este control sobre un riesgo: la nominal
+     * (pivot o mitigacion_default) regulada por su efectividad (D-036). La
+     * consumen Riesgo::getMitigacionControlesAttribute() y las pantallas que
+     * muestran o previsualizan el descuento.
+     * Tests: la_efectividad_al_50_por_ciento_reduce_la_mitigacion_a_la_mitad,
+     * la_mitigacion_efectiva_se_redondea_por_control.
+     */
+    public function mitigacionEfectiva(int $nominal): int
+    {
+        return self::aplicarEfectividad($nominal, (int) $this->efectividad);
+    }
+
+    /**
+     * Regla única del redondeo de la efectividad, para quien sólo tiene los
+     * números (las previews de GestionControles, que trabajan sobre arrays).
+     * Redondeo provisorio: round() genérico (D-036).
+     */
+    public static function aplicarEfectividad(int $nominal, int $efectividad): int
+    {
+        return (int) round($nominal * $efectividad / 100);
     }
 
     /**

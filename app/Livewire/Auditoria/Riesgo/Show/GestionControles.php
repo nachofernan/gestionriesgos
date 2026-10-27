@@ -47,7 +47,7 @@ class GestionControles extends Component
     /** Mitigación de los planes ya asociados que están al 100%, base fija del preview de residual. */
     public int $mitigacionPlanesBase = 0;
 
-    /** @var array<int, array{id:int, nombre:string, mitigacion:int}> */
+    /** @var array<int, array{id:int, nombre:string, mitigacion:int, efectividad:int}> */
     public array $seleccionados = [];
 
     /**
@@ -146,6 +146,7 @@ class GestionControles extends Component
             'descripcion' => $control->descripcion,
             'mitigacion' => $control->mitigacion_default,
             'mitigacion_default' => $control->mitigacion_default,
+            'efectividad' => (int) $control->efectividad,
             'estado' => $control->estado?->nombre ?? 'borrador',
             'estado_color' => $control->estado?->color ?? 'gray',
             'mitiga' => $control->mitiga(),
@@ -287,13 +288,15 @@ class GestionControles extends Component
      * Residual = valor total del riesgo menos la mitigación de los controles
      * seleccionados que estén en estado "aprobado" menos la ya persistida de los
      * planes al 100% (no persiste, es sólo para feedback en vivo). Refleja la misma
-     * regla que Riesgo::getValorResidualAttribute: un control no aprobado no mitiga.
+     * regla que Riesgo::getValorResidualAttribute: un control no aprobado no mitiga,
+     * y el que mitiga lo hace regulado por su efectividad (D-036).
+     * Test: la_preview_de_gestion_controles_cuadra_con_el_residual_del_modelo.
      */
     private function residualActual(): int
     {
         $mitigacion = collect($this->seleccionados)
             ->filter(fn ($c) => $c['mitiga'] ?? false)
-            ->sum('mitigacion');
+            ->sum(fn ($c) => Control::aplicarEfectividad((int) $c['mitigacion'], (int) ($c['efectividad'] ?? 100)));
 
         return max(0, $this->valorTotal - $mitigacion - $this->mitigacionPlanesBase);
     }
@@ -348,6 +351,7 @@ class GestionControles extends Component
                 'descripcion' => $c->descripcion,
                 'mitigacion' => $c->pivot->mitigacion ?? $c->mitigacion_default,
                 'mitigacion_default' => $c->mitigacion_default,
+                'efectividad' => (int) $c->efectividad,
                 'estado' => $c->estado?->nombre ?? 'borrador',
                 'estado_color' => $c->estado?->color ?? 'gray',
                 'mitiga' => $c->mitiga(),

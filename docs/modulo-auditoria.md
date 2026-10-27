@@ -44,7 +44,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | Modelo | Tabla | Descripción |
 |---|---|---|
 | `Riesgo` | `riesgos` | Entidad central. Tiene impacto, probabilidad y criticidad_alta. Calcula `valor_total` e `valor_residual` como accessors. |
-| `Control` | `controles` | Medidas de mitigación. Tiene `mitigacion_default` (1-10). El valor real se guarda en el pivot con el riesgo. `propagarMitigacionDefault()` lleva el default a todas las asociaciones (opcional al cambiarlo, ver D-017). `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). |
+| `Control` | `controles` | Medidas de mitigación. Tiene `mitigacion_default` (1-10). El valor real se guarda en el pivot con el riesgo. `propagarMitigacionDefault()` lleva el default a todas las asociaciones (opcional al cambiarlo, ver D-017). `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). `efectividad` (0-100, default 100) regula cuánto de la mitigación se aplica; `mitigacionEfectiva()` / `aplicarEfectividad()` son la regla única del redondeo (D-036). |
 | `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `peis` (boolean): si es true, requiere al menos un `PeisItem` asociado (ver validación en `ObjetivoController`). |
 | `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
 | `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
@@ -74,7 +74,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 ### Accessors calculados en Riesgo
 
 - **`valor_total`**: `impacto + probabilidad` (0–20)
-- **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control.
+- **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control, y la regula por la `efectividad` del control: `round(nominal × efectividad / 100)`, por cada control antes de sumar (D-036).
 - **`mitigacion_planes`**: Σ `pivot->mitigacion` de los planes **aprobados y al 100%** de avance.
 - **`valor_residual`**: `valor_total − mitigacion_controles − mitigacion_planes` (mínimo 0).
 

@@ -23,12 +23,13 @@
             'mayor_criticidad' => 'Mayor criticidad',
             'tipo_riesgo_id' => 'Tipo de riesgo',
             'mitigacion_default' => 'Mitigación por defecto',
+            'efectividad' => 'Efectividad',
             'fecha_objetivo' => 'Fecha objetivo',
             'porcentaje_avance' => 'Avance',
             'fecha' => 'Fecha',
         ];
         // Numéricos que merecen realce en la entrada de creación.
-        $camposRealce = ['impacto', 'probabilidad', 'valor', 'mitigacion_default', 'porcentaje_avance'];
+        $camposRealce = ['impacto', 'probabilidad', 'valor', 'mitigacion_default', 'efectividad', 'porcentaje_avance'];
         // Campos de texto largo: van como fila full-width, no como chip.
         $camposTexto = ['nombre', 'descripcion'];
     @endphp

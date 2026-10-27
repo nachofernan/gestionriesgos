@@ -66,7 +66,8 @@
                                     </span>
                                 </div>
                                 <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-blue-50 text-blue-600 border border-blue-100">
-                                    Mit: {{ $ctrl->pivot->mitigacion ?? $ctrl->mitigacion_default }}
+                                    @php $nominal = (int) ($ctrl->pivot->mitigacion ?? $ctrl->mitigacion_default); @endphp
+                                    Mit: {{ $ctrl->mitigacionEfectiva($nominal) }}@if($ctrl->efectividad < 100) (de {{ $nominal }})@endif
                                 </span>
                             </div>
                         @empty

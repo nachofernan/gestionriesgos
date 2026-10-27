@@ -8,7 +8,7 @@
     $etiquetasCampos = [
         'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta', 'fundamento' => 'Fundamento', 'fundamento_dimension' => 'Fundamento de dimensión',
         'tipo_riesgo_id' => 'Tipo de riesgo', 'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
-        'mayor_criticidad' => 'Mayor criticidad','mitigacion_default' => 'Mitigación por defecto', 'fecha_objetivo' => 'Fecha objetivo',
+        'mayor_criticidad' => 'Mayor criticidad','mitigacion_default' => 'Mitigación por defecto', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
         'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
     ];
     $nombresPartes = ['campos' => 'Datos', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes', 'tareas' => 'Tareas', 'sedes' => 'Sedes', 'dimensiones' => 'Dimensiones'];

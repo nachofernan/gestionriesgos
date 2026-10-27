@@ -11,7 +11,7 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Ficha de control/show: nombre, descripción y mitigación por defecto, con las
+ * Ficha de control/show: nombre, descripción, mitigación por defecto y efectividad, con las
  * propuestas pendientes sobre esos campos debajo. Mismo patrón que FichaRiesgo:
  * fuera de borrador se edita en el bloque y guardar() manda sólo lo que cambió a
  * Actualizacion::registrarCambioCampos(); en borrador se edita con el formulario
@@ -28,7 +28,7 @@ class FichaControl extends Component
 
     public bool $editando = false;
 
-    /** @var array{nombre:string, descripcion:?string, mitigacion_default:int} */
+    /** @var array{nombre:string, descripcion:?string, mitigacion_default:int, efectividad:int} */
     public array $form = [];
 
     /** Motivo del cambio: queda como mensaje de la Actualizacion. */
@@ -37,7 +37,7 @@ class FichaControl extends Component
     /** "Aplicar también a los riesgos asociados": ver Control::propagarMitigacionDefault(). */
     public bool $propagar = false;
 
-    private const CAMPOS = ['nombre', 'descripcion', 'mitigacion_default'];
+    private const CAMPOS = ['nombre', 'descripcion', 'mitigacion_default', 'efectividad'];
 
     #[On('control-actualizado')]
     public function refrescar(): void {}
@@ -83,6 +83,7 @@ class FichaControl extends Component
             'form.nombre' => 'required|string|max:255',
             'form.descripcion' => 'nullable|string',
             'form.mitigacion_default' => 'required|integer|min:1|max:10',
+            'form.efectividad' => 'required|integer|min:0|max:100',
         ], ['mensaje.required' => 'Contá brevemente por qué se cambia.']);
 
         $bloqueados = $this->camposConPropuesta($this->propuestasDe($control, 'campos'));

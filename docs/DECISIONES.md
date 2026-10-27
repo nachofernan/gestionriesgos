@@ -1101,3 +1101,37 @@ modal de actividad y el test `el_wizard_exige_las_cinco_respuestas_de_cada_eje`.
 historial guardan las claves nuevas (`dimensiones`, `fundamento_dimension`), así que hay que re-migrar
 la base local.
 
+---
+
+## D-036 — Efectividad de los controles (2026-10-27)
+
+**Decisión.** Cada control tiene una **efectividad** (`controles.efectividad`, entero 0-100, por
+defecto 100). Regula cuánto de su mitigación nominal (el pivot o `mitigacion_default`) descuenta del
+residual: `round(nominal × efectividad / 100)`. Ejemplo: un control que mitiga 4 descuenta 4 al
+100 %, 2 al 50 % y 0 al 10 %.
+
+- **Una por control**: se aplica igual a todos los riesgos que mitiga.
+- **Se redondea por cada par control-riesgo**, antes de sumar: dos controles de 3 al 50 % descuentan
+  2 + 2, no 3. El redondeo es el `round()` de PHP (un .5 sube). **Es provisorio:** puede pasar a `ceil`
+  o `floor` cambiando sólo `Control::aplicarEfectividad()`.
+- **Se edita como `mitigacion_default`**: libre en borrador y, fuera de borrador, por propuesta. El
+  cambio queda en el historial del control, no en el de cada riesgo (igual que el default sin
+  propagar).
+- Sólo los controles aprobados descuentan (`mitiga()`, D-034). La efectividad no cambia esa regla.
+- Las pantallas muestran "2 de 4" cuando la efectividad es menor a 100. Al 100 se ven igual que antes.
+
+**Motivo.** Regular la mitigación final de un control sin tocar su valor nominal. Antes, la única
+forma era cambiar la mitigación de cada asociación a mano.
+
+**Descartado.**
+- **Efectividad por asociación control-riesgo** (en el pivot): para ajustar un riesgo puntual ya
+  existe la mitigación del pivot.
+- **Carga directa sin ciclo** (una evaluación que la escribe sin propuesta): cambia el residual, así
+  que pasa por la misma validación que el resto de los campos del control.
+- **Valores en escalones** (de a 10 o 0/25/50/75/100): se dejó libre de 0 a 100.
+
+**Efecto en cascada anotado.** Cambia el residual (núcleo). `Riesgo::getMitigacionControlesAttribute()`
+consume `Control::mitigacionEfectiva()`. La preview de `GestionControles` usa la misma regla, y
+`GestionPlanes` pasa a leer el accessor `mitigacion_controles` en vez de repetir el cálculo. Hay una
+migración nueva y los controles existentes quedan en 100, así que no cambian. Tests en
+`EfectividadControlTest`.

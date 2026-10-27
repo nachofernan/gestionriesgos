@@ -3,7 +3,7 @@
         :subtitulo="$mitiga ? 'La asociación y su mitigación se gestionan desde cada riesgo.' : 'No descuenta del residual hasta que el control esté aprobado.'">
 
         @forelse ($riesgos as $riesgo)
-            @php $mit = $riesgo->pivot->mitigacion ?? $control->mitigacion_default; @endphp
+            @php $nominal = (int) ($riesgo->pivot->mitigacion ?? $control->mitigacion_default); @endphp
             <div wire:key="riesgo-{{ $riesgo->id }}"
                  class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50/60 cursor-pointer hover:border-indigo-200 hover:bg-white transition-colors"
                  onclick="Livewire.dispatch('ver-riesgo', {id: {{ $riesgo->id }}})">
@@ -19,7 +19,7 @@
                 <span class="shrink-0 min-w-[3rem] text-center text-xs font-extrabold rounded-lg px-2 py-1 tabular-nums
                              {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : 'text-gray-400 bg-white border border-dashed border-gray-200' }}"
                       title="{{ $mitiga ? 'Descuenta del residual de este riesgo' : 'No descuenta hasta que el control esté aprobado' }}">
-                    −{{ $mit }}
+                    −{{ $control->mitigacionEfectiva($nominal) }}@if($control->efectividad < 100) <span class="font-medium opacity-60">de {{ $nominal }}</span>@endif
                 </span>
                 <span class="shrink-0 w-20 text-right text-xs tabular-nums text-gray-500" title="Valor total → residual">
                     {{ $riesgo->valor_total }} → <strong class="text-gray-900">{{ $riesgo->valor_residual }}</strong>
