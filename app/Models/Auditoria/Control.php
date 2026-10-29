@@ -120,6 +120,57 @@ class Control extends Model implements HasMedia
     }
 
     /**
+     * Registra un testeo de efectividad (D-038), la única vía por la que cambia la
+     * efectividad. Sin cambio de valor queda como testeo informativo (fuera del
+     * ciclo, como una nota). En borrador se aplica directo, como la edición del
+     * borrador. Fuera de borrador es una propuesta de campos con el circuito de
+     * siempre (Actualizacion::registrarCambioCampos()). Todas llevan
+     * data.origen = 'testeo'. Quien llama ya autorizó (EfectividadControl::guardar())
+     * y agrega los adjuntos.
+     * Tests: un_auditor_registra_un_testeo_y_queda_propuesta_hasta_validarse,
+     * un_testeo_sin_cambio_queda_como_informativo_y_no_es_propuesta,
+     * en_un_control_en_borrador_el_testeo_se_aplica_directo_para_quien_lo_gestiona.
+     */
+    public function registrarTesteo(User $usuario, int $efectividad, string $motivo): Actualizacion
+    {
+        $antes = (int) $this->efectividad;
+
+        if ($efectividad === $antes) {
+            return $this->actualizaciones()->create([
+                'user_id' => $usuario->id,
+                'mensaje' => $motivo,
+                'estado_id' => null,
+                'data' => ['tipo' => 'testeo', 'origen' => 'testeo', 'efectividad' => $efectividad],
+            ]);
+        }
+
+        if ($this->estado?->nombre === 'borrador') {
+            return DB::transaction(function () use ($usuario, $efectividad, $motivo, $antes) {
+                $this->update(['efectividad' => $efectividad]);
+
+                return $this->actualizaciones()->create([
+                    'user_id' => $usuario->id,
+                    'mensaje' => $motivo,
+                    'estado_id' => Estado::borrador()->id,
+                    'data' => [
+                        'tipo' => 'edicion',
+                        'origen' => 'testeo',
+                        'diff' => ['campos' => ['efectividad' => ['antes' => $antes, 'despues' => $efectividad]]],
+                    ],
+                ]);
+            });
+        }
+
+        return Actualizacion::registrarCambioCampos($this, $usuario, $motivo, ['efectividad' => $efectividad], extra: ['origen' => 'testeo']);
+    }
+
+    /** Testeo con cambio que espera validación o aprobación: mientras exista, no se registra otro. */
+    public function testeoPendiente(): ?Actualizacion
+    {
+        return $this->actualizaciones()->propuestasPendientes('campos')->where('data->origen', 'testeo')->first();
+    }
+
+    /**
      * Lleva la mitigación por defecto (ya guardada) a todas las asociaciones con
      * riesgos: la opción "aplicar también a los riesgos asociados" al cambiar el
      * default. Pisa todas, incluidos riesgos de otras gerencias, sin pasar por

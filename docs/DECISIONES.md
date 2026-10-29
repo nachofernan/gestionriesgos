@@ -1169,3 +1169,44 @@ getMitigacionPlanesAttribute()` consume `PlanAccion::mitigacionEfectiva()`. La p
 `GestionPlanes` usa `aplicarAvance()` y `GestionControles` pasa a leer el accessor
 `mitigacion_planes`. Textos de "al 100%" ajustados en las fichas del plan y del riesgo. Tests en
 `MitigacionPlanTest` y `EfectividadControlTest`.
+
+---
+
+## D-038 — La efectividad se cambia sólo por testeo, en un bloque propio del control (2026-10-29)
+
+**Decisión.** El control/show tiene un bloque **Efectividad** con el valor vigente, el testeo
+pendiente si lo hay y la lista de testeos (fecha, autor, `antes → después` o "confirma X%", motivo,
+estado y archivos). El botón **"Registrar testeo"** carga el nuevo %, un motivo obligatorio y archivos
+opcionales. Es la **única vía** para cambiar la efectividad: sale de la ficha, del alta, de la
+edición del borrador y del modal genérico de actualizaciones. Reemplaza el "se edita como
+`mitigacion_default`" de D-036.
+
+- **Quién:** el auditor y quien gestiona el control, con `ControlPolicy::proponer`, o `update` si el
+  control está en borrador. No hay habilidades nuevas.
+- **Circuito normal** (D-020): fuera de borrador el testeo es una propuesta de campos. La del auditor
+  nace en borrador, la valida el gerente y, si el control está aprobado, la aprueba el comité. El
+  residual no cambia hasta que se aplica. En borrador se aplica directo, como la edición del borrador.
+- **Sin cambio de valor**: queda como testeo informativo (`estado_id` null, `data.tipo = testeo`). No
+  entra a Pendientes ni a las notas, y sirve para ver cuándo se testeó por última vez.
+- **Un solo testeo con cambio pendiente a la vez.** Las confirmaciones sin cambio se pueden seguir
+  registrando.
+- **Sin esquema nuevo:** cada testeo es una `Actualizacion` con `data.origen = 'testeo'`, y los
+  archivos van a sus `adjuntos`, así que también aparecen en la pestaña Archivos. La regla vive en
+  `Control::registrarTesteo()`.
+
+**Motivo.** Los auditores testean los controles cada tanto y la efectividad es "su parte". Necesitan
+cambiarla con el informe que la respalda, sin pasar por la ficha y separado de los comentarios.
+
+**Descartado.**
+- **Una entidad `Testeo` con tabla propia:** por ahora `Actualizacion` + `origen` alcanza y conserva el
+  historial y el circuito. Si los testeos crecen (resultado, alcance, fecha propia) se migra.
+- **Cambio directo del auditor:** le daría un poder de cambio que D-020 no le da.
+- **Fecha de testeo propia:** vale la de carga.
+- **Adjunto obligatorio:** se puede adjuntar después.
+
+**Efecto en cascada anotado.** Núcleo, porque un testeo aplicado mueve el residual. Los cambios son:
+`Actualizacion::registrarCambioCampos()` gana un parámetro `$extra`; `Control::registrarTesteo()` y
+`testeoPendiente()`; el componente nuevo `EfectividadControl`; `FichaControl` deja de editar la
+efectividad y no lista las propuestas de testeo. `ControlController`, `ActualizacionController` y
+`GestionActualizaciones` dejan de aceptarla. El timeline rotula los testeos informativos. Tests en
+`TesteoEfectividadTest`, y los de propuesta por ficha de `EfectividadControlTest` se mudaron ahí.

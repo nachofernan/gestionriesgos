@@ -44,7 +44,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | Modelo | Tabla | Descripción |
 |---|---|---|
 | `Riesgo` | `riesgos` | Entidad central. Tiene impacto, probabilidad y criticidad_alta. Calcula `valor_total` e `valor_residual` como accessors. |
-| `Control` | `controles` | Medidas de mitigación. Tiene `mitigacion_default` (1-10). El valor real se guarda en el pivot con el riesgo. `propagarMitigacionDefault()` lleva el default a todas las asociaciones (opcional al cambiarlo, ver D-017). `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). `efectividad` (0-100, default 100) regula cuánto de la mitigación se aplica; `mitigacionEfectiva()` / `aplicarEfectividad()` son la regla única del redondeo (D-036). |
+| `Control` | `controles` | Medidas de mitigación. Tiene `mitigacion_default` (1-10). El valor real se guarda en el pivot con el riesgo. `propagarMitigacionDefault()` lleva el default a todas las asociaciones (opcional al cambiarlo, ver D-017). `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). `efectividad` (0-100, default 100) regula cuánto de la mitigación se aplica y sólo cambia por un testeo (`registrarTesteo()`, D-038); `mitigacionEfectiva()` / `aplicarEfectividad()` son la regla única del redondeo (D-036). |
 | `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `peis` (boolean): si es true, requiere al menos un `PeisItem` asociado (ver validación en `ObjetivoController`). |
 | `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
 | `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
@@ -248,6 +248,7 @@ app/Livewire/Auditoria/
 │   └── GestionPlanes.php       — maneja planes de acción de un riesgo
 ├── Control/Show/
 │   ├── FichaControl.php        — datos del control, editables en el bloque (con propagación del default)
+│   ├── EfectividadControl.php  — bloque Efectividad: testeos (nuevo %, motivo, adjuntos), única vía para cambiarla (D-038)
 │   ├── RiesgosControl.php      — riesgos que mitiga (sólo lectura)
 │   └── InfoControl.php         — tarjeta Mitigación del lateral
 ├── Objetivo/Show/

@@ -40,9 +40,8 @@ class ActualizacionController extends Controller
         $this->authorize('proponer', $control);
         $request->validate([
             'mitigacion_default' => 'nullable|integer|min:1|max:10',
-            'efectividad' => 'nullable|integer|min:0|max:100',
         ]);
-        $this->crearActualizacion($request, $control, ['nombre', 'descripcion', 'mitigacion_default', 'efectividad']);
+        $this->crearActualizacion($request, $control, ['nombre', 'descripcion', 'mitigacion_default']);
 
         return back()->with('ok', 'Actualización registrada.');
     }

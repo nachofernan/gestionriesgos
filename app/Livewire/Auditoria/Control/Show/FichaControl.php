@@ -11,7 +11,7 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Ficha de control/show: nombre, descripción, mitigación por defecto y efectividad, con las
+ * Ficha de control/show: nombre, descripción y mitigación por defecto, con las
  * propuestas pendientes sobre esos campos debajo. Mismo patrón que FichaRiesgo:
  * fuera de borrador se edita en el bloque y guardar() manda sólo lo que cambió a
  * Actualizacion::registrarCambioCampos(); en borrador se edita con el formulario
@@ -28,7 +28,7 @@ class FichaControl extends Component
 
     public bool $editando = false;
 
-    /** @var array{nombre:string, descripcion:?string, mitigacion_default:int, efectividad:int} */
+    /** @var array{nombre:string, descripcion:?string, mitigacion_default:int} */
     public array $form = [];
 
     /** Motivo del cambio: queda como mensaje de la Actualizacion. */
@@ -37,7 +37,8 @@ class FichaControl extends Component
     /** "Aplicar también a los riesgos asociados": ver Control::propagarMitigacionDefault(). */
     public bool $propagar = false;
 
-    private const CAMPOS = ['nombre', 'descripcion', 'mitigacion_default', 'efectividad'];
+    // La efectividad no se edita acá: sólo cambia por un testeo (EfectividadControl, D-038).
+    private const CAMPOS = ['nombre', 'descripcion', 'mitigacion_default'];
 
     #[On('control-actualizado')]
     public function refrescar(): void {}
@@ -83,10 +84,9 @@ class FichaControl extends Component
             'form.nombre' => 'required|string|max:255',
             'form.descripcion' => 'nullable|string',
             'form.mitigacion_default' => 'required|integer|min:1|max:10',
-            'form.efectividad' => 'required|integer|min:0|max:100',
         ], ['mensaje.required' => 'Contá brevemente por qué se cambia.']);
 
-        $bloqueados = $this->camposConPropuesta($this->propuestasDe($control, 'campos'));
+        $bloqueados = $this->camposConPropuesta($this->propuestasDeFicha($control));
         $campos = [];
         foreach (self::CAMPOS as $campo) {
             $nuevo = $this->form[$campo] ?? null;
@@ -109,6 +109,14 @@ class FichaControl extends Component
         session()->flash('ok', isset($actualizacion->data['activated_by']) ? 'Datos actualizados.' : 'Propuesta registrada. Pendiente de validación.');
     }
 
+    /** Propuestas de campos de la ficha: sin los testeos, que muestra EfectividadControl. */
+    private function propuestasDeFicha(Control $control): Collection
+    {
+        return $this->propuestasDe($control, 'campos')
+            ->reject(fn ($p) => ($p->data['origen'] ?? null) === 'testeo')
+            ->values();
+    }
+
     /** Campos que ya tienen una propuesta pendiente: no se pueden volver a proponer. */
     private function camposConPropuesta(Collection $propuestas): array
     {
@@ -127,7 +135,7 @@ class FichaControl extends Component
     {
         $control = Control::with(['area', 'user', 'estado'])->findOrFail($this->controlId);
         $this->estadoModelo = $control->estado?->nombre ?? 'borrador';
-        $propuestas = $this->propuestasDe($control, 'campos');
+        $propuestas = $this->propuestasDeFicha($control);
 
         // Vista previa de la propagación: sólo los riesgos que el usuario puede ver,
         // el resto se cuenta. Se arma sólo si el default del form difiere del vigente.

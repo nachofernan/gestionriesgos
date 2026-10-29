@@ -3,7 +3,6 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\TipoArea;
-use App\Livewire\Auditoria\Control\Show\FichaControl;
 use App\Livewire\Auditoria\Riesgo\Show\GestionControles;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
@@ -19,7 +18,7 @@ use Tests\TestCase;
 /**
  * Efectividad del control (D-036): regula cuánto de su mitigación nominal (pivot
  * o mitigacion_default) descuenta del residual. floor(nominal × efectividad / 100),
- * por cada par control-riesgo (D-037). Se cambia como cualquier campo del control.
+ * por cada par control-riesgo (D-037). Cómo se cambia (testeos) lo cubre TesteoEfectividadTest.
  */
 class EfectividadControlTest extends TestCase
 {
@@ -134,69 +133,5 @@ class EfectividadControlTest extends TestCase
             ->call('activarEdicion')
             ->call('agregar', $nuevo->id)
             ->assertDispatched('residual-actualizado', valor: 12); // 16 - 2 - 2 (5 × 50% = 2,5 → 2)
-    }
-
-    #[Test]
-    public function un_cambio_de_efectividad_en_un_control_aprobado_va_como_propuesta(): void
-    {
-        $riesgo = $this->riesgoConControl(100, 4); // residual 12
-        $control = $riesgo->controles()->first();
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
-
-        Livewire::actingAs($gerente)
-            ->test(FichaControl::class, ['control' => $control])
-            ->call('activarEdicion')
-            ->set('form.efectividad', 50)
-            ->set('mensaje', 'La auditoría bajó su efectividad')
-            ->call('guardar')
-            ->assertHasNoErrors();
-
-        // Pendiente de aprobación: todavía no baja nada.
-        $this->assertEquals(100, $control->fresh()->efectividad);
-        $this->assertEquals(12, $this->residual($riesgo));
-
-        $propuesta = $control->actualizaciones()->propuestasPendientes()->sole();
-        $propuesta->marcarAprobada($comite);
-
-        $this->assertEquals(50, $control->fresh()->efectividad);
-        $this->assertEquals(14, $this->residual($riesgo)); // 16 - 2
-    }
-
-    #[Test]
-    public function un_gerente_de_otra_gerencia_no_puede_cambiar_la_efectividad(): void
-    {
-        $riesgo = $this->riesgoConControl(100, 4);
-        $control = $riesgo->controles()->first();
-        $otra = Area::create(['nombre' => 'Gerencia Finanzas', 'tipo' => TipoArea::Gerencia]);
-        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $otra->id]);
-
-        Livewire::actingAs($ajeno)
-            ->test(FichaControl::class, ['control' => $control])
-            ->set('form', ['nombre' => $control->nombre, 'descripcion' => null, 'mitigacion_default' => 4, 'efectividad' => 10])
-            ->set('mensaje', 'Intento ajeno')
-            ->call('guardar')
-            ->assertForbidden();
-
-        $this->assertEquals(100, $control->fresh()->efectividad);
-    }
-
-    #[Test]
-    public function la_efectividad_fuera_de_rango_se_rechaza(): void
-    {
-        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::aprobado()->id]);
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
-
-        foreach ([101, -1] as $valor) {
-            Livewire::actingAs($comite)
-                ->test(FichaControl::class, ['control' => $control])
-                ->call('activarEdicion')
-                ->set('form.efectividad', $valor)
-                ->set('mensaje', 'Fuera de rango')
-                ->call('guardar')
-                ->assertHasErrors('form.efectividad');
-        }
-
-        $this->assertEquals(100, $control->fresh()->efectividad);
     }
 }

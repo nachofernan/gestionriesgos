@@ -161,10 +161,11 @@ class Actualizacion extends Model implements HasMedia
      * $propagarMitigacion (sólo Control, cambiando mitigacion_default) marca la
      * propuesta con 'propagar_mitigacion': cuando se aplique, el nuevo default se
      * lleva a todos los riesgos asociados (Control::propagarMitigacionDefault()).
+     * $extra se mezcla en `data` (hoy, ['origen' => 'testeo'] de Control::registrarTesteo()).
      * Tests: un_empleado_edita_la_ficha_y_queda_propuesta_solo_con_los_campos_que_cambiaron,
      * como_propuesta_no_propaga_hasta_que_se_aplica.
      */
-    public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos, bool $propagarMitigacion = false): self
+    public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos, bool $propagarMitigacion = false, array $extra = []): self
     {
         $estadoEntidad = $entidad->estado?->nombre;
         $estadoId = static::estadoInicialParaCambio($usuario, $estadoEntidad);
@@ -188,7 +189,7 @@ class Actualizacion extends Model implements HasMedia
             }
         }
 
-        $data = ['tipo' => 'cambio', 'campos' => $campos];
+        $data = ['tipo' => 'cambio', 'campos' => $campos] + $extra;
         if (! empty($diff)) {
             $data['diff'] = ['campos' => $diff];
         }

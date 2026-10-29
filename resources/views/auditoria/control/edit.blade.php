@@ -50,16 +50,6 @@
                 @endif
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Efectividad (0–100 %) *
-                </label>
-                <input type="number" name="efectividad" value="{{ old('efectividad', $control->efectividad) }}" min="0" max="100"
-                    class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('efectividad') border-red-300 @enderror" />
-                <p class="text-[11px] text-gray-400 mt-1.5">Porcentaje de la mitigación que se aplica de verdad. Con 50 %, un control que mitiga 4 descuenta 2.</p>
-                @error('efectividad') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
-            </div>
-
             @include('auditoria.partials.select-area-responsable', [
                 'areaSeleccionada' => old('area_id', $control->area_id),
                 'responsableSeleccionado' => old('user_id', $control->user_id),
