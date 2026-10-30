@@ -59,6 +59,7 @@
         <div class="lg:col-span-8 space-y-5 order-2 lg:order-1">
             @livewire('auditoria.control.show.ficha-control', ['control' => $control])
             @livewire('auditoria.control.show.riesgos-control', ['control' => $control])
+            @livewire('auditoria.control.show.evidencia-control', ['control' => $control])
             @livewire('auditoria.actualizaciones.conversacion', ['modelType' => 'control', 'modelId' => $control->id])
         </div>
 

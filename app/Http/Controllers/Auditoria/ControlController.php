@@ -8,10 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\Testeo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * CRUD de Control más su ciclo de vida de estados: borrador → validado → aprobado,
@@ -149,6 +152,16 @@ class ControlController extends Controller
         }
 
         return redirect()->route('auditoria.controles.show', $control)->with('ok', 'Control actualizado.');
+    }
+
+    /** Adjunto de un testeo (D-040): lo descarga quien puede ver el control. */
+    public function descargarAdjuntoTesteo(Testeo $testeo, Media $media): BinaryFileResponse
+    {
+        $this->authorize('view', $testeo->control);
+
+        abort_unless($media->model_type === Testeo::class && $media->model_id === $testeo->id, 404);
+
+        return response()->download($media->getPath(), $media->file_name);
     }
 
     /** Los checks que validan el número del control (D-040): sólo claves de Control::CHECKS. */

@@ -65,6 +65,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
         ->name('controles.aprobar');
     Route::post('controles/{control}/rechazar', [ControlController::class, 'rechazar'])
         ->name('controles.rechazar');
+    Route::get('testeos/{testeo}/adjuntos/{media}', [ControlController::class, 'descargarAdjuntoTesteo'])
+        ->name('testeos.adjuntos.download');
     Route::post('controles/{control}/actualizaciones', [ActualizacionController::class, 'storeControl'])
         ->name('controles.actualizaciones.store');
 

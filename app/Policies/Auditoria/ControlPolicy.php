@@ -3,6 +3,7 @@
 namespace App\Policies\Auditoria;
 
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Riesgo;
 use App\Models\User;
 
 /**
@@ -49,6 +50,22 @@ class ControlPolicy
     {
         return $this->update($user, $control)
             || $user->puedeProponerComoAuditor($control->estado?->nombre);
+    }
+
+    /**
+     * Registrar un testeo de la evidencia de cumplimiento de la relación con
+     * $riesgo (D-040): sólo el auditor, de cualquier área, con el control aprobado
+     * y el riesgo validado o aprobado. Es lo único que se aplica sin pasar por el
+     * ciclo, por eso nadie más lo tiene, ni el comité.
+     * Tests: un_auditor_registra_un_testeo_y_se_aplica_en_el_acto,
+     * nadie_mas_que_el_auditor_registra_un_testeo,
+     * el_auditor_no_testea_si_el_control_no_esta_aprobado.
+     */
+    public function testear(User $user, Control $control, Riesgo $riesgo): bool
+    {
+        return $user->esAuditor()
+            && $control->estado?->nombre === 'aprobado'
+            && in_array($riesgo->estado?->nombre, ['validado', 'aprobado'], true);
     }
 
     public function delete(User $user, Control $control): bool
