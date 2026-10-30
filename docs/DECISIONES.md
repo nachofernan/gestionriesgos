@@ -1250,3 +1250,67 @@ presentación del sistema se quiere poder decir "todo lo cargado hasta acá lo a
 sobre `actualizaciones`. `ValidacionMasivaService::ejecutar()`, los cinco `*Controller::aprobar()` y
 `Actualizacion::marcarAprobada()` reciben el comité. Hay una habilidad nueva con sus 403. Los cambios
 que nacen aprobados pasan a tener `aprobado_por_id`. Tests en `ComiteAprobacionTest`.
+
+---
+
+## D-040 — Checks de mitigación y efectividad por relación control-riesgo (2026-10-30)
+
+**Decisión.** El número de un control deja de cargarse a mano y la efectividad deja de ser del
+control. Reemplaza la efectividad por control de D-036 y el testeo por propuesta de D-038.
+
+- **Número del control:** sale de 5 checks de 2 puntos cada uno (0–10), en `Control::CHECKS`. Los
+  checks son **provisorios**: hasta que lleguen los definitivos se cambian sólo en esa constante. Un
+  hook `saving` deriva `mitigacion_default` de `controles.checks`, por cualquier camino (alta, borrador
+  o propuesta aplicada). El modal genérico de actualizaciones ya no edita el número.
+- **La relación tiene dos valores** (pivot `ControlRiesgo`):
+  - El **número**, que carga quien gestiona el riesgo con los mismos checks. Puede tildar todos,
+    pero nunca pasa el número del control (`Control::numeroRelacion()` = `min(puntaje, tope)`). Una
+    relación con checks recalcula su número al guardarse, así que tampoco lo pasa una propuesta
+    vieja que se aplica después de que el control bajó. Sin checks ni número (null), la relación
+    hereda el número del control. Con número propio y sin checks (la carga inicial), lo conserva.
+  - La **efectividad**, que en pantalla se llama **"Evidencia de cumplimiento"**
+    (`control_riesgo.efectividad`, 0–100). Nace en 100.
+- **Cálculo:** cada relación mitiga `floor(número × efectividad / 100)`
+  (`ControlRiesgo::mitigacionEfectiva()`), sólo si el control está aprobado. El redondeo sigue
+  siendo el de D-037.
+- **Si el número del control baja:** las relaciones que lo pasan se recortan al nuevo tope y cada
+  riesgo afectado recibe una entrada aplicada en su historial (`origen = tope_control`). "Aplicar
+  también a los riesgos asociados" sigue igual: copia el número y los checks del control a todas las
+  relaciones (`Control::trasCambiarDefault()`).
+- **Dónde se edita:** desde el riesgo (`GestionControles`) y también desde el panel del control
+  (`RiesgosControl`). En los dos casos se autoriza `proponer` **sobre el riesgo** y se usa el circuito
+  de siempre: directo en borrador, en el acto si el estado lo amerita, propuesta si no
+  (`Actualizacion::registrarCambioPivot()`).
+- **Testeo:** sólo el **auditor** cambia la efectividad, con un testeo por relación (fecha propia no
+  futura, nuevo %, comentario obligatorio, adjuntos opcionales). Se aplica **en el acto**, sin gerente
+  ni comité: es lo único que nace aprobado. Requiere el control aprobado y el riesgo validado o
+  aprobado, de cualquier área (`ControlPolicy::testear()`). Un testeo sirve para una sola relación: si
+  vale para varias, se carga en cada una. Si el % no cambia, queda como confirmación.
+- **Tabla `testeos`** (append-only, con SoftDeletes y adjuntos de Spatie). La efectividad vigente vive
+  en el pivot. El historial del riesgo recibe una entrada aprobada con `origen = testeo` cuando el %
+  cambia. Bloque "Evidencia de cumplimiento" (`EvidenciaControl`) en el panel del control.
+
+**Motivo.** La mitigación de un control tenía que justificarse con puntos verificables, no con un
+número a ojo. Según auditoría, la evidencia de cumplimiento se mide en cada riesgo que el control
+mitiga y es responsabilidad del auditor. Por eso se mide por relación y no pasa por el ciclo.
+
+**Descartado.**
+- **Recortar sólo en el cálculo** (guardar 8 y mitigar 6): lo guardado y lo que se ve no coincidían.
+- **Que el número de la relación lo decida quien gestiona el control:** cambiaba la autorización
+  actual, en la que lo decide el área del riesgo.
+- **Testeo como `Actualizacion` del control:** filtrar por relación era torpe y faltaba la fecha
+  propia, que D-038 ya marcaba como motivo para pasar a una tabla.
+- **Migrar la efectividad vieja a las relaciones:** se re-sembró. La carga inicial conserva sus
+  números sin checks. 14 controles tienen número impar, que no sale de checks, y lo conservan hasta
+  que alguien los edite.
+
+**Efecto en cascada anotado.** Núcleo: cambian el residual, la autorización (habilidad nueva con sus
+403) y aparece un camino que nace aprobado sin pasar por el ciclo. Hay tres migraciones:
+`controles.checks` (y fuera `controles.efectividad`), `control_riesgo.checks/efectividad` y la tabla
+`testeos`. También una ruta nueva para descargar los adjuntos de un testeo.
+`Riesgo::getMitigacionControlesAttribute()` consume el pivot. `GestionControles` cambia
+`actualizarMitigacion()` por `alternarCheck()`. `PropuestasEnBloque` lleva los checks en las
+operaciones por elemento. Salen `EfectividadControl`, `Control::registrarTesteo()` y el parámetro
+`$extra` de `registrarCambioCampos()`. Cambia el axioma 2 de CLAUDE.md. Tests en
+`EfectividadRelacionTest`, `PropagacionMitigacionControlTest`, `ChecksRelacionTest` y
+`TesteoRelacionTest`. `EfectividadControlTest` y `TesteoEfectividadTest` se borraron.

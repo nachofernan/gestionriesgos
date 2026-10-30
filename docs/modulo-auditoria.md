@@ -44,7 +44,9 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | Modelo | Tabla | Descripción |
 |---|---|---|
 | `Riesgo` | `riesgos` | Entidad central. Tiene impacto, probabilidad y criticidad_alta. Calcula `valor_total` e `valor_residual` como accessors. |
-| `Control` | `controles` | Medidas de mitigación. Tiene `mitigacion_default` (1-10). El valor real se guarda en el pivot con el riesgo. `propagarMitigacionDefault()` lleva el default a todas las asociaciones (opcional al cambiarlo, ver D-017). `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). `efectividad` (0-100, default 100) regula cuánto de la mitigación se aplica y sólo cambia por un testeo (`registrarTesteo()`, D-038); `mitigacionEfectiva()` / `aplicarEfectividad()` son la regla única del redondeo (D-036). |
+| `Control` | `controles` | Medidas de mitigación. `mitigacion_default` (0-10) sale de `checks` (5 de `Control::CHECKS`, 2 puntos cada uno, hook `saving`) y es el tope de cada relación (D-040). `trasCambiarDefault()`: si el número cambia, propaga a todas las relaciones (opcional, D-017) o recorta las que lo pasan. `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). `aplicarEfectividad()` es la regla única del redondeo (D-037). |
+| `ControlRiesgo` | `control_riesgo` | Pivot de la relación control-riesgo (D-040): `mitigacion` (null = hereda el del control), `checks` (con checks, el número se recalcula al guardar: `min(puntaje, tope)`) y `efectividad` (0-100, "Evidencia de cumplimiento", nace en 100). `mitigacionEfectiva()` es lo que descuenta la relación. |
+| `Testeo` | `testeos` | Testeo de la evidencia de cumplimiento de una relación (D-040): fecha, % antes/después, comentario, adjuntos. Append-only. Lo carga sólo el auditor y se aplica en el acto (`Testeo::registrar()`). |
 | `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `peis` (boolean): si es true, requiere al menos un `PeisItem` asociado (ver validación en `ObjetivoController`). |
 | `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
 | `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
@@ -74,7 +76,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 ### Accessors calculados en Riesgo
 
 - **`valor_total`**: `impacto + probabilidad` (0–20)
-- **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control, y la regula por la `efectividad` del control: `floor(nominal × efectividad / 100)`, por cada control antes de sumar (D-036, D-037).
+- **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control, y la regula por la `efectividad` **de esa relación**: `floor(número × efectividad / 100)`, por cada relación antes de sumar (`ControlRiesgo::mitigacionEfectiva()`, D-037, D-040).
 - **`mitigacion_planes`**: Σ `pivot->mitigacion` de los planes **aprobados**, en proporción al promedio exacto de avance de sus tareas aprobadas: `floor(nominal × Σ avance / (cantidad × 100))` (`PlanAccion::mitigacionEfectiva()` / `aplicarAvance()`, D-037). Sin tareas aprobadas, 0.
 - **`valor_residual`**: `valor_total − mitigacion_controles − mitigacion_planes` (mínimo 0).
 
@@ -243,13 +245,13 @@ app/Livewire/Auditoria/
 │   ├── ResumenPropuestas.php   — banner con las propuestas pendientes del riesgo
 │   ├── FichaRiesgo.php         — datos propios del riesgo, editables en el bloque
 │   ├── InfoRiesgo.php          — tarjeta Valor: total, desglose de mitigación, residual
-│   ├── GestionControles.php    — maneja controles de un riesgo (con mitigacion editable)
+│   ├── GestionControles.php    — maneja controles de un riesgo (checks de cada relación, D-040)
 │   ├── GestionObjetivos.php    — maneja objetivos de un riesgo (mínimo 1 requerido)
 │   └── GestionPlanes.php       — maneja planes de acción de un riesgo
 ├── Control/Show/
-│   ├── FichaControl.php        — datos del control, editables en el bloque (con propagación del default)
-│   ├── EfectividadControl.php  — bloque Efectividad: testeos (nuevo %, motivo, adjuntos), única vía para cambiarla (D-038)
-│   ├── RiesgosControl.php      — riesgos que mitiga (sólo lectura)
+│   ├── FichaControl.php        — datos y checks del control, editables en el bloque (propaga o recorta)
+│   ├── RiesgosControl.php      — riesgos que mitiga, con los checks de cada relación editables (D-040)
+│   ├── EvidenciaControl.php    — Evidencia de cumplimiento: testeos por relación, sólo el auditor (D-040)
 │   └── InfoControl.php         — tarjeta Mitigación del lateral
 ├── Objetivo/Show/
 │   ├── FichaObjetivo.php       — datos del objetivo, editables en el bloque

@@ -65,18 +65,26 @@ class ControlSeeder extends Seeder
                 $control = Control::create([
                     'nombre' => $datos['nombre'],
                     'descripcion' => $datos['descripcion'],
-                    'mitigacion_default' => rand(1, 10),
+                    // D-040: el número sale de los checks (hook de Control).
+                    'checks' => $this->checksAlAzar(),
                     'user_id' => $user->id,
                     'area_id' => $user->area_id,
                     'estado_id' => $estadoIds[$pool[array_rand($pool)]],
                 ]);
 
                 $control->riesgos()->attach([
-                    $riesgoId => ['mitigacion' => rand(0, 1) ? null : rand(1, 10)],
+                    // La mitad hereda el número del control; el resto, sus propios checks (sin pasar el tope).
+                    $riesgoId => rand(0, 1) ? ['mitigacion' => null] : ['checks' => $this->checksAlAzar()],
                 ]);
 
                 $controlCounter++;
             }
         }
+    }
+
+    /** Entre 1 y 5 checks al azar. */
+    private function checksAlAzar(): array
+    {
+        return (array) array_rand(array_flip(array_keys(Control::CHECKS)), rand(1, count(Control::CHECKS)));
     }
 }
