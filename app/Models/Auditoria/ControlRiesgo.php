@@ -15,6 +15,25 @@ class ControlRiesgo extends Pivot
 {
     protected $table = 'control_riesgo';
 
+    /**
+     * Una relación cargada con checks calcula su número al guardar, por cualquier
+     * camino (sync, propuesta aplicada, panel del control), así nunca pasa el tope
+     * aunque el control haya bajado mientras la propuesta esperaba. Sin checks
+     * (null) conserva el número tal cual o hereda el del control.
+     * Test: una_propuesta_vieja_no_pasa_el_tope_si_el_control_bajo.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (ControlRiesgo $relacion) {
+            if ($relacion->checks === null) {
+                return;
+            }
+            $tope = (int) Control::withTrashed()->whereKey($relacion->control_id)->value('mitigacion_default');
+            $relacion->checks = Control::normalizarChecks($relacion->checks);
+            $relacion->mitigacion = Control::numeroRelacion($relacion->checks, $tope);
+        });
+    }
+
     protected $casts = [
         'checks' => 'array',
         'mitigacion' => 'integer',

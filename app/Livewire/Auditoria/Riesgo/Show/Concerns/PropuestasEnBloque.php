@@ -90,7 +90,7 @@ trait PropuestasEnBloque
             ->unique()->values()->all();
     }
 
-    /** Guarda de borde para agregar()/quitar()/actualizarMitigacion(): ver idsConPropuesta(). */
+    /** Guarda de borde para agregar()/quitar()/actualizarMitigacion()/alternarCheck(): ver idsConPropuesta(). */
     private function elementoConPropuesta(string $relacion, int $id): bool
     {
         $entidad = $this->entidadDelBloque();
@@ -120,7 +120,7 @@ trait PropuestasEnBloque
     {
         $propuestas = [];
         foreach ($diffRel['agrega'] ?? [] as $item) {
-            $pivot = array_key_exists('mitigacion', $item) ? ['mitigacion' => $item['mitigacion']] : [];
+            $pivot = array_intersect_key($item, array_flip(['mitigacion', 'checks']));
             $propuestas[] = ["Agregar {$sustantivo} «{$item['nombre']}»", ['agregar' => [$item['id'] => $pivot]], ['agrega' => [$item]]];
         }
         foreach ($diffRel['quita'] ?? [] as $item) {
@@ -129,7 +129,7 @@ trait PropuestasEnBloque
         foreach ($diffRel['cambia'] ?? [] as $item) {
             $propuestas[] = [
                 "Mitigación de «{$item['nombre']}»: {$item['mitigacion_antes']} → {$item['mitigacion_despues']}",
-                ['actualizar' => [$item['id'] => ['mitigacion' => $item['mitigacion_despues']]]],
+                ['actualizar' => [$item['id'] => ['mitigacion' => $item['mitigacion_despues']] + array_intersect_key($item, array_flip(['checks']))]],
                 ['cambia' => [$item]],
             ];
         }

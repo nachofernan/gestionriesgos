@@ -33,7 +33,7 @@
                     </p>
                     <p class="text-[11px] text-gray-500 truncate">
                         {{ $ctrl['area'] ?? '—' }}
-                        @if($editando) · default {{ $ctrl['mitigacion_default'] }} @endif
+                        @if($editando) · tope {{ $ctrl['mitigacion_default'] }} @endif
                         @if(($ctrl['efectividad'] ?? 100) < 100) · efectividad {{ $ctrl['efectividad'] }}% @endif
                     </p>
                 </div>
@@ -47,12 +47,13 @@
                 @endforeach
 
                 @if($editando)
-                    <label class="flex items-center gap-1 shrink-0 text-[10px] font-bold text-gray-500">
-                        mit.
-                        <input type="number" value="{{ $ctrl['mitigacion'] }}" min="0" max="10"
-                            wire:change="actualizarMitigacion({{ $ctrl['id'] }}, $event.target.value)" @disabled($bloqueado)
-                            class="w-14 border-gray-200 rounded-lg px-2 py-1 text-xs text-center focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-400" />
-                    </label>
+                    @include('auditoria.partials.checks-relacion', [
+                        'accion' => "alternarCheck({$ctrl['id']}, '%s')",
+                        'checks' => $ctrl['checks'] ?? [],
+                        'numero' => $ctrl['mitigacion'],
+                        'tope' => $ctrl['mitigacion_default'],
+                        'deshabilitado' => $bloqueado,
+                    ])
                     <button type="button" wire:click="quitar({{ $ctrl['id'] }})" title="Quitar" @disabled($bloqueado)
                         class="text-gray-300 hover:text-red-500 transition-colors shrink-0 disabled:opacity-30 disabled:hover:text-gray-300 disabled:cursor-not-allowed">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>

@@ -144,6 +144,18 @@ class Control extends Model implements HasMedia
         return count(self::normalizarChecks($checks)) * self::PUNTOS_POR_CHECK;
     }
 
+    /**
+     * Número de una relación cargada con checks (D-040): su puntaje, sin pasar el
+     * número del control ($tope). Se pueden tildar todos, pero el control no
+     * mitiga en un riesgo más de lo que vale. Lo aplica ControlRiesgo al guardar y
+     * lo usa la preview de GestionControles.
+     * Test: el_numero_de_la_relacion_no_pasa_el_tope_aunque_se_tilde_todo.
+     */
+    public static function numeroRelacion(?array $checks, int $tope): int
+    {
+        return min(self::puntajeChecks($checks), $tope);
+    }
+
     /** Sólo las claves válidas, sin repetir y en el orden de CHECKS: así dos selecciones iguales comparan iguales. */
     public static function normalizarChecks(?array $checks): array
     {

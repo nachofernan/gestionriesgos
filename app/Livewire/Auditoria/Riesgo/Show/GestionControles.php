@@ -110,15 +110,25 @@ class GestionControles extends Component
         $this->modalAbierto = false;
     }
 
-    public function actualizarMitigacion(int $controlId, int $valor): void
+    /**
+     * Tilda o destilda un check de la relación con un control (D-040). El número
+     * pasa a ser el puntaje sin superar el del control: Control::numeroRelacion(),
+     * la misma regla que aplica ControlRiesgo al guardar.
+     * Test: el_numero_de_la_relacion_no_pasa_el_tope_aunque_se_tilde_todo.
+     */
+    public function alternarCheck(int $controlId, string $clave): void
     {
-        if ($this->elementoConPropuesta('controles', $controlId)) {
+        if ($this->elementoConPropuesta('controles', $controlId) || ! array_key_exists($clave, Control::CHECKS)) {
             return;
         }
 
         foreach ($this->seleccionados as &$item) {
             if ($item['id'] === $controlId) {
-                $item['mitigacion'] = max(0, min(10, $valor));
+                $checks = $item['checks'] ?? [];
+                $checks = in_array($clave, $checks, true) ? array_diff($checks, [$clave]) : [...$checks, $clave];
+                $item['checks'] = Control::normalizarChecks($checks);
+                $item['hereda'] = false;
+                $item['mitigacion'] = Control::numeroRelacion($item['checks'], (int) $item['mitigacion_default']);
                 break;
             }
         }
@@ -146,6 +156,8 @@ class GestionControles extends Component
             'descripcion' => $control->descripcion,
             'mitigacion' => $control->mitigacion_default,
             'mitigacion_default' => $control->mitigacion_default,
+            // Nace con los checks del control (null si el control no tiene: hereda el número).
+            'checks' => $control->checks === null ? null : Control::normalizarChecks($control->checks),
             // Si se quitó y se vuelve a agregar en la misma edición, el sync conserva la efectividad guardada.
             'efectividad' => (int) ($control->riesgos()->whereKey($this->riesgoId)->first()?->pivot->efectividad ?? 100),
             'estado' => $control->estado?->nombre ?? 'borrador',
@@ -185,13 +197,13 @@ class GestionControles extends Component
 
         $sync = [];
         foreach ($this->seleccionados as $item) {
-            $sync[(string) $item['id']] = ['mitigacion' => $item['mitigacion']];
+            $sync[(string) $item['id']] = self::pivotDe($item);
         }
         // Los ocultos (borrado / no visibles) se re-agregan al sync (mitigación
         // persistida) para no detacharlos.
         foreach ($this->ocultosIds as $id) {
             $antes = $riesgo->controles->firstWhere('id', $id);
-            $sync[(string) $id] = ['mitigacion' => $antes?->pivot->mitigacion];
+            $sync[(string) $id] = ['mitigacion' => $antes?->pivot->mitigacion] + ($antes?->pivot->checks !== null ? ['checks' => $antes->pivot->checks] : []);
         }
 
         $diffRel = $this->construirDiff($riesgo);
@@ -266,23 +278,56 @@ class GestionControles extends Component
             ->reject(fn ($c) => $c->estado?->nombre === 'borrado' || ! $user->can('view', $c))
             // Mismo valor efectivo que muestra cargar() y descuenta valor_residual: sin el
             // fallback, un pivot en null se leía como "cambió a N" aunque nadie lo tocara.
-            ->mapWithKeys(fn ($c) => [$c->id => ['nombre' => $c->nombre, 'mitigacion' => (int) ($c->pivot->mitigacion ?? $c->mitigacion_default)]]);
+            ->mapWithKeys(fn ($c) => [$c->id => [
+                'nombre' => $c->nombre,
+                'mitigacion' => (int) ($c->pivot->mitigacion ?? $c->mitigacion_default),
+                'checks' => $this->checksDeRelacion($c),
+            ]]);
         $antesIds = $antesMap->keys();
         $despuesIds = collect($this->seleccionados)->pluck('id');
 
         return array_filter([
             'agrega' => collect($this->seleccionados)
                 ->filter(fn ($c) => ! $antesIds->contains($c['id']))
-                ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion' => $c['mitigacion']])
+                ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre']] + self::pivotDe($c))
                 ->values()->toArray(),
             'quita' => $antesMap->filter(fn ($v, $k) => ! $despuesIds->contains($k))
                 ->map(fn ($v, $k) => ['id' => $k, 'nombre' => $v['nombre']])
                 ->values()->toArray(),
+            // Cambia el número o, con el mismo número, los checks que lo justifican.
             'cambia' => collect($this->seleccionados)
-                ->filter(fn ($c) => $antesIds->contains($c['id']) && $antesMap[$c['id']]['mitigacion'] !== (int) $c['mitigacion'])
-                ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion_antes' => $antesMap[$c['id']]['mitigacion'], 'mitigacion_despues' => $c['mitigacion']])
+                ->filter(fn ($c) => $antesIds->contains($c['id'])
+                    && ($antesMap[$c['id']]['mitigacion'] !== (int) $c['mitigacion'] || $antesMap[$c['id']]['checks'] !== ($c['checks'] ?? null)))
+                ->map(fn ($c) => ['id' => $c['id'], 'nombre' => $c['nombre'], 'mitigacion_antes' => $antesMap[$c['id']]['mitigacion'], 'mitigacion_despues' => $c['mitigacion']]
+                    + (($c['checks'] ?? null) !== null ? ['checks' => $c['checks']] : []))
                 ->values()->toArray(),
         ], fn ($a) => ! empty($a));
+    }
+
+    /**
+     * Checks vigentes de una relación: los suyos o, si hereda el número del
+     * control (pivot sin número ni checks), los del control. Null en una relación
+     * con número propio y sin checks: conserva su número tal cual.
+     */
+    private function checksDeRelacion(Control $control): ?array
+    {
+        $checks = $control->pivot->checks ?? ($control->pivot->mitigacion === null ? $control->checks : null);
+
+        return $checks === null ? null : Control::normalizarChecks($checks);
+    }
+
+    /**
+     * Lo que se guarda en el pivot por un control seleccionado. Una relación que
+     * hereda sigue en null mientras nadie toque sus checks, así acompaña los
+     * cambios del control. Los checks van sólo si los tiene.
+     */
+    private static function pivotDe(array $item): array
+    {
+        if ($item['hereda'] ?? false) {
+            return ['mitigacion' => null];
+        }
+
+        return ['mitigacion' => $item['mitigacion']] + (($item['checks'] ?? null) !== null ? ['checks' => $item['checks']] : []);
     }
 
     /**
@@ -349,6 +394,8 @@ class GestionControles extends Component
                 'descripcion' => $c->descripcion,
                 'mitigacion' => $c->pivot->mitigacion ?? $c->mitigacion_default,
                 'mitigacion_default' => $c->mitigacion_default,
+                'checks' => $this->checksDeRelacion($c),
+                'hereda' => $c->pivot->mitigacion === null && $c->pivot->checks === null,
                 'efectividad' => (int) $c->pivot->efectividad,
                 'estado' => $c->estado?->nombre ?? 'borrador',
                 'estado_color' => $c->estado?->color ?? 'gray',

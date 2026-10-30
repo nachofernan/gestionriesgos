@@ -437,6 +437,62 @@ class Actualizacion extends Model implements HasMedia
     }
 
     /**
+     * Registra el cambio del pivot de un solo elemento de una relación (hoy, los
+     * checks de una relación control-riesgo desde el panel del control, D-040).
+     * Misma regla de estado inicial y de aplicación que registrarCambioCampos().
+     * Es la misma operación 'actualizar' que arman las propuestas por elemento
+     * (PropuestasEnBloque), así se valida y se aplica igual. En una entidad en
+     * borrador se aplica directo, como la edición del borrador. $diff es el
+     * elemento de 'cambia' (id, nombre, mitigacion_antes/despues) para el
+     * historial. Quien llama ya autorizó 'proponer' sobre $entidad.
+     * Tests: un_gerente_cambia_los_checks_de_una_relacion_desde_el_control,
+     * un_empleado_propone_los_checks_desde_el_control_y_se_aplican_al_validar.
+     */
+    public static function registrarCambioPivot(Model $entidad, User $usuario, string $mensaje, string $relacion, int $id, array $pivot, array $diff): self
+    {
+        $estadoEntidad = $entidad->estado?->nombre;
+        $data = [
+            'relaciones' => [$relacion => ['actualizar' => [$id => $pivot]]],
+            'diff' => ['relaciones' => [$relacion => ['cambia' => [$diff]]]],
+        ];
+
+        if ($estadoEntidad === 'borrador') {
+            return DB::transaction(function () use ($entidad, $usuario, $mensaje, $relacion, $id, $pivot, $data) {
+                $entidad->$relacion()->updateExistingPivot($id, $pivot);
+
+                return $entidad->actualizaciones()->create([
+                    'user_id' => $usuario->id,
+                    'mensaje' => $mensaje,
+                    'estado_id' => Estado::borrador()->id,
+                    'data' => ['tipo' => 'edicion', 'diff' => $data['diff']],
+                ]);
+            });
+        }
+
+        $estadoId = static::estadoInicialParaCambio($usuario, $estadoEntidad);
+        $aplicar = static::seAplicaAlRegistrar($estadoId, $estadoEntidad);
+        $data = ['tipo' => 'cambio'] + $data;
+        if ($aplicar) {
+            $data['activated_by'] = $usuario->name;
+        }
+
+        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $relacion, $id, $pivot, $estadoId, $data, $aplicar) {
+            $actualizacion = $entidad->actualizaciones()->create([
+                'user_id' => $usuario->id,
+                'mensaje' => $mensaje,
+                'estado_id' => $estadoId,
+                'data' => $data,
+            ]);
+
+            if ($aplicar) {
+                $entidad->$relacion()->updateExistingPivot($id, $pivot);
+            }
+
+            return $actualizacion;
+        });
+    }
+
+    /**
      * Si un cambio recién registrado se aplica en el acto: nace aprobado, o nace
      * validado sobre una entidad que ya está validada.
      */
