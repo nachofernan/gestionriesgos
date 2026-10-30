@@ -170,7 +170,10 @@ class RiesgoController extends Controller
         // el plan en proporción a su avance).
         $riesgo->load(['tipoRiesgo', 'estado', 'user', 'area', 'sedes', 'dimensiones', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado']);
 
-        return view('auditoria.riesgo.show', compact('riesgo'));
+        // Comité de la aprobación vigente (D-039), para el encabezado.
+        $comite = Actualizacion::comiteVigenteDe($riesgo);
+
+        return view('auditoria.riesgo.show', compact('riesgo', 'comite'));
     }
 
     public function edit(Riesgo $riesgo)

@@ -74,7 +74,10 @@ class ControlController extends Controller
         // por visibilidad) los carga RiesgosControl, que se refresca solo.
         $control->load(['estado', 'area', 'user']);
 
-        return view('auditoria.control.show', compact('control'));
+        // Comité de la aprobación vigente (D-039), para el encabezado.
+        $comite = Actualizacion::comiteVigenteDe($control);
+
+        return view('auditoria.control.show', compact('control', 'comite'));
     }
 
     public function edit(Control $control)

@@ -46,6 +46,8 @@
             $tipo === 'creacion' => ['alta', 'bg-gray-500', 'Alta', 'text-gray-700 bg-gray-100'],
             // Testeo de efectividad sin cambio de valor (D-038): informativo, fuera del ciclo.
             $tipo === 'testeo' => ['aplicada', 'bg-indigo-400', 'Testeo', 'text-indigo-700 bg-indigo-100'],
+            // Carga o corrección del comité de una aprobación (D-039).
+            $tipo === 'comite' => ['estado', 'bg-violet-500', 'Comité', 'text-violet-700 bg-violet-100'],
             in_array($tipo, ['validacion', 'activacion']) => ['estado', 'bg-blue-500', 'Cambio de estado', 'text-blue-700 bg-blue-100'],
             default => ['aplicada', 'bg-emerald-500', 'Aplicada', 'text-emerald-700 bg-emerald-100'],
         };
@@ -101,7 +103,7 @@
                             {{ $actualizacion->user?->name ?? '—' }} · {{ $actualizacion->created_at?->diffForHumans() }}
                         </span>
                     </span>
-                    @if($x['pendiente'] || $x['grupo'] === 'rechazada' || in_array($x['tipo'], ['estado_tarea', 'testeo']))
+                    @if($x['pendiente'] || $x['grupo'] === 'rechazada' || in_array($x['tipo'], ['estado_tarea', 'testeo', 'comite']))
                         <span class="mt-0.5 shrink-0 text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 {{ $x['clase'] }}">{{ $x['resultado'] }}</span>
                     @elseif($x['chipTarea'])
                         <span class="mt-0.5 shrink-0 text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 {{ $x['chipTarea'][1] }}">{{ $x['chipTarea'][0] }}</span>

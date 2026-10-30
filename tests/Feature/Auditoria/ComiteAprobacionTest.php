@@ -174,4 +174,129 @@ class ComiteAprobacionTest extends TestCase
         $this->assertSame('3', $propuesta->comite_numero);
         $this->assertNull($propuesta->comite_fecha);
     }
+
+    private function controlAprobadoPorRuta(array $datos = []): Control
+    {
+        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
+        $this->actingAs($this->comite)->post(route('auditoria.controles.aprobar', $control), $datos);
+
+        return $control->fresh();
+    }
+
+    private function cargarComite($control, ?int $aprobacionId, array $comite, ?User $usuario = null)
+    {
+        return Livewire::actingAs($usuario ?? $this->comite)
+            ->test(GestionActualizaciones::class, ['modelType' => 'control', 'modelId' => $control->id, 'variante' => 'timeline'])
+            ->dispatch('registrar-comite', aprobacionId: $aprobacionId, comite: $comite);
+    }
+
+    #[Test]
+    public function una_segunda_carga_corrige_el_comite_sin_tocar_la_aprobacion(): void
+    {
+        $control = $this->controlAprobadoPorRuta();
+        $aprobacion = $this->aprobacionDe($control);
+
+        $this->cargarComite($control, $aprobacion->id, ['numero' => '10', 'fecha' => '2026-08-01'])->assertHasNoErrors();
+        $this->cargarComite($control, $aprobacion->id, ['numero' => '11', 'fecha' => ''])->assertHasNoErrors();
+
+        $aprobacion->refresh();
+        $this->assertNull($aprobacion->comite_numero, 'la aprobación original no se reescribe');
+        $this->assertCount(2, $aprobacion->registrosComite);
+        $this->assertSame(['numero' => '11', 'fecha' => null], $aprobacion->comiteVigente());
+        $this->assertSame(['numero' => '11', 'fecha' => null], Actualizacion::comiteVigenteDe($control));
+    }
+
+    #[Test]
+    public function el_comite_se_carga_desde_la_ficha_de_un_elemento_sin_registro_de_aprobacion(): void
+    {
+        // Como lo sembrado: aprobado sin "Aprobado por…" en el historial.
+        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::aprobado()->id]);
+        $this->assertNull(Actualizacion::comiteVigenteDe($control));
+
+        $this->cargarComite($control, null, ['numero' => '1', 'fecha' => '2026-10-01'])
+            ->assertHasNoErrors();
+
+        $registro = $control->actualizaciones()->where('data->tipo', 'comite')->sole();
+        $this->assertNull($registro->comite_de_id);
+        $this->assertSame('1', Actualizacion::comiteVigenteDe($control)['numero']);
+    }
+
+    #[Test]
+    public function desde_la_ficha_se_carga_sobre_la_ultima_aprobacion(): void
+    {
+        $control = $this->controlAprobadoPorRuta(['comite' => ['numero' => '4']]);
+
+        $this->cargarComite($control, null, ['numero' => '5'])->assertHasNoErrors();
+
+        $aprobacion = $this->aprobacionDe($control);
+        $this->assertSame('4', $aprobacion->comite_numero);
+        $this->assertSame($aprobacion->id, $control->actualizaciones()->where('data->tipo', 'comite')->sole()->comite_de_id);
+        $this->assertSame('5', Actualizacion::comiteVigenteDe($control)['numero']);
+    }
+
+    #[Test]
+    public function la_ficha_y_la_actividad_muestran_el_comite(): void
+    {
+        $control = $this->controlAprobadoPorRuta(['comite' => ['numero' => '4', 'fecha' => '2026-10-15']]);
+
+        $this->actingAs($this->comite)->get(route('auditoria.controles.show', $control))
+            ->assertOk()
+            ->assertSee('Comité N° 4 · 15/10/2026')
+            ->assertSee('Corregir comité');
+
+        Livewire::actingAs($this->comite)
+            ->test(GestionActualizaciones::class, ['modelType' => 'control', 'modelId' => $control->id, 'variante' => 'timeline'])
+            ->call('abrirActividad')
+            ->assertSee('Comité N° 4 · 15/10/2026');
+
+        $this->actingAs($this->gerente)->get(route('auditoria.controles.show', $control))
+            ->assertOk()
+            ->assertDontSee('Corregir comité');
+    }
+
+    #[Test]
+    public function cargar_el_comite_exige_numero_o_fecha(): void
+    {
+        $control = $this->controlAprobadoPorRuta();
+
+        $this->cargarComite($control, null, ['numero' => '', 'fecha' => ''])->assertHasErrors('comite.numero');
+        $this->assertSame(0, $control->actualizaciones()->where('data->tipo', 'comite')->count());
+    }
+
+    #[Test]
+    public function solo_el_comite_carga_el_comite_y_solo_sobre_una_aprobacion(): void
+    {
+        $control = $this->controlAprobadoPorRuta();
+        $aprobacion = $this->aprobacionDe($control);
+        $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
+
+        // Gerente y empleado del área: 403.
+        foreach ([$this->gerente, $empleado] as $usuario) {
+            $this->assertFalse($usuario->can('registrarComite', [Actualizacion::class, $control, $aprobacion]));
+            $this->cargarComite($control, $aprobacion->id, ['numero' => '1'], $usuario)->assertForbidden();
+        }
+
+        // Una propuesta todavía validada no es una aprobación.
+        $propuesta = $control->actualizaciones()->create([
+            'user_id' => $this->gerente->id, 'mensaje' => 'Cambio', 'estado_id' => Estado::validado()->id,
+            'data' => ['tipo' => 'cambio', 'campos' => ['nombre' => 'Otro']],
+        ]);
+        $this->cargarComite($control, $propuesta->id, ['numero' => '1'])->assertForbidden();
+
+        // Un registro de comité tampoco: se corrige sobre la aprobación.
+        $this->cargarComite($control, $aprobacion->id, ['numero' => '1']);
+        $registro = $control->actualizaciones()->where('data->tipo', 'comite')->sole();
+        $this->cargarComite($control, $registro->id, ['numero' => '2'])->assertForbidden();
+
+        // La aprobación de otro elemento, desde este: 403.
+        $otro = $this->controlAprobadoPorRuta();
+        $this->cargarComite($control, $this->aprobacionDe($otro)->id, ['numero' => '1'])->assertForbidden();
+
+        // Un elemento que no está aprobado: 403.
+        $validado = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
+        $this->assertFalse($this->comite->can('registrarComite', [Actualizacion::class, $validado]));
+        $this->cargarComite($validado, null, ['numero' => '1'])->assertForbidden();
+
+        $this->assertSame(1, Actualizacion::where('data->tipo', 'comite')->count());
+    }
 }

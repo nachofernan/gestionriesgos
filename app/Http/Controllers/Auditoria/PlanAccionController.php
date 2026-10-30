@@ -78,7 +78,10 @@ class PlanAccionController extends Controller
         // refresca solo cuando cambian las tareas.
         $planAccion->load(['estado', 'tareas.estado', 'user', 'area']);
 
-        return view('auditoria.planaccion.show', compact('planAccion'));
+        // Comité de la aprobación vigente (D-039), para el encabezado.
+        $comite = Actualizacion::comiteVigenteDe($planAccion);
+
+        return view('auditoria.planaccion.show', compact('planAccion', 'comite'));
     }
 
     public function edit(PlanAccion $planAccion)

@@ -154,6 +154,87 @@ class Actualizacion extends Model implements HasMedia
     }
 
     /**
+     * Si es una aprobación a la que se le puede cargar el comité (D-039): la de un
+     * elemento ("Aprobado por…", sin `data`) o una propuesta o edición que alguien
+     * aprobó (`aprobado_por_id`). No lo son los registros de comité ni las altas o
+     * cambios que quedaron aprobados de rebote al aprobarse el elemento.
+     */
+    public function esAprobacion(): bool
+    {
+        if ($this->estado?->nombre !== 'aprobado' || $this->comite_de_id !== null || ($this->data['tipo'] ?? null) === 'comite') {
+            return false;
+        }
+
+        return $this->aprobado_por_id !== null
+            || ($this->data === null && str_starts_with($this->mensaje, 'Aprobado por'));
+    }
+
+    /**
+     * Última aprobación del elemento ("Aprobado por…"). Null si se aprobó sin dejar
+     * registro, como lo que cargan los seeders.
+     */
+    public static function ultimaAprobacionDe(Model $entidad): ?self
+    {
+        return $entidad->actualizaciones()
+            ->reorder()
+            ->with('registrosComite')
+            ->where('estado_id', Estado::aprobado()->id)
+            ->whereNull('data')
+            ->whereNull('comite_de_id')
+            ->where('mensaje', 'like', 'Aprobado por%')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Comité vigente del elemento, para su ficha (D-039): el de su última aprobación
+     * o, si se aprobó sin registro, el último registro de comité suelto. Null si
+     * nunca se cargó.
+     * Test: el_comite_se_carga_desde_la_ficha_de_un_elemento_sin_registro_de_aprobacion.
+     */
+    public static function comiteVigenteDe(Model $entidad): ?array
+    {
+        if ($aprobacion = static::ultimaAprobacionDe($entidad)) {
+            return $aprobacion->comiteVigente();
+        }
+
+        $suelto = $entidad->actualizaciones()
+            ->reorder()
+            ->whereNull('comite_de_id')
+            ->where('data->tipo', 'comite')
+            ->orderByDesc('id')
+            ->first();
+
+        return $suelto?->comiteVigente();
+    }
+
+    /**
+     * Carga o corrige el comité de una aprobación con una entrada nueva (D-039,
+     * historial append-only): no toca la aprobación original. Sin $aprobacion es
+     * el comité de un elemento aprobado sin registro de aprobación (lo sembrado).
+     * Quien llama ya autorizó con ActualizacionPolicy::registrarComite() y validó.
+     * Tests: una_segunda_carga_corrige_el_comite_sin_tocar_la_aprobacion,
+     * el_comite_se_carga_desde_la_ficha_de_un_elemento_sin_registro_de_aprobacion.
+     */
+    public static function registrarComite(User $usuario, Model $entidad, ?self $aprobacion, array $comite): self
+    {
+        $columnas = static::columnasComite($comite);
+        $detalle = collect([
+            $columnas['comite_numero'] ? 'N° '.$columnas['comite_numero'] : null,
+            $columnas['comite_fecha'] ? 'del '.Carbon::parse($columnas['comite_fecha'])->format('d/m/Y') : null,
+        ])->filter()->join(' ');
+        $de = $aprobacion ? 'la aprobación del '.$aprobacion->created_at->format('d/m/Y') : 'la aprobación';
+
+        return $entidad->actualizaciones()->create([
+            'user_id' => $usuario->id,
+            'mensaje' => "Comité {$detalle} para {$de}",
+            'estado_id' => Estado::aprobado()->id,
+            'comite_de_id' => $aprobacion?->id,
+            'data' => ['tipo' => 'comite'],
+        ] + $columnas);
+    }
+
+    /**
      * Comité que vale para esta aprobación: el último registro que lo completó o
      * corrigió y, si no hay, el propio. Null si nunca se cargó. Requiere
      * `registrosComite` eager-loaded para no consultar por fila.

@@ -4,6 +4,7 @@ namespace App\Policies\Auditoria;
 
 use App\Models\Auditoria\Actualizacion;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Autorización sobre transiciones de una Actualizacion individual. La Actualizacion
@@ -41,6 +42,26 @@ class ActualizacionPolicy
         }
 
         return $this->validar($user, $actualizacion);
+    }
+
+    /**
+     * Cargar o corregir el comité de una aprobación (D-039): sólo el comité y sobre
+     * un elemento aprobado. Con $aprobacion, tiene que ser una aprobación de ese
+     * mismo elemento; sin ella, es la aprobación vigente desde la ficha. Se invoca
+     * como can('registrarComite', [Actualizacion::class, $entidad, $aprobacion]).
+     * Test: solo_el_comite_carga_el_comite_y_solo_sobre_una_aprobacion.
+     */
+    public function registrarComite(User $user, Model $entidad, ?Actualizacion $aprobacion = null): bool
+    {
+        if (! $user->esComite() || $entidad->estado?->nombre !== 'aprobado') {
+            return false;
+        }
+
+        return $aprobacion === null || (
+            $aprobacion->esAprobacion()
+            && $aprobacion->actualizable_type === $entidad->getMorphClass()
+            && (int) $aprobacion->actualizable_id === $entidad->id
+        );
     }
 
     /** Sólo quien la creó, y sólo mientras sigue en borrador. */

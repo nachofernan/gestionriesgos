@@ -27,6 +27,7 @@
                 <div class="flex items-center gap-2 flex-wrap text-xs">
                     <span class="font-bold text-gray-500 uppercase">Objetivo</span>
                     <x-auditoria.estado-badge :estado="$objetivo->estado" size="sm" />
+                    @include('auditoria.partials.comite-aprobacion', ['item' => $objetivo])
                     @if($objetivo->estrategico)
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">Estratégico</span>
                     @endif

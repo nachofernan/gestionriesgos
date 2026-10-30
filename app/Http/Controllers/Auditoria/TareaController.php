@@ -82,7 +82,10 @@ class TareaController extends Controller
             'user', 'area',
         ]);
 
-        return view('auditoria.tarea.show', compact('tarea'));
+        // Comité de la aprobación vigente (D-039), para el encabezado.
+        $comite = Actualizacion::comiteVigenteDe($tarea);
+
+        return view('auditoria.tarea.show', compact('tarea', 'comite'));
     }
 
     public function edit(Tarea $tarea)

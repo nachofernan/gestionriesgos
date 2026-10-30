@@ -106,7 +106,10 @@ class ObjetivoController extends Controller
         ]);
         $objetivo->setRelation('riesgos', Estado::ordenarColeccion($objetivo->riesgos));
 
-        return view('auditoria.objetivo.show', compact('objetivo'));
+        // Comité de la aprobación vigente (D-039), para el encabezado.
+        $comite = Actualizacion::comiteVigenteDe($objetivo);
+
+        return view('auditoria.objetivo.show', compact('objetivo', 'comite'));
     }
 
     public function edit(Objetivo $objetivo)

@@ -244,6 +244,32 @@ class GestionActualizaciones extends Component
         $this->dispatch("{$this->modelType}-actualizado");
     }
 
+    /**
+     * Carga o corrige el comité (D-039) desde x-auditoria.boton-cargar-comite: de una
+     * aprobación del historial o, sin $aprobacionId, de la aprobación vigente del
+     * elemento (ficha). Recarga la página para que la ficha muestre el comité nuevo.
+     * Test: solo_el_comite_carga_el_comite_y_solo_sobre_una_aprobacion.
+     */
+    #[On('registrar-comite')]
+    public function registrarComite(?int $aprobacionId = null, array $comite = [])
+    {
+        $entidad = $this->resolverModelo();
+        $aprobacion = $aprobacionId
+            ? Actualizacion::findOrFail($aprobacionId)
+            : Actualizacion::ultimaAprobacionDe($entidad);
+        $this->authorize('registrarComite', [Actualizacion::class, $entidad, $aprobacion]);
+
+        $reglas = Actualizacion::reglasComite();
+        $reglas['comite.numero'] .= '|required_without:comite.fecha';
+        $comite = Validator::make(['comite' => $comite], $reglas, Actualizacion::mensajesComite() + [
+            'comite.numero.required_without' => 'Cargá el número o la fecha del comité.',
+        ])->validate()['comite'];
+
+        Actualizacion::registrarComite(Auth::user(), $entidad, $aprobacion, $comite);
+
+        return $this->redirect(url()->previous());
+    }
+
     /** $comite (D-039) llega del panel de x-auditoria.boton-aprobar-propuesta; es opcional. */
     public function aprobarActualizacion(int $actualizacionId, array $comite = []): void
     {
@@ -383,7 +409,7 @@ class GestionActualizaciones extends Component
     {
         $actualizaciones = $this->resolverModelo()
             ->actualizaciones()
-            ->with(['user.area', 'estado', 'media', 'validadoPor', 'aprobadoPor', 'rechazadoPor'])
+            ->with(['user.area', 'estado', 'media', 'validadoPor', 'aprobadoPor', 'rechazadoPor', 'registrosComite'])
             ->latest('created_at')
             ->latest('id')
             ->get();
@@ -403,6 +429,8 @@ class GestionActualizaciones extends Component
         return view($vista, [
             'actualizaciones' => $actualizaciones,
             'todas' => $todas,
+            // Para autorizar la carga del comité de cada aprobación (D-039).
+            'entidad' => $this->resolverModelo(),
             // La línea de tiempo marca las propuestas todavía sin aplicar (misma regla que los bloques).
             'pendientesIds' => $this->variante === 'timeline'
                 ? $this->resolverModelo()->actualizaciones()->propuestasPendientes()->pluck('id')

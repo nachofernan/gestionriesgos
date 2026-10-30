@@ -204,6 +204,23 @@
                                             </div>
                                         </div>
 
+                                        {{-- Comité que dictaminó la aprobación (D-039); se carga o corrige con una entrada nueva. --}}
+                                        @if($a->esAprobacion())
+                                            @php $comiteAprobacion = $a->comiteVigente(); @endphp
+                                            <div class="mx-4 mb-2 flex flex-wrap items-center gap-2 text-xs">
+                                                @if($comiteAprobacion)
+                                                    <span class="font-semibold text-violet-700 bg-violet-50 rounded-md px-2 py-0.5">
+                                                        Comité{{ $comiteAprobacion['numero'] ? ' N° '.$comiteAprobacion['numero'] : '' }}{{ $comiteAprobacion['fecha'] ? ' · '.$comiteAprobacion['fecha']->format('d/m/Y') : '' }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-gray-400">Sin comité</span>
+                                                @endif
+                                                @can('registrarComite', [\App\Models\Auditoria\Actualizacion::class, $entidad, $a])
+                                                    <x-auditoria.boton-cargar-comite :aprobacionId="$a->id" :comite="$comiteAprobacion" />
+                                                @endcan
+                                            </div>
+                                        @endif
+
                                         {{-- Motivo de un rechazo de propuesta (en el rechazo de un elemento ya va en el mensaje). D-031. --}}
                                         @if($a->motivo_rechazo && $x['tipo'] !== 'rechazo')
                                             <p class="mx-4 mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
