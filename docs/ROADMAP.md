@@ -53,6 +53,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida todavía — antes de tomarlos hay que confirmar con el usuario:
 
 - Sesiones del comité: hoy la Evolución usa un rango libre de fechas (D-033). Si se quiere elegir "entre la sesión X y la Y", falta una entidad Sesión (fecha, acta).
+- Comité de la presentación (D-039): cargar de una vez el N° y la fecha del comité a todo lo aprobado hasta ese momento. Sería un comando artisan que crea los registros de comité (`Actualizacion::registrarComite()`) sobre cada elemento aprobado sin comité. Falta confirmar si se hace.
 - Notificaciones: falta definir canal (email, in-app, ambos) y qué eventos disparan aviso.
 - Vencimiento propio del Plan de Acción: hoy `planes_accion` sigue sin columna de fecha, así que la pantalla de Vencimientos lista sólo tareas y no existe el aviso de "esta tarea vence después de su plan". El **2026-08-20** se corrigió la fórmula derivada (`PlanAccion::vencimiento`/`esta_vencido`, ver [D-011](DECISIONES.md#d-011)): ahora usa la fecha pendiente más próxima en vez de la más lejana, lo que arregla el badge "Vencido" del plan sin tocar el esquema. Sigue pendiente si se quiere el aviso de inconsistencia real: eso exige fecha propia (`fecha_limite` nullable) con la cascada ya anotada — migración → modelo (`$fillable` + `$casts`) → formularios create/edit → show del plan → factory y seeders → fila de plan en Vencimientos → aviso no bloqueante al asociar tareas en `GestionTareas` + marca de inconsistencia en el show del plan.
 - Pendientes: aprobación/validación en bloque (varios ítems a la vez con un modal previo que liste todo lo que se va a hacer). Se evaluó al construir la pantalla de Pendientes y se decidió no hacerlo todavía — requiere resolver el análisis de prerequisitos bloqueantes/opcionales por cada ítem seleccionado, no sólo por uno.
@@ -60,4 +61,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-10-23.*
+*Última revisión: 2026-10-30.*

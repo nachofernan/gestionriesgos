@@ -49,7 +49,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
 | `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
 | `Tarea` | `tareas` | Unidad de trabajo. `fecha` casteada a `date`, `porcentaje_avance` (0-100). |
-| `Actualizacion` | `actualizaciones` | Historial de actualizaciones polimórfico. Tiene `mensaje`, `data` (JSON) y `user_id`. |
+| `Actualizacion` | `actualizaciones` | Historial de actualizaciones polimórfico. Tiene `mensaje`, `data` (JSON) y `user_id`. Las aprobaciones llevan `comite_numero`/`comite_fecha` opcionales; una entrada `tipo = comite` con `comite_de_id` los carga o corrige después (D-039). |
 | `EstadoRiesgo` | `estados_riesgo` | Catálogo: borrador, validado, activo, mitigado, eliminado. |
 | `TipoRiesgo` | `tipos_riesgo` | Catálogo de categorías de riesgo. |
 | `Sede` | `sedes` | Catálogo de sedes (`SedeSeeder`). Un riesgo tiene una o más (pivot `riesgo_sede`), D-029. Informativa: no interviene en la autorización. |

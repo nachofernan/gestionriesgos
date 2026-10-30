@@ -70,6 +70,17 @@ class Actualizacion extends Model implements HasMedia
             if (! $actualizacion->created_at) {
                 $actualizacion->created_at = now();
             }
+
+            // Un cambio que nace aprobado es una edición directa del comité sobre algo
+            // aprobado (estadoInicialParaCambio()): queda como aprobación suya, para
+            // que se le pueda cargar el comité después (D-039). Cubre todos los
+            // caminos que la crean (fichas, bloques de relaciones, recalcular).
+            if ((int) $actualizacion->estado_id === Estado::aprobado()?->id
+                && ($actualizacion->data['tipo'] ?? null) === 'cambio'
+                && ! $actualizacion->aprobado_por_id) {
+                $actualizacion->aprobado_por_id = $actualizacion->user_id;
+                $actualizacion->aprobado_en ??= $actualizacion->created_at;
+            }
         });
     }
 
@@ -158,10 +169,17 @@ class Actualizacion extends Model implements HasMedia
      * elemento ("Aprobado por…", sin `data`) o una propuesta o edición que alguien
      * aprobó (`aprobado_por_id`). No lo son los registros de comité ni las altas o
      * cambios que quedaron aprobados de rebote al aprobarse el elemento.
+     * Tests: una_edicion_directa_del_comite_queda_como_aprobacion_y_admite_comite,
+     * solo_el_comite_carga_el_comite_y_solo_sobre_una_aprobacion.
      */
     public function esAprobacion(): bool
     {
         if ($this->estado?->nombre !== 'aprobado' || $this->comite_de_id !== null || ($this->data['tipo'] ?? null) === 'comite') {
+            return false;
+        }
+        // La propagación del default de un control a sus riesgos es consecuencia de
+        // otra aprobación, no una decisión propia.
+        if (($this->data['origen'] ?? null) === 'default_control') {
             return false;
         }
 

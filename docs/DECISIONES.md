@@ -1210,3 +1210,43 @@ cambiarla con el informe que la respalda, sin pasar por la ficha y separado de l
 efectividad y no lista las propuestas de testeo. `ControlController`, `ActualizacionController` y
 `GestionActualizaciones` dejan de aceptarla. El timeline rotula los testeos informativos. Tests en
 `TesteoEfectividadTest`, y los de propuesta por ficha de `EfectividadControlTest` se mudaron ahí.
+
+---
+
+## D-039 — Comité (número y fecha) en las aprobaciones (2026-10-30)
+
+**Decisión.** Toda aprobación puede llevar el **número** y la **fecha** del comité que la dictaminó.
+Los dos son opcionales: lo cargado antes y lo que traen los seeders queda sin comité.
+
+- **Dónde:** en la `Actualizacion` que ya deja cada aprobación (`comite_numero` string(20),
+  `comite_fecha` date). No hay columnas nuevas en las cinco entidades.
+- **Al aprobar:** el modal de cascada (elemento y los hijos que se aprueban con él), la ruta POST de
+  `aprobar`, el modal de Pendientes y el botón Aprobar de una propuesta piden los dos campos. Son
+  opcionales y la fecha no puede ser futura.
+- **Edición directa del comité** sobre algo aprobado: el cambio nace aprobado y ahora guarda
+  `aprobado_por_id`/`aprobado_en`, que se completan en el `creating` del modelo para todos los caminos.
+  Así queda como aprobación suya y se le puede cargar el comité después. No hay campos de comité en
+  esos formularios.
+- **Cargar o corregir después:** es una entrada nueva `data.tipo = comite` con `comite_de_id`
+  apuntando a la aprobación, porque el historial es append-only. Vale la más reciente
+  (`Actualizacion::comiteVigente()`). Se carga desde el detalle de actividad, sobre una aprobación, o
+  desde la ficha, sobre la aprobación vigente. Si el elemento se aprobó sin registro (lo sembrado), la
+  entrada queda sin `comite_de_id` y es el comité del elemento (`comiteVigenteDe()`).
+- **Quién:** sólo el comité y sobre un elemento aprobado, con `ActualizacionPolicy::registrarComite`.
+  Qué cuenta como aprobación lo dice `Actualizacion::esAprobacion()`.
+
+**Motivo.** Cada aprobación sale de una sesión del comité, y el sistema no registraba cuál. Para la
+presentación del sistema se quiere poder decir "todo lo cargado hasta acá lo aprobó el comité N".
+
+**Descartado.**
+- **Tabla `comites`:** se eligieron dos campos sueltos, más simples. Si hace falta elegir "la sesión
+  X" en reportes, ver la idea de Sesiones del comité en ROADMAP.
+- **Columnas en las entidades:** duplicaban el dato del historial.
+- **Editar la aprobación para completar el comité:** rompía el historial append-only (axioma 4).
+- **Campos de comité en cada formulario de edición directa:** eran más de diez pantallas. Se cubre
+  con la carga posterior.
+
+**Efecto en cascada anotado.** Toca el ciclo de estados y la autorización. Hay una migración nueva
+sobre `actualizaciones`. `ValidacionMasivaService::ejecutar()`, los cinco `*Controller::aprobar()` y
+`Actualizacion::marcarAprobada()` reciben el comité. Hay una habilidad nueva con sus 403. Los cambios
+que nacen aprobados pasan a tener `aprobado_por_id`. Tests en `ComiteAprobacionTest`.

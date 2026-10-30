@@ -235,6 +235,27 @@ class ComiteAprobacionTest extends TestCase
     }
 
     #[Test]
+    public function una_edicion_directa_del_comite_queda_como_aprobacion_y_admite_comite(): void
+    {
+        $control = $this->controlAprobadoPorRuta();
+
+        $edicion = Actualizacion::registrarCambioCampos($control, $this->comite, 'Ajuste de nombre', ['nombre' => 'Control ajustado']);
+
+        $edicion->refresh();
+        $this->assertSame('aprobado', $edicion->estado->nombre);
+        $this->assertEquals($this->comite->id, $edicion->aprobado_por_id);
+        $this->assertTrue($edicion->esAprobacion());
+
+        $this->cargarComite($control, $edicion->id, ['numero' => '20'])->assertHasNoErrors();
+        $this->assertSame('20', $edicion->fresh()->comiteVigente()['numero']);
+
+        // La propuesta del gerente sobre algo aprobado no nace aprobada: no es una aprobación.
+        $propuesta = Actualizacion::registrarCambioCampos($control->fresh(), $this->gerente, 'Otra', ['nombre' => 'Otro nombre']);
+        $this->assertNull($propuesta->fresh()->aprobado_por_id);
+        $this->assertFalse($propuesta->fresh()->esAprobacion());
+    }
+
+    #[Test]
     public function la_ficha_y_la_actividad_muestran_el_comite(): void
     {
         $control = $this->controlAprobadoPorRuta(['comite' => ['numero' => '4', 'fecha' => '2026-10-15']]);
