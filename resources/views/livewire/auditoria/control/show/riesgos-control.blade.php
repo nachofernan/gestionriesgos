@@ -19,7 +19,7 @@
                 <span class="shrink-0 min-w-[3rem] text-center text-xs font-extrabold rounded-lg px-2 py-1 tabular-nums
                              {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : 'text-gray-400 bg-white border border-dashed border-gray-200' }}"
                       title="{{ $mitiga ? 'Descuenta del residual de este riesgo' : 'No descuenta hasta que el control esté aprobado' }}">
-                    −{{ $control->mitigacionEfectiva($nominal) }}@if($control->efectividad < 100) <span class="font-medium opacity-60">de {{ $nominal }}</span>@endif
+                    −{{ $riesgo->pivot->mitigacionEfectiva($control->mitigacion_default) }}@if($riesgo->pivot->efectividad < 100) <span class="font-medium opacity-60">de {{ $nominal }} · {{ $riesgo->pivot->efectividad }}%</span>@endif
                 </span>
                 <span class="shrink-0 w-20 text-right text-xs tabular-nums text-gray-500" title="Valor total → residual">
                     {{ $riesgo->valor_total }} → <strong class="text-gray-900">{{ $riesgo->valor_residual }}</strong>

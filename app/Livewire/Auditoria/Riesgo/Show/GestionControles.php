@@ -146,7 +146,8 @@ class GestionControles extends Component
             'descripcion' => $control->descripcion,
             'mitigacion' => $control->mitigacion_default,
             'mitigacion_default' => $control->mitigacion_default,
-            'efectividad' => (int) $control->efectividad,
+            // Si se quitó y se vuelve a agregar en la misma edición, el sync conserva la efectividad guardada.
+            'efectividad' => (int) ($control->riesgos()->whereKey($this->riesgoId)->first()?->pivot->efectividad ?? 100),
             'estado' => $control->estado?->nombre ?? 'borrador',
             'estado_color' => $control->estado?->color ?? 'gray',
             'mitiga' => $control->mitiga(),
@@ -289,7 +290,8 @@ class GestionControles extends Component
      * seleccionados que estén en estado "aprobado" menos la ya persistida de los
      * planes (no persiste, es sólo para feedback en vivo). Refleja la misma
      * regla que Riesgo::getValorResidualAttribute: un control no aprobado no mitiga,
-     * y el que mitiga lo hace regulado por su efectividad (D-036).
+     * y el que mitiga lo hace regulado por la efectividad de su relación con
+     * este riesgo (D-040). Un control recién agregado nace al 100%.
      * Test: la_preview_de_gestion_controles_cuadra_con_el_residual_del_modelo.
      */
     private function residualActual(): int
@@ -347,7 +349,7 @@ class GestionControles extends Component
                 'descripcion' => $c->descripcion,
                 'mitigacion' => $c->pivot->mitigacion ?? $c->mitigacion_default,
                 'mitigacion_default' => $c->mitigacion_default,
-                'efectividad' => (int) $c->efectividad,
+                'efectividad' => (int) $c->pivot->efectividad,
                 'estado' => $c->estado?->nombre ?? 'borrador',
                 'estado_color' => $c->estado?->color ?? 'gray',
                 'mitiga' => $c->mitiga(),

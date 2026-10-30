@@ -172,7 +172,8 @@ class Riesgo extends Model implements HasMedia
     public function controles(): BelongsToMany
     {
         return $this->belongsToMany(Control::class, 'control_riesgo')
-            ->withPivot('mitigacion')
+            ->using(ControlRiesgo::class)
+            ->withPivot('mitigacion', 'checks', 'efectividad')
             ->withTimestamps();
     }
 
@@ -211,8 +212,8 @@ class Riesgo extends Model implements HasMedia
 
     /**
      * Resta al valor_total la mitigación efectiva de los controles asociados (el
-     * valor del pivot si fue ajustado para este riesgo puntual, o mitigacion_default
-     * del control, regulado por la efectividad del control, D-036) más la de los
+     * número de cada relación regulado por la efectividad de esa misma relación,
+     * D-040) más la de los
      * planes de acción aprobados en proporción a su avance (D-037). Las dos se
      * redondean hacia abajo. Sólo mitigan los controles y planes en estado
      * "aprobado": uno en borrador/validado no baja el valor del riesgo. El
@@ -226,18 +227,18 @@ class Riesgo extends Model implements HasMedia
 
     /**
      * Parte del residual que descuentan los controles: sólo los que mitigan
-     * (Control::mitiga(): los aprobados), con la mitigación
-     * del pivot (o mitigacion_default del control) regulada por su efectividad y
-     * redondeada hacia abajo por control (Control::mitigacionEfectiva()). Separada de
-     * valor_residual para que la ficha pueda mostrar el desglose sin recalcularlo.
+     * (Control::mitiga(): los aprobados), cada uno con lo que descuenta su
+     * relación con este riesgo (ControlRiesgo::mitigacionEfectiva(): número ×
+     * efectividad, hacia abajo, por relación). Separada de valor_residual para
+     * que la ficha pueda mostrar el desglose sin recalcularlo.
      * Tests: el_desglose_de_mitigacion_separa_controles_y_planes_y_cuadra_con_el_residual,
-     * la_mitigacion_efectiva_se_redondea_por_control.
+     * la_mitigacion_efectiva_se_redondea_por_relacion.
      */
     public function getMitigacionControlesAttribute(): int
     {
         return (int) $this->controles
             ->filter(fn ($control) => $control->mitiga())
-            ->sum(fn ($control) => $control->mitigacionEfectiva((int) ($control->pivot->mitigacion ?? $control->mitigacion_default)));
+            ->sum(fn ($control) => $control->pivot->mitigacionEfectiva((int) $control->mitigacion_default));
     }
 
     /**

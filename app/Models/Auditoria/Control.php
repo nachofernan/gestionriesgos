@@ -15,15 +15,28 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
- * Control de mitigación aplicable a uno o más Riesgo (many-to-many con
- * `mitigacion` en el pivot: el valor de mitigación efectivo para ese riesgo
- * puntual, que puede diferir de `mitigacion_default`). La `efectividad` (0-100)
- * regula cuánto de esa mitigación se aplica (D-036). Ciclo de vida de estado
- * borrador → validado → aprobado/borrado.
+ * Control de mitigación aplicable a uno o más Riesgo. `mitigacion_default` sale
+ * de los checks del control y es el tope de cada relación. La relación
+ * (ControlRiesgo) lleva su propio número y su efectividad (D-040). Ciclo de vida
+ * de estado borrador → validado → aprobado/borrado.
  */
 class Control extends Model implements HasMedia
 {
     use HasFactory, HasVisibilityScope, InteractsWithMedia, SoftDeletes;
+
+    /**
+     * Puntos que validan cuánto mitiga un control (D-040). Son provisorios:
+     * hasta que lleguen los definitivos, se cambian acá.
+     */
+    public const CHECKS = [
+        'documentado' => 'Está documentado en un procedimiento escrito',
+        'responsable_asignado' => 'Tiene un responsable asignado',
+        'frecuencia_definida' => 'Se ejecuta con una frecuencia definida',
+        'deja_evidencia' => 'Deja evidencia o registro de su ejecución',
+        'automatizado_o_segregado' => 'Está automatizado o tiene segregación de funciones',
+    ];
+
+    public const PUNTOS_POR_CHECK = 2;
 
     protected $table = 'controles';
 
@@ -31,10 +44,14 @@ class Control extends Model implements HasMedia
         'nombre',
         'descripcion',
         'mitigacion_default',
-        'efectividad',
+        'checks',
         'estado_id',
         'user_id',
         'area_id',
+    ];
+
+    protected $casts = [
+        'checks' => 'array',
     ];
 
     protected static function booted()
@@ -79,7 +96,8 @@ class Control extends Model implements HasMedia
     public function riesgos(): BelongsToMany
     {
         return $this->belongsToMany(Riesgo::class, 'control_riesgo')
-            ->withPivot('mitigacion')
+            ->using(ControlRiesgo::class)
+            ->withPivot('mitigacion', 'checks', 'efectividad')
             ->withTimestamps();
     }
 
@@ -96,23 +114,10 @@ class Control extends Model implements HasMedia
     }
 
     /**
-     * Mitigación que aplica de verdad este control sobre un riesgo: la nominal
-     * (pivot o mitigacion_default) regulada por su efectividad (D-036). La
-     * consumen Riesgo::getMitigacionControlesAttribute() y las pantallas que
-     * muestran o previsualizan el descuento.
-     * Tests: la_efectividad_al_50_por_ciento_reduce_la_mitigacion_a_la_mitad,
-     * la_mitigacion_efectiva_se_redondea_por_control.
-     */
-    public function mitigacionEfectiva(int $nominal): int
-    {
-        return self::aplicarEfectividad($nominal, (int) $this->efectividad);
-    }
-
-    /**
-     * Regla única del redondeo de la efectividad, para quien sólo tiene los
-     * números (las previews de GestionControles, que trabajan sobre arrays).
-     * Hacia abajo: sólo al 100% mitiga el valor entero (D-037, reemplaza el round
-     * de D-036). Test: un_control_al_99_no_mitiga_el_valor_entero.
+     * Regla única del redondeo de la efectividad: hacia abajo, así que sólo al
+     * 100% se mitiga el valor entero (D-037). La consume
+     * ControlRiesgo::mitigacionEfectiva() y la preview de GestionControles, que
+     * trabaja sobre arrays. Test: una_relacion_al_99_no_mitiga_el_valor_entero.
      */
     public static function aplicarEfectividad(int $nominal, int $efectividad): int
     {
@@ -120,54 +125,14 @@ class Control extends Model implements HasMedia
     }
 
     /**
-     * Registra un testeo de efectividad (D-038), la única vía por la que cambia la
-     * efectividad. Sin cambio de valor queda como testeo informativo (fuera del
-     * ciclo, como una nota). En borrador se aplica directo, como la edición del
-     * borrador. Fuera de borrador es una propuesta de campos con el circuito de
-     * siempre (Actualizacion::registrarCambioCampos()). Todas llevan
-     * data.origen = 'testeo'. Quien llama ya autorizó (EfectividadControl::guardar())
-     * y agrega los adjuntos.
-     * Tests: un_auditor_registra_un_testeo_y_queda_propuesta_hasta_validarse,
-     * un_testeo_sin_cambio_queda_como_informativo_y_no_es_propuesta,
-     * en_un_control_en_borrador_el_testeo_se_aplica_directo_para_quien_lo_gestiona.
+     * Puntaje de un conjunto de checks (D-040): cada clave válida de CHECKS suma
+     * PUNTOS_POR_CHECK. Las claves desconocidas o repetidas no suman. Da el
+     * mitigacion_default del control y, con tope, el número de cada relación.
+     * Test: el_puntaje_suma_dos_por_cada_check_valido.
      */
-    public function registrarTesteo(User $usuario, int $efectividad, string $motivo): Actualizacion
+    public static function puntajeChecks(?array $checks): int
     {
-        $antes = (int) $this->efectividad;
-
-        if ($efectividad === $antes) {
-            return $this->actualizaciones()->create([
-                'user_id' => $usuario->id,
-                'mensaje' => $motivo,
-                'estado_id' => null,
-                'data' => ['tipo' => 'testeo', 'origen' => 'testeo', 'efectividad' => $efectividad],
-            ]);
-        }
-
-        if ($this->estado?->nombre === 'borrador') {
-            return DB::transaction(function () use ($usuario, $efectividad, $motivo, $antes) {
-                $this->update(['efectividad' => $efectividad]);
-
-                return $this->actualizaciones()->create([
-                    'user_id' => $usuario->id,
-                    'mensaje' => $motivo,
-                    'estado_id' => Estado::borrador()->id,
-                    'data' => [
-                        'tipo' => 'edicion',
-                        'origen' => 'testeo',
-                        'diff' => ['campos' => ['efectividad' => ['antes' => $antes, 'despues' => $efectividad]]],
-                    ],
-                ]);
-            });
-        }
-
-        return Actualizacion::registrarCambioCampos($this, $usuario, $motivo, ['efectividad' => $efectividad], extra: ['origen' => 'testeo']);
-    }
-
-    /** Testeo con cambio que espera validación o aprobación: mientras exista, no se registra otro. */
-    public function testeoPendiente(): ?Actualizacion
-    {
-        return $this->actualizaciones()->propuestasPendientes('campos')->where('data->origen', 'testeo')->first();
+        return count(array_intersect(array_keys(self::CHECKS), $checks ?? [])) * self::PUNTOS_POR_CHECK;
     }
 
     /**
