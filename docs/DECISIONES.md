@@ -1288,7 +1288,8 @@ control. Reemplaza la efectividad por control de D-036 y el testeo por propuesta
   vale para varias, se carga en cada una. Si el % no cambia, queda como confirmación.
 - **Tabla `testeos`** (append-only, con SoftDeletes y adjuntos de Spatie). La efectividad vigente vive
   en el pivot. El historial del riesgo recibe una entrada aprobada con `origen = testeo` cuando el %
-  cambia. Bloque "Evidencia de cumplimiento" (`EvidenciaControl`) en el panel del control.
+  cambia. El % y el último testeo se ven en la card de cada riesgo de "Riesgos que mitiga", en el panel
+  del control (`RiesgosControl`). El historial completo se abre en un modal.
 
 **Motivo.** La mitigación de un control tenía que justificarse con puntos verificables, no con un
 número a ojo. Según auditoría, la evidencia de cumplimiento se mide en cada riesgo que el control

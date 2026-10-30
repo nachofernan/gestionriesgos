@@ -250,8 +250,7 @@ app/Livewire/Auditoria/
 │   └── GestionPlanes.php       — maneja planes de acción de un riesgo
 ├── Control/Show/
 │   ├── FichaControl.php        — datos y checks del control, editables en el bloque (propaga o recorta)
-│   ├── RiesgosControl.php      — riesgos que mitiga, con los checks de cada relación editables (D-040)
-│   ├── EvidenciaControl.php    — Evidencia de cumplimiento: testeos por relación, sólo el auditor (D-040)
+│   ├── RiesgosControl.php      — riesgos que mitiga: checks de cada relación, evidencia y testeos del auditor (D-040)
 │   └── InfoControl.php         — tarjeta Mitigación del lateral
 ├── Objetivo/Show/
 │   ├── FichaObjetivo.php       — datos del objetivo, editables en el bloque

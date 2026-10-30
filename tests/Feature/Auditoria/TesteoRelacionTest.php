@@ -3,7 +3,7 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\TipoArea;
-use App\Livewire\Auditoria\Control\Show\EvidenciaControl;
+use App\Livewire\Auditoria\Control\Show\RiesgosControl;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -77,12 +77,12 @@ class TesteoRelacionTest extends TestCase
     private function testear(User $usuario, Riesgo $riesgo, int $efectividad = 50, ?string $fecha = null)
     {
         return Livewire::actingAs($usuario)
-            ->test(EvidenciaControl::class, ['control' => $this->control])
+            ->test(RiesgosControl::class, ['control' => $this->control])
             ->call('abrirTesteo', $riesgo->id)
             ->set('efectividad', $efectividad)
             ->set('fecha', $fecha ?? now()->subDays(3)->toDateString())
             ->set('comentario', 'Muestra de 20 operaciones, 10 sin evidencia.')
-            ->call('guardar');
+            ->call('guardarTesteo');
     }
 
     #[Test]
@@ -135,17 +135,17 @@ class TesteoRelacionTest extends TestCase
 
         foreach ([$gerente, $empleado, $comite] as $usuario) {
             Livewire::actingAs($usuario)
-                ->test(EvidenciaControl::class, ['control' => $this->control])
+                ->test(RiesgosControl::class, ['control' => $this->control])
                 ->call('abrirTesteo', $this->riesgo->id)
                 ->assertForbidden();
 
             Livewire::actingAs($usuario)
-                ->test(EvidenciaControl::class, ['control' => $this->control])
-                ->set('riesgoId', $this->riesgo->id)
+                ->test(RiesgosControl::class, ['control' => $this->control])
+                ->set('testeoRiesgoId', $this->riesgo->id)
                 ->set('efectividad', 10)
                 ->set('fecha', now()->toDateString())
                 ->set('comentario', 'Intento')
-                ->call('guardar')
+                ->call('guardarTesteo')
                 ->assertForbidden();
         }
 
@@ -159,7 +159,7 @@ class TesteoRelacionTest extends TestCase
         $this->control->update(['estado_id' => Estado::validado()->id]);
 
         Livewire::actingAs($this->auditor)
-            ->test(EvidenciaControl::class, ['control' => $this->control])
+            ->test(RiesgosControl::class, ['control' => $this->control])
             ->assertViewHas('puedeTestear', fn ($p) => $p[$this->riesgo->id] === false)
             ->call('abrirTesteo', $this->riesgo->id)
             ->assertForbidden();
@@ -188,14 +188,29 @@ class TesteoRelacionTest extends TestCase
     public function el_comentario_es_obligatorio_y_el_porcentaje_va_de_0_a_100(): void
     {
         Livewire::actingAs($this->auditor)
-            ->test(EvidenciaControl::class, ['control' => $this->control])
+            ->test(RiesgosControl::class, ['control' => $this->control])
             ->call('abrirTesteo', $this->riesgo->id)
             ->set('efectividad', 120)
             ->set('comentario', '')
-            ->call('guardar')
+            ->call('guardarTesteo')
             ->assertHasErrors(['efectividad', 'comentario']);
 
         $this->assertSame(0, Testeo::count());
+    }
+
+    #[Test]
+    public function la_card_muestra_solo_el_ultimo_testeo_y_el_modal_todos(): void
+    {
+        $this->testear($this->auditor, $this->riesgo, 80, now()->subDays(10)->toDateString());
+        $this->testear($this->auditor, $this->riesgo, 50, now()->subDays(2)->toDateString());
+
+        Livewire::actingAs($this->auditor)
+            ->test(RiesgosControl::class, ['control' => $this->control])
+            ->assertViewHas('testeos', fn ($t) => $t[$this->riesgo->id]->first()->efectividad_despues === 50)
+            ->assertSee('Ver los 2 testeos')
+            ->call('verTesteos', $this->riesgo->id)
+            ->assertSet('historialRiesgoId', $this->riesgo->id)
+            ->assertViewHas('enHistorial', fn ($r) => $r->id === $this->riesgo->id);
     }
 
     #[Test]
@@ -204,13 +219,13 @@ class TesteoRelacionTest extends TestCase
         Storage::fake('public');
 
         Livewire::actingAs($this->auditor)
-            ->test(EvidenciaControl::class, ['control' => $this->control])
+            ->test(RiesgosControl::class, ['control' => $this->control])
             ->call('abrirTesteo', $this->riesgo->id)
             ->set('efectividad', 80)
             ->set('fecha', now()->toDateString())
             ->set('comentario', 'Informe adjunto')
             ->set('archivos', [UploadedFile::fake()->create('informe.pdf', 100, 'application/pdf')])
-            ->call('guardar')
+            ->call('guardarTesteo')
             ->assertHasNoErrors();
 
         $this->assertSame('informe.pdf', Testeo::sole()->getFirstMedia('adjuntos')?->file_name);

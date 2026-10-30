@@ -7,22 +7,27 @@ use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
+use App\Models\Auditoria\Testeo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /**
  * Bloque "Riesgos que mitiga" de control/show: los riesgos asociados que el
- * usuario puede ver, con lo que este control mitiga en cada uno y su total →
- * residual (accessors de Riesgo). Los checks de cada relación se editan acá
- * también (D-040): es otra puerta a la misma regla que GestionControles, con la
- * autorización sobre el riesgo. Alta y baja de la asociación siguen en el riesgo.
- * Se refresca con 'control-actualizado' porque cambiar el número del control
- * mueve los valores de acá.
+ * usuario puede ver, con lo que este control mitiga en cada uno, su evidencia de
+ * cumplimiento con el último testeo y su total → residual (accessors de Riesgo).
+ * Dos cosas se editan por relación (D-040): los checks del número, con la misma
+ * regla que GestionControles y la autorización sobre el riesgo, y el testeo del
+ * auditor (Testeo::registrar()), con un modal para el historial de testeos. Alta
+ * y baja de la asociación siguen en el riesgo. Se refresca con
+ * 'control-actualizado' porque cambiar el número del control mueve los valores.
  */
 class RiesgosControl extends Component
 {
     use PropuestasEnBloque;
+    use WithFileUploads;
 
     public int $controlId;
 
@@ -31,6 +36,21 @@ class RiesgosControl extends Component
 
     /** @var array<int, string> */
     public array $checksEnEdicion = [];
+
+    /** Relación que se está testeando (null = modal cerrado) y los datos del testeo. */
+    public ?int $testeoRiesgoId = null;
+
+    public ?int $efectividad = null;
+
+    public string $fecha = '';
+
+    public string $comentario = '';
+
+    /** Adjuntos temporales de Livewire para el testeo que se está cargando. */
+    public array $archivos = [];
+
+    /** Relación cuyo historial de testeos se muestra (null = modal cerrado). */
+    public ?int $historialRiesgoId = null;
 
     public function mount(Control $control): void
     {
@@ -120,10 +140,85 @@ class RiesgosControl extends Component
         $this->dispatch('control-actualizado');
     }
 
+    public function abrirTesteo(int $riesgoId): void
+    {
+        [$control, $riesgo] = $this->relacion($riesgoId);
+        $this->authorize('testear', [$control, $riesgo]);
+
+        $this->testeoRiesgoId = $riesgoId;
+        $this->efectividad = (int) $riesgo->pivot->efectividad;
+        $this->fecha = now()->toDateString();
+        $this->reset(['comentario', 'archivos']);
+        $this->resetValidation();
+    }
+
+    public function cerrarTesteo(): void
+    {
+        $this->reset(['testeoRiesgoId', 'efectividad', 'fecha', 'comentario', 'archivos']);
+        $this->resetValidation();
+    }
+
+    public function quitarArchivo(int $indice): void
+    {
+        unset($this->archivos[$indice]);
+        $this->archivos = array_values($this->archivos);
+    }
+
+    /**
+     * Registra el testeo de la relación abierta. Autoriza ControlPolicy::testear()
+     * con el riesgo, valida en el borde y deja los adjuntos en el testeo.
+     * Tests: un_auditor_registra_un_testeo_y_se_aplica_en_el_acto,
+     * nadie_mas_que_el_auditor_registra_un_testeo,
+     * la_fecha_del_testeo_no_puede_ser_futura, un_testeo_guarda_sus_adjuntos.
+     */
+    public function guardarTesteo(): void
+    {
+        if ($this->testeoRiesgoId === null) {
+            return;
+        }
+
+        [$control, $riesgo] = $this->relacion($this->testeoRiesgoId);
+        $this->authorize('testear', [$control, $riesgo]);
+
+        $this->validate([
+            'efectividad' => 'required|integer|min:0|max:100',
+            'fecha' => 'required|date|before_or_equal:today',
+            'comentario' => 'required|string|min:3',
+            'archivos.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+        ], [
+            'comentario.required' => 'Contá brevemente el resultado del testeo.',
+            'fecha.before_or_equal' => 'La fecha del testeo no puede ser futura.',
+        ]);
+
+        $testeo = Testeo::registrar($control->load('estado'), $riesgo, Auth::user(), (int) $this->efectividad, Carbon::parse($this->fecha), $this->comentario);
+
+        // Los medios van después de crear el testeo (mueven archivos en disco).
+        foreach ($this->archivos as $archivo) {
+            $testeo->addMedia($archivo->getRealPath())
+                ->usingFileName($archivo->getClientOriginalName())
+                ->toMediaCollection('adjuntos');
+        }
+
+        $this->cerrarTesteo();
+        $this->dispatch('control-actualizado');
+        session()->flash('ok', 'Testeo registrado.');
+    }
+
+    public function verTesteos(int $riesgoId): void
+    {
+        $this->relacion($riesgoId);
+        $this->historialRiesgoId = $riesgoId;
+    }
+
+    public function cerrarTesteos(): void
+    {
+        $this->historialRiesgoId = null;
+    }
+
     /** El control y el riesgo de la relación, con el pivot cargado. */
     private function relacion(int $riesgoId): array
     {
-        $control = Control::findOrFail($this->controlId);
+        $control = Control::with('estado')->findOrFail($this->controlId);
         $riesgo = $control->riesgos()->with('estado')->findOrFail($riesgoId);
 
         return [$control, $riesgo];
@@ -145,14 +240,24 @@ class RiesgosControl extends Component
             ->with(['estado', 'tipoRiesgo', 'area', 'controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado'])
             ->get();
 
-        // Qué filas se pueden editar y cuáles esperan un cambio ya propuesto.
+        // Qué filas se pueden editar o testear y cuáles esperan un cambio ya propuesto.
         $editables = [];
         $pendientes = [];
+        $puedeTestear = [];
         foreach ($riesgos as $riesgo) {
             $pendiente = $this->tienePropuesta($riesgo);
             $pendientes[$riesgo->id] = $pendiente;
             $editables[$riesgo->id] = ! $pendiente && $riesgo->estado?->nombre !== 'borrado' && $user->can('proponer', $riesgo);
+            $puedeTestear[$riesgo->id] = $user->can('testear', [$control, $riesgo]);
         }
+
+        // Testeos de las relaciones visibles: de entrada se muestra sólo el último de cada una.
+        $testeos = Testeo::where('control_id', $control->id)
+            ->whereIn('riesgo_id', $riesgos->pluck('id'))
+            ->with(['user', 'media'])
+            ->latest('fecha')->latest('id')
+            ->get()
+            ->groupBy('riesgo_id');
 
         return view('livewire.auditoria.control.show.riesgos-control', [
             'control' => $control,
@@ -161,6 +266,10 @@ class RiesgosControl extends Component
             'mitiga' => $control->mitiga(),
             'editables' => $editables,
             'pendientes' => $pendientes,
+            'puedeTestear' => $puedeTestear,
+            'testeos' => $testeos,
+            'enTesteo' => $this->testeoRiesgoId ? $riesgos->firstWhere('id', $this->testeoRiesgoId) : null,
+            'enHistorial' => $this->historialRiesgoId ? $riesgos->firstWhere('id', $this->historialRiesgoId) : null,
         ]);
     }
 }
