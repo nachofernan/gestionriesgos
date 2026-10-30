@@ -36,6 +36,9 @@ class AccionActualizacionModal extends Component
     /** Obligatorio al rechazar (D-031). */
     public string $motivo = '';
 
+    /** Comité que dictamina la aprobación (D-039), opcional. */
+    public array $comite = ['numero' => '', 'fecha' => ''];
+
     #[On('abrir-accion-actualizacion')]
     public function abrir(int $actualizacionId, string $accion): void
     {
@@ -70,9 +73,13 @@ class AccionActualizacionModal extends Component
             ]);
         }
 
+        if ($this->accion === 'aprobar') {
+            $this->validate(Actualizacion::reglasComite(), Actualizacion::mensajesComite());
+        }
+
         match ($this->accion) {
             'validar' => $actualizacion->marcarValidada(Auth::user()),
-            'aprobar' => $actualizacion->marcarAprobada(Auth::user()),
+            'aprobar' => $actualizacion->marcarAprobada(Auth::user(), $this->comite),
             'rechazar' => $actualizacion->marcarRechazada(Auth::user(), trim($this->motivo)),
         };
 

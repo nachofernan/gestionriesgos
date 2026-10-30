@@ -208,11 +208,12 @@ class ObjetivoController extends Controller
      * Aprueba el objetivo y aplica los cambios de todas sus actualizaciones ya
      * validadas (creación y ediciones acumuladas) en una sola transacción.
      */
-    public function aprobar(Objetivo $objetivo)
+    public function aprobar(Request $request, Objetivo $objetivo)
     {
         $this->authorize('aprobar', $objetivo);
+        $comite = $request->validate(Actualizacion::reglasComite())['comite'] ?? null;
 
-        DB::transaction(function () use ($objetivo) {
+        DB::transaction(function () use ($objetivo, $comite) {
             // reorder('id') limpia el latest() de la relación y ordena por id en vez
             // de created_at: la columna es timestamp (precisión de 1 segundo) y dos
             // actualizaciones seguidas pueden empatar, así que created_at solo no
@@ -229,7 +230,7 @@ class ObjetivoController extends Controller
             }
 
             $objetivo->update(['estado_id' => Estado::aprobado()->id]);
-            $this->logAprobado($objetivo, 'Aprobado por '.Auth::user()->name);
+            $this->logAprobado($objetivo, 'Aprobado por '.Auth::user()->name, comite: $comite);
         });
 
         return back()->with('ok', 'Objetivo aprobado correctamente.');
@@ -256,14 +257,14 @@ class ObjetivoController extends Controller
      * o rechazar) con el mensaje dado; no crea una actualización pendiente de
      * aprobación, es sólo el registro de auditoría de la transición.
      */
-    private function logAprobado($model, string $mensaje, array $campos = []): void
+    private function logAprobado($model, string $mensaje, array $campos = [], ?array $comite = null): void
     {
         $model->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => $mensaje,
             'estado_id' => Estado::aprobado()->id,
             'data' => empty($campos) ? null : ['campos' => $campos],
-        ]);
+        ] + Actualizacion::columnasComite($comite));
     }
 
     /**

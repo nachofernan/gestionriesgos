@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +42,9 @@ class Actualizacion extends Model implements HasMedia
         'validado_en',
         'aprobado_por_id',
         'aprobado_en',
+        'comite_numero',
+        'comite_fecha',
+        'comite_de_id',
         'rechazado_por_id',
         'rechazado_en',
         'motivo_rechazo',
@@ -74,6 +78,7 @@ class Actualizacion extends Model implements HasMedia
         'created_at' => 'datetime',
         'validado_en' => 'datetime',
         'aprobado_en' => 'datetime',
+        'comite_fecha' => 'date',
         'rechazado_en' => 'datetime',
     ];
 
@@ -110,6 +115,59 @@ class Actualizacion extends Model implements HasMedia
     public function estado(): BelongsTo
     {
         return $this->belongsTo(Estado::class, 'estado_id');
+    }
+
+    /** Entradas que completan o corrigen el comité de esta aprobación (D-039). */
+    public function registrosComite(): HasMany
+    {
+        return $this->hasMany(self::class, 'comite_de_id');
+    }
+
+    /**
+     * Reglas del comité que acompaña una aprobación (D-039): opcional, número corto
+     * y fecha no futura. Las usan los controladores y componentes que aprueban.
+     */
+    public static function reglasComite(string $prefijo = 'comite'): array
+    {
+        return [
+            "{$prefijo}.numero" => 'nullable|string|max:20',
+            "{$prefijo}.fecha" => 'nullable|date|before_or_equal:today',
+        ];
+    }
+
+    public static function mensajesComite(string $prefijo = 'comite'): array
+    {
+        return [
+            "{$prefijo}.numero.max" => 'El número de comité no puede superar 20 caracteres.',
+            "{$prefijo}.fecha.date" => 'La fecha del comité no es válida.',
+            "{$prefijo}.fecha.before_or_equal" => 'La fecha del comité no puede ser futura.',
+        ];
+    }
+
+    /** Pasa el comité del formulario (['numero', 'fecha']) a columnas; vacío queda en null. */
+    public static function columnasComite(?array $comite): array
+    {
+        return [
+            'comite_numero' => filled($comite['numero'] ?? null) ? trim($comite['numero']) : null,
+            'comite_fecha' => filled($comite['fecha'] ?? null) ? $comite['fecha'] : null,
+        ];
+    }
+
+    /**
+     * Comité que vale para esta aprobación: el último registro que lo completó o
+     * corrigió y, si no hay, el propio. Null si nunca se cargó. Requiere
+     * `registrosComite` eager-loaded para no consultar por fila.
+     * Test: una_segunda_carga_corrige_el_comite_sin_tocar_la_aprobacion.
+     */
+    public function comiteVigente(): ?array
+    {
+        $fuente = $this->registrosComite->sortByDesc('id')->first() ?? $this;
+
+        if ($fuente->comite_numero === null && $fuente->comite_fecha === null) {
+            return null;
+        }
+
+        return ['numero' => $fuente->comite_numero, 'fecha' => $fuente->comite_fecha];
     }
 
     /**
@@ -407,16 +465,21 @@ class Actualizacion extends Model implements HasMedia
         });
     }
 
-    /** Aprueba la actualización y aplica sus cambios, sin importar el estado de validación previo. */
-    public function marcarAprobada(User $usuario): void
+    /**
+     * Aprueba la actualización y aplica sus cambios, sin importar el estado de
+     * validación previo. $comite (['numero', 'fecha'], opcional) es el comité que
+     * la dictaminó (D-039); quien llama ya lo validó con reglasComite().
+     * Test: aprobar_una_propuesta_guarda_el_comite.
+     */
+    public function marcarAprobada(User $usuario, ?array $comite = null): void
     {
-        DB::transaction(function () use ($usuario) {
+        DB::transaction(function () use ($usuario, $comite) {
             $this->update([
                 'estado_id' => Estado::aprobado()->id,
                 'aprobado_por_id' => $usuario->id,
                 'aprobado_en' => now(),
                 'data' => array_merge($this->data ?? [], ['activated_by' => $usuario->name]),
-            ]);
+            ] + static::columnasComite($comite));
             $this->fresh()->aplicarCambios($usuario);
         });
     }

@@ -13,6 +13,7 @@ use App\Models\Auditoria\Tarea;
 use App\Models\Auditoria\TipoRiesgo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -125,11 +126,11 @@ class GestionActualizaciones extends Component
      * Test: resolver_desde_la_tarjeta_pasa_por_la_autorizacion_de_cada_accion.
      */
     #[On('resolver-actualizacion')]
-    public function resolver(int $id, string $accion, string $motivo = ''): void
+    public function resolver(int $id, string $accion, string $motivo = '', array $comite = []): void
     {
         match ($accion) {
             'validar' => $this->validarActualizacion($id),
-            'aprobar' => $this->aprobarActualizacion($id),
+            'aprobar' => $this->aprobarActualizacion($id, $comite),
             'rechazar' => $this->rechazarActualizacion($id, $motivo),
             'cancelar' => $this->cancelarActualizacion($id),
         };
@@ -243,11 +244,14 @@ class GestionActualizaciones extends Component
         $this->dispatch("{$this->modelType}-actualizado");
     }
 
-    public function aprobarActualizacion(int $actualizacionId): void
+    /** $comite (D-039) llega del panel de x-auditoria.boton-aprobar-propuesta; es opcional. */
+    public function aprobarActualizacion(int $actualizacionId, array $comite = []): void
     {
         $actualizacion = Actualizacion::findOrFail($actualizacionId);
         $this->authorize('aprobar', $actualizacion);
-        $actualizacion->marcarAprobada(Auth::user());
+        $comite = Validator::make(['comite' => $comite], Actualizacion::reglasComite(), Actualizacion::mensajesComite())
+            ->validate()['comite'] ?? null;
+        $actualizacion->marcarAprobada(Auth::user(), $comite);
         $this->dispatch("{$this->modelType}-actualizado");
     }
 

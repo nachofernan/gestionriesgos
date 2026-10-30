@@ -3,6 +3,7 @@
 namespace App\Services\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
@@ -35,6 +36,8 @@ class ValidacionMasivaService
      *
      * @param  array  $bloqueantesSeleccionados  [['tipo' => 'objetivo', 'id' => 1, 'nivel' => 0], ...]
      * @param  array  $opcionalesSeleccionados  [['tipo' => 'control', 'id' => 5], ...]
+     * @param  array|null  $comite  ['numero', 'fecha'] del comité que aprobó (D-039); lo comparten
+     *                              todas las aprobaciones de la cascada. Ignorado al validar.
      * @return array{ok?: true, exitosos?: array, error?: string, fallidos?: array}
      */
     public function ejecutar(
@@ -42,7 +45,8 @@ class ValidacionMasivaService
         string $accion,
         array $bloqueantesSeleccionados,
         array $opcionalesSeleccionados,
-        User $usuario
+        User $usuario,
+        ?array $comite = null
     ): array {
         $fallidos = [];
         $exitosos = [];
@@ -62,7 +66,7 @@ class ValidacionMasivaService
 
                     continue;
                 }
-                $this->procesarTransicion($modelo, $accion, $usuario);
+                $this->procesarTransicion($modelo, $accion, $usuario, $comite);
                 $exitosos[] = $modelo->nombre;
             }
 
@@ -84,7 +88,7 @@ class ValidacionMasivaService
 
                     continue;
                 }
-                $this->procesarTransicion($modelo, $accion, $usuario);
+                $this->procesarTransicion($modelo, $accion, $usuario, $comite);
                 $exitosos[] = $modelo->nombre;
             }
 
@@ -103,7 +107,7 @@ class ValidacionMasivaService
             }
 
             // 4. Procesar entidad principal
-            $this->procesarTransicion($entidad, $accion, $usuario);
+            $this->procesarTransicion($entidad, $accion, $usuario, $comite);
             $exitosos[] = $entidad->nombre;
 
             DB::commit();
@@ -226,7 +230,7 @@ class ValidacionMasivaService
     // Transiciones de estado
     // -------------------------------------------------------
 
-    private function procesarTransicion(Model $entidad, string $accion, User $usuario): void
+    private function procesarTransicion(Model $entidad, string $accion, User $usuario, ?array $comite = null): void
     {
         if ($accion === 'validar') {
             $entidad->update(['estado_id' => Estado::validado()->id]);
@@ -259,7 +263,7 @@ class ValidacionMasivaService
                 'mensaje' => 'Aprobado por '.$usuario->name,
                 'estado_id' => Estado::aprobado()->id,
                 'data' => null,
-            ]);
+            ] + Actualizacion::columnasComite($comite));
         }
 
         // La actividad del plan también registra el cambio de estado de sus tareas (D-031).

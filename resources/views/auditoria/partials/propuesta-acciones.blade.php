@@ -13,10 +13,7 @@
     </button>
 @endif
 @if($puedeAprobar)
-    <button type="button" class="{{ $btn }} bg-green-600 text-white hover:bg-green-700"
-            onclick="if (confirm('¿Aprobar esta propuesta? El cambio se aplica al riesgo.')) { this.disabled = true; this.classList.add('opacity-50', 'cursor-wait'); Livewire.dispatch('resolver-actualizacion', { id: {{ $propuesta->id }}, accion: 'aprobar' }) }">
-        Aprobar
-    </button>
+    <x-auditoria.boton-aprobar-propuesta :actualizacionId="$propuesta->id" :clase="$btn.' bg-green-600 text-white hover:bg-green-700'" />
 @endif
 @if($puedeRechazar)
     <x-auditoria.boton-rechazar :actualizacionId="$propuesta->id" :clase="$btn.' text-red-600 hover:bg-red-50'" />

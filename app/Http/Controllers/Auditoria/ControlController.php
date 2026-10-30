@@ -182,11 +182,12 @@ class ControlController extends Controller
      * si la propuesta lo pidió).
      * Test: aprobar_el_control_aplica_la_propagacion_de_sus_actualizaciones_pendientes.
      */
-    public function aprobar(Control $control)
+    public function aprobar(Request $request, Control $control)
     {
         $this->authorize('aprobar', $control);
+        $comite = $request->validate(Actualizacion::reglasComite())['comite'] ?? null;
 
-        DB::transaction(function () use ($control) {
+        DB::transaction(function () use ($control, $comite) {
             // reorder('id') limpia el latest() de la relación y ordena por id en vez
             // de created_at: la columna es timestamp (precisión de 1 segundo) y dos
             // actualizaciones seguidas pueden empatar, así que created_at solo no
@@ -203,7 +204,7 @@ class ControlController extends Controller
             }
 
             $control->update(['estado_id' => Estado::aprobado()->id]);
-            $this->logAprobado($control, 'Aprobado por '.Auth::user()->name);
+            $this->logAprobado($control, 'Aprobado por '.Auth::user()->name, comite: $comite);
         });
 
         return back()->with('ok', 'Control aprobado correctamente.');
@@ -226,13 +227,13 @@ class ControlController extends Controller
      * o rechazar) con el mensaje dado; no crea una actualización pendiente de
      * aprobación, es sólo el registro de auditoría de la transición.
      */
-    private function logAprobado($model, string $mensaje, array $campos = []): void
+    private function logAprobado($model, string $mensaje, array $campos = [], ?array $comite = null): void
     {
         $model->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => $mensaje,
             'estado_id' => Estado::aprobado()->id,
             'data' => empty($campos) ? null : ['campos' => $campos],
-        ]);
+        ] + Actualizacion::columnasComite($comite));
     }
 }

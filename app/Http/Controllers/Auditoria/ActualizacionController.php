@@ -93,10 +93,11 @@ class ActualizacionController extends Controller
      * Aprueba la actualización y aplica sus cambios sobre la entidad relacionada,
      * independientemente del estado de validación previo.
      */
-    public function aprobar(Actualizacion $actualizacion)
+    public function aprobar(Request $request, Actualizacion $actualizacion)
     {
         $this->authorize('aprobar', $actualizacion);
-        $actualizacion->marcarAprobada(Auth::user());
+        $comite = $request->validate(Actualizacion::reglasComite(), Actualizacion::mensajesComite())['comite'] ?? null;
+        $actualizacion->marcarAprobada(Auth::user(), $comite);
 
         return back()->with('ok', 'Actualización aprobada y cambios aplicados.');
     }

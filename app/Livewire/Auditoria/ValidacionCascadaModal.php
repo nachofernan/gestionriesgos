@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auditoria;
 
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
@@ -49,6 +50,9 @@ class ValidacionCascadaModal extends Component
     public array $seleccionados = [];
 
     public ?string $error = null;
+
+    /** Comité que dictaminó la aprobación (D-039), opcional. Sólo se usa al aprobar. */
+    public array $comite = ['numero' => '', 'fecha' => ''];
 
     /**
      * Contador que se incrementa en CADA intento de toggle, se acepte o se
@@ -150,6 +154,10 @@ class ValidacionCascadaModal extends Component
     {
         $this->error = null;
 
+        if ($this->accion === 'aprobar') {
+            $this->validate(Actualizacion::reglasComite(), Actualizacion::mensajesComite());
+        }
+
         $grupoFaltante = $this->grupoBloqueanteSinSeleccion();
         if ($grupoFaltante) {
             $this->error = 'Debe seleccionar al menos '.$this->labelGrupo($grupoFaltante).' autorizado para continuar.';
@@ -178,7 +186,8 @@ class ValidacionCascadaModal extends Component
             $this->accion,
             $bloqueantesSeleccionados,
             $opcionalesSeleccionados,
-            Auth::user()
+            Auth::user(),
+            $this->accion === 'aprobar' ? $this->comite : null
         );
 
         if (isset($resultado['ok'])) {

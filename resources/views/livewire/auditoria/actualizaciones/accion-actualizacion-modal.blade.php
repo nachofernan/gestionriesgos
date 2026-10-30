@@ -67,6 +67,14 @@
                     </div>
                 @endif
 
+                {{-- Comité que dictamina la aprobación (D-039), opcional --}}
+                @if($accion === 'aprobar')
+                    <div class="px-6 py-4 border-b border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Comité</p>
+                        @include('auditoria.partials.campos-comite')
+                    </div>
+                @endif
+
                 {{-- Error --}}
                 @if($error)
                     <div class="px-6 py-2.5 bg-red-50 border-b border-red-100">

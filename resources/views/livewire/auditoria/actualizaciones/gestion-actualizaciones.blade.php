@@ -288,11 +288,8 @@
                         {{-- Aprobar individualmente: solo en elemento aprobado (en validado, la aprobación es del elemento completo) --}}
                         @if($estadoModelo === 'aprobado')
                             @can('aprobar', $actualizacion)
-                                <button wire:click="aprobarActualizacion({{ $actualizacion->id }})"
-                                        wire:confirm="¿Aprobar esta actualización? Los cambios propuestos se aplicarán al registro."
-                                        class="px-2.5 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-lg hover:bg-green-100 transition-colors">
-                                    Aprobar
-                                </button>
+                                <x-auditoria.boton-aprobar-propuesta :actualizacionId="$actualizacion->id"
+                                    clase="px-2.5 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-lg hover:bg-green-100 transition-colors" />
                             @endcan
                         @endif
 

@@ -414,16 +414,17 @@ class RiesgoController extends Controller
      * validadas (creación y ediciones acumuladas) en una sola transacción.
      * Bloquea si no se cumple Riesgo::motivosBloqueoAprobacion() (ver ahí).
      */
-    public function aprobar(Riesgo $riesgo)
+    public function aprobar(Request $request, Riesgo $riesgo)
     {
         $this->authorize('aprobar', $riesgo);
+        $comite = $request->validate(Actualizacion::reglasComite())['comite'] ?? null;
 
         $motivos = $riesgo->motivosBloqueoAprobacion();
         if (! empty($motivos)) {
             return back()->with('error', implode(' ', $motivos));
         }
 
-        DB::transaction(function () use ($riesgo) {
+        DB::transaction(function () use ($riesgo, $comite) {
             // reorder('id') limpia el latest() de la relación y ordena por id en vez
             // de created_at: la columna es timestamp (precisión de 1 segundo) y dos
             // actualizaciones seguidas pueden empatar, así que created_at solo no
@@ -444,7 +445,7 @@ class RiesgoController extends Controller
                 'aprobado_por_id' => Auth::id(),
                 'aprobado_en' => now(),
             ]);
-            $this->logAprobado($riesgo, 'Aprobado por '.Auth::user()->name);
+            $this->logAprobado($riesgo, 'Aprobado por '.Auth::user()->name, comite: $comite);
         });
 
         return back()->with('ok', 'Riesgo aprobado correctamente.');
@@ -471,14 +472,14 @@ class RiesgoController extends Controller
      * o rechazar) con el mensaje dado; no crea una actualización pendiente de
      * aprobación, es sólo el registro de auditoría de la transición.
      */
-    private function logAprobado($model, string $mensaje, array $campos = []): void
+    private function logAprobado($model, string $mensaje, array $campos = [], ?array $comite = null): void
     {
         $model->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => $mensaje,
             'estado_id' => Estado::aprobado()->id,
             'data' => empty($campos) ? null : ['campos' => $campos],
-        ]);
+        ] + Actualizacion::columnasComite($comite));
     }
 
     /**

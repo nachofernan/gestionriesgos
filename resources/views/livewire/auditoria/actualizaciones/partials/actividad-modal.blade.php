@@ -348,8 +348,8 @@
                                                     @endif
                                                     @if($estadoModelo === 'aprobado')
                                                         @can('aprobar', $a)
-                                                            <button wire:click="aprobarActualizacion({{ $a->id }})" wire:confirm="¿Aprobar esta actualización?"
-                                                                class="mt-2 px-3 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-lg hover:bg-green-100">Aprobar</button>
+                                                            <x-auditoria.boton-aprobar-propuesta :actualizacionId="$a->id"
+                                                                clase="mt-2 px-3 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-lg hover:bg-green-100" />
                                                         @endcan
                                                     @endif
                                                     @can('cancelar', $a)
