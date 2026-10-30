@@ -33,15 +33,7 @@
                     placeholder="Descripción del control y cómo mitiga el riesgo...">{{ old('descripcion') }}</textarea>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Valor de Mitigación por defecto (1–10) *
-                </label>
-                <input type="number" name="mitigacion_default" value="{{ old('mitigacion_default', 5) }}" min="1" max="10"
-                    class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('mitigacion_default') border-red-300 @enderror" />
-                <p class="text-[11px] text-gray-400 mt-1.5">Puntos de reducción aplicados al valor total del riesgo.</p>
-                @error('mitigacion_default') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
-            </div>
+            @include('auditoria.partials.checks-mitigacion', ['seleccionados' => old('checks', [])])
 
             @include('auditoria.partials.select-area-responsable', [
                 'areaSeleccionada' => old('area_id', auth()->user()->area_id),

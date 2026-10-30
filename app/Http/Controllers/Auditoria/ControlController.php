@@ -11,6 +11,7 @@ use App\Models\Auditoria\Estado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /**
  * CRUD de Control más su ciclo de vida de estados: borrador → validado → aprobado,
@@ -48,9 +49,9 @@ class ControlController extends Controller
         $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'mitigacion_default' => 'required|integer|min:1|max:10',
-        ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
+        ] + $this->reglasChecks() + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
 
+        $data['checks'] ??= [];
         $data['user_id'] = $data['user_id'] ?? Auth::id();
         $control = Control::create($data);
         $control->actualizaciones()->create([
@@ -61,6 +62,7 @@ class ControlController extends Controller
                 'nombre' => $control->nombre,
                 'descripcion' => $control->descripcion,
                 'mitigacion_default' => $control->mitigacion_default,
+                'checks' => Control::checksLegibles($control->checks),
             ]],
         ]);
 
@@ -94,10 +96,11 @@ class ControlController extends Controller
     }
 
     /**
-     * Edición de un control en borrador. Con `propagar_mitigacion` tildado y el
-     * default cambiado, lleva el nuevo valor a todos los riesgos asociados
-     * (Control::propagarMitigacionDefault()).
-     * Test: editar_un_borrador_con_propagar_pisa_las_asociaciones.
+     * Edición de un control en borrador. El número sale de los checks. Si cambia,
+     * con `propagar_mitigacion` tildado lo lleva a todos los riesgos asociados; si
+     * no, recorta los que pasan el nuevo tope (Control::trasCambiarDefault()).
+     * Tests: editar_un_borrador_sin_propagar_recorta_y_con_propagar_pisa,
+     * bajar_el_numero_del_control_recorta_las_relaciones_que_lo_pasan.
      */
     public function update(Request $request, Control $control)
     {
@@ -111,22 +114,25 @@ class ControlController extends Controller
         $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'mitigacion_default' => 'required|integer|min:1|max:10',
-        ] + $this->reglasAreaResponsable($request, $control->area_id, $control->user_id), self::MENSAJES_AREA_RESPONSABLE);
+        ] + $this->reglasChecks() + $this->reglasAreaResponsable($request, $control->area_id, $control->user_id), self::MENSAJES_AREA_RESPONSABLE);
+        $data['checks'] = Control::normalizarChecks($data['checks'] ?? []);
         $propagar = $request->boolean('propagar_mitigacion');
 
-        $original = $control->only(array_keys($data));
+        $campos = [...array_keys($data), 'mitigacion_default'];
+        $original = $control->only($campos);
         DB::transaction(function () use ($control, $data, $original, $propagar) {
             $control->update($data);
-            if ($propagar && $original['mitigacion_default'] != $data['mitigacion_default']) {
-                $control->propagarMitigacionDefault((int) $original['mitigacion_default'], Auth::user());
-            }
+            $control->trasCambiarDefault((int) $original['mitigacion_default'], Auth::user(), $propagar);
         });
 
         $diff = [];
-        foreach ($data as $campo => $nuevo) {
-            if (array_key_exists($campo, $original) && $original[$campo] != $nuevo) {
-                $diff[$campo] = ['antes' => $original[$campo], 'despues' => $nuevo];
+        foreach ($campos as $campo) {
+            [$antes, $nuevo] = [$original[$campo], $control->$campo];
+            if ($campo === 'checks') {
+                [$antes, $nuevo] = [Control::checksLegibles($antes), Control::checksLegibles($nuevo)];
+            }
+            if ($antes != $nuevo) {
+                $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
             }
         }
         if (! empty($diff)) {
@@ -143,6 +149,15 @@ class ControlController extends Controller
         }
 
         return redirect()->route('auditoria.controles.show', $control)->with('ok', 'Control actualizado.');
+    }
+
+    /** Los checks que validan el número del control (D-040): sólo claves de Control::CHECKS. */
+    private function reglasChecks(): array
+    {
+        return [
+            'checks' => 'nullable|array',
+            'checks.*' => ['string', Rule::in(array_keys(Control::CHECKS))],
+        ];
     }
 
     public function destroy(Control $control)

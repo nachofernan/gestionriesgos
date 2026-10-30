@@ -38,10 +38,8 @@ class ActualizacionController extends Controller
     public function storeControl(Request $request, Control $control)
     {
         $this->authorize('proponer', $control);
-        $request->validate([
-            'mitigacion_default' => 'nullable|integer|min:1|max:10',
-        ]);
-        $this->crearActualizacion($request, $control, ['nombre', 'descripcion', 'mitigacion_default']);
+        // El número del control sale de sus checks (D-040): se cambia desde la ficha.
+        $this->crearActualizacion($request, $control, ['nombre', 'descripcion']);
 
         return back()->with('ok', 'Actualización registrada.');
     }

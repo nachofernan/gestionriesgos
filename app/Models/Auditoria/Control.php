@@ -29,11 +29,11 @@ class Control extends Model implements HasMedia
      * hasta que lleguen los definitivos, se cambian acá.
      */
     public const CHECKS = [
-        'documentado' => 'Está documentado en un procedimiento escrito',
-        'responsable_asignado' => 'Tiene un responsable asignado',
-        'frecuencia_definida' => 'Se ejecuta con una frecuencia definida',
-        'deja_evidencia' => 'Deja evidencia o registro de su ejecución',
-        'automatizado_o_segregado' => 'Está automatizado o tiene segregación de funciones',
+        'documentado' => 'Documentado en un procedimiento',
+        'responsable_asignado' => 'Responsable asignado',
+        'frecuencia_definida' => 'Frecuencia definida',
+        'deja_evidencia' => 'Deja evidencia de su ejecución',
+        'automatizado_o_segregado' => 'Automatizado o con segregación de funciones',
     ];
 
     public const PUNTOS_POR_CHECK = 2;
@@ -63,6 +63,15 @@ class Control extends Model implements HasMedia
                 if ($borrador) {
                     $control->estado_id = $borrador->id;
                 }
+            }
+        });
+
+        // El número del control sale de sus checks (D-040), por cualquier camino
+        // que los guarde: alta, edición del borrador o propuesta aplicada.
+        static::saving(function ($control) {
+            if ($control->isDirty('checks')) {
+                $control->checks = self::normalizarChecks($control->checks);
+                $control->mitigacion_default = self::puntajeChecks($control->checks);
             }
         });
     }
@@ -132,7 +141,61 @@ class Control extends Model implements HasMedia
      */
     public static function puntajeChecks(?array $checks): int
     {
-        return count(array_intersect(array_keys(self::CHECKS), $checks ?? [])) * self::PUNTOS_POR_CHECK;
+        return count(self::normalizarChecks($checks)) * self::PUNTOS_POR_CHECK;
+    }
+
+    /** Sólo las claves válidas, sin repetir y en el orden de CHECKS: así dos selecciones iguales comparan iguales. */
+    public static function normalizarChecks(?array $checks): array
+    {
+        return array_values(array_intersect(array_keys(self::CHECKS), $checks ?? []));
+    }
+
+    /** Los checks como texto, para el historial (el diff se muestra tal cual). */
+    public static function checksLegibles(?array $checks): string
+    {
+        $etiquetas = array_map(fn ($clave) => self::CHECKS[$clave], self::normalizarChecks($checks));
+
+        return $etiquetas ? implode(' · ', $etiquetas) : 'Ninguno';
+    }
+
+    /**
+     * Qué pasa con las relaciones cuando cambia el número del control. Con
+     * $propagar ("aplicar también a los riesgos asociados") todas toman el número
+     * y los checks del control. Si no, sólo se recortan las que pasan el nuevo
+     * tope (D-040). $antes es el número previo. La llaman ControlController::update()
+     * y Actualizacion::registrarCambioCampos()/aplicarCambios(), después de guardar.
+     * Tests: bajar_el_numero_del_control_recorta_las_relaciones_que_lo_pasan,
+     * subir_el_numero_del_control_no_toca_las_relaciones.
+     */
+    public function trasCambiarDefault(int $antes, User $usuario, bool $propagar): void
+    {
+        if ((int) $this->mitigacion_default === $antes) {
+            return;
+        }
+
+        $propagar ? $this->propagarMitigacionDefault($antes, $usuario) : $this->recortarRelacionesAlTope($usuario);
+    }
+
+    /**
+     * Baja al tope las relaciones cuyo número propio pasa el número del control.
+     * Las que no tienen número propio ya heredan el nuevo valor. Cada riesgo
+     * afectado recibe una Actualizacion aplicada, como en la propagación.
+     */
+    private function recortarRelacionesAlTope(User $usuario): void
+    {
+        $tope = (int) $this->mitigacion_default;
+
+        DB::transaction(function () use ($tope, $usuario) {
+            foreach ($this->riesgos()->get() as $riesgo) {
+                $anterior = $riesgo->pivot->mitigacion;
+                if ($anterior === null || $anterior <= $tope) {
+                    continue;
+                }
+
+                $this->riesgos()->updateExistingPivot($riesgo->id, ['mitigacion' => $tope]);
+                $this->registrarCambioEnRiesgo($riesgo, $anterior, $tope, $usuario, 'recorte al nuevo tope del control', 'tope_control');
+            }
+        });
     }
 
     /**
@@ -144,7 +207,7 @@ class Control extends Model implements HasMedia
      * mitigación, para que su historial cuente el cambio. $antes es el default
      * previo, que vale para las asociaciones con pivot en null. La llaman
      * Actualizacion::registrarCambioCampos()/aplicarCambios() y ControlController::update().
-     * Tests: cambiar_el_default_tildado_pisa_todas_las_asociaciones_y_baja_el_residual,
+     * Tests: cambiar_el_numero_tildado_pisa_todas_las_asociaciones_y_baja_el_residual,
      * la_propagacion_deja_una_actualizacion_aplicada_en_cada_riesgo_afectado.
      */
     public function propagarMitigacionDefault(int $antes, User $usuario): void
@@ -158,27 +221,32 @@ class Control extends Model implements HasMedia
                     continue;
                 }
 
-                $this->riesgos()->updateExistingPivot($riesgo->id, ['mitigacion' => $nuevo]);
-
-                $riesgo->actualizaciones()->create([
-                    'user_id' => $usuario->id,
-                    'mensaje' => "Mitigación de «{$this->nombre}»: {$anterior} → {$nuevo} (cambio del default del control)",
-                    'estado_id' => Estado::aprobado()->id,
-                    'aprobado_por_id' => $usuario->id,
-                    'aprobado_en' => now(),
-                    'data' => [
-                        'tipo' => 'cambio',
-                        'origen' => 'default_control',
-                        'activated_by' => $usuario->name,
-                        'diff' => ['relaciones' => ['controles' => ['cambia' => [[
-                            'id' => $this->id,
-                            'nombre' => $this->nombre,
-                            'mitigacion_antes' => $anterior,
-                            'mitigacion_despues' => $nuevo,
-                        ]]]]],
-                    ],
-                ]);
+                $this->riesgos()->updateExistingPivot($riesgo->id, ['mitigacion' => $nuevo, 'checks' => $this->checks]);
+                $this->registrarCambioEnRiesgo($riesgo, $anterior, $nuevo, $usuario, 'cambio del default del control', 'default_control');
             }
         });
+    }
+
+    /** Deja en el historial del riesgo, ya aplicado, el cambio de número de su relación con este control. */
+    private function registrarCambioEnRiesgo(Riesgo $riesgo, int $anterior, int $nuevo, User $usuario, string $motivo, string $origen): void
+    {
+        $riesgo->actualizaciones()->create([
+            'user_id' => $usuario->id,
+            'mensaje' => "Mitigación de «{$this->nombre}»: {$anterior} → {$nuevo} ({$motivo})",
+            'estado_id' => Estado::aprobado()->id,
+            'aprobado_por_id' => $usuario->id,
+            'aprobado_en' => now(),
+            'data' => [
+                'tipo' => 'cambio',
+                'origen' => $origen,
+                'activated_by' => $usuario->name,
+                'diff' => ['relaciones' => ['controles' => ['cambia' => [[
+                    'id' => $this->id,
+                    'nombre' => $this->nombre,
+                    'mitigacion_antes' => $anterior,
+                    'mitigacion_despues' => $nuevo,
+                ]]]]],
+            ],
+        ]);
     }
 }

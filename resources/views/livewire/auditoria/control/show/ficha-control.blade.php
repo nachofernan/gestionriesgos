@@ -42,21 +42,35 @@
                     <label class="{{ $label }}">Descripción</label>
                     <textarea wire:model="form.descripcion" rows="3" class="{{ $input }}" @disabled($bloq('descripcion'))></textarea>
                 </div>
-                <div class="col-span-2">
-                    <label class="{{ $label }}">Mitigación por defecto (1-10)</label>
-                    <input type="number" min="1" max="10" wire:model.live.debounce.300ms="form.mitigacion_default" class="{{ $input }}" @disabled($bloq('mitigacion_default'))>
-                    @error('form.mitigacion_default') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                <div class="col-span-6">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="{{ $label }} mb-0">Mitigación del control</label>
+                        <span class="text-xs font-black tabular-nums text-indigo-700 bg-indigo-50 rounded-lg px-2 py-0.5">{{ $puntaje }} / {{ count(\App\Models\Auditoria\Control::CHECKS) * \App\Models\Auditoria\Control::PUNTOS_POR_CHECK }}</span>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-1.5">
+                        @foreach(\App\Models\Auditoria\Control::CHECKS as $clave => $texto)
+                            <label class="flex items-center gap-2 rounded-lg border border-gray-100 px-2.5 py-1.5 text-xs text-gray-700 {{ $bloq('checks') ? 'opacity-50' : 'cursor-pointer hover:bg-gray-50' }}">
+                                <input type="checkbox" value="{{ $clave }}" wire:model.live="form.checks" @disabled($bloq('checks'))
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="flex-1">{{ $texto }}</span>
+                                <span class="text-[10px] font-bold text-gray-400">+{{ \App\Models\Auditoria\Control::PUNTOS_POR_CHECK }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('form.checks') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    @error('form.checks.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 @if($cantidadAfectados > 0)
                     <div class="col-span-6 rounded-xl border px-3 py-2.5 transition-colors {{ $propagar ? 'border-indigo-300 bg-indigo-50/60' : 'border-gray-200 bg-gray-50/60' }}">
                         <label class="flex items-start gap-2 text-sm text-gray-800 cursor-pointer">
                             <input type="checkbox" wire:model.live="propagar" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                x-on:click="if ($event.target.checked && !confirm(@js('Vas a llevar la mitigación de este control a '.$form['mitigacion_default'].' en '.($cantidadAfectados === 1 ? 'el riesgo asociado' : "los {$cantidadAfectados} riesgos asociados").', aunque hoy tengan otro valor.'.($esPropuesta ? ' Se aplica cuando se apruebe la propuesta.' : ' Se aplica en el acto.').' ¿Confirmás?'))) $event.preventDefault()">
+                                x-on:click="if ($event.target.checked && !confirm(@js('Vas a llevar la mitigación de este control a '.$puntaje.' en '.($cantidadAfectados === 1 ? 'el riesgo asociado' : "los {$cantidadAfectados} riesgos asociados").', aunque hoy tengan otro valor.'.($esPropuesta ? ' Se aplica cuando se apruebe la propuesta.' : ' Se aplica en el acto.').' ¿Confirmás?'))) $event.preventDefault()">
                             <span>
                                 Aplicar también a {{ $cantidadAfectados === 1 ? 'el riesgo asociado' : "los {$cantidadAfectados} riesgos asociados" }}
                                 <span class="block text-[11px] text-gray-500">
-                                    La mitigación de este control pasa a {{ $form['mitigacion_default'] }} en cada uno, aunque hoy tenga otro valor.
+                                    La mitigación de este control pasa a {{ $puntaje }} en cada uno, aunque hoy tenga otro valor.
+                                    Sin tildar, sólo bajan a {{ $puntaje }} los que hoy lo pasan.
                                     @if($modo !== 'directo') Se aplica cuando se apruebe la propuesta. @endif
                                 </span>
                             </span>
@@ -65,9 +79,10 @@
                             @foreach($afectados as $r)
                                 <li class="flex items-center gap-2 min-w-0">
                                     <span class="truncate">{{ $r['nombre'] }}</span>
-                                    <span class="ml-auto shrink-0 tabular-nums font-bold {{ $propagar && $r['mitigacion'] != $form['mitigacion_default'] ? 'text-indigo-700' : 'text-gray-400' }}">
-                                        @if($propagar && $r['mitigacion'] != $form['mitigacion_default'])
-                                            <span class="line-through font-normal text-gray-400">{{ $r['mitigacion'] }}</span> → {{ $form['mitigacion_default'] }}
+                                    @php $cambia = $propagar ? $r['mitigacion'] != $puntaje : ($r['propia'] && $r['mitigacion'] > $puntaje); @endphp
+                                    <span class="ml-auto shrink-0 tabular-nums font-bold {{ $cambia ? 'text-indigo-700' : 'text-gray-400' }}">
+                                        @if($cambia)
+                                            <span class="line-through font-normal text-gray-400">{{ $r['mitigacion'] }}</span> → {{ $puntaje }}
                                         @else
                                             {{ $r['mitigacion'] }}
                                         @endif

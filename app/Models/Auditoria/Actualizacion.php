@@ -317,7 +317,8 @@ class Actualizacion extends Model implements HasMedia
      * FichaRiesgo. Quien llama ya validó los campos y autorizó 'update'.
      * $propagarMitigacion (sólo Control, cambiando mitigacion_default) marca la
      * propuesta con 'propagar_mitigacion': cuando se aplique, el nuevo default se
-     * lleva a todos los riesgos asociados (Control::propagarMitigacionDefault()).
+     * lleva a todos los riesgos asociados. Sin la marca, sólo se recortan las
+     * relaciones que pasan el nuevo tope (Control::trasCambiarDefault()).
      * Tests: un_empleado_edita_la_ficha_y_queda_propuesta_solo_con_los_campos_que_cambiaron,
      * como_propuesta_no_propaga_hasta_que_se_aplica.
      */
@@ -339,6 +340,11 @@ class Actualizacion extends Model implements HasMedia
             // comparan y guardan en el mismo formato que manda el input date.
             if ($antes instanceof \DateTimeInterface) {
                 $antes = $antes->format('Y-m-d');
+            }
+            if ($campo === 'checks') {
+                // El diff se muestra tal cual: los checks van como texto (D-040).
+                $antes = Control::checksLegibles($antes);
+                $nuevo = Control::checksLegibles($nuevo);
             }
             if ($antes != $nuevo) {
                 $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
@@ -369,8 +375,8 @@ class Actualizacion extends Model implements HasMedia
             if ($aplicar) {
                 $antes = $entidad->mitigacion_default;
                 $entidad->update($campos);
-                if ($data['propagar_mitigacion'] ?? false) {
-                    $entidad->propagarMitigacionDefault((int) $antes, $usuario);
+                if ($entidad instanceof Control) {
+                    $entidad->trasCambiarDefault((int) $antes, $usuario, $data['propagar_mitigacion'] ?? false);
                 }
             }
 
@@ -486,7 +492,7 @@ class Actualizacion extends Model implements HasMedia
             'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
             'fundamento' => 'Fundamento', 'fundamento_dimension' => 'Fundamento de dimensión', 'tipo_riesgo_id' => 'Tipo de riesgo',
             'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
-            'mitigacion_default' => 'Mitigación', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
+            'mitigacion_default' => 'Mitigación', 'checks' => 'Checks', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
         ];
         $formatear = function ($campo, $valor) use ($tiposRiesgo) {
@@ -622,8 +628,8 @@ class Actualizacion extends Model implements HasMedia
      * legacy sin las claves `campos`/`relaciones`) y sincroniza las relaciones many-to-many
      * indicadas en `data['relaciones']` (sync/attach/detach). No hace nada si `data` está
      * vacío o si el tipo de actualización no es 'cambio'. Si la propuesta es de un
-     * Control y lleva 'propagar_mitigacion', lleva el nuevo default a sus riesgos a
-     * nombre de $usuario (quien la hace efectiva).
+     * Control y cambia su número, propaga o recorta sus relaciones
+     * (Control::trasCambiarDefault()) a nombre de $usuario (quien la hace efectiva).
      * Tests: como_propuesta_no_propaga_hasta_que_se_aplica,
      * aprobar_el_control_aplica_la_propagacion_de_sus_actualizaciones_pendientes.
      */
@@ -646,8 +652,8 @@ class Actualizacion extends Model implements HasMedia
             if (! empty($data['campos'])) {
                 $model->update($data['campos']);
             }
-            if (($data['propagar_mitigacion'] ?? false) && $model instanceof Control) {
-                $model->propagarMitigacionDefault((int) $mitigacionAntes, $usuario ?? $this->user);
+            if ($model instanceof Control) {
+                $model->trasCambiarDefault((int) $mitigacionAntes, $usuario ?? $this->user, $data['propagar_mitigacion'] ?? false);
             }
         } else {
             // Legacy format

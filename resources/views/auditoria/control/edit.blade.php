@@ -32,19 +32,14 @@
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Valor de Mitigación por defecto (1–10) *
-                </label>
-                <input type="number" name="mitigacion_default" value="{{ old('mitigacion_default', $control->mitigacion_default) }}" min="1" max="10"
-                    class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 @error('mitigacion_default') border-red-300 @enderror" />
-                @error('mitigacion_default') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
+                @include('auditoria.partials.checks-mitigacion', ['seleccionados' => old('checks', $control->checks ?? [])])
                 @if($control->riesgos()->exists())
                     <label class="mt-3 flex items-start gap-2 text-sm text-gray-700">
                         <input type="checkbox" name="propagar_mitigacion" value="1" @checked(old('propagar_mitigacion'))
                             class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                         <span>
                             Si cambia, aplicar también a los <strong>{{ $control->riesgos()->count() }} riesgos asociados</strong>
-                            <span class="block text-xs text-gray-500">Pisa la mitigación que tenga este control en cada uno de ellos.</span>
+                            <span class="block text-xs text-gray-500">Pisa la mitigación que tenga este control en cada uno de ellos. Sin tildar, sólo se bajan las que pasen el nuevo número.</span>
                         </span>
                     </label>
                 @endif

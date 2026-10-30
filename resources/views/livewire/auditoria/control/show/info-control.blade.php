@@ -21,7 +21,16 @@
             @endif
         </p>
     </div>
-    <p class="mx-4 mt-2 text-[11px] text-gray-400">Es el valor con el que se asocia a un riesgo; cada riesgo puede ajustarlo.</p>
+    <ul class="mx-4 mt-2 space-y-0.5 text-[11px]">
+        @foreach(\App\Models\Auditoria\Control::CHECKS as $clave => $texto)
+            @php $cumple = in_array($clave, $control->checks ?? [], true); @endphp
+            <li class="flex items-center gap-1.5 {{ $cumple ? 'text-gray-700' : 'text-gray-400 line-through' }}">
+                <span class="font-bold {{ $cumple ? 'text-emerald-600' : 'text-gray-300' }}">{{ $cumple ? '✓' : '·' }}</span>
+                {{ $texto }}
+            </li>
+        @endforeach
+    </ul>
+    <p class="mx-4 mt-2 text-[11px] text-gray-400">Es el tope: en cada riesgo puede mitigar menos, nunca más.</p>
 
     <dl class="mx-4 mt-3 mb-4 text-sm divide-y divide-gray-100">
         <div class="flex items-center justify-between py-1.5">

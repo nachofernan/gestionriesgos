@@ -334,7 +334,6 @@ class GestionActualizaciones extends Component
             'control' => [
                 'nombre' => 'Nombre',
                 'descripcion' => 'Descripción',
-                'mitigacion_default' => 'Mitigación por defecto',
             ],
             'objetivo' => [
                 'nombre' => 'Nombre',
@@ -369,8 +368,6 @@ class GestionActualizaciones extends Component
     /**
      * Campos de `camposEditables()` con rango numérico: el modal los renderiza como
      * <input type="number" min max> y guardar() los valida contra el mismo rango.
-     * mitigacion_default de Control replica el tope de 1-10 que ya rige en su
-     * creación/edición (ControlController) y en el valor por riesgo (GestionControles).
      * porcentaje_avance de Tarea replica el tope de 0-100 que ya rige en
      * TareaController, ActualizacionTareaController y GestionTareas::guardarNuevaTarea().
      * impacto/probabilidad de Riesgo replican el tope 0-10 que ya rige la suma de las
@@ -379,7 +376,6 @@ class GestionActualizaciones extends Component
     private function camposNumericos(): array
     {
         return [
-            'mitigacion_default' => ['min' => 1, 'max' => 10],
             'porcentaje_avance' => ['min' => 0, 'max' => 100],
             'impacto' => ['min' => 0, 'max' => 10],
             'probabilidad' => ['min' => 0, 'max' => 10],

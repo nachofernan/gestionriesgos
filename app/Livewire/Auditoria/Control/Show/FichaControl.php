@@ -7,6 +7,7 @@ use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -15,8 +16,9 @@ use Livewire\Component;
  * propuestas pendientes sobre esos campos debajo. Mismo patrón que FichaRiesgo:
  * fuera de borrador se edita en el bloque y guardar() manda sólo lo que cambió a
  * Actualizacion::registrarCambioCampos(); en borrador se edita con el formulario
- * completo (ControlController::edit). Si cambia la mitigación por defecto, ofrece
- * llevar el nuevo valor a todos los riesgos asociados ($propagar).
+ * completo (ControlController::edit). La mitigación sale de los checks (D-040). Si
+ * cambia, ofrece llevar el nuevo valor a todos los riesgos asociados ($propagar);
+ * sin eso, sólo se recortan los que pasan el nuevo número.
  */
 class FichaControl extends Component
 {
@@ -28,7 +30,7 @@ class FichaControl extends Component
 
     public bool $editando = false;
 
-    /** @var array{nombre:string, descripcion:?string, mitigacion_default:int} */
+    /** @var array{nombre:string, descripcion:?string, checks:array<int, string>} */
     public array $form = [];
 
     /** Motivo del cambio: queda como mensaje de la Actualizacion. */
@@ -37,7 +39,7 @@ class FichaControl extends Component
     /** "Aplicar también a los riesgos asociados": ver Control::propagarMitigacionDefault(). */
     public bool $propagar = false;
 
-    private const CAMPOS = ['nombre', 'descripcion', 'mitigacion_default'];
+    private const CAMPOS = ['nombre', 'descripcion'];
 
     #[On('control-actualizado')]
     public function refrescar(): void {}
@@ -52,7 +54,7 @@ class FichaControl extends Component
         $control = Control::findOrFail($this->controlId);
         $this->authorize('proponer', $control);
 
-        $this->form = $control->only(self::CAMPOS);
+        $this->form = $control->only(self::CAMPOS) + ['checks' => Control::normalizarChecks($control->checks)];
         $this->mensaje = '';
         $this->propagar = false;
         $this->resetValidation();
@@ -82,7 +84,8 @@ class FichaControl extends Component
             'mensaje' => 'required|string|min:3',
             'form.nombre' => 'required|string|max:255',
             'form.descripcion' => 'nullable|string',
-            'form.mitigacion_default' => 'required|integer|min:1|max:10',
+            'form.checks' => 'array',
+            'form.checks.*' => ['string', Rule::in(array_keys(Control::CHECKS))],
         ], ['mensaje.required' => 'Contá brevemente por qué se cambia.']);
 
         $bloqueados = $this->camposConPropuesta($this->propuestasDe($control, 'campos'));
@@ -93,6 +96,13 @@ class FichaControl extends Component
                 continue;
             }
             $campos[$campo] = $nuevo === '' ? null : $nuevo;
+        }
+
+        // El número va junto con los checks para que el historial muestre los dos.
+        $checks = Control::normalizarChecks($this->form['checks'] ?? []);
+        if (! in_array('checks', $bloqueados, true) && $checks !== Control::normalizarChecks($control->checks)) {
+            $campos['checks'] = $checks;
+            $campos['mitigacion_default'] = Control::puntajeChecks($checks);
         }
 
         if (empty($campos)) {
@@ -128,16 +138,21 @@ class FichaControl extends Component
         $this->estadoModelo = $control->estado?->nombre ?? 'borrador';
         $propuestas = $this->propuestasDe($control, 'campos');
 
-        // Vista previa de la propagación: sólo los riesgos que el usuario puede ver,
-        // el resto se cuenta. Se arma sólo si el default del form difiere del vigente.
+        // Vista previa de la propagación o el recorte: sólo los riesgos que el usuario
+        // puede ver, el resto se cuenta. Se arma sólo si el número del form difiere del vigente.
         $afectados = collect();
         $ocultos = 0;
-        $nuevoDefault = $this->form['mitigacion_default'] ?? null;
-        if ($this->editando && $nuevoDefault !== null && $nuevoDefault !== '' && (int) $nuevoDefault !== (int) $control->mitigacion_default) {
+        $puntaje = Control::puntajeChecks($this->form['checks'] ?? []);
+        if ($this->editando && $puntaje !== (int) $control->mitigacion_default) {
             $todos = $control->riesgos()->get();
             $visibles = $control->riesgos()->visiblePara(Auth::user())->pluck('riesgos.id');
             $afectados = $todos->filter(fn ($r) => $visibles->contains($r->id))
-                ->map(fn ($r) => ['nombre' => $r->nombre, 'mitigacion' => (int) ($r->pivot->mitigacion ?? $control->mitigacion_default)])
+                ->map(fn ($r) => [
+                    'nombre' => $r->nombre,
+                    'mitigacion' => (int) ($r->pivot->mitigacion ?? $control->mitigacion_default),
+                    // Sin número propio hereda el del control: no se recorta, sigue al nuevo.
+                    'propia' => $r->pivot->mitigacion !== null,
+                ])
                 ->values();
             $ocultos = $todos->count() - $afectados->count();
         }
@@ -149,6 +164,7 @@ class FichaControl extends Component
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),
             'afectados' => $afectados,
+            'puntaje' => $puntaje,
             'ocultos' => $ocultos,
         ]);
     }
