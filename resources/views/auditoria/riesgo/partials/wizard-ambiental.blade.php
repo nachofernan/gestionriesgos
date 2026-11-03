@@ -21,11 +21,11 @@
 
 @foreach ($ejes as $eje)
     @php $definicion = $ambiental[$seccion][$eje]; @endphp
-    <div class="border border-gray-100 rounded-xl p-4 @error('ambiental.'.$eje) border-red-300 bg-red-50/30 @enderror">
-        <p class="text-sm font-semibold text-gray-700 mb-3">{{ $definicion['titulo'] }}</p>
+    <div>
+        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{{ $definicion['titulo'] }}</p>
 
         @if ($eje === 'magnitud')
-            <details class="mb-3 text-xs text-gray-500">
+            <details class="mb-2 text-xs text-gray-500">
                 <summary class="cursor-pointer font-semibold text-gray-600">Qué considerar (I + Ex + Mo + Rv + Ef + Mc)</summary>
                 <dl class="mt-2 space-y-1">
                     @foreach ($ambiental['guia_magnitud'] as $variable => $texto)
@@ -35,15 +35,15 @@
             </details>
         @endif
 
-        <div class="space-y-1.5">
+        <div class="rounded-xl border divide-y divide-gray-100 overflow-hidden @error('ambiental.'.$eje) border-red-300 @else border-gray-200 @enderror">
             @foreach ($definicion['opciones'] as $o)
                 @php
                     // Sin guardar contra null, una respuesta vacía coincidiría con un valor 0.
                     $seleccion = old('ambiental.'.$eje, $valores[$eje] ?? null);
                     $checked = $seleccion !== null && $seleccion == $o['v'];
                 @endphp
-                <label class="flex items-start gap-3 p-2 rounded-lg border cursor-pointer transition-all"
-                       :class="ambiental.{{ $eje }} === {{ $o['v'] }} ? 'border-indigo-200 bg-indigo-50/50' : 'border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/20'">
+                <label class="flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors"
+                       :class="ambiental.{{ $eje }} === {{ $o['v'] }} ? 'bg-indigo-50/60' : 'hover:bg-gray-50'">
                     <input type="radio" name="ambiental[{{ $eje }}]" value="{{ $o['v'] }}"
                         {{ $checked ? 'checked' : '' }}
                         x-model.number="ambiental.{{ $eje }}"
@@ -66,15 +66,15 @@
 @if ($seccion === 'impacto')
     @foreach (['impacto', 'financiera'] as $lista)
         @php $grupo = $ambiental['materialidad'][$lista]; @endphp
-        <div class="border border-gray-100 rounded-xl p-4">
+        <div>
             <div class="flex items-baseline justify-between gap-2 mb-1">
-                <p class="text-sm font-semibold text-gray-700">{{ $grupo['titulo'] }}</p>
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{ $grupo['titulo'] }}</p>
                 <p class="text-xs text-gray-400"><span x-text="ambiental.materialidad_{{ $lista }}.length"></span> marcadas</p>
             </div>
             @isset($grupo['pregunta'])
                 <p class="text-xs text-gray-500 mb-2">{{ $grupo['pregunta'] }}</p>
             @endisset
-            <div class="grid sm:grid-cols-2 gap-1">
+            <div class="grid sm:grid-cols-2 gap-1 rounded-xl border border-gray-200 p-2">
                 @foreach ($grupo['items'] as $id => $texto)
                     <label class="flex items-start gap-2 p-1.5 rounded-md cursor-pointer hover:bg-gray-50">
                         <input type="checkbox" name="ambiental[materialidad_{{ $lista }}][]" value="{{ $id }}"

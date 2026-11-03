@@ -85,11 +85,11 @@
                         @if(empty($marcadas))
                             <p class="text-xs text-gray-400 italic">Ninguna.</p>
                         @else
-                            <div class="flex flex-wrap gap-1.5">
+                            <ul class="list-disc pl-4 space-y-0.5 text-xs text-gray-700 marker:text-gray-300">
                                 @foreach($marcadas as $id)
-                                    <span class="text-xs rounded-md px-2 py-0.5 bg-emerald-50 text-emerald-800">{{ $grupo['items'][$id] ?? '#'.$id }}</span>
+                                    <li>{{ $grupo['items'][$id] ?? '#'.$id }}</li>
                                 @endforeach
-                            </div>
+                            </ul>
                         @endif
                     </div>
                 @endforeach
