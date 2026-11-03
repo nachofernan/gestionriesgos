@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auditoria;
 
+use App\Enums\Auditoria\MetodoEvaluacion;
 use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
@@ -11,6 +12,7 @@ use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
+use App\Services\Auditoria\EvaluacionRiesgo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -84,9 +86,9 @@ class RiesgoController extends Controller
     }
 
     /**
-     * Impacto y probabilidad no se cargan a mano: se calculan como la suma de
-     * las 5 respuestas (0-2 cada una) del wizard de creación para cada eje
-     * (ver config/riesgo_preguntas.php). `mayor_criticidad` sólo puede quedar en
+     * Impacto y probabilidad no se cargan a mano: salen de las respuestas del
+     * wizard vía EvaluacionRiesgo, y las respuestas quedan guardadas en el
+     * riesgo como su evaluación vigente (D-042). `mayor_criticidad` sólo puede quedar en
      * true si esa suma total es >= 14; el checkbox del request es una propuesta,
      * la suma es la que decide. Los objetivos no se asocian en el alta: se
      * vinculan desde la ficha y son obligatorios recién al validar el riesgo (ver
@@ -96,35 +98,32 @@ class RiesgoController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', [Riesgo::class, $request->input('area_id')]);
+        $metodo = MetodoEvaluacion::Clasica;
+        $reglasEvaluacion = EvaluacionRiesgo::reglas($metodo);
 
         $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'probabilidad_respuestas' => 'required|array|size:5',
-            'probabilidad_respuestas.*' => 'required|integer|min:0|max:2',
-            'impacto_respuestas' => 'required|array|size:5',
-            'impacto_respuestas.*' => 'required|integer|min:0|max:2',
             'mayor_criticidad' => 'boolean',
             'respuesta' => Riesgo::reglaRespuesta($request->input('tipo_riesgo_id')),
             'fundamento' => Riesgo::reglaFundamento(),
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => ['required', 'exists:areas,id', Rule::in(Auth::user()->idsAreasGestionables())],
             'fundamento_dimension' => Riesgo::reglaFundamentoDimension((array) $request->input('dimensiones')),
-        ] + self::REGLAS_SEDES + self::REGLAS_DIMENSIONES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_DIMENSIONES + [
+        ] + $reglasEvaluacion + self::REGLAS_SEDES + self::REGLAS_DIMENSIONES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_DIMENSIONES + [
             'area_id.required' => 'Debe elegir un área.',
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
 
-        $probabilidadRespuestas = $data['probabilidad_respuestas'];
-        $impactoRespuestas = $data['impacto_respuestas'];
+        $evaluacion = EvaluacionRiesgo::desdeRequest($metodo, $data);
         $sedeIds = $data['sedes'];
         $dimensionIds = $data['dimensiones'];
-        unset($data['probabilidad_respuestas'], $data['impacto_respuestas'], $data['sedes'], $data['dimensiones']);
+        $data = array_diff_key($data, $reglasEvaluacion, ['sedes' => 0, 'dimensiones' => 0]);
         // Con una sola dimensión el fundamento no aplica: no queda uno huérfano.
         $data['fundamento_dimension'] = count($dimensionIds) >= 2 ? $data['fundamento_dimension'] : null;
 
-        $data['probabilidad'] = array_sum($probabilidadRespuestas);
-        $data['impacto'] = array_sum($impactoRespuestas);
+        $data += EvaluacionRiesgo::calcular($evaluacion);
+        $data['evaluacion'] = $evaluacion;
 
         $suma = $data['impacto'] + $data['probabilidad'];
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
@@ -152,10 +151,7 @@ class RiesgoController extends Controller
                 // Respuestas guardadas aparte de "campos": ese array lo recorre la
                 // vista de historial esperando valores escalares (ver
                 // gestion-actualizaciones.blade.php), y mezclar arrays ahí rompe el render.
-                'respuestas' => [
-                    'probabilidad' => $probabilidadRespuestas,
-                    'impacto' => $impactoRespuestas,
-                ],
+                'respuestas' => $evaluacion['respuestas'],
             ],
         ]);
 
@@ -278,19 +274,24 @@ class RiesgoController extends Controller
         }
 
         $preguntas = config('riesgo_preguntas');
+        // El wizard arranca con las respuestas vigentes (D-042).
+        $respuestas = $riesgo->evaluacion['respuestas'] ?? [];
 
-        return view('auditoria.riesgo.recalcular', compact('riesgo', 'preguntas'));
+        return view('auditoria.riesgo.recalcular', compact('riesgo', 'preguntas', 'respuestas'));
     }
 
     /**
-     * Vuelve a pasar el wizard de preguntas (mismo cálculo que store()) para
-     * recalcular impacto/probabilidad de un riesgo ya creado, en vez de permitir
-     * cargarlos a mano en update(). En borrador se aplica directo (log tipo
-     * 'edicion', igual que update(): el riesgo todavía no fue validado por
-     * nadie). Fuera de borrador es una propuesta de cambio más: sigue el mismo
+     * Vuelve a pasar el wizard de preguntas (mismo cálculo que store(), vía
+     * EvaluacionRiesgo) para recalcular impacto/probabilidad de un riesgo ya
+     * creado. Hay cambio si cambia el número o sólo las respuestas: la
+     * evaluación vigente es parte del riesgo y no cambia sin el ciclo (D-042).
+     * En borrador se aplica directo (log tipo 'edicion', igual que update()).
+     * Fuera de borrador es una propuesta de cambio más: sigue el mismo
      * arranque de estado según el rol de quien la crea que GestionActualizaciones::guardar()
      * (Actualizacion::estadoInicialParaCambio()), para no crear un segundo
      * camino con reglas distintas.
+     * Tests: un_recalculo_que_solo_cambia_respuestas_queda_como_propuesta,
+     * la_propuesta_de_recalculo_aplica_la_evaluacion_recien_al_aprobarse.
      */
     public function recalcularStore(Request $request, Riesgo $riesgo)
     {
@@ -300,24 +301,18 @@ class RiesgoController extends Controller
             return redirect()->route('auditoria.riesgos.show', $riesgo)->with('error', $motivo);
         }
 
-        $data = $request->validate([
-            'probabilidad_respuestas' => 'required|array|size:5',
-            'probabilidad_respuestas.*' => 'required|integer|min:0|max:2',
-            'impacto_respuestas' => 'required|array|size:5',
-            'impacto_respuestas.*' => 'required|integer|min:0|max:2',
+        $metodo = MetodoEvaluacion::Clasica;
+        $data = $request->validate(EvaluacionRiesgo::reglas($metodo) + [
             'mayor_criticidad' => 'boolean',
         ]);
 
-        $probabilidadRespuestas = $data['probabilidad_respuestas'];
-        $impactoRespuestas = $data['impacto_respuestas'];
+        $evaluacion = EvaluacionRiesgo::desdeRequest($metodo, $data);
+        $original = $riesgo->only(['impacto', 'probabilidad', 'mayor_criticidad', 'evaluacion']);
 
-        $original = $riesgo->only(['impacto', 'probabilidad', 'mayor_criticidad']);
-
-        $nuevos = [];
-        $nuevos['probabilidad'] = array_sum($probabilidadRespuestas);
-        $nuevos['impacto'] = array_sum($impactoRespuestas);
+        $nuevos = EvaluacionRiesgo::calcular($evaluacion);
         $suma = $nuevos['impacto'] + $nuevos['probabilidad'];
         $nuevos['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
+        $nuevos['evaluacion'] = $evaluacion;
 
         $diff = [];
         foreach ($nuevos as $campo => $valor) {
@@ -327,7 +322,7 @@ class RiesgoController extends Controller
         }
 
         if (! empty($diff)) {
-            $respuestas = ['probabilidad' => $probabilidadRespuestas, 'impacto' => $impactoRespuestas];
+            $respuestas = $evaluacion['respuestas'];
 
             if ($riesgo->estado?->nombre === 'borrador') {
                 $riesgo->update($nuevos);

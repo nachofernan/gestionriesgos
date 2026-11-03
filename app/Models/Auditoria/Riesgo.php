@@ -37,6 +37,7 @@ class Riesgo extends Model implements HasMedia
         'descripcion',
         'impacto',
         'probabilidad',
+        'evaluacion',
         'mayor_criticidad',
         'respuesta',
         'fundamento',
@@ -55,6 +56,7 @@ class Riesgo extends Model implements HasMedia
 
     protected $casts = [
         'respuesta' => RespuestaRiesgo::class,
+        'evaluacion' => 'array',
         'validado_en' => 'datetime',
         'aprobado_en' => 'datetime',
         'rechazado_en' => 'datetime',

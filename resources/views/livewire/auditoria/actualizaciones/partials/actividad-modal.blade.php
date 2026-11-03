@@ -9,6 +9,7 @@
         if (is_bool($v)) return $v ? 'Sí' : 'No';
         if ($campo === 'tipo_riesgo_id') return $tiposRiesgo[$v] ?? '#'.$v;
         if ($campo === 'respuesta' && is_string($v)) return \App\Enums\Auditoria\RespuestaRiesgo::tryFrom($v)?->label() ?? $v;
+        if ($campo === 'evaluacion') return \App\Services\Auditoria\EvaluacionRiesgo::resumen($v);
         if (is_array($v)) return json_encode($v, JSON_UNESCAPED_UNICODE);
         return (string) $v;
     };

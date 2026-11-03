@@ -4,6 +4,7 @@ namespace App\Models\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\User;
+use App\Services\Auditoria\EvaluacionRiesgo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -547,7 +548,7 @@ class Actualizacion extends Model implements HasMedia
         $etiquetas = [
             'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
             'fundamento' => 'Fundamento', 'fundamento_dimension' => 'Fundamento de dimensión', 'tipo_riesgo_id' => 'Tipo de riesgo',
-            'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad',
+            'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad', 'evaluacion' => 'Respuestas del cuestionario',
             'mitigacion_default' => 'Mitigación', 'checks' => 'Checks', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
         ];
@@ -558,6 +559,7 @@ class Actualizacion extends Model implements HasMedia
 
             return (string) match ($campo) {
                 'tipo_riesgo_id' => $tiposRiesgo[$valor] ?? '#'.$valor,
+                'evaluacion' => EvaluacionRiesgo::resumen($valor),
                 'respuesta' => RespuestaRiesgo::tryFrom($valor)?->label() ?? $valor,
                 'fecha_objetivo', 'fecha' => Carbon::parse($valor)->format('d/m/Y'),
                 'porcentaje_avance', 'efectividad' => $valor.'%',

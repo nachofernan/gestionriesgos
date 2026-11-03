@@ -40,11 +40,18 @@
                         </p>
                         <div class="space-y-1">
                             @foreach($diff as $campo => $cambio)
+                                @php
+                                    $valorDiff = fn ($v) => match (true) {
+                                        $campo === 'evaluacion' => \App\Services\Auditoria\EvaluacionRiesgo::resumen($v),
+                                        is_bool($v) => $v ? 'sí' : 'no',
+                                        default => $v ?? '—',
+                                    };
+                                @endphp
                                 <div class="text-sm text-gray-700 leading-5">
                                     <span class="font-medium">{{ $campo }}:</span>
-                                    <span class="line-through opacity-50 ml-1">{{ is_bool($cambio['antes']) ? ($cambio['antes'] ? 'sí' : 'no') : ($cambio['antes'] ?? '—') }}</span>
+                                    <span class="line-through opacity-50 ml-1">{{ $valorDiff($cambio['antes'] ?? null) }}</span>
                                     <span class="mx-1 opacity-40">→</span>
-                                    <span class="font-semibold">{{ is_bool($cambio['despues']) ? ($cambio['despues'] ? 'sí' : 'no') : ($cambio['despues'] ?? '—') }}</span>
+                                    <span class="font-semibold">{{ $valorDiff($cambio['despues'] ?? null) }}</span>
                                 </div>
                             @endforeach
                         </div>

@@ -1341,3 +1341,32 @@ y `la_ficha_no_deja_cambiar_impacto_ni_probabilidad_a_mano`.
 de verdad para el mismo número. Revertir sólo para los ambientales: deja dos reglas para el mismo campo.
 
 Fuente: sesión 2026-11-03, con el usuario presente.
+
+---
+
+## D-042 — El riesgo guarda las respuestas vigentes de su evaluación (2026-11-03)
+
+**Decisión.** `riesgos.evaluacion` (json) guarda `{metodo, respuestas}` del último wizard aplicado.
+El cálculo sale de los controladores a `App\Services\Auditoria\EvaluacionRiesgo` (`reglas()`,
+`desdeRequest()`, `calcular()`, `resumen()`), que comparten `store()` y `recalcularStore()`. El método
+se nombra con el enum `MetodoEvaluacion`: hoy sólo `clasica`, y en D-043 se suma el ambiental.
+
+- **Recalcular arranca precargado** con las respuestas vigentes: corregir un número es cambiar una
+  respuesta (lo que buscaba D-015, revertida en D-041).
+- **La evaluación es parte del riesgo y no cambia sin el ciclo.** Un recálculo que sólo cambia
+  respuestas, aunque el número quede igual, también es una propuesta. `evaluacion` viaja en
+  `data.campos` (se aplica con el `update()` genérico) y en `data.diff`, donde se muestra con
+  `EvaluacionRiesgo::resumen()` ("Prob. 1·2·0·1·2 · Imp. …") en las cuatro pantallas que pintan diffs.
+- **Backfill.** La migración completa cada riesgo con las respuestas de su última alta o recálculo
+  aplicado (`EvaluacionRiesgo::desdeHistorial()`), sólo si esas respuestas explican el número actual.
+  Los demás (la carga inicial, o los editados a mano con D-015) quedan en null y su wizard arranca vacío.
+
+**Motivo.** Poder actualizar la evaluación sin rehacerla entera y ver en la ficha cómo se llegó al
+número, para los dos métodos.
+
+**Descartado.** Una tabla `evaluaciones` con historial propio: duplica lo que ya guarda el historial de
+`Actualizacion` (cada alta y recálculo lleva sus respuestas) y suma un segundo circuito de aprobación.
+
+Tests: `EvaluacionRiesgoTest`.
+
+Fuente: sesión 2026-11-03, con el usuario presente.

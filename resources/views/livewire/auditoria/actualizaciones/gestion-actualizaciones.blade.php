@@ -20,6 +20,7 @@
             'descripcion' => 'Descripción',
             'impacto' => 'Impacto',
             'probabilidad' => 'Probabilidad',
+            'evaluacion' => 'Respuestas del cuestionario',
             'mayor_criticidad' => 'Mayor criticidad',
             'tipo_riesgo_id' => 'Tipo de riesgo',
             'mitigacion_default' => 'Mitigación por defecto',
@@ -157,11 +158,18 @@
                                 {{-- Diff de campos (antes → despues) --}}
                                 @if(isset($data['diff']['campos']))
                                     @foreach($data['diff']['campos'] as $campo => $cambio)
+                                        @php
+                                            $valorDiff = fn ($v) => match (true) {
+                                                $campo === 'evaluacion' => \App\Services\Auditoria\EvaluacionRiesgo::resumen($v),
+                                                is_bool($v) => $v ? 'sí' : 'no',
+                                                default => $v ?? '—',
+                                            };
+                                        @endphp
                                         <div class="text-xs {{ $dataTxt }} leading-5">
                                             <span class="font-medium">{{ $campo }}:</span>
-                                            <span class="line-through opacity-50 ml-1">{{ is_bool($cambio['antes']) ? ($cambio['antes'] ? 'sí' : 'no') : ($cambio['antes'] ?? '—') }}</span>
+                                            <span class="line-through opacity-50 ml-1">{{ $valorDiff($cambio['antes'] ?? null) }}</span>
                                             <span class="mx-1 opacity-40">→</span>
-                                            <span class="font-semibold">{{ is_bool($cambio['despues']) ? ($cambio['despues'] ? 'sí' : 'no') : ($cambio['despues'] ?? '—') }}</span>
+                                            <span class="font-semibold">{{ $valorDiff($cambio['despues'] ?? null) }}</span>
                                         </div>
                                     @endforeach
                                 @endif
