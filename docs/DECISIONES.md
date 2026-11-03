@@ -1315,3 +1315,29 @@ operaciones por elemento. Salen `EfectividadControl`, `Control::registrarTesteo(
 `$extra` de `registrarCambioCampos()`. Cambia el axioma 2 de CLAUDE.md. Tests en
 `EfectividadRelacionTest`, `PropagacionMitigacionControlTest`, `ChecksRelacionTest` y
 `TesteoRelacionTest`. `EfectividadControlTest` y `TesteoEfectividadTest` se borraron.
+
+---
+
+## D-041 — Impacto y probabilidad vuelven a cambiar sólo por el wizard (revierte D-015) (2026-11-03)
+
+**Decisión.** Se revierte D-015. Impacto y probabilidad dejan de editarse a mano en la Ficha del riesgo
+(`FichaRiesgo::CAMPOS`), en el modal de Actualizaciones (`GestionActualizaciones::camposEditables()`) y
+en `ActualizacionController::storeRiesgo()`. Sólo cambian por el wizard de recálculo, que pasa por el
+mismo ciclo de propuesta que antes. El axioma 5 de CLAUDE.md vuelve a ser absoluto.
+
+**Motivo.** El riesgo va a guardar las respuestas vigentes de su evaluación, y se suma un método
+ambiental con valores acotados: la probabilidad ambiental sólo puede ser par. Un número cargado a mano
+deja respuestas que ya no lo explican y permite valores que el método no puede dar. El motivo de D-015
+(no rehacer las 5 preguntas para corregir un número) se resuelve con el wizard precargado: corregir un
+número es cambiar una respuesta.
+
+**Arreglado en el camino.** `GestionActualizaciones::guardar()` pasaba `$cambios` (propiedad pública de
+Livewire) sin filtrar, así que el cliente podía proponer cualquier columna: `area_id`, `estado_id` o el
+mismo impacto. Ahora sólo pasan las claves de `camposEditables()`. Tests:
+`el_modal_descarta_columnas_que_no_son_editables`, `el_modal_no_deja_cambiar_impacto_ni_probabilidad_a_mano`
+y `la_ficha_no_deja_cambiar_impacto_ni_probabilidad_a_mano`.
+
+**Descartado.** Mantener la edición a mano marcando la evaluación como "desactualizada": deja dos fuentes
+de verdad para el mismo número. Revertir sólo para los ambientales: deja dos reglas para el mismo campo.
+
+Fuente: sesión 2026-11-03, con el usuario presente.

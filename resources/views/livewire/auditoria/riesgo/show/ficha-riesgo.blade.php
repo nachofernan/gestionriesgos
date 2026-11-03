@@ -116,20 +116,19 @@
                     <textarea wire:model="form.fundamento" rows="2" class="{{ $input }}" @disabled($bloq('fundamento'))></textarea>
                     @error('form.fundamento') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
+                {{-- Impacto y probabilidad sólo cambian por el wizard (D-041). --}}
                 <div class="col-span-2">
-                    <label class="{{ $label }}">Impacto (0-10)</label>
-                    <input type="number" min="0" max="10" wire:model="form.impacto" class="{{ $input }}" @disabled($bloq('impacto'))>
-                    @error('form.impacto') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    <label class="{{ $label }}">Impacto</label>
+                    <input type="number" value="{{ $riesgo->impacto }}" class="{{ $input }}" disabled>
                 </div>
                 <div class="col-span-2">
-                    <label class="{{ $label }}">Probabilidad (0-10)</label>
-                    <input type="number" min="0" max="10" wire:model="form.probabilidad" class="{{ $input }}" @disabled($bloq('probabilidad'))>
-                    @error('form.probabilidad') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    <label class="{{ $label }}">Probabilidad</label>
+                    <input type="number" value="{{ $riesgo->probabilidad }}" class="{{ $input }}" disabled>
                 </div>
                 <div class="col-span-2 flex items-end">
                     @if($puedeRecalcular)
                         <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}" class="text-[11px] font-semibold text-gray-500 hover:text-indigo-700 pb-2.5">
-                            o recalcular con el cuestionario →
+                            Recalcular con el cuestionario →
                         </a>
                     @endif
                 </div>

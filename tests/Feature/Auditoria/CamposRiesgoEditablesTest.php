@@ -18,9 +18,9 @@ use Tests\TestCase;
 
 /**
  * Un riesgo puede editarse durante toda su vida (no sólo en borrador) a través
- * del modal de Actualizaciones: nombre, descripción, respuesta, fundamento, tipo
- * de riesgo, impacto y probabilidad (estos dos últimos con el mismo ciclo de
- * validación que el resto, sin necesidad de repetir el wizard — ver D-015).
+ * del modal de Actualizaciones: nombre, descripción, respuesta, fundamento y tipo
+ * de riesgo. Impacto y probabilidad no: sólo cambian por el wizard (D-041, que
+ * revierte D-015).
  * Reemplaza la decisión anterior de que el modal de un riesgo sólo admitía
  * mensaje + adjunto (ver docs/DECISIONES.md).
  */
@@ -59,12 +59,11 @@ class CamposRiesgoEditablesTest extends TestCase
             ->call('abrirModal')
             ->assertViewHas('camposEditables', fn ($campos) => array_keys($campos) === [
                 'nombre', 'descripcion', 'respuesta', 'fundamento', 'tipo_riesgo_id',
-                'impacto', 'probabilidad',
             ]);
     }
 
     #[Test]
-    public function el_comite_puede_proponer_un_cambio_de_impacto_y_probabilidad_sobre_un_riesgo_aprobado(): void
+    public function el_modal_no_deja_cambiar_impacto_ni_probabilidad_a_mano(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
         $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
@@ -82,32 +81,40 @@ class CamposRiesgoEditablesTest extends TestCase
             ->set('mensaje', 'Corrijo impacto y probabilidad')
             ->set('cambios.impacto', 7)
             ->set('cambios.probabilidad', 8)
-            ->call('guardar')
-            ->assertHasNoErrors();
+            ->call('guardar');
 
-        // Comité sobre un riesgo aprobado: se aplica al toque (mismo criterio que
-        // cualquier otro campo, ver estadoInicialParaCambio()).
+        // Sólo cambian por el wizard (D-041): el cliente los manda, pero se descartan
+        // y no queda ningún cambio de campos registrado.
         $riesgo->refresh();
-        $this->assertEquals(7, $riesgo->impacto);
-        $this->assertEquals(8, $riesgo->probabilidad);
-        $this->assertEquals(15, $riesgo->valor_total);
-        $this->assertEquals(15, $riesgo->valor_residual);
+        $this->assertEquals(4, $riesgo->impacto);
+        $this->assertEquals(3, $riesgo->probabilidad);
+        $this->assertFalse($riesgo->actualizaciones()->get()->contains(fn ($a) => ! empty($a->data['campos'])));
     }
 
     #[Test]
-    public function no_admite_un_impacto_o_probabilidad_fuera_de_rango_0_10(): void
+    public function el_modal_descarta_columnas_que_no_son_editables(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
-        $riesgo = $this->riesgoValidado($gerencia);
+        $otra = Area::create(['nombre' => 'Gerencia B', 'tipo' => TipoArea::Gerencia]);
+        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $riesgo = Riesgo::factory()->aprobado()->create([
+            'area_id' => $gerencia->id,
+            'respuesta' => RespuestaRiesgo::Aceptar,
+            'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
+        ]);
 
-        Livewire::actingAs($gerente)
+        Livewire::actingAs($comite)
             ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
             ->call('abrirModal')
-            ->set('mensaje', 'Impacto fuera de rango')
-            ->set('cambios.impacto', 11)
+            ->set('mensaje', 'Muevo el riesgo de área')
+            ->set('cambios.area_id', $otra->id)
+            ->set('cambios.nombre', 'Nombre corregido')
             ->call('guardar')
-            ->assertHasErrors('cambios.impacto');
+            ->assertHasNoErrors();
+
+        $riesgo->refresh();
+        $this->assertEquals('Nombre corregido', $riesgo->nombre);
+        $this->assertEquals($gerencia->id, $riesgo->area_id);
     }
 
     #[Test]

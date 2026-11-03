@@ -36,7 +36,7 @@ class FichaRiesgo extends Component
 
     public bool $editando = false;
 
-    /** @var array{nombre:string, descripcion:?string, respuesta:?string, fundamento:?string, tipo_riesgo_id:?int, impacto:int, probabilidad:int} */
+    /** @var array{nombre:string, descripcion:?string, respuesta:?string, fundamento:?string, tipo_riesgo_id:?int} */
     public array $form = [];
 
     /** Ids de las sedes marcadas en el formulario (al menos una, D-029). */
@@ -51,7 +51,8 @@ class FichaRiesgo extends Component
     /** Motivo del cambio: queda como mensaje de la Actualizacion. */
     public string $mensaje = '';
 
-    private const CAMPOS = ['nombre', 'descripcion', 'respuesta', 'fundamento', 'tipo_riesgo_id', 'impacto', 'probabilidad'];
+    // Impacto y probabilidad no se editan acá: sólo por el wizard de recálculo (D-041).
+    private const CAMPOS = ['nombre', 'descripcion', 'respuesta', 'fundamento', 'tipo_riesgo_id'];
 
     #[On('riesgo-actualizado')]
     public function refrescar(): void {}
@@ -114,8 +115,6 @@ class FichaRiesgo extends Component
             'form.tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'form.respuesta' => Riesgo::reglaRespuesta($this->form['tipo_riesgo_id'] ?? null),
             'form.fundamento' => ['nullable', 'string', 'required_if:form.respuesta,'.implode(',', $exigenFundamento)],
-            'form.impacto' => 'required|integer|min:0|max:10',
-            'form.probabilidad' => 'required|integer|min:0|max:10',
             'sedes' => 'required|array|min:1',
             'sedes.*' => 'integer|exists:sedes,id',
             'dimensiones' => 'required|array|min:1',

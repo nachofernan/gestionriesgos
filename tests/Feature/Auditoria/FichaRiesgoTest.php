@@ -84,17 +84,18 @@ class FichaRiesgoTest extends TestCase
     #[Test]
     public function un_empleado_edita_la_ficha_y_queda_propuesta_solo_con_los_campos_que_cambiaron(): void
     {
-        $this->editar($this->empleado, ['descripcion' => 'Nueva descripción', 'impacto' => 8])
+        $nombreOriginal = $this->riesgo->nombre;
+        $this->editar($this->empleado, ['descripcion' => 'Nueva descripción', 'nombre' => 'Nombre nuevo'])
             ->assertHasNoErrors();
 
         $this->riesgo->refresh();
         $this->assertEquals('Descripción original', $this->riesgo->descripcion);
-        $this->assertEquals(5, $this->riesgo->impacto);
+        $this->assertEquals($nombreOriginal, $this->riesgo->nombre);
 
         $act = $this->riesgo->actualizaciones()->propuestasPendientes('campos')->sole();
         $this->assertEquals('borrador', $act->estado->nombre);
-        $this->assertEqualsCanonicalizing(['descripcion', 'impacto'], array_keys($act->data['campos']));
-        $this->assertEquals(['antes' => 5, 'despues' => 8], $act->data['diff']['campos']['impacto']);
+        $this->assertEqualsCanonicalizing(['descripcion', 'nombre'], array_keys($act->data['campos']));
+        $this->assertEquals(['antes' => $nombreOriginal, 'despues' => 'Nombre nuevo'], $act->data['diff']['campos']['nombre']);
     }
 
     #[Test]
@@ -119,12 +120,15 @@ class FichaRiesgoTest extends TestCase
     }
 
     #[Test]
-    public function la_ficha_no_admite_impacto_ni_probabilidad_fuera_de_rango(): void
+    public function la_ficha_no_deja_cambiar_impacto_ni_probabilidad_a_mano(): void
     {
-        $this->editar($this->gerente, ['impacto' => 11, 'probabilidad' => -1])
-            ->assertHasErrors(['form.impacto', 'form.probabilidad']);
+        // Sólo cambian por el wizard (D-041): aunque el cliente los mande, se ignoran.
+        $this->editar($this->gerente, ['impacto' => 9, 'probabilidad' => 9])
+            ->assertHasErrors('form');
 
-        $this->assertEquals(5, $this->riesgo->refresh()->impacto);
+        $this->riesgo->refresh();
+        $this->assertEquals(5, $this->riesgo->impacto);
+        $this->assertNotEquals(9, $this->riesgo->probabilidad);
         $this->assertCount(0, $this->riesgo->actualizaciones()->get());
     }
 

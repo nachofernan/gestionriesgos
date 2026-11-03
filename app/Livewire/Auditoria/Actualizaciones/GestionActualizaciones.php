@@ -195,7 +195,10 @@ class GestionActualizaciones extends Component
             'cambios.fundamento.required_if' => 'Debe fundamentar por qué se eligió esta respuesta frente al riesgo.',
         ]);
 
+        // $cambios es una propiedad pública: el cliente puede mandar cualquier clave.
+        // Sólo pasan los campos editables (impacto/probabilidad no lo son, D-041).
         $campos = collect($this->cambios)
+            ->only(array_keys($this->camposEditables()))
             ->filter(fn ($v) => $v !== null && $v !== '')
             ->toArray();
 
@@ -318,18 +321,14 @@ class GestionActualizaciones extends Component
     private function camposEditables(): array
     {
         return match ($this->modelType) {
-            // Impacto y probabilidad se proponen igual que cualquier otro campo (mismo
-            // ciclo de validación/doble-validación, ver camposNumericos()): corregir un
-            // valor puntual no obliga a repetir las 5 preguntas del wizard de recálculo
-            // (RiesgoController::recalcular()), que sigue existiendo sin cambios. Ver D-015.
+            // Impacto y probabilidad no están: sólo cambian por el wizard de recálculo,
+            // para que las respuestas guardadas sigan explicando el número (D-041).
             'riesgo' => [
                 'nombre' => 'Nombre',
                 'descripcion' => 'Descripción',
                 'respuesta' => 'Respuesta',
                 'fundamento' => 'Fundamento',
                 'tipo_riesgo_id' => 'Tipo de riesgo',
-                'impacto' => 'Impacto',
-                'probabilidad' => 'Probabilidad',
             ],
             'control' => [
                 'nombre' => 'Nombre',
@@ -370,15 +369,11 @@ class GestionActualizaciones extends Component
      * <input type="number" min max> y guardar() los valida contra el mismo rango.
      * porcentaje_avance de Tarea replica el tope de 0-100 que ya rige en
      * TareaController, ActualizacionTareaController y GestionTareas::guardarNuevaTarea().
-     * impacto/probabilidad de Riesgo replican el tope 0-10 que ya rige la suma de las
-     * 5 preguntas del wizard (cada una 0-2) — ver RiesgoController::store()/recalcularStore().
      */
     private function camposNumericos(): array
     {
         return [
             'porcentaje_avance' => ['min' => 0, 'max' => 100],
-            'impacto' => ['min' => 0, 'max' => 10],
-            'probabilidad' => ['min' => 0, 'max' => 10],
         ];
     }
 

@@ -30,7 +30,8 @@ class ActualizacionController extends Controller
     public function storeRiesgo(Request $request, Riesgo $riesgo)
     {
         $this->authorize('proponer', $riesgo);
-        $this->crearActualizacion($request, $riesgo, ['nombre', 'descripcion', 'impacto', 'probabilidad']);
+        // Impacto y probabilidad sólo cambian por el wizard de recálculo (D-041).
+        $this->crearActualizacion($request, $riesgo, ['nombre', 'descripcion']);
 
         return back()->with('ok', 'Actualización registrada.');
     }
