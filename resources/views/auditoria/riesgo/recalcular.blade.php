@@ -2,7 +2,9 @@
 @section('title', 'Recalcular Riesgo')
 
 @php
-    $pasoInicial = $errors->hasAny(['impacto_respuestas', 'impacto_respuestas.*']) ? 2 : 1;
+    $esAmbiental = $metodo === \App\Enums\Auditoria\MetodoEvaluacion::Ambiental;
+    $erroresImpacto = ['impacto_respuestas', 'impacto_respuestas.*', 'ambiental.medio', 'ambiental.naturaleza', 'ambiental.magnitud', 'ambiental.materialidad_impacto.*', 'ambiental.materialidad_financiera.*'];
+    $pasoInicial = $errors->hasAny($erroresImpacto) ? 2 : 1;
 @endphp
 
 @section('content')
@@ -39,12 +41,20 @@
 
             {{-- Paso 1: preguntas de probabilidad --}}
             <div x-show="paso === 1" class="space-y-5">
-                @include('auditoria.riesgo.partials.wizard-clasico', ['eje' => 'probabilidad', 'preguntas' => $preguntas['probabilidad'], 'valores' => $respuestas['probabilidad'] ?? []])
+                @if ($esAmbiental)
+                    @include('auditoria.riesgo.partials.wizard-ambiental', ['seccion' => 'probabilidad', 'valores' => $respuestas])
+                @else
+                    @include('auditoria.riesgo.partials.wizard-clasico', ['eje' => 'probabilidad', 'preguntas' => $preguntas['probabilidad'], 'valores' => $respuestas['probabilidad'] ?? []])
+                @endif
             </div>
 
             {{-- Paso 2: preguntas de impacto + resumen + mayor criticidad --}}
             <div x-show="paso === 2" class="space-y-5">
-                @include('auditoria.riesgo.partials.wizard-clasico', ['eje' => 'impacto', 'preguntas' => $preguntas['impacto'], 'valores' => $respuestas['impacto'] ?? []])
+                @if ($esAmbiental)
+                    @include('auditoria.riesgo.partials.wizard-ambiental', ['seccion' => 'impacto', 'valores' => $respuestas])
+                @else
+                    @include('auditoria.riesgo.partials.wizard-clasico', ['eje' => 'impacto', 'preguntas' => $preguntas['impacto'], 'valores' => $respuestas['impacto'] ?? []])
+                @endif
 
                 <div class="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <div>
@@ -125,11 +135,32 @@
             // Arranca con las respuestas vigentes del riesgo (D-042).
             probabilidad: Object.assign({}, @json(collect(old('probabilidad_respuestas', $respuestas['probabilidad'] ?? []))->map(fn($v) => (int) $v))),
             impacto: Object.assign({}, @json(collect(old('impacto_respuestas', $respuestas['impacto'] ?? []))->map(fn($v) => (int) $v))),
+            // Método ambiental (D-043); mismas cuentas de vista previa que riesgo/create.
+            esAmbiental: @js($esAmbiental),
+            ambiental: {
+                @foreach (array_keys(\App\Services\Auditoria\EvaluacionRiesgo::EJES_AMBIENTALES) as $eje)
+                    @php $valor = old('ambiental.'.$eje, $respuestas[$eje] ?? null); @endphp
+                    {{ $eje }}: @js($valor !== null ? (int) $valor : null),
+                @endforeach
+                materialidad_impacto: @js(array_map('intval', (array) old('ambiental.materialidad_impacto', $respuestas['materialidad_impacto'] ?? []))),
+                materialidad_financiera: @js(array_map('intval', (array) old('ambiental.materialidad_financiera', $respuestas['materialidad_financiera'] ?? []))),
+            },
 
+            get extraMaterialidad() {
+                const marcadas = this.ambiental.materialidad_impacto.length + this.ambiental.materialidad_financiera.length;
+                return marcadas === 0 ? 0 : (marcadas <= 10 ? 1 : 2);
+            },
             get probabilidadTotal() {
+                if (this.esAmbiental) {
+                    return (this.ambiental.control || 0) + (this.ambiental.frecuencia || 0);
+                }
                 return Object.values(this.probabilidad).reduce((a, b) => a + (Number(b) || 0), 0);
             },
             get impactoTotal() {
+                if (this.esAmbiental) {
+                    const a = this.ambiental;
+                    return Math.min(10, (a.medio || 0) + (a.naturaleza || 0) + (a.magnitud || 0) + this.extraMaterialidad);
+                }
                 return Object.values(this.impacto).reduce((a, b) => a + (Number(b) || 0), 0);
             },
             get valorTotal() {
@@ -149,6 +180,7 @@
                 return this.valorTotal >= 14;
             },
             get pasoCompleto() {
+                if (this.esAmbiental) return this.ambiental.control !== null && this.ambiental.frecuencia !== null;
                 return Object.keys(this.probabilidad).length === {{ count($preguntas['probabilidad']) }};
             },
             siguiente() {

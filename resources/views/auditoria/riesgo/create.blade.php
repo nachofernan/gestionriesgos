@@ -5,11 +5,11 @@
     // Arranca el wizard en el primer paso que tenga errores de validación,
     // para que no queden escondidos en un paso que Alpine no muestra de entrada.
     $pasoInicial = 1;
-    if ($errors->hasAny(['nombre', 'descripcion', 'tipo_riesgo_id', 'dimensiones', 'dimensiones.*', 'fundamento_dimension'])) {
+    if ($errors->hasAny(['nombre', 'descripcion', 'tipo_riesgo_id', 'dimensiones', 'dimensiones.*', 'fundamento_dimension', 'temporalidad', 'condicion', 'responsabilidad'])) {
         $pasoInicial = 1;
-    } elseif ($errors->hasAny(['probabilidad_respuestas', 'probabilidad_respuestas.*'])) {
+    } elseif ($errors->hasAny(['probabilidad_respuestas', 'probabilidad_respuestas.*', 'ambiental', 'ambiental.control', 'ambiental.frecuencia'])) {
         $pasoInicial = 2;
-    } elseif ($errors->hasAny(['impacto_respuestas', 'impacto_respuestas.*'])) {
+    } elseif ($errors->hasAny(['impacto_respuestas', 'impacto_respuestas.*', 'ambiental.medio', 'ambiental.naturaleza', 'ambiental.magnitud', 'ambiental.materialidad_impacto.*', 'ambiental.materialidad_financiera.*'])) {
         $pasoInicial = 3;
     } elseif ($errors->hasAny(['respuesta', 'fundamento', 'area_id', 'sedes', 'sedes.*'])) {
         $pasoInicial = 4;
@@ -83,17 +83,28 @@
                     @error('tipo_riesgo_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
                 </div>
 
+                {{-- Los riesgos ambientales se evalúan con su propia matriz (D-043). --}}
+                <div x-show="esAmbiental" x-cloak>
+                    @include('auditoria.riesgo.partials.caracterizacion-ambiental', ['valores' => []])
+                </div>
+
                 @include('auditoria.partials.dimensiones-checkboxes', ['dimensiones' => $dimensiones, 'seleccionadas' => [], 'fundamento' => null, 'enWizard' => true])
             </div>
 
             {{-- Paso 2: preguntas de probabilidad --}}
-            <div x-show="paso === 2" class="space-y-5">
+            <div x-show="paso === 2 && !esAmbiental" class="space-y-5">
                 @include('auditoria.riesgo.partials.wizard-clasico', ['eje' => 'probabilidad', 'preguntas' => $preguntas['probabilidad'], 'valores' => []])
+            </div>
+            <div x-show="paso === 2 && esAmbiental" x-cloak class="space-y-5">
+                @include('auditoria.riesgo.partials.wizard-ambiental', ['seccion' => 'probabilidad', 'valores' => []])
             </div>
 
             {{-- Paso 3: preguntas de impacto --}}
-            <div x-show="paso === 3" class="space-y-5">
+            <div x-show="paso === 3 && !esAmbiental" class="space-y-5">
                 @include('auditoria.riesgo.partials.wizard-clasico', ['eje' => 'impacto', 'preguntas' => $preguntas['impacto'], 'valores' => []])
+            </div>
+            <div x-show="paso === 3 && esAmbiental" x-cloak class="space-y-5">
+                @include('auditoria.riesgo.partials.wizard-ambiental', ['seccion' => 'impacto', 'valores' => []])
             </div>
 
             {{-- Paso 4: respuesta, criticidad, área --}}
@@ -241,6 +252,20 @@
             // length y las siguientes respuestas ya no disparan la reactividad de pasoCompleto.
             probabilidad: Object.assign({}, @json(collect(old('probabilidad_respuestas', []))->map(fn($v) => (int) $v))),
             impacto: Object.assign({}, @json(collect(old('impacto_respuestas', []))->map(fn($v) => (int) $v))),
+            // Método ambiental (D-043): sus respuestas y su caracterización.
+            tiposAmbientales: @js($tiposRiesgo->filter(fn ($t) => $t->metodo_evaluacion === \App\Enums\Auditoria\MetodoEvaluacion::Ambiental)->pluck('id')->map(fn ($id) => (string) $id)->values()),
+            ambiental: {
+                @foreach (array_keys(\App\Services\Auditoria\EvaluacionRiesgo::EJES_AMBIENTALES) as $eje)
+                    {{ $eje }}: @js(old('ambiental.'.$eje) !== null ? (int) old('ambiental.'.$eje) : null),
+                @endforeach
+                materialidad_impacto: @js(array_map('intval', (array) old('ambiental.materialidad_impacto', []))),
+                materialidad_financiera: @js(array_map('intval', (array) old('ambiental.materialidad_financiera', []))),
+            },
+            caracterizacion: {
+                temporalidad: @js(old('temporalidad')),
+                condicion: @js(old('condicion')),
+                responsabilidad: @js(old('responsabilidad')),
+            },
             respuesta: @js(old('respuesta', '')),
             tiposRestringidos: @js($tiposRiesgo->where('restringe_respuesta')->pluck('id')->map(fn($id) => (string) $id)->values()),
             respuestasRestringidas: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::restringidas(), 'value')),
@@ -265,10 +290,25 @@
                 });
             },
 
+            get esAmbiental() {
+                return this.tiposAmbientales.includes(this.tipoRiesgoId);
+            },
+            // Vista previa de EvaluacionRiesgo::extraMaterialidad(): el servidor decide.
+            get extraMaterialidad() {
+                const marcadas = this.ambiental.materialidad_impacto.length + this.ambiental.materialidad_financiera.length;
+                return marcadas === 0 ? 0 : (marcadas <= 10 ? 1 : 2);
+            },
             get probabilidadTotal() {
+                if (this.esAmbiental) {
+                    return (this.ambiental.control || 0) + (this.ambiental.frecuencia || 0);
+                }
                 return Object.values(this.probabilidad).reduce((a, b) => a + (Number(b) || 0), 0);
             },
             get impactoTotal() {
+                if (this.esAmbiental) {
+                    const a = this.ambiental;
+                    return Math.min(10, (a.medio || 0) + (a.naturaleza || 0) + (a.magnitud || 0) + this.extraMaterialidad);
+                }
                 return Object.values(this.impacto).reduce((a, b) => a + (Number(b) || 0), 0);
             },
             get valorTotal() {
@@ -292,12 +332,16 @@
                     // Al menos una dimensión; con dos o más, fundamento (D-032).
                     const dimensionOk = this.dimensiones.length > 0
                         && (this.dimensiones.length < 2 || this.fundamentoDimension.trim() !== '');
-                    return this.nombre.trim() !== '' && this.tipoRiesgoId !== '' && dimensionOk;
+                    const c = this.caracterizacion;
+                    const caracterizacionOk = !this.esAmbiental || (c.temporalidad && c.condicion && c.responsabilidad);
+                    return this.nombre.trim() !== '' && this.tipoRiesgoId !== '' && dimensionOk && caracterizacionOk;
                 }
                 if (this.paso === 2) {
+                    if (this.esAmbiental) return this.ambiental.control !== null && this.ambiental.frecuencia !== null;
                     return Object.keys(this.probabilidad).length === {{ count($preguntas['probabilidad']) }};
                 }
                 if (this.paso === 3) {
+                    if (this.esAmbiental) return ['medio', 'naturaleza', 'magnitud'].every(e => this.ambiental[e] !== null);
                     return Object.keys(this.impacto).length === {{ count($preguntas['impacto']) }};
                 }
                 return true;

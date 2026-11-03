@@ -56,6 +56,12 @@ class RiesgoController extends Controller
         'fundamento_dimension.required' => 'Con más de una dimensión, fundamentá por qué.',
     ];
 
+    private const MENSAJES_CARACTERIZACION = [
+        'temporalidad.required' => 'Elegí la temporalidad.',
+        'condicion.required' => 'Elegí la condición.',
+        'responsabilidad.required' => 'Elegí la responsabilidad.',
+    ];
+
     // reglaRespuesta()/reglaFundamento() viven en Riesgo (ver ahí): las consume
     // también GestionActualizaciones::guardar() para no duplicar la regla.
 
@@ -79,16 +85,18 @@ class RiesgoController extends Controller
         $tiposRiesgo = TipoRiesgo::all();
         $areas = Area::whereIn('id', Auth::user()->idsAreasGestionables())->orderBy('nombre')->get();
         $preguntas = config('riesgo_preguntas');
+        $ambiental = config('riesgo_ambiental');
         $sedes = Sede::orderBy('id')->get();
         $dimensiones = Dimension::with('referencias')->orderBy('id')->get();
 
-        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'preguntas', 'sedes', 'dimensiones'));
+        return view('auditoria.riesgo.create', compact('tiposRiesgo', 'areas', 'preguntas', 'ambiental', 'sedes', 'dimensiones'));
     }
 
     /**
      * Impacto y probabilidad no se cargan a mano: salen de las respuestas del
      * wizard vía EvaluacionRiesgo, y las respuestas quedan guardadas en el
-     * riesgo como su evaluación vigente (D-042). `mayor_criticidad` sólo puede quedar en
+     * riesgo como su evaluación vigente (D-042). El wizard y la caracterización
+     * dependen del método del tipo elegido (D-043). `mayor_criticidad` sólo puede quedar en
      * true si esa suma total es >= 14; el checkbox del request es una propuesta,
      * la suma es la que decide. Los objetivos no se asocian en el alta: se
      * vinculan desde la ficha y son obligatorios recién al validar el riesgo (ver
@@ -98,7 +106,8 @@ class RiesgoController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', [Riesgo::class, $request->input('area_id')]);
-        $metodo = MetodoEvaluacion::Clasica;
+        // Si el tipo no existe, el método da igual: la validación de tipo_riesgo_id corta.
+        $metodo = TipoRiesgo::find($request->input('tipo_riesgo_id'))?->metodo_evaluacion ?? MetodoEvaluacion::Clasica;
         $reglasEvaluacion = EvaluacionRiesgo::reglas($metodo);
 
         $data = $request->validate([
@@ -110,12 +119,16 @@ class RiesgoController extends Controller
             'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
             'area_id' => ['required', 'exists:areas,id', Rule::in(Auth::user()->idsAreasGestionables())],
             'fundamento_dimension' => Riesgo::reglaFundamentoDimension((array) $request->input('dimensiones')),
-        ] + $reglasEvaluacion + self::REGLAS_SEDES + self::REGLAS_DIMENSIONES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_DIMENSIONES + [
+        ] + $reglasEvaluacion + EvaluacionRiesgo::reglasCaracterizacion($metodo) + self::REGLAS_SEDES + self::REGLAS_DIMENSIONES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_DIMENSIONES + self::MENSAJES_CARACTERIZACION + [
             'area_id.required' => 'Debe elegir un área.',
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
 
         $evaluacion = EvaluacionRiesgo::desdeRequest($metodo, $data);
+        // La caracterización es sólo del método ambiental: en el clásico no queda nada suelto.
+        foreach (['temporalidad', 'condicion', 'responsabilidad'] as $campo) {
+            $data[$campo] = $metodo === MetodoEvaluacion::Ambiental ? $data[$campo] : null;
+        }
         $sedeIds = $data['sedes'];
         $dimensionIds = $data['dimensiones'];
         $data = array_diff_key($data, $reglasEvaluacion, ['sedes' => 0, 'dimensiones' => 0]);
@@ -147,7 +160,11 @@ class RiesgoController extends Controller
                     'sedes' => $riesgo->sedes()->pluck('nombre')->join(', '),
                     'dimensiones' => $riesgo->dimensiones()->pluck('nombre')->join(', '),
                     'fundamento_dimension' => $riesgo->fundamento_dimension,
-                ],
+                ] + ($metodo === MetodoEvaluacion::Ambiental ? [
+                    'temporalidad' => $riesgo->temporalidad->label(),
+                    'condicion' => $riesgo->condicion->label(),
+                    'responsabilidad' => $riesgo->responsabilidad->label(),
+                ] : []),
                 // Respuestas guardadas aparte de "campos": ese array lo recorre la
                 // vista de historial esperando valores escalares (ver
                 // gestion-actualizaciones.blade.php), y mezclar arrays ahí rompe el render.
@@ -181,7 +198,8 @@ class RiesgoController extends Controller
                 ->with('error', 'El riesgo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
-        $tiposRiesgo = TipoRiesgo::orderBy('nombre')->get();
+        // Sólo los tipos del mismo método de evaluación (D-043).
+        $tiposRiesgo = TipoRiesgo::where('metodo_evaluacion', $riesgo->metodoEvaluacion()->value)->orderBy('nombre')->get();
         $areas = Area::whereIn('id', Auth::user()->idsAreasGestionables())->orderBy('nombre')->get();
         $sedes = Sede::orderBy('id')->get();
         $dimensiones = Dimension::with('referencias')->orderBy('id')->get();
@@ -215,10 +233,11 @@ class RiesgoController extends Controller
             'mayor_criticidad' => 'boolean',
             'respuesta' => Riesgo::reglaRespuesta($request->input('tipo_riesgo_id')),
             'fundamento' => Riesgo::reglaFundamento(),
-            'tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
+            'tipo_riesgo_id' => ['required', ...$riesgo->reglaTipoRiesgo()],
             'area_id' => ['required', 'exists:areas,id', Rule::in($areasPermitidas)],
             'fundamento_dimension' => Riesgo::reglaFundamentoDimension((array) $request->input('dimensiones')),
         ] + self::REGLAS_SEDES + self::REGLAS_DIMENSIONES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_DIMENSIONES + [
+            'tipo_riesgo_id.in' => Riesgo::MENSAJE_CRUCE_TIPO,
             'area_id.required' => 'Debe elegir un área.',
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
         ]);
@@ -273,11 +292,16 @@ class RiesgoController extends Controller
             return redirect()->route('auditoria.riesgos.show', $riesgo)->with('error', $motivo);
         }
 
+        $metodo = $riesgo->metodoEvaluacion();
         $preguntas = config('riesgo_preguntas');
-        // El wizard arranca con las respuestas vigentes (D-042).
-        $respuestas = $riesgo->evaluacion['respuestas'] ?? [];
+        $ambiental = config('riesgo_ambiental');
+        // El wizard arranca con las respuestas vigentes (D-042), si son de este método:
+        // un riesgo ambiental cargado antes de D-043 no tiene respuestas ambientales.
+        $respuestas = ($riesgo->evaluacion['metodo'] ?? null) === $metodo->value
+            ? $riesgo->evaluacion['respuestas']
+            : [];
 
-        return view('auditoria.riesgo.recalcular', compact('riesgo', 'preguntas', 'respuestas'));
+        return view('auditoria.riesgo.recalcular', compact('riesgo', 'metodo', 'preguntas', 'ambiental', 'respuestas'));
     }
 
     /**
@@ -301,7 +325,7 @@ class RiesgoController extends Controller
             return redirect()->route('auditoria.riesgos.show', $riesgo)->with('error', $motivo);
         }
 
-        $metodo = MetodoEvaluacion::Clasica;
+        $metodo = $riesgo->metodoEvaluacion();
         $data = $request->validate(EvaluacionRiesgo::reglas($metodo) + [
             'mayor_criticidad' => 'boolean',
         ]);

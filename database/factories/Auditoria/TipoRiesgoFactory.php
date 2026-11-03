@@ -16,4 +16,9 @@ class TipoRiesgoFactory extends Factory
             'descripcion' => $this->faker->sentence(),
         ];
     }
+
+    public function ambiental(): static
+    {
+        return $this->state(['metodo_evaluacion' => 'ambiental']);
+    }
 }

@@ -179,7 +179,8 @@ class GestionActualizaciones extends Component
                 $reglas['cambios.respuesta'] = array_slice(Riesgo::reglaRespuesta($tipoRiesgoId), 1);
             }
             if (($this->cambios['tipo_riesgo_id'] ?? '') !== '') {
-                $reglas['cambios.tipo_riesgo_id'] = 'exists:tipos_riesgo,id';
+                // No puede cruzar de método de evaluación (D-043).
+                $reglas['cambios.tipo_riesgo_id'] = $model->reglaTipoRiesgo();
             }
             $exigenFundamento = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
             $reglas['cambios.fundamento'] = ['nullable', 'string', 'required_if:cambios.respuesta,'.implode(',', $exigenFundamento)];
@@ -192,6 +193,7 @@ class GestionActualizaciones extends Component
             'cambios.*.max' => 'El valor máximo es :max.',
             'cambios.respuesta.required' => 'Debe elegir una respuesta frente al riesgo.',
             'cambios.respuesta.not_in' => 'Un riesgo de este tipo no puede compartirse ni aceptarse como respuesta.',
+            'cambios.tipo_riesgo_id.in' => Riesgo::MENSAJE_CRUCE_TIPO,
             'cambios.fundamento.required_if' => 'Debe fundamentar por qué se eligió esta respuesta frente al riesgo.',
         ]);
 
@@ -392,7 +394,9 @@ class GestionActualizaciones extends Component
             'respuesta' => collect(RespuestaRiesgo::cases())
                 ->mapWithKeys(fn ($caso) => [$caso->value => $caso->label()])
                 ->toArray(),
-            'tipo_riesgo_id' => TipoRiesgo::orderBy('nombre')->pluck('nombre', 'id')->toArray(),
+            // Sólo los tipos del mismo método de evaluación (D-043).
+            'tipo_riesgo_id' => TipoRiesgo::where('metodo_evaluacion', $this->resolverModelo()->metodoEvaluacion()->value)
+                ->orderBy('nombre')->pluck('nombre', 'id')->toArray(),
         ];
     }
 

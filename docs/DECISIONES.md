@@ -1370,3 +1370,43 @@ número, para los dos métodos.
 Tests: `EvaluacionRiesgoTest`.
 
 Fuente: sesión 2026-11-03, con el usuario presente.
+
+---
+
+## D-043 — Método de evaluación ambiental (2026-11-03)
+
+**Decisión.** Los riesgos de tipo Ambiental se evalúan con la matriz de aspectos e impactos ambientales
+(`docs/matriz_de_evaluaci_n_de_impacto_ambiental.md`, volcada a `config/riesgo_ambiental.php`). El tipo
+de riesgo dice qué método usa (`tipos_riesgo.metodo_evaluacion`, enum `MetodoEvaluacion`: `clasica` o
+`ambiental`), y `EvaluacionRiesgo` resuelve reglas y cálculo según el método.
+
+- **Probabilidad** = control (1/3/5) + frecuencia (1/3/5): de 2 a 10, siempre par.
+- **Impacto** = medio (1-3) + naturaleza (1-3) + magnitud (1-4): de 3 a 10. A eso se le suma un extra
+  por las 20 casillas de materialidad (10 de impacto y 10 financieras, contadas juntas): ninguna suma 0,
+  de 1 a 10 suman 1, más de 10 suman 2. El impacto nunca pasa de 10.
+- **La magnitud es una sola elección** (Bajo/Moderado/Severo/Crítico). Las seis variables
+  (I, Ex, Mo, Rv, Ef, Mc) se muestran como guía y no se puntúan: el documento no da escala para cada una.
+- **Caracterización** (temporalidad, condición, responsabilidad): columnas del riesgo con enum,
+  obligatorias en el alta ambiental y en null en el clásico. No mueven el valor.
+- **No se cruza de método al cambiar de tipo** (`Riesgo::reglaTipoRiesgo()`), en el borrador, en la
+  ficha y en las propuestas: los números quedarían calculados con el wizard equivocado. Los selectores
+  ofrecen sólo los tipos del mismo método. Si el tipo estaba mal, se rechaza y se crea de nuevo.
+- Las escalas cierran con las del clásico (0-10 por eje): la clasificación, la mayor criticidad (≥14),
+  el residual y el ciclo de estados no cambian.
+- **Wizard:** mismos 4 pasos del alta. Con un tipo ambiental, la caracterización aparece en el paso 1 y
+  los pasos 2 y 3 muestran la matriz (`partials/wizard-ambiental`). Recalcular usa el método del tipo.
+
+**Descartado.**
+- Puntuar las seis variables de magnitud: el documento no tiene escala para cada una.
+- Permitir el cruce de tipo obligando a recalcular en el mismo trámite: tocaba la edición, la ficha y
+  las propuestas para un caso raro.
+- Permitir el cruce dejando los números como estaban: quedaban números calculados con otro método.
+- Rehacer create/edit: alcanzó con que el cálculo viviera en una sola pieza (D-042).
+
+**Pendiente.** Los riesgos Ambientales de antes conservan sus números clásicos hasta que alguien los
+recalcule (ver ROADMAP). La caracterización todavía no se edita fuera del alta ni se ve en la ficha
+(etapa 4).
+
+Tests: `EvaluacionAmbientalTest`.
+
+Fuente: sesión 2026-11-03, con el usuario presente.

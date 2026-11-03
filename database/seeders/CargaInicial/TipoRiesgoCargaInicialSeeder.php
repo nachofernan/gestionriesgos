@@ -24,6 +24,8 @@ class TipoRiesgoCargaInicialSeeder extends Seeder
                 // Misma regla de negocio que TipoRiesgoSeeder.php: Corrupción no admite
                 // "aceptar"/"compartir" (ver RespuestaRiesgo::restringidas()).
                 'restringe_respuesta' => $nombre === 'Corrupción',
+                // Misma regla que TipoRiesgoSeeder.php: Ambiental se evalúa con su matriz (D-043).
+                'metodo_evaluacion' => $nombre === 'Ambiental' ? 'ambiental' : 'clasica',
             ]);
 
             MapeoCargaInicial::$tipoRiesgoIdPorCsvId[(int) $csvId] = $tipo->id;

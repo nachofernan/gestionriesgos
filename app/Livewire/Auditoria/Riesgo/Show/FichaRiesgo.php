@@ -112,7 +112,7 @@ class FichaRiesgo extends Component
             'mensaje' => 'required|string|min:3',
             'form.nombre' => 'required|string|max:255',
             'form.descripcion' => 'nullable|string',
-            'form.tipo_riesgo_id' => 'required|exists:tipos_riesgo,id',
+            'form.tipo_riesgo_id' => ['required', ...$riesgo->reglaTipoRiesgo()],
             'form.respuesta' => Riesgo::reglaRespuesta($this->form['tipo_riesgo_id'] ?? null),
             'form.fundamento' => ['nullable', 'string', 'required_if:form.respuesta,'.implode(',', $exigenFundamento)],
             'sedes' => 'required|array|min:1',
@@ -128,6 +128,7 @@ class FichaRiesgo extends Component
             'sedes.min' => 'Elegí al menos una sede.',
             'mensaje.required' => 'Contá brevemente por qué se cambia.',
             'form.respuesta.not_in' => 'Un riesgo de este tipo no puede compartirse ni aceptarse como respuesta.',
+            'form.tipo_riesgo_id.in' => Riesgo::MENSAJE_CRUCE_TIPO,
             'form.fundamento.required_if' => 'Esta respuesta exige un fundamento.',
         ]);
 
@@ -220,7 +221,8 @@ class FichaRiesgo extends Component
             'modo' => $this->modoCambio(),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),
-            'tiposRiesgo' => TipoRiesgo::orderBy('nombre')->pluck('nombre', 'id'),
+            // Sólo los tipos del mismo método de evaluación (D-043).
+            'tiposRiesgo' => TipoRiesgo::where('metodo_evaluacion', $riesgo->metodoEvaluacion()->value)->orderBy('nombre')->pluck('nombre', 'id'),
             'respuestas' => collect(RespuestaRiesgo::cases())->mapWithKeys(fn ($c) => [$c->value => $c->label()]),
         ]);
     }

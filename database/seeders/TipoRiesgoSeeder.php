@@ -28,6 +28,7 @@ class TipoRiesgoSeeder extends Seeder
             ],
             [
                 'nombre' => 'Ambiental',
+                'metodo_evaluacion' => 'ambiental',
                 'descripcion' => 'El riesgo ambiental es la posibilidad de que se produzca un daño o catástrofe en el medio ambiente debido a un fenómeno natural o a una acción humana.',
             ],
             [

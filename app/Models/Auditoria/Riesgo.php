@@ -2,7 +2,11 @@
 
 namespace App\Models\Auditoria;
 
+use App\Enums\Auditoria\Condicion;
+use App\Enums\Auditoria\MetodoEvaluacion;
+use App\Enums\Auditoria\Responsabilidad;
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Enums\Auditoria\Temporalidad;
 use App\Models\Concerns\HasVisibilityScope;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -38,6 +42,9 @@ class Riesgo extends Model implements HasMedia
         'impacto',
         'probabilidad',
         'evaluacion',
+        'temporalidad',
+        'condicion',
+        'responsabilidad',
         'mayor_criticidad',
         'respuesta',
         'fundamento',
@@ -57,6 +64,9 @@ class Riesgo extends Model implements HasMedia
     protected $casts = [
         'respuesta' => RespuestaRiesgo::class,
         'evaluacion' => 'array',
+        'temporalidad' => Temporalidad::class,
+        'condicion' => Condicion::class,
+        'responsabilidad' => Responsabilidad::class,
         'validado_en' => 'datetime',
         'aprobado_en' => 'datetime',
         'rechazado_en' => 'datetime',
@@ -386,5 +396,31 @@ class Riesgo extends Model implements HasMedia
     public static function reglaFundamentoDimension(array $dimensiones): array
     {
         return ['nullable', 'string', Rule::requiredIf(count($dimensiones) >= 2)];
+    }
+
+    public const MENSAJE_CRUCE_TIPO = 'No se puede cambiar entre un tipo ambiental y uno que no lo es: se evalúan con cuestionarios distintos.';
+
+    /** Método con el que se evalúa: lo define su tipo (D-043). */
+    public function metodoEvaluacion(): MetodoEvaluacion
+    {
+        return $this->tipoRiesgo?->metodo_evaluacion ?? MetodoEvaluacion::Clasica;
+    }
+
+    /**
+     * Regla para cambiar el tipo de un riesgo existente: el tipo nuevo tiene que
+     * usar el mismo método de evaluación que el actual. Si no, impacto y
+     * probabilidad quedarían calculados con el wizard equivocado (D-043). La
+     * consumen RiesgoController::update(), FichaRiesgo::guardar() y
+     * GestionActualizaciones::guardar().
+     * Tests: no_se_puede_pasar_un_riesgo_clasico_a_ambiental_desde_el_borrador,
+     * no_se_puede_sacar_un_riesgo_de_ambiental_desde_la_ficha,
+     * no_se_puede_proponer_cruzar_a_ambiental_desde_actualizaciones,
+     * el_tipo_sigue_cambiando_libre_entre_tipos_clasicos.
+     */
+    public function reglaTipoRiesgo(): array
+    {
+        $mismoMetodo = TipoRiesgo::where('metodo_evaluacion', $this->metodoEvaluacion()->value)->pluck('id')->all();
+
+        return ['exists:tipos_riesgo,id', Rule::in($mismoMetodo)];
     }
 }
