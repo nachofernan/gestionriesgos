@@ -2,7 +2,11 @@
 
 namespace App\Livewire\Auditoria\Actualizaciones;
 
+use App\Enums\Auditoria\Condicion;
+use App\Enums\Auditoria\MetodoEvaluacion;
+use App\Enums\Auditoria\Responsabilidad;
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Enums\Auditoria\Temporalidad;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -11,6 +15,7 @@ use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use App\Models\Auditoria\TipoRiesgo;
+use App\Services\Auditoria\EvaluacionRiesgo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -182,6 +187,12 @@ class GestionActualizaciones extends Component
                 // No puede cruzar de método de evaluación (D-043).
                 $reglas['cambios.tipo_riesgo_id'] = $model->reglaTipoRiesgo();
             }
+            foreach (EvaluacionRiesgo::reglasCaracterizacion($model->metodoEvaluacion()) as $campo => $regla) {
+                if (($this->cambios[$campo] ?? '') !== '') {
+                    // Sin el 'required': vacío = no se propone cambiarlo.
+                    $reglas["cambios.$campo"] = array_slice($regla, 1);
+                }
+            }
             $exigenFundamento = array_column(RespuestaRiesgo::exigenFundamento(), 'value');
             $reglas['cambios.fundamento'] = ['nullable', 'string', 'required_if:cambios.respuesta,'.implode(',', $exigenFundamento)];
         }
@@ -316,22 +327,26 @@ class GestionActualizaciones extends Component
 
     /**
      * Campos editables por tipo de entidad: gobierna qué inputs se renderizan en
-     * el modal. No es una whitelist server-side: guardar() escribe lo que venga en
-     * la propiedad pública `cambios`, así que este listado acota la UI, no lo que
-     * el componente podría llegar a escribir.
+     * el modal y es la whitelist de guardar(), que descarta cualquier otra clave
+     * de la propiedad pública `cambios` (D-041).
      */
     private function camposEditables(): array
     {
         return match ($this->modelType) {
             // Impacto y probabilidad no están: sólo cambian por el wizard de recálculo,
             // para que las respuestas guardadas sigan explicando el número (D-041).
+            // La caracterización, sólo en un riesgo ambiental (D-043).
             'riesgo' => [
                 'nombre' => 'Nombre',
                 'descripcion' => 'Descripción',
                 'respuesta' => 'Respuesta',
                 'fundamento' => 'Fundamento',
                 'tipo_riesgo_id' => 'Tipo de riesgo',
-            ],
+            ] + ($this->resolverModelo()->metodoEvaluacion() === MetodoEvaluacion::Ambiental ? [
+                'temporalidad' => 'Temporalidad',
+                'condicion' => 'Condición',
+                'responsabilidad' => 'Responsabilidad',
+            ] : []),
             'control' => [
                 'nombre' => 'Nombre',
                 'descripcion' => 'Descripción',
@@ -397,6 +412,9 @@ class GestionActualizaciones extends Component
             // Sólo los tipos del mismo método de evaluación (D-043).
             'tipo_riesgo_id' => TipoRiesgo::where('metodo_evaluacion', $this->resolverModelo()->metodoEvaluacion()->value)
                 ->orderBy('nombre')->pluck('nombre', 'id')->toArray(),
+            'temporalidad' => collect(Temporalidad::cases())->mapWithKeys(fn ($c) => [$c->value => $c->label()])->toArray(),
+            'condicion' => collect(Condicion::cases())->mapWithKeys(fn ($c) => [$c->value => $c->label()])->toArray(),
+            'responsabilidad' => collect(Responsabilidad::cases())->mapWithKeys(fn ($c) => [$c->value => $c->label()])->toArray(),
         ];
     }
 

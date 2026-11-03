@@ -42,6 +42,14 @@
                     <dt class="{{ $label }}">Registrado por</dt>
                     <dd class="text-gray-800 truncate">{{ $riesgo->user->name ?? '—' }} · {{ $riesgo->created_at->format('d/m/Y') }}</dd>
                 </div>
+                @if($esAmbiental)
+                    @foreach($caracterizacion as $campo => [$titulo, $casos])
+                        <div>
+                            <dt class="{{ $label }}">{{ $titulo }}</dt>
+                            <dd class="text-gray-800" title="{{ $riesgo->$campo?->descripcion() }}">{{ $riesgo->$campo?->label() ?? '—' }}</dd>
+                        </div>
+                    @endforeach
+                @endif
                 @if($riesgo->fundamento)
                     <div class="col-span-3">
                         <dt class="{{ $label }}">Fundamento de la respuesta</dt>
@@ -79,6 +87,8 @@
                     </div>
                 @endif
             </dl>
+
+            @include('livewire.auditoria.riesgo.show.partials.evaluacion-vigente')
         @else
             <div class="grid grid-cols-6 gap-x-4 gap-y-3">
                 @php $bloq = fn ($c) => in_array($c, $bloqueados, true); @endphp
@@ -111,6 +121,20 @@
                     </select>
                     @error('form.respuesta') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
+                @if($esAmbiental)
+                    @foreach($caracterizacion as $campo => [$titulo, $casos])
+                        <div class="col-span-2">
+                            <label class="{{ $label }}">{{ $titulo }}</label>
+                            <select wire:model="form.{{ $campo }}" class="{{ $input }}" @disabled($bloq($campo))>
+                                <option value="">—</option>
+                                @foreach($casos as $caso)
+                                    <option value="{{ $caso->value }}">{{ $caso->label() }}</option>
+                                @endforeach
+                            </select>
+                            @error('form.'.$campo) <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    @endforeach
+                @endif
                 <div class="col-span-6">
                     <label class="{{ $label }}">Fundamento de la respuesta</label>
                     <textarea wire:model="form.fundamento" rows="2" class="{{ $input }}" @disabled($bloq('fundamento'))></textarea>

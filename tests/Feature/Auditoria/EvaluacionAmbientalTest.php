@@ -86,6 +86,7 @@ class EvaluacionAmbientalTest extends TestCase
             'probabilidad' => 8,
             'impacto' => 7,
             'evaluacion' => self::evaluacion(),
+            'respuesta' => 'evitar',
         ]);
     }
 
@@ -279,6 +280,71 @@ class EvaluacionAmbientalTest extends TestCase
         ])->assertForbidden();
 
         $this->assertSame(8, $riesgo->fresh()->probabilidad);
+    }
+
+    // -------------------------------------------------------
+    // Caracterización y evaluación vigente en la ficha
+    // -------------------------------------------------------
+
+    #[Test]
+    public function la_ficha_edita_la_caracterizacion_de_un_riesgo_ambiental(): void
+    {
+        $riesgo = $this->riesgoAmbiental('validado');
+        $riesgo->update(['temporalidad' => 'actual', 'condicion' => 'normal', 'responsabilidad' => 'directa']);
+
+        Livewire::actingAs($this->gerente)
+            ->test(FichaRiesgo::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->set('mensaje', 'Pasa a contingencia')
+            ->set('form.condicion', 'contingencia')
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        // Gerente sobre un riesgo validado: se aplica en el acto.
+        $this->assertSame(Condicion::Contingencia, $riesgo->fresh()->condicion);
+        $propuesta = $riesgo->actualizaciones()->latest('id')->firstOrFail();
+        $this->assertSame('Contingencia', $propuesta->diffLegible()['campos'][0]['despues']);
+    }
+
+    #[Test]
+    public function un_riesgo_clasico_no_admite_caracterizacion(): void
+    {
+        $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->gerencia->id, 'tipo_riesgo_id' => $this->clasico->id]);
+
+        Livewire::actingAs($this->gerente)
+            ->test(FichaRiesgo::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->set('mensaje', 'Le pongo temporalidad')
+            ->set('form.temporalidad', 'actual')
+            ->call('guardar')
+            ->assertHasErrors(['form.temporalidad' => 'prohibited']);
+
+        Livewire::actingAs($this->gerente)
+            ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
+            ->call('abrirModal')
+            ->set('mensaje', 'Le pongo temporalidad')
+            ->set('cambios.temporalidad', 'actual')
+            ->call('guardar');
+
+        $this->assertNull($riesgo->fresh()->temporalidad);
+    }
+
+    #[Test]
+    public function la_ficha_muestra_la_evaluacion_vigente(): void
+    {
+        $riesgo = $this->riesgoAmbiental();
+        $riesgo->update(['evaluacion' => self::evaluacion(['materialidad_financiera' => [4]])]);
+
+        $this->actingAs($this->gerente)->get(route('auditoria.riesgos.show', $riesgo))
+            ->assertOk()
+            ->assertSee('Evaluación vigente')
+            ->assertSee('Aspecto parcialmente controlado')
+            ->assertSee('Reclamos de terceros');
+
+        // El borrador ambiental edita su caracterización en el form completo.
+        $this->actingAs($this->gerente)->get(route('auditoria.riesgos.edit', $riesgo))
+            ->assertOk()
+            ->assertSee('Caracterización ambiental');
     }
 
     // -------------------------------------------------------

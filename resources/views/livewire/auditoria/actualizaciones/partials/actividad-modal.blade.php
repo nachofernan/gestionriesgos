@@ -10,6 +10,8 @@
         if ($campo === 'tipo_riesgo_id') return $tiposRiesgo[$v] ?? '#'.$v;
         if ($campo === 'respuesta' && is_string($v)) return \App\Enums\Auditoria\RespuestaRiesgo::tryFrom($v)?->label() ?? $v;
         if ($campo === 'evaluacion') return \App\Services\Auditoria\EvaluacionRiesgo::resumen($v);
+        $caracterizacion = ['temporalidad' => \App\Enums\Auditoria\Temporalidad::class, 'condicion' => \App\Enums\Auditoria\Condicion::class, 'responsabilidad' => \App\Enums\Auditoria\Responsabilidad::class];
+        if (isset($caracterizacion[$campo]) && is_string($v)) return $caracterizacion[$campo]::tryFrom($v)?->label() ?? $v;
         if (is_array($v)) return json_encode($v, JSON_UNESCAPED_UNICODE);
         return (string) $v;
     };
@@ -299,7 +301,13 @@
                                             @endforeach
 
                                             {{-- Respuestas del wizard (alta o recálculo) --}}
-                                            @if(!empty($data['respuestas']))
+                                            @if(!empty($data['respuestas']) && isset($data['respuestas']['control']))
+                                                {{-- Matriz ambiental (D-043): una línea con cada concepto y su valor. --}}
+                                                <div class="rounded-lg border border-gray-200 px-3 py-2">
+                                                    <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Wizard · Matriz ambiental</p>
+                                                    <p class="text-xs text-gray-700">{{ \App\Services\Auditoria\EvaluacionRiesgo::resumen(['metodo' => 'ambiental', 'respuestas' => $data['respuestas']]) }}</p>
+                                                </div>
+                                            @elseif(!empty($data['respuestas']))
                                                 <div class="grid sm:grid-cols-2 gap-2">
                                                     @foreach($data['respuestas'] as $eje => $respuestas)
                                                         <div class="rounded-lg border border-gray-200 px-3 py-2">

@@ -2,13 +2,18 @@
 
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
+use App\Enums\Auditoria\Condicion;
+use App\Enums\Auditoria\MetodoEvaluacion;
+use App\Enums\Auditoria\Responsabilidad;
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Enums\Auditoria\Temporalidad;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Dimension;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
+use App\Services\Auditoria\EvaluacionRiesgo;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
@@ -36,7 +41,7 @@ class FichaRiesgo extends Component
 
     public bool $editando = false;
 
-    /** @var array{nombre:string, descripcion:?string, respuesta:?string, fundamento:?string, tipo_riesgo_id:?int} */
+    /** @var array{nombre:string, descripcion:?string, respuesta:?string, fundamento:?string, tipo_riesgo_id:?int, temporalidad:?string, condicion:?string, responsabilidad:?string} */
     public array $form = [];
 
     /** Ids de las sedes marcadas en el formulario (al menos una, D-029). */
@@ -52,7 +57,9 @@ class FichaRiesgo extends Component
     public string $mensaje = '';
 
     // Impacto y probabilidad no se editan acá: sólo por el wizard de recálculo (D-041).
-    private const CAMPOS = ['nombre', 'descripcion', 'respuesta', 'fundamento', 'tipo_riesgo_id'];
+    // La caracterización sólo tiene valor en un riesgo ambiental (D-043): en uno
+    // clásico queda en null de los dos lados y nunca genera diff.
+    private const CAMPOS = ['nombre', 'descripcion', 'respuesta', 'fundamento', 'tipo_riesgo_id', 'temporalidad', 'condicion', 'responsabilidad'];
 
     #[On('riesgo-actualizado')]
     public function refrescar(): void {}
@@ -120,6 +127,7 @@ class FichaRiesgo extends Component
             'dimensiones' => 'required|array|min:1',
             'dimensiones.*' => 'integer|exists:dimensiones,id',
             'fundamentoDimension' => Riesgo::reglaFundamentoDimension($this->dimensiones),
+            ...$this->reglasCaracterizacion($riesgo),
         ], [
             'dimensiones.required' => 'Elegí al menos una dimensión.',
             'dimensiones.min' => 'Elegí al menos una dimensión.',
@@ -183,6 +191,19 @@ class FichaRiesgo extends Component
         session()->flash('ok', $aplicadas ? 'Datos actualizados.' : 'Propuesta registrada. Pendiente de validación.');
     }
 
+    /**
+     * Las de EvaluacionRiesgo::reglasCaracterizacion() sobre form.*. En un riesgo
+     * clásico la caracterización no se puede cargar (D-043).
+     */
+    private function reglasCaracterizacion(Riesgo $riesgo): array
+    {
+        $reglas = EvaluacionRiesgo::reglasCaracterizacion($riesgo->metodoEvaluacion());
+
+        return collect(['temporalidad', 'condicion', 'responsabilidad'])
+            ->mapWithKeys(fn ($campo) => ["form.$campo" => $reglas[$campo] ?? 'prohibited'])
+            ->all();
+    }
+
     /** Campos que ya tienen una propuesta pendiente: no se pueden volver a proponer. */
     private function camposConPropuesta(Collection $propuestas): array
     {
@@ -224,6 +245,12 @@ class FichaRiesgo extends Component
             // Sólo los tipos del mismo método de evaluación (D-043).
             'tiposRiesgo' => TipoRiesgo::where('metodo_evaluacion', $riesgo->metodoEvaluacion()->value)->orderBy('nombre')->pluck('nombre', 'id'),
             'respuestas' => collect(RespuestaRiesgo::cases())->mapWithKeys(fn ($c) => [$c->value => $c->label()]),
+            'esAmbiental' => $riesgo->metodoEvaluacion() === MetodoEvaluacion::Ambiental,
+            'caracterizacion' => [
+                'temporalidad' => ['Temporalidad', Temporalidad::cases()],
+                'condicion' => ['Condición', Condicion::cases()],
+                'responsabilidad' => ['Responsabilidad', Responsabilidad::cases()],
+            ],
         ]);
     }
 }

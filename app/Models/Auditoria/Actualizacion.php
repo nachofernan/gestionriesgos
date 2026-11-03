@@ -2,7 +2,10 @@
 
 namespace App\Models\Auditoria;
 
+use App\Enums\Auditoria\Condicion;
+use App\Enums\Auditoria\Responsabilidad;
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Enums\Auditoria\Temporalidad;
 use App\Models\User;
 use App\Services\Auditoria\EvaluacionRiesgo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -549,6 +552,7 @@ class Actualizacion extends Model implements HasMedia
             'nombre' => 'Nombre', 'descripcion' => 'Descripción', 'respuesta' => 'Respuesta',
             'fundamento' => 'Fundamento', 'fundamento_dimension' => 'Fundamento de dimensión', 'tipo_riesgo_id' => 'Tipo de riesgo',
             'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad', 'evaluacion' => 'Respuestas del cuestionario',
+            'temporalidad' => 'Temporalidad', 'condicion' => 'Condición', 'responsabilidad' => 'Responsabilidad',
             'mitigacion_default' => 'Mitigación', 'checks' => 'Checks', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
         ];
@@ -560,6 +564,9 @@ class Actualizacion extends Model implements HasMedia
             return (string) match ($campo) {
                 'tipo_riesgo_id' => $tiposRiesgo[$valor] ?? '#'.$valor,
                 'evaluacion' => EvaluacionRiesgo::resumen($valor),
+                'temporalidad' => Temporalidad::tryFrom($valor)?->label() ?? $valor,
+                'condicion' => Condicion::tryFrom($valor)?->label() ?? $valor,
+                'responsabilidad' => Responsabilidad::tryFrom($valor)?->label() ?? $valor,
                 'respuesta' => RespuestaRiesgo::tryFrom($valor)?->label() ?? $valor,
                 'fecha_objetivo', 'fecha' => Carbon::parse($valor)->format('d/m/Y'),
                 'porcentaje_avance', 'efectividad' => $valor.'%',

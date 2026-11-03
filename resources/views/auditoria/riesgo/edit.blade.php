@@ -18,6 +18,12 @@
           x-data="{
               tipoRiesgoId: @js((string) old('tipo_riesgo_id', $riesgo->tipo_riesgo_id)),
               respuesta: @js(old('respuesta', $riesgo->respuesta?->value ?? '')),
+              // Caracterización ambiental (D-043); en un riesgo clásico no se muestra.
+              caracterizacion: {
+                  temporalidad: @js(old('temporalidad', $riesgo->temporalidad?->value)),
+                  condicion: @js(old('condicion', $riesgo->condicion?->value)),
+                  responsabilidad: @js(old('responsabilidad', $riesgo->responsabilidad?->value)),
+              },
               tiposRestringidos: @js($tiposRiesgo->where('restringe_respuesta')->pluck('id')->map(fn($id) => (string) $id)->values()),
               respuestasRestringidas: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::restringidas(), 'value')),
               respuestasConFundamento: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::exigenFundamento(), 'value')),
@@ -77,6 +83,14 @@
                 </select>
                 @error('tipo_riesgo_id') <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p> @enderror
             </div>
+
+            @if ($riesgo->metodoEvaluacion() === \App\Enums\Auditoria\MetodoEvaluacion::Ambiental)
+                @include('auditoria.riesgo.partials.caracterizacion-ambiental', ['valores' => [
+                    'temporalidad' => $riesgo->temporalidad?->value,
+                    'condicion' => $riesgo->condicion?->value,
+                    'responsabilidad' => $riesgo->responsabilidad?->value,
+                ]])
+            @endif
 
             @include('auditoria.partials.dimensiones-checkboxes', [
                 'dimensiones' => $dimensiones,

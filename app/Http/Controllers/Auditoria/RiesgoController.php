@@ -236,7 +236,7 @@ class RiesgoController extends Controller
             'tipo_riesgo_id' => ['required', ...$riesgo->reglaTipoRiesgo()],
             'area_id' => ['required', 'exists:areas,id', Rule::in($areasPermitidas)],
             'fundamento_dimension' => Riesgo::reglaFundamentoDimension((array) $request->input('dimensiones')),
-        ] + self::REGLAS_SEDES + self::REGLAS_DIMENSIONES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_DIMENSIONES + [
+        ] + EvaluacionRiesgo::reglasCaracterizacion($riesgo->metodoEvaluacion()) + self::REGLAS_SEDES + self::REGLAS_DIMENSIONES, self::MENSAJES_RESPUESTA + self::MENSAJES_SEDES + self::MENSAJES_DIMENSIONES + self::MENSAJES_CARACTERIZACION + [
             'tipo_riesgo_id.in' => Riesgo::MENSAJE_CRUCE_TIPO,
             'area_id.required' => 'Debe elegir un área.',
             'area_id.in' => 'Sólo puede asignar el riesgo a su área o a una de sus sub-áreas.',
