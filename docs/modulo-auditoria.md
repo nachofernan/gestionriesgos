@@ -43,7 +43,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 
 | Modelo | Tabla | Descripción |
 |---|---|---|
-| `Riesgo` | `riesgos` | Entidad central. Tiene impacto, probabilidad y criticidad_alta. Calcula `valor_total` e `valor_residual` como accessors. |
+| `Riesgo` | `riesgos` | Entidad central. Tiene impacto, probabilidad y criticidad_alta. Calcula `valor_total` e `valor_residual` como accessors. `evaluacion` (json) guarda `{metodo, respuestas}` del último wizard aplicado (D-042). Los ambientales llevan `temporalidad`, `condicion` y `responsabilidad` (enums, D-043). `metodoEvaluacion()` sale del tipo; `reglaTipoRiesgo()` impide cambiar a un tipo de otro método. |
 | `Control` | `controles` | Medidas de mitigación. `mitigacion_default` (0-10) sale de `checks` (5 de `Control::CHECKS`, 2 puntos cada uno, hook `saving`) y es el tope de cada relación (D-040). `trasCambiarDefault()`: si el número cambia, propaga a todas las relaciones (opcional, D-017) o recorta las que lo pasan. `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). `aplicarEfectividad()` es la regla única del redondeo (D-037). |
 | `ControlRiesgo` | `control_riesgo` | Pivot de la relación control-riesgo (D-040): `mitigacion` (null = hereda el del control), `checks` (con checks, el número se recalcula al guardar: `min(puntaje, tope)`) y `efectividad` (0-100, "Evidencia de cumplimiento", nace en 100). `mitigacionEfectiva()` es lo que descuenta la relación. |
 | `Testeo` | `testeos` | Testeo de la evidencia de cumplimiento de una relación (D-040): fecha, % antes/después, comentario, adjuntos. Append-only. Lo carga sólo el auditor y se aplica en el acto (`Testeo::registrar()`). |
@@ -53,7 +53,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | `Tarea` | `tareas` | Unidad de trabajo. `fecha` casteada a `date`, `porcentaje_avance` (0-100). |
 | `Actualizacion` | `actualizaciones` | Historial de actualizaciones polimórfico. Tiene `mensaje`, `data` (JSON) y `user_id`. Las aprobaciones llevan `comite_numero`/`comite_fecha` opcionales; una entrada `tipo = comite` con `comite_de_id` los carga o corrige después (D-039). |
 | `EstadoRiesgo` | `estados_riesgo` | Catálogo: borrador, validado, activo, mitigado, eliminado. |
-| `TipoRiesgo` | `tipos_riesgo` | Catálogo de categorías de riesgo. |
+| `TipoRiesgo` | `tipos_riesgo` | Catálogo de categorías de riesgo. `metodo_evaluacion` (enum `MetodoEvaluacion`: `clasica` / `ambiental`) dice con qué wizard se evalúan sus riesgos (D-043). |
 | `Sede` | `sedes` | Catálogo de sedes (`SedeSeeder`). Un riesgo tiene una o más (pivot `riesgo_sede`), D-029. Informativa: no interviene en la autorización. |
 | `Dimension` | `dimensiones` | Catálogo de dimensiones del riesgo (`DimensionSeeder`), con ejemplos y `referencias` (`DimensionReferencia`, tabla `dimension_referencias`). Un riesgo tiene una o más (pivot `dimension_riesgo`); con dos o más, `riesgos.fundamento_dimension` es obligatorio. D-032, renombrada en D-035. Informativa. |
 | `Area` | `areas` | Estructura organizacional jerárquica (`area_padre_id` auto-referencial). |
@@ -183,8 +183,12 @@ filtra el Responsable con Alpine al cambiar el Área. Tests: `AltaAreaResponsabl
 
 ### `RiesgoController`
 
-- **`store`**: Impacto y probabilidad salen del wizard. `area_id` es obligatorio y de la línea del
-  usuario. No asocia objetivos: se vinculan desde la ficha.
+- **`store`**: Impacto y probabilidad salen del wizard, vía `App\Services\Auditoria\EvaluacionRiesgo`
+  (reglas, cálculo y resumen de cada método; config en `riesgo_preguntas.php` y `riesgo_ambiental.php`).
+  El método lo define el tipo elegido. `area_id` es obligatorio y de la línea del usuario. No asocia
+  objetivos: se vinculan desde la ficha.
+- **`recalcular` / `recalcularStore`**: el wizard del método del riesgo, precargado con su evaluación
+  vigente. Cambiar sólo respuestas, aunque el número no se mueva, también es una propuesta (D-042).
 - **`update`**: `area_id` es obligatorio y de la línea del usuario.
 
 ### `PlanAccionController`
