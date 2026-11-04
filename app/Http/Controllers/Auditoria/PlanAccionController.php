@@ -56,6 +56,7 @@ class PlanAccionController extends Controller
 
         $data['user_id'] = $data['user_id'] ?? Auth::id();
 
+        $data['interno'] = $request->boolean('interno');
         $plan = PlanAccion::create($data);
         $plan->actualizaciones()->create([
             'user_id' => Auth::id(),
@@ -116,6 +117,7 @@ class PlanAccionController extends Controller
             'descripcion' => 'nullable|string',
         ] + $this->reglasAreaResponsable($request, $planAccion->area_id, $planAccion->user_id), self::MENSAJES_AREA_RESPONSABLE);
 
+        $data['interno'] = $request->boolean('interno');
         $original = $planAccion->only(array_keys($data));
         $planAccion->update($data);
 

@@ -64,6 +64,7 @@ class ObjetivoController extends Controller
         $peisItemIds = $data['peis'] ? $data['peis_items'] : [];
         unset($data['peis_items']);
 
+        $data['interno'] = $request->boolean('interno');
         $objetivo = Objetivo::create($data);
         $objetivo->peisItems()->sync($peisItemIds);
 
@@ -152,6 +153,7 @@ class ObjetivoController extends Controller
         $peisItemIds = $data['peis'] ? $data['peis_items'] : [];
         unset($data['peis_items']);
 
+        $data['interno'] = $request->boolean('interno');
         $original = $objetivo->only(array_keys($data));
         $objetivo->update($data);
         $objetivo->peisItems()->sync($peisItemIds);

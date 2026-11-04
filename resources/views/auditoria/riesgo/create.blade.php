@@ -201,6 +201,8 @@
                 </div>
 
                 @include('auditoria.partials.sedes-checkboxes', ['sedes' => $sedes, 'seleccionadas' => []])
+
+                @include('auditoria.partials.interno-toggle', ['valor' => false])
             </div>
 
             {{-- Navegación del wizard --}}

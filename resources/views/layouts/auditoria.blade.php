@@ -41,6 +41,13 @@
                                {{ request()->routeIs('auditoria.vencimientos.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700' }}">
                             Vencimientos
                         </a>
+                        @unless(auth()->user()->esComite())
+                            <a href="{{ route('auditoria.interno.index') }}"
+                               class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors
+                                   {{ request()->routeIs('auditoria.interno.*') ? 'bg-violet-50 text-violet-700' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700' }}">
+                                Interno
+                            </a>
+                        @endunless
                         @if(auth()->user()->esGerente() || auth()->user()->esComite())
                             <a href="{{ route('auditoria.pendientes.index') }}"
                                class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors

@@ -120,6 +120,7 @@
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize {{ $estadoClass }}">
                                         {{ $objetivo->estado->nombre }}
                                     </span>
+                                    <x-auditoria.interno-badge :activo="$objetivo->interno" size="sm" class="ml-1" />
                                 @else
                                     <span class="text-xs text-gray-400">—</span>
                                 @endif

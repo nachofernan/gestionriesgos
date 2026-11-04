@@ -37,6 +37,20 @@
         </div>
     </div>
 
+    {{-- Proyección del borrador interno (D-044): no es el residual oficial. --}}
+    @if($riesgo->interno && $riesgo->estado?->nombre === 'borrador')
+        @php $cProyectado = $paleta[\App\Models\Auditoria\Riesgo::clasificacion($riesgo->valor_residual_proyectado)['color']]; @endphp
+        <div class="mx-4 mt-2 rounded-lg border border-dashed border-violet-300 bg-violet-50/60 px-3 py-2 text-xs text-violet-800">
+            <div class="flex items-center justify-between">
+                <span class="font-semibold">Residual proyectado</span>
+                <span class="text-lg font-black tabular-nums {{ $cProyectado['txt'] }}">{{ $riesgo->valor_residual_proyectado }}</span>
+            </div>
+            <p class="mt-0.5 text-[11px] text-violet-600">
+                Con los controles (−{{ $riesgo->mitigacion_controles_proyectada }}) y planes (−{{ $riesgo->mitigacion_planes_proyectada }}) aprobados o internos. No es el valor oficial.
+            </p>
+        </div>
+    @endif
+
     {{-- Proyección mientras se editan controles o planes --}}
     <div x-show="proyectado !== null && proyectado !== {{ $riesgo->valor_residual }}" x-cloak
          class="mx-4 mt-2 flex items-center justify-between rounded-lg border border-dashed border-indigo-300 bg-indigo-50/60 px-3 py-1.5 text-xs text-indigo-800">

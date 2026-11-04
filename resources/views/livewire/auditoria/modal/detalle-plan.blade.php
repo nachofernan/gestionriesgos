@@ -19,6 +19,7 @@
                 <h3 class="text-lg font-extrabold text-gray-900 leading-tight">{{ $plan->nombre }}</h3>
                 <div class="flex items-center gap-2 mt-1.5 flex-wrap">
                     <x-auditoria.estado-badge :estado="$plan->estado" size="sm" />
+                    <x-auditoria.interno-badge :activo="$plan->interno ?? false" size="sm" />
                     @if($plan->area)
                         <span class="text-[10px] text-gray-400 font-medium">{{ $plan->area->nombre }}</span>
                     @endif

@@ -16,6 +16,20 @@
     $btn = 'px-4 py-2 text-sm font-bold rounded-xl transition-colors';
 @endphp
 
+{{-- Borrador interno (D-044): lo pone o lo saca quien edita el borrador. --}}
+@if($modelTipo && $item->estado?->nombre === 'borrador')
+    @if(auth()->user()->can('view', $item) && auth()->user()->can('update', $item))
+        <form action="{{ route('auditoria.interno.alternar', [$modelTipo, $item->id]) }}" method="POST" class="inline">
+            @csrf
+            <button type="submit"
+                    title="{{ $item->interno ? 'Vuelve al circuito: queda en borrador, en la bandeja del gerente' : 'Gestión propia del área: sale de Pendientes y no se valida' }}"
+                    class="{{ $btn }} {{ $item->interno ? 'bg-violet-600 text-white hover:bg-violet-700' : 'bg-violet-50 text-violet-700 hover:bg-violet-100' }}">
+                {{ $item->interno ? 'Quitar de interno' : 'Marcar interno' }}
+            </button>
+        </form>
+    @endif
+@endif
+
 @can('validar', $item)
     @if($modelTipo)
         <button type="button"

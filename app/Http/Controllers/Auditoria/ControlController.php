@@ -56,6 +56,7 @@ class ControlController extends Controller
 
         $data['checks'] ??= [];
         $data['user_id'] = $data['user_id'] ?? Auth::id();
+        $data['interno'] = $request->boolean('interno');
         $control = Control::create($data);
         $control->actualizaciones()->create([
             'user_id' => Auth::id(),
@@ -121,6 +122,7 @@ class ControlController extends Controller
         $data['checks'] = Control::normalizarChecks($data['checks'] ?? []);
         $propagar = $request->boolean('propagar_mitigacion');
 
+        $data['interno'] = $request->boolean('interno');
         $campos = [...array_keys($data), 'mitigacion_default'];
         $original = $control->only($campos);
         DB::transaction(function () use ($control, $data, $original, $propagar) {

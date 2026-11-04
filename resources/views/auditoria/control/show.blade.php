@@ -20,6 +20,7 @@
                 <div class="flex items-center gap-2 flex-wrap text-xs">
                     <span class="font-bold text-gray-500 uppercase">Control</span>
                     <x-auditoria.estado-badge :estado="$control->estado" size="sm" />
+                    <x-auditoria.interno-badge :activo="$control->interno ?? false" size="sm" />
                     @include('auditoria.partials.comite-aprobacion', ['item' => $control])
                 </div>
                 <h1 class="mt-1 text-2xl sm:text-[28px] font-black tracking-tight text-gray-900 leading-tight">{{ $control->nombre }}</h1>

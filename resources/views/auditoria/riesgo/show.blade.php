@@ -19,6 +19,7 @@
             <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap text-xs">
                     <x-auditoria.estado-badge :estado="$riesgo->estado" size="sm" />
+                    <x-auditoria.interno-badge :activo="$riesgo->interno ?? false" size="sm" />
                     @include('auditoria.partials.comite-aprobacion', ['item' => $riesgo])
                     @if($riesgo->mayor_criticidad)
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">Mayor criticidad</span>

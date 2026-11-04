@@ -149,6 +149,7 @@
                             <span class="font-semibold text-sm text-gray-800 truncate">{{ $plan->nombre }}</span>
                         </div>
                         <x-auditoria.estado-badge :estado="$plan->estado" size="xs" class="shrink-0" />
+                        <x-auditoria.interno-badge :activo="$plan->interno ?? false" size="xs" class="shrink-0" />
                     </div>
                     <p class="mt-0.5 text-[11px] text-gray-500 truncate">
                         <span class="font-bold {{ $avance === 100 ? 'text-green-600' : 'text-amber-600' }}">avance {{ $avance !== null ? $avance.'%' : '—' }}</span>

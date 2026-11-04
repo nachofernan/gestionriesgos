@@ -92,7 +92,9 @@ class PendienteController extends Controller
 
     private function buscar(string $modelo, string $estadoNombre, ?array $areaIds)
     {
+        // Un borrador interno es gestión propia del área, no un pendiente (D-044).
         $query = $modelo::whereHas('estado', fn ($q) => $q->where('nombre', $estadoNombre))
+            ->where('interno', false)
             ->with(['area', 'user', 'estado']);
 
         if ($areaIds !== null) {

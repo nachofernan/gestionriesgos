@@ -3,10 +3,12 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
+use App\Livewire\Auditoria\PanelRiesgos;
 use App\Livewire\Auditoria\PlanAccion\Show\GestionTareas;
 use App\Livewire\Auditoria\ValidacionCascadaModal;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
@@ -157,5 +159,115 @@ class BorradorInternoTest extends TestCase
             $this->assertFalse($this->comite->can('view', $entidad), $ruta);
             $this->assertFalse($entidad::visiblePara($this->comite)->whereKey($entidad->id)->exists(), $ruta);
         }
+    }
+
+    // -------------------------------------------------------
+    // Interfaz: alta, ficha, Pendientes y panel interno
+    // -------------------------------------------------------
+
+    private function otraGerencia(): User
+    {
+        $otra = Area::create(['nombre' => 'Recursos Humanos', 'area_padre_id' => $this->gerencia->area_padre_id]);
+
+        return User::factory()->create(['rol' => 'gerente', 'area_id' => $otra->id]);
+    }
+
+    #[Test]
+    public function el_alta_guarda_el_flag_y_por_defecto_no_es_interno(): void
+    {
+        $this->actingAs($this->gerente)
+            ->post(route('auditoria.planes.store'), ['nombre' => 'Interno', 'area_id' => $this->gerencia->id, 'interno' => '1'])
+            ->assertSessionHasNoErrors();
+        $this->actingAs($this->gerente)
+            ->post(route('auditoria.planes.store'), ['nombre' => 'Común', 'area_id' => $this->gerencia->id])
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue(PlanAccion::where('nombre', 'Interno')->sole()->interno);
+        $this->assertFalse(PlanAccion::where('nombre', 'Común')->sole()->interno);
+    }
+
+    #[Test]
+    public function quien_edita_el_borrador_alterna_el_flag_y_queda_en_el_historial(): void
+    {
+        $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
+        $plan = PlanAccion::factory()->create(['area_id' => $this->gerencia->id]);
+
+        $this->actingAs($empleado)->post(route('auditoria.interno.alternar', ['plan', $plan->id]))->assertRedirect();
+        $this->assertTrue($plan->fresh()->interno);
+
+        $this->actingAs($empleado)->post(route('auditoria.interno.alternar', ['plan', $plan->id]));
+        $this->assertFalse($plan->fresh()->interno);
+
+        $diffs = $plan->actualizaciones()->reorder('id')->get()->map(fn ($a) => $a->data['diff']['campos']['interno']);
+        $this->assertSame([['antes' => false, 'despues' => true], ['antes' => true, 'despues' => false]], $diffs->all());
+    }
+
+    #[Test]
+    public function quien_no_gestiona_el_area_no_alterna_el_flag(): void
+    {
+        $riesgo = Riesgo::factory()->borrador()->create(['area_id' => $this->gerencia->id]);
+
+        $this->actingAs($this->otraGerencia())
+            ->post(route('auditoria.interno.alternar', ['riesgo', $riesgo->id]))
+            ->assertForbidden();
+        $this->actingAs($this->comite)
+            ->post(route('auditoria.interno.alternar', ['riesgo', $riesgo->id]))
+            ->assertForbidden();
+
+        $this->assertFalse($riesgo->fresh()->interno);
+    }
+
+    #[Test]
+    public function fuera_de_borrador_no_se_alterna_el_flag(): void
+    {
+        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
+
+        $this->actingAs($this->gerente)->post(route('auditoria.interno.alternar', ['control', $control->id]));
+
+        $this->assertFalse($control->fresh()->interno);
+    }
+
+    #[Test]
+    public function lo_interno_no_aparece_en_pendientes_ni_en_el_contador_del_panel(): void
+    {
+        $interno = Riesgo::factory()->borrador()->create(['area_id' => $this->gerencia->id, 'interno' => true]);
+        $comun = Riesgo::factory()->borrador()->create(['area_id' => $this->gerencia->id]);
+
+        $this->actingAs($this->gerente)
+            ->get(route('auditoria.pendientes.index'))
+            ->assertOk()
+            ->assertViewHas('paraValidar', fn ($p) => $p['riesgo']->pluck('id')->all() === [$comun->id]);
+
+        Livewire::actingAs($this->gerente)
+            ->test(PanelRiesgos::class)
+            ->assertViewHas('pendientes', fn ($p) => $p['total'] === 1);
+
+        $this->assertTrue($interno->fresh()->interno);
+    }
+
+    #[Test]
+    public function el_panel_interno_muestra_lo_interno_de_la_cascada(): void
+    {
+        $sector = Area::create(['nombre' => 'Sector efluentes', 'area_padre_id' => $this->gerencia->id]);
+        $delSector = Riesgo::factory()->borrador()->create(['area_id' => $sector->id, 'interno' => true, 'impacto' => 8, 'probabilidad' => 8]);
+        $control = Control::factory()->create(['area_id' => $sector->id, 'interno' => true]);
+        $delSector->controles()->attach($control->id, ['mitigacion' => 4]);
+        Riesgo::factory()->borrador()->create(['area_id' => $this->gerencia->id]);
+
+        $otro = $this->otraGerencia();
+        $ajeno = Riesgo::factory()->borrador()->create(['area_id' => $otro->area_id, 'interno' => true]);
+
+        $this->actingAs($this->gerente)
+            ->get(route('auditoria.interno.index'))
+            ->assertOk()
+            ->assertViewHas('riesgos', fn ($r) => $r->pluck('id')->all() === [$delSector->id]
+                && $r->first()->valor_residual_proyectado === 12)
+            ->assertDontSee($ajeno->nombre);
+    }
+
+    #[Test]
+    public function el_comite_no_entra_al_panel_interno(): void
+    {
+        $this->actingAs($this->comite)->get(route('auditoria.interno.index'))->assertForbidden();
     }
 }
