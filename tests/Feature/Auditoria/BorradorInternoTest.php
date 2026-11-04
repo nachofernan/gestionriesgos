@@ -8,7 +8,6 @@ use App\Livewire\Auditoria\PlanAccion\Show\GestionTareas;
 use App\Livewire\Auditoria\ValidacionCascadaModal;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
-use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
@@ -187,44 +186,35 @@ class BorradorInternoTest extends TestCase
     }
 
     #[Test]
-    public function quien_edita_el_borrador_alterna_el_flag_y_queda_en_el_historial(): void
+    public function la_edicion_del_borrador_pone_y_saca_el_flag_y_queda_en_el_historial(): void
     {
         $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->gerencia->id]);
+        $editar = fn (string $interno) => $this->actingAs($empleado)
+            ->put(route('auditoria.planes.update', $plan), ['nombre' => $plan->nombre, 'area_id' => $this->gerencia->id, 'interno' => $interno])
+            ->assertSessionHasNoErrors();
 
-        $this->actingAs($empleado)->post(route('auditoria.interno.alternar', ['plan', $plan->id]))->assertRedirect();
+        $editar('1');
         $this->assertTrue($plan->fresh()->interno);
 
-        $this->actingAs($empleado)->post(route('auditoria.interno.alternar', ['plan', $plan->id]));
+        $editar('0');
         $this->assertFalse($plan->fresh()->interno);
 
-        $diffs = $plan->actualizaciones()->reorder('id')->get()->map(fn ($a) => $a->data['diff']['campos']['interno']);
-        $this->assertSame([['antes' => false, 'despues' => true], ['antes' => true, 'despues' => false]], $diffs->all());
+        $diffs = $plan->actualizaciones()->reorder('id')->get()
+            ->map(fn ($a) => $a->data['diff']['campos']['interno'] ?? null)->filter()->values();
+        $this->assertEquals([['antes' => false, 'despues' => true], ['antes' => true, 'despues' => false]], $diffs->all());
     }
 
     #[Test]
-    public function quien_no_gestiona_el_area_no_alterna_el_flag(): void
+    public function quien_no_gestiona_el_area_no_cambia_el_flag(): void
     {
-        $riesgo = Riesgo::factory()->borrador()->create(['area_id' => $this->gerencia->id]);
+        $plan = PlanAccion::factory()->create(['area_id' => $this->gerencia->id]);
 
         $this->actingAs($this->otraGerencia())
-            ->post(route('auditoria.interno.alternar', ['riesgo', $riesgo->id]))
-            ->assertForbidden();
-        $this->actingAs($this->comite)
-            ->post(route('auditoria.interno.alternar', ['riesgo', $riesgo->id]))
+            ->put(route('auditoria.planes.update', $plan), ['nombre' => $plan->nombre, 'area_id' => $this->gerencia->id, 'interno' => '1'])
             ->assertForbidden();
 
-        $this->assertFalse($riesgo->fresh()->interno);
-    }
-
-    #[Test]
-    public function fuera_de_borrador_no_se_alterna_el_flag(): void
-    {
-        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
-
-        $this->actingAs($this->gerente)->post(route('auditoria.interno.alternar', ['control', $control->id]));
-
-        $this->assertFalse($control->fresh()->interno);
+        $this->assertFalse($plan->fresh()->interno);
     }
 
     #[Test]

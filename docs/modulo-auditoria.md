@@ -110,7 +110,7 @@ el auditor) habilita `GestionTareas::guardarNuevaTarea()`:
 
 **Borrador interno (D-044).** Columna `interno` en los cinco elementos, sólo con sentido en borrador:
 - `validar()` exige `! interno`;
-- `InternoController@alternar` (`auditoria/interno/{tipo}/{id}`) pone o saca el flag con `view` + `update`;
+- el flag se pone o se saca en el alta y en la edición del borrador (`update`);
 - `InternoController@index` (`auditoria/interno`) es el panel del área;
 - Pendientes, el contador del Panel y la cascada de validación excluyen lo interno.
 

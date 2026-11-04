@@ -1426,9 +1426,9 @@ para todas las áreas. Detalle y ejemplo en `docs/propuesta-borrador-interno.md`
 - **No se valida con flag.** `validar()` de las cinco Policies exige `! interno`. La cascada no ofrece
   hijos internos, y si un objetivo o plan requerido es interno lo muestra como bloqueo ("hay que
   quitarle el flag"). Una tarea interna creada desde el plan nace en borrador aunque la cree el gerente.
-- **Quién lo pone o lo saca:** quien edita el borrador (`update`). Desde la ficha además se exige
-  `view`, porque el comité tiene `update` sobre cualquier área pero no ve los borradores ajenos.
-  Quitarlo no valida nada: sólo deja el elemento en la bandeja del gerente.
+- **Quién lo pone o lo saca:** quien edita el borrador (`update`), desde el formulario de edición. No
+  hay un botón aparte en la ficha. Quitarlo no valida nada: sólo deja el elemento en la bandeja del
+  gerente.
 - **En el alta** la opción "Interno" aparece sin marcar. Un elemento interno lleva un badge en las
   fichas, los modales, los listados y los bloques de relaciones. Poner o quitar el flag queda en el
   historial como una edición del borrador.

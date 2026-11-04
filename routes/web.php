@@ -137,12 +137,9 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     Route::get('vencimientos', [VencimientoController::class, 'index'])->name('vencimientos.index');
 
     // -------------------------------------------------------------------
-    // Borrador interno (D-044): panel del área y flag desde la ficha
+    // Borrador interno (D-044): panel del área
     // -------------------------------------------------------------------
     Route::get('interno', [InternoController::class, 'index'])->name('interno.index');
-    Route::post('interno/{tipo}/{id}', [InternoController::class, 'alternar'])
-        ->whereNumber('id')
-        ->name('interno.alternar');
 
     // -------------------------------------------------------------------
     // Revisión de la carga inicial (transitoria, D-024): se apaga con
