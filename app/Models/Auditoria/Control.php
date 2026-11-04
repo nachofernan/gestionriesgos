@@ -46,12 +46,14 @@ class Control extends Model implements HasMedia
         'mitigacion_default',
         'checks',
         'estado_id',
+        'interno',
         'user_id',
         'area_id',
     ];
 
     protected $casts = [
         'checks' => 'array',
+        'interno' => 'boolean',
     ];
 
     protected static function booted()
@@ -120,6 +122,18 @@ class Control extends Model implements HasMedia
     public function mitiga(): bool
     {
         return $this->estado?->nombre === 'aprobado';
+    }
+
+    /**
+     * Si el control descuenta en la proyección de un borrador interno (D-044): los
+     * aprobados, como siempre, más los borradores internos; un borrador sin flag o
+     * un validado no. Sólo la consume Riesgo::getMitigacionControlesProyectadaAttribute().
+     * Tests: el_residual_proyectado_suma_lo_aprobado_y_lo_interno,
+     * un_borrador_sin_flag_o_un_validado_no_proyectan.
+     */
+    public function mitigaProyectado(): bool
+    {
+        return $this->mitiga() || ($this->interno && $this->estado?->nombre === 'borrador');
     }
 
     /**

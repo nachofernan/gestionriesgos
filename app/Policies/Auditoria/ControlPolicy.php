@@ -73,11 +73,17 @@ class ControlPolicy
         return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($control));
     }
 
+    /**
+     * Un borrador interno no se valida: es gestión propia del área y primero hay
+     * que quitarle el flag (D-044). Tests: un_borrador_interno_no_se_valida,
+     * al_quitar_el_flag_el_borrador_se_valida.
+     */
     public function validar(User $user, Control $control): bool
     {
         return $user->esGerente()
             && $user->puedeGestionarArea($this->areaEfectiva($control))
-            && $control->estado?->nombre === 'borrador';
+            && $control->estado?->nombre === 'borrador'
+            && ! $control->interno;
     }
 
     public function aprobar(User $user, Control $control): bool

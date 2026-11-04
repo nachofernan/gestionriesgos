@@ -53,7 +53,7 @@ class GestionTareas extends Component
     /** Modal de tarea nueva abierto. */
     public bool $creandoTarea = false;
 
-    /** @var array{nombre:string, descripcion:string, fecha:string, porcentaje_avance:int, area_id:string, user_id:string} */
+    /** @var array{nombre:string, descripcion:string, fecha:string, porcentaje_avance:int, area_id:string, user_id:string, interno:bool} */
     public array $nueva = [];
 
     /** @var array<int, array{id:int, nombre:string, porcentaje_avance:int, fecha:string|null}> */
@@ -142,6 +142,7 @@ class GestionTareas extends Component
             'porcentaje_avance' => 0,
             'area_id' => (string) (Auth::user()->area_id ?? ''),
             'user_id' => '',
+            'interno' => false,
         ];
     }
 
@@ -168,10 +169,12 @@ class GestionTareas extends Component
      * acto (D-030): el vínculo no es una propuesta sobre el plan, sigue el destino
      * de la tarea (si la rechazan queda "borrado" y se oculta; el avance sólo cuenta
      * las aprobadas). Nace validada si quien la crea es gerente (o comité) y el área
-     * es de su línea; si no, en borrador, y la valida el gerente de esa área.
+     * es de su línea; si no, en borrador, y la valida el gerente de esa área. Una
+     * tarea interna nace siempre en borrador: el flag sólo existe ahí (D-044).
      * Tests: TareaDesdePlanTest (un_empleado_crea_desde_su_plan_una_tarea_de_otra_area,
      * un_gerente_crea_una_tarea_de_su_linea_y_nace_validada,
-     * un_gerente_que_crea_para_otra_area_la_deja_en_borrador).
+     * un_gerente_que_crea_para_otra_area_la_deja_en_borrador) y BorradorInternoTest
+     * (una_tarea_interna_creada_por_el_gerente_nace_en_borrador).
      */
     public function guardarNuevaTarea(): void
     {
@@ -185,6 +188,7 @@ class GestionTareas extends Component
             'nueva.porcentaje_avance' => 'required|integer|min:0|max:100',
             'nueva.area_id' => 'required|exists:areas,id',
             'nueva.user_id' => ['nullable', Rule::in($this->idsResponsables($this->nueva['area_id'] ?? null))],
+            'nueva.interno' => 'boolean',
         ], [
             'nueva.nombre.required' => 'El nombre de la tarea es obligatorio.',
             'nueva.area_id.required' => 'Debe elegir un área.',
@@ -193,9 +197,10 @@ class GestionTareas extends Component
 
         $user = Auth::user();
         $areaId = (int) $this->nueva['area_id'];
-        $estado = $user->esGerente() && $user->puedeGestionarArea($areaId) ? Estado::validado() : Estado::borrador();
+        $interno = (bool) ($this->nueva['interno'] ?? false);
+        $estado = ! $interno && $user->esGerente() && $user->puedeGestionarArea($areaId) ? Estado::validado() : Estado::borrador();
 
-        $tarea = DB::transaction(function () use ($plan, $user, $areaId, $estado) {
+        $tarea = DB::transaction(function () use ($plan, $user, $areaId, $estado, $interno) {
             $tarea = Tarea::create([
                 'nombre' => $this->nueva['nombre'],
                 'descripcion' => $this->nueva['descripcion'] ?: null,
@@ -204,6 +209,7 @@ class GestionTareas extends Component
                 'area_id' => $areaId,
                 'user_id' => $this->nueva['user_id'] ?: null,
                 'estado_id' => $estado->id,
+                'interno' => $interno,
             ]);
             $tarea->actualizaciones()->create([
                 'user_id' => $user->id,
@@ -214,6 +220,7 @@ class GestionTareas extends Component
                     'descripcion' => $tarea->descripcion,
                     'porcentaje_avance' => $tarea->porcentaje_avance,
                     'fecha' => $tarea->fecha?->format('Y-m-d'),
+                    'interno' => $interno,
                 ]],
             ]);
 
