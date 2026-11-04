@@ -120,6 +120,8 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
    borrador/validado no baja el valor; un plan al 99% no mitiga el valor entero. Estos
    accessors calculados viven en el modelo `Riesgo`, se consumen con las relaciones eager-loaded, y
    son la fuente de verdad: ninguna vista recalcula el residual por su cuenta.
+   Un borrador **interno** (D-044) tiene además un residual *proyectado*, donde también cuentan los
+   borradores internos. Es otro accessor y nunca reemplaza al oficial.
 
 3. **El ciclo de estados gobierna qué se puede hacer.** `borrador → validado → aprobado` (o
    `borrado`). Quién puede ver, validar o aprobar un riesgo depende de su estado, no solo del rol.
