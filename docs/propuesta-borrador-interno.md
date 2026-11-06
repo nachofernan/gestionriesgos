@@ -1,6 +1,7 @@
 # Propuesta: Borrador interno
 
-> Estado: **idea a presentar**. Todavía no está decidida ni implementada.
+> Estado: **decidida e implementada** ([D-044](DECISIONES.md#d-044)). Lo que sigue es la propuesta
+> original; donde difiera, manda D-044.
 
 ## El problema
 

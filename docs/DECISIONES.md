@@ -1415,8 +1415,7 @@ Fuente: sesión 2026-11-03, con el usuario presente.
 
 ## D-044 — Borrador interno (2026-11-04)
 
-> **En branch `feat/borrador-interno`, a presentar.** No está en `main`. Si se descarta, esta entrada
-> se va con la branch.
+> Entró a `main` por PR desde la branch `feat/borrador-interno`.
 
 **Decisión.** Riesgo, control, objetivo, plan de acción y tarea pueden llevar un flag `interno`. El
 flag sólo existe en borrador y deja el elemento como gestión propia del área, fuera del circuito del
