@@ -20,6 +20,7 @@
                 <div class="flex items-center gap-2 flex-wrap text-xs">
                     <span class="font-bold text-gray-500 uppercase">Plan de acción</span>
                     <x-auditoria.estado-badge :estado="$planAccion->estado" size="sm" />
+                    <x-auditoria.interno-badge :activo="$planAccion->interno ?? false" size="sm" />
                     @include('auditoria.partials.comite-aprobacion', ['item' => $planAccion])
                     @if($planAccion->esta_vencido)
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">Vencido</span>

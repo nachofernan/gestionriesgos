@@ -54,6 +54,7 @@ class TareaController extends Controller
         ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
 
         $data['user_id'] = $data['user_id'] ?? Auth::id();
+        $data['interno'] = $request->boolean('interno');
         $tarea = Tarea::create($data);
         $tarea->actualizaciones()->create([
             'user_id' => Auth::id(),
@@ -117,6 +118,7 @@ class TareaController extends Controller
             'fecha' => 'nullable|date',
         ] + $this->reglasAreaResponsable($request, $tarea->area_id, $tarea->user_id), self::MENSAJES_AREA_RESPONSABLE);
 
+        $data['interno'] = $request->boolean('interno');
         $original = $tarea->only(array_keys($data));
         $tarea->update($data);
 

@@ -1410,3 +1410,52 @@ recalcule (ver ROADMAP). La caracterización todavía no se edita fuera del alta
 Tests: `EvaluacionAmbientalTest`.
 
 Fuente: sesión 2026-11-03, con el usuario presente.
+
+---
+
+## D-044 — Borrador interno (2026-11-04)
+
+> Entró a `main` por PR desde la branch `feat/borrador-interno`.
+
+**Decisión.** Riesgo, control, objetivo, plan de acción y tarea pueden llevar un flag `interno`. El
+flag sólo existe en borrador y deja el elemento como gestión propia del área, fuera del circuito del
+comité. Lo pidió Medio Ambiente, que gestiona muchos riesgos y sólo sube algunos al comité, pero sirve
+para todas las áreas. Detalle y ejemplo en `docs/propuesta-borrador-interno.md`.
+
+- **No se valida con flag.** `validar()` de las cinco Policies exige `! interno`. La cascada no ofrece
+  hijos internos, y si un objetivo o plan requerido es interno lo muestra como bloqueo ("hay que
+  quitarle el flag"). Una tarea interna creada desde el plan nace en borrador aunque la cree el gerente.
+- **Quién lo pone o lo saca:** quien edita el borrador (`update`), desde el formulario de edición. No
+  hay un botón aparte en la ficha. Quitarlo no valida nada: sólo deja el elemento en la bandeja del
+  gerente.
+- **En el alta** la opción "Interno" aparece sin marcar. Un elemento interno lleva un badge en las
+  fichas, los modales, los listados y los bloques de relaciones. Poner o quitar el flag queda en el
+  historial como una edición del borrador.
+- **Pendientes** y el contador del Panel no muestran lo interno. El comité no lo ve en ningún lado,
+  cosa que ya garantizaba `scopeVisiblePara`.
+- **Proyección** (ampliación del axioma 2). Un residual y un avance aparte, que no reemplazan a los
+  oficiales:
+  - mitigan los controles y planes aprobados y los borradores **con** flag;
+  - no mitigan los borradores sin flag ni los validados;
+  - el avance proyectado de un plan cuenta sus tareas aprobadas e internas.
+
+  Se calcula con los accessors `Riesgo::valor_residual_proyectado`,
+  `mitigacion_controles_proyectada`, `mitigacion_planes_proyectada` y
+  `PlanAccion::avance_proyectado` / `mitigacionEfectivaProyectada()`, con el mismo redondeo hacia
+  abajo (D-037). Lo muestran sólo las fichas internas y el panel interno.
+- **Panel interno** (`auditoria/interno`): riesgos internos ordenados por residual proyectado, planes
+  con su avance proyectado y vencimientos de las tareas internas, de las áreas que el usuario
+  gestiona. El comité no entra.
+
+**Descartado.**
+- **Dejar todo en borrador sin flag:** no hay proyección y la bandeja del gerente se llena.
+- **Un estado nuevo para el ciclo interno:** cambiaba el ciclo y la autorización para todos.
+- **Restringir las relaciones entre elementos internos y no internos:** se pueden relacionar igual;
+  sólo cambia lo que cuenta en la proyección.
+
+**Fuera de alcance.** Que el rechazo del comité devuelva el elemento a borrador en vez de borrarlo
+(se conversa aparte).
+
+Tests: `BorradorInternoTest`, `ProyeccionInternaTest`.
+
+Fuente: sesión 2026-11-03/04, con el usuario presente.

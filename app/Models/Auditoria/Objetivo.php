@@ -30,6 +30,7 @@ class Objetivo extends Model implements HasMedia
         'estrategico',
         'peis',
         'estado_id',
+        'interno',
         'user_id',
         'area_id',
     ];
@@ -38,6 +39,7 @@ class Objetivo extends Model implements HasMedia
         'fecha_objetivo' => 'date',
         'estrategico' => 'boolean',
         'peis' => 'boolean',
+        'interno' => 'boolean',
     ];
 
     protected static function booted()

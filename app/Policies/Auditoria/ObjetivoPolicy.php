@@ -56,11 +56,17 @@ class ObjetivoPolicy
         return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($objetivo));
     }
 
+    /**
+     * Un borrador interno no se valida: es gestión propia del área y primero hay
+     * que quitarle el flag (D-044). Tests: un_borrador_interno_no_se_valida,
+     * al_quitar_el_flag_el_borrador_se_valida.
+     */
     public function validar(User $user, Objetivo $objetivo): bool
     {
         return $user->esGerente()
             && $user->puedeGestionarArea($this->areaEfectiva($objetivo))
-            && $objetivo->estado?->nombre === 'borrador';
+            && $objetivo->estado?->nombre === 'borrador'
+            && ! $objetivo->interno;
     }
 
     public function aprobar(User $user, Objetivo $objetivo): bool

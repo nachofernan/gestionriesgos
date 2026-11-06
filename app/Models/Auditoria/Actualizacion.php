@@ -554,7 +554,7 @@ class Actualizacion extends Model implements HasMedia
             'impacto' => 'Impacto', 'probabilidad' => 'Probabilidad', 'evaluacion' => 'Respuestas del cuestionario',
             'temporalidad' => 'Temporalidad', 'condicion' => 'Condición', 'responsabilidad' => 'Responsabilidad',
             'mitigacion_default' => 'Mitigación', 'checks' => 'Checks', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
-            'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance',
+            'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance', 'interno' => 'Interno',
         ];
         $formatear = function ($campo, $valor) use ($tiposRiesgo) {
             if ($valor === null || $valor === '') {

@@ -30,12 +30,14 @@ class Tarea extends Model implements HasMedia
         'fecha',
         'porcentaje_avance',
         'estado_id',
+        'interno',
         'user_id',
         'area_id',
     ];
 
     public $casts = [
         'fecha' => 'date',
+        'interno' => 'boolean',
     ];
 
     protected static function booted()

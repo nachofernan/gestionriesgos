@@ -227,7 +227,8 @@ class PanelRiesgos extends Component
 
         $entidades = 0;
         foreach ($modelos as $modelo) {
-            $query = $modelo::whereHas('estado', fn ($q) => $q->where('nombre', $estado));
+            // Los borradores internos no son pendientes (D-044), ver PendienteController::buscar().
+            $query = $modelo::whereHas('estado', fn ($q) => $q->where('nombre', $estado))->where('interno', false);
             if ($areaIds !== null) {
                 $query->whereIn('area_id', $areaIds);
             }

@@ -148,6 +148,7 @@ class ValidacionMasivaService
                     'nombre' => $obj->nombre,
                     'estado' => $obj->estado?->nombre ?? 'borrador',
                     'puede_validar' => Gate::forUser($usuario)->allows($accion, $obj),
+                    'interno' => $obj->interno,
                     'nivel' => 0,
                     'parent_tipo' => null,
                     'parent_id' => null,
@@ -173,6 +174,7 @@ class ValidacionMasivaService
                         'nombre' => $plan->nombre,
                         'estado' => $plan->estado?->nombre ?? 'borrador',
                         'puede_validar' => Gate::forUser($usuario)->allows($accion, $plan),
+                        'interno' => $plan->interno,
                         'nivel' => 0,
                         'parent_tipo' => null,
                         'parent_id' => null,
@@ -181,9 +183,10 @@ class ValidacionMasivaService
             }
         }
 
+        // Un hijo interno es gestión propia del área: no se ofrece (D-044).
         $controles = $riesgo->controles()->with('estado')->get();
         foreach ($controles as $ctrl) {
-            if ($ctrl->estado?->nombre === $estadoFuente) {
+            if ($ctrl->estado?->nombre === $estadoFuente && ! $ctrl->interno) {
                 $opcionales[] = [
                     'tipo' => 'control',
                     'id' => $ctrl->id,
@@ -212,7 +215,7 @@ class ValidacionMasivaService
 
         $tareas = $plan->tareas()->with('estado')->get();
         foreach ($tareas as $tarea) {
-            if ($tarea->estado?->nombre === $estadoFuente) {
+            if ($tarea->estado?->nombre === $estadoFuente && ! $tarea->interno) {
                 $opcionales[] = [
                     'tipo' => 'tarea',
                     'id' => $tarea->id,

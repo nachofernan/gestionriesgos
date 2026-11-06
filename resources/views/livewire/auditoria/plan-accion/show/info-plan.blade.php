@@ -37,6 +37,16 @@
             <div class="h-full rounded-full {{ $bar }}" style="width: {{ $avance ?? 0 }}%"></div>
         </div>
     </div>
+    {{-- Proyección del borrador interno (D-044): cuenta también las tareas internas. --}}
+    @if($planAccion->interno && $planAccion->estado?->nombre === 'borrador')
+        <div class="mx-4 mt-2 rounded-lg border border-dashed border-violet-300 bg-violet-50/60 px-3 py-2 text-xs text-violet-800">
+            <div class="flex items-center justify-between">
+                <span class="font-semibold">Avance proyectado</span>
+                <span class="text-lg font-black tabular-nums">{{ $planAccion->avance_proyectado === null ? '—' : $planAccion->avance_proyectado.'%' }}</span>
+            </div>
+            <p class="mt-0.5 text-[11px] text-violet-600">Con las tareas aprobadas o internas ({{ $planAccion->tareasProyectadas()->count() }}). Las demás no lo mueven.</p>
+        </div>
+    @endif
     <a href="#riesgos" class="block mx-4 mt-2 text-[11px] {{ $aprobado && $completo ? 'font-bold text-indigo-700' : 'text-gray-400' }} hover:text-indigo-700">{{ $mitigacion }}</a>
 
     <dl class="mx-4 mt-3 mb-4 text-sm divide-y divide-gray-100">

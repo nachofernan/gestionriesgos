@@ -110,6 +110,7 @@
                     <div class="flex items-center justify-between gap-2">
                         <span class="font-semibold text-sm text-gray-800 truncate">{{ $tarea->nombre }}</span>
                         <x-auditoria.estado-badge :estado="$tarea->estado" size="xs" class="shrink-0" />
+                        <x-auditoria.interno-badge :activo="$tarea->interno ?? false" size="xs" class="shrink-0" />
                     </div>
                     <p class="mt-0.5 text-[11px] text-gray-500 truncate">
                         <span class="font-bold {{ $tarea->porcentaje_avance === 100 ? 'text-green-700' : 'text-gray-700' }}">{{ $tarea->porcentaje_avance }}%</span>
@@ -192,6 +193,14 @@
                             Vos la vas a seguir viendo desde este plan.
                         </p>
                     @endif
+                    <label class="flex items-center justify-between gap-4 p-3 rounded-xl border border-gray-200 bg-white cursor-pointer hover:border-violet-200 transition-colors">
+                        <span class="min-w-0">
+                            <span class="flex items-center gap-2 text-sm font-semibold text-gray-800">Borrador interno <x-auditoria.interno-badge :activo="true" size="sm" /></span>
+                            <span class="block text-xs text-gray-400 mt-0.5">Nace en borrador, fuera de Pendientes, y cuenta en el avance proyectado del plan.</span>
+                        </span>
+                        <input type="checkbox" wire:model="nueva.interno" class="sr-only peer" />
+                        <span class="relative w-11 h-6 shrink-0 bg-gray-200 rounded-full peer-checked:bg-violet-600 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow after:transition-transform peer-checked:after:translate-x-5"></span>
+                    </label>
                 </div>
 
                 <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2">

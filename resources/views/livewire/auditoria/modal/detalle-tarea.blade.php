@@ -15,6 +15,7 @@
                 <h3 class="text-lg font-extrabold leading-tight {{ $tareaVencida ? 'text-red-700' : 'text-gray-900' }}">{{ $tarea->nombre }}</h3>
                 <div class="flex items-center gap-2 mt-1.5 flex-wrap">
                     <x-auditoria.estado-badge :estado="$tarea->estado" size="sm" />
+                    <x-auditoria.interno-badge :activo="$tarea->interno ?? false" size="sm" />
                     @if($tareaVencida)
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Vencida</span>
                     @endif

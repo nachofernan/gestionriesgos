@@ -140,6 +140,7 @@ class RiesgoController extends Controller
 
         $suma = $data['impacto'] + $data['probabilidad'];
         $data['mayor_criticidad'] = $suma >= 14 && $request->boolean('mayor_criticidad');
+        $data['interno'] = $request->boolean('interno');
         $data['user_id'] = Auth::id();
         $riesgo = Riesgo::create($data);
         $riesgo->sedes()->sync($sedeIds);
@@ -252,6 +253,7 @@ class RiesgoController extends Controller
         $diffSedes = Sede::diff($riesgo->sedes()->pluck('sedes.id')->all(), $sedeIds);
         $diffDimensiones = Dimension::diff($riesgo->dimensiones()->pluck('dimensiones.id')->all(), $dimensionIds);
 
+        $data['interno'] = $request->boolean('interno');
         $original = $riesgo->only(array_keys($data));
         $riesgo->update($data);
         $riesgo->sedes()->sync($sedeIds);

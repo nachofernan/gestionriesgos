@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auditoria\ActualizacionController;
 use App\Http\Controllers\Auditoria\ControlController;
+use App\Http\Controllers\Auditoria\InternoController;
 use App\Http\Controllers\Auditoria\ObjetivoController;
 use App\Http\Controllers\Auditoria\PendienteController;
 use App\Http\Controllers\Auditoria\PlanAccionController;
@@ -134,6 +135,11 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // Vencimientos (tareas ordenadas por fecha: vencidas / por vencer)
     // -------------------------------------------------------------------
     Route::get('vencimientos', [VencimientoController::class, 'index'])->name('vencimientos.index');
+
+    // -------------------------------------------------------------------
+    // Borrador interno (D-044): panel del área
+    // -------------------------------------------------------------------
+    Route::get('interno', [InternoController::class, 'index'])->name('interno.index');
 
     // -------------------------------------------------------------------
     // Revisión de la carga inicial (transitoria, D-024): se apaga con

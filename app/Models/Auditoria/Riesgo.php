@@ -51,6 +51,7 @@ class Riesgo extends Model implements HasMedia
         'fundamento_dimension',
         'tipo_riesgo_id',
         'estado_id',
+        'interno',
         'user_id',
         'area_id',
         'validado_por_id',
@@ -64,6 +65,7 @@ class Riesgo extends Model implements HasMedia
     protected $casts = [
         'respuesta' => RespuestaRiesgo::class,
         'evaluacion' => 'array',
+        'interno' => 'boolean',
         'temporalidad' => Temporalidad::class,
         'condicion' => Condicion::class,
         'responsabilidad' => Responsabilidad::class,
@@ -266,6 +268,36 @@ class Riesgo extends Model implements HasMedia
         return (int) $this->planesAccion
             ->filter(fn ($plan) => $plan->mitiga())
             ->sum(fn ($plan) => $plan->mitigacionEfectiva((int) ($plan->pivot->mitigacion ?? 0)));
+    }
+
+    /**
+     * Residual proyectado de un borrador interno (D-044): igual que valor_residual,
+     * pero también descuentan los controles y planes en borrador con flag (y un plan
+     * cuenta también sus tareas internas). No reemplaza al oficial: sólo lo muestran
+     * los elementos internos y el panel interno. Mismo eager loading que valor_residual.
+     * Tests: el_residual_proyectado_suma_lo_aprobado_y_lo_interno,
+     * un_borrador_sin_flag_o_un_validado_no_proyectan,
+     * la_proyeccion_no_cambia_el_residual_oficial.
+     */
+    public function getValorResidualProyectadoAttribute(): int
+    {
+        return max(0, $this->valor_total - $this->mitigacion_controles_proyectada - $this->mitigacion_planes_proyectada);
+    }
+
+    /** Ver getValorResidualProyectadoAttribute() y Control::mitigaProyectado(). */
+    public function getMitigacionControlesProyectadaAttribute(): int
+    {
+        return (int) $this->controles
+            ->filter(fn ($control) => $control->mitigaProyectado())
+            ->sum(fn ($control) => $control->pivot->mitigacionEfectiva((int) $control->mitigacion_default));
+    }
+
+    /** Ver getValorResidualProyectadoAttribute() y PlanAccion::mitigacionEfectivaProyectada(). */
+    public function getMitigacionPlanesProyectadaAttribute(): int
+    {
+        return (int) $this->planesAccion
+            ->filter(fn ($plan) => $plan->mitigaProyectado())
+            ->sum(fn ($plan) => $plan->mitigacionEfectivaProyectada((int) ($plan->pivot->mitigacion ?? 0)));
     }
 
     /**

@@ -66,11 +66,17 @@ class PlanAccionPolicy
         return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($planAccion));
     }
 
+    /**
+     * Un borrador interno no se valida: es gestión propia del área y primero hay
+     * que quitarle el flag (D-044). Tests: un_borrador_interno_no_se_valida,
+     * al_quitar_el_flag_el_borrador_se_valida.
+     */
     public function validar(User $user, PlanAccion $planAccion): bool
     {
         return $user->esGerente()
             && $user->puedeGestionarArea($this->areaEfectiva($planAccion))
-            && $planAccion->estado?->nombre === 'borrador';
+            && $planAccion->estado?->nombre === 'borrador'
+            && ! $planAccion->interno;
     }
 
     public function aprobar(User $user, PlanAccion $planAccion): bool

@@ -30,8 +30,13 @@ class PlanAccion extends Model implements HasMedia
         'nombre',
         'descripcion',
         'estado_id',
+        'interno',
         'user_id',
         'area_id',
+    ];
+
+    protected $casts = [
+        'interno' => 'boolean',
     ];
 
     protected static function booted()
@@ -154,6 +159,48 @@ class PlanAccion extends Model implements HasMedia
     public static function aplicarAvance(int $nominal, int $sumaAvance, int $cantidad): int
     {
         return $cantidad === 0 ? 0 : intdiv($nominal * $sumaAvance, $cantidad * 100);
+    }
+
+    // -------------------------------------------------------
+    // Proyección del borrador interno (D-044)
+    // -------------------------------------------------------
+
+    /**
+     * Tareas que cuentan en la proyección: las aprobadas más las borradores
+     * internas. Una validada o un borrador sin flag se pueden asociar, pero no
+     * mueven el número. Requiere `tareas.estado` cargado.
+     * Test: una_tarea_sin_flag_o_validada_no_mueve_el_avance_proyectado.
+     */
+    public function tareasProyectadas(): Collection
+    {
+        return $this->tareas->filter(fn ($tarea) => $tarea->estado?->nombre === 'aprobado'
+            || ($tarea->interno && $tarea->estado?->nombre === 'borrador'));
+    }
+
+    /** Avance de pantalla de la proyección, ver getAvanceAttribute(). */
+    public function getAvanceProyectadoAttribute(): ?int
+    {
+        $tareas = $this->tareasProyectadas();
+
+        return $tareas->isEmpty() ? null : (int) round($tareas->avg('porcentaje_avance'));
+    }
+
+    /** Ver Control::mitigaProyectado(). */
+    public function mitigaProyectado(): bool
+    {
+        return $this->mitiga() || ($this->interno && $this->estado?->nombre === 'borrador');
+    }
+
+    /**
+     * Como mitigacionEfectiva() pero con las tareas proyectadas, mismo redondeo
+     * hacia abajo (D-037). Tests: el_residual_proyectado_suma_lo_aprobado_y_lo_interno,
+     * una_tarea_sin_flag_o_validada_no_mueve_el_avance_proyectado.
+     */
+    public function mitigacionEfectivaProyectada(int $nominal): int
+    {
+        $tareas = $this->tareasProyectadas();
+
+        return self::aplicarAvance($nominal, (int) $tareas->sum('porcentaje_avance'), $tareas->count());
     }
 
     /**

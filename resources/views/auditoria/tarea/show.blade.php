@@ -22,6 +22,7 @@
                 <div class="flex items-center gap-2 flex-wrap text-xs">
                     <span class="font-bold text-gray-500 uppercase">Tarea</span>
                     <x-auditoria.estado-badge :estado="$tarea->estado" size="sm" />
+                    <x-auditoria.interno-badge :activo="$tarea->interno ?? false" size="sm" />
                     @include('auditoria.partials.comite-aprobacion', ['item' => $tarea])
                     @if($tareaVencida)
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">Vencida</span>

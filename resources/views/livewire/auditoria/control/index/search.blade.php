@@ -106,6 +106,7 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
                                     <x-auditoria.estado-badge :estado="$control->estado" />
+                                    <x-auditoria.interno-badge :activo="$control->interno ?? false" />
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-gray-600 text-xs">

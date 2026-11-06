@@ -111,6 +111,7 @@
                     <div class="flex items-center justify-between gap-2">
                         <span class="font-semibold text-sm text-gray-800 truncate">{{ $ctrl->nombre }}</span>
                         <x-auditoria.estado-badge :estado="$ctrl->estado" size="xs" class="shrink-0" />
+                        <x-auditoria.interno-badge :activo="$ctrl->interno ?? false" size="xs" class="shrink-0" />
                     </div>
                     <p class="mt-0.5 text-[11px] text-gray-500 truncate">
                         <span class="font-bold text-indigo-700">mit. default {{ $ctrl->mitigacion_default }}</span>

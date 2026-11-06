@@ -82,7 +82,9 @@
                                                        class="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500 {{ !$item['puede_validar'] ? 'cursor-not-allowed' : 'cursor-pointer' }}">
                                                 <div class="min-w-0">
                                                     <span class="text-sm text-gray-700 font-medium">{{ $item['nombre'] }}</span>
-                                                    @if(!$item['puede_validar'])
+                                                    @if(!empty($item['interno']))
+                                                        <span class="ml-1.5 text-[10px] font-bold text-violet-500">Interno: hay que quitarle el flag</span>
+                                                    @elseif(!$item['puede_validar'])
                                                         <span class="ml-1.5 text-[10px] font-bold text-red-400">Sin permisos</span>
                                                     @endif
                                                 </div>

@@ -79,6 +79,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 - **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control, y la regula por la `efectividad` **de esa relación**: `floor(número × efectividad / 100)`, por cada relación antes de sumar (`ControlRiesgo::mitigacionEfectiva()`, D-037, D-040).
 - **`mitigacion_planes`**: Σ `pivot->mitigacion` de los planes **aprobados**, en proporción al promedio exacto de avance de sus tareas aprobadas: `floor(nominal × Σ avance / (cantidad × 100))` (`PlanAccion::mitigacionEfectiva()` / `aplicarAvance()`, D-037). Sin tareas aprobadas, 0.
 - **`valor_residual`**: `valor_total − mitigacion_controles − mitigacion_planes` (mínimo 0).
+- **`valor_residual_proyectado`** (borrador interno, D-044): igual que `valor_residual`, pero también descuentan los controles y planes en borrador **con** flag `interno` (`Control::mitigaProyectado()`, `PlanAccion::mitigaProyectado()`). Un plan cuenta sus tareas aprobadas e internas (`PlanAccion::tareasProyectadas()`, `avance_proyectado`). Los desgloses son `mitigacion_controles_proyectada` y `mitigacion_planes_proyectada`. No reemplaza al oficial.
 
 ---
 
@@ -106,6 +107,14 @@ el auditor) habilita `GestionTareas::guardarNuevaTarea()`:
 
 `TareaPolicy::view` y `comentar` también habilitan a quien gestiona un plan que contiene la tarea.
 `update`, `validar` y `rechazar` siguen siendo del área de la tarea. Tests: `TareaDesdePlanTest`.
+
+**Borrador interno (D-044).** Columna `interno` en los cinco elementos, sólo con sentido en borrador:
+- `validar()` exige `! interno`;
+- el flag se pone o se saca en el alta y en la edición del borrador (`update`);
+- `InternoController@index` (`auditoria/interno`) es el panel del área;
+- Pendientes, el contador del Panel y la cascada de validación excluyen lo interno.
+
+Tests: `BorradorInternoTest`, `ProyeccionInternaTest`.
 
 Un usuario con `area_id = null` es superusuario: `esGerente()` da `true` y ve y gestiona todo. Por eso el auditor lleva área propia.
 

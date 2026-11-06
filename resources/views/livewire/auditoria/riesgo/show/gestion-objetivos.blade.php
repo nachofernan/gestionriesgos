@@ -94,6 +94,7 @@
                                 <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">PEIS</span>
                             @endif
                             <x-auditoria.estado-badge :estado="$obj->estado" size="xs" />
+                            <x-auditoria.interno-badge :activo="$obj->interno ?? false" size="xs" />
                         </div>
                     </div>
                     <p class="mt-0.5 text-[11px] text-gray-500 truncate">

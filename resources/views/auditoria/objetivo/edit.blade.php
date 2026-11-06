@@ -95,6 +95,8 @@
                 'responsableSeleccionado' => old('user_id', $objetivo->user_id),
             ])
 
+            @include('auditoria.partials.interno-toggle', ['valor' => $objetivo->interno])
+
             <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <a href="{{ route('auditoria.objetivos.show', $objetivo) }}"
                    class="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
