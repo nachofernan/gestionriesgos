@@ -210,7 +210,7 @@ class AuditorTest extends TestCase
 
         $this->actingAs($this->auditor)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
             'probabilidad_respuestas' => [1 => 2, 2 => 2, 3 => 2, 4 => 2, 5 => 2],
-            'impacto_respuestas' => [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0],
+            'impacto_respuestas' => array_fill(1, 10, 0),
         ])->assertRedirect(route('auditoria.riesgos.show', $riesgo));
 
         $riesgo->refresh();

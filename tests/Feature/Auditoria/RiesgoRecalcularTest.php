@@ -87,7 +87,7 @@ class RiesgoRecalcularTest extends TestCase
 
         $this->actingAs($user)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
-            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0],
         ]);
 
         $riesgo->refresh();
@@ -107,7 +107,7 @@ class RiesgoRecalcularTest extends TestCase
 
         $this->actingAs($user)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
-            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0],
         ]);
 
         $actualizacion = $riesgo->actualizaciones()->first();
@@ -153,7 +153,7 @@ class RiesgoRecalcularTest extends TestCase
 
         $respuesta = $this->actingAs($gerente)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
-            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0],
         ]);
 
         $respuesta->assertRedirect(route('auditoria.riesgos.show', $riesgo));
@@ -181,7 +181,7 @@ class RiesgoRecalcularTest extends TestCase
 
         $respuesta = $this->actingAs($empleado)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
-            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0],
         ]);
 
         $respuesta->assertRedirect(route('auditoria.riesgos.show', $riesgo));
@@ -209,7 +209,7 @@ class RiesgoRecalcularTest extends TestCase
 
         $respuesta = $this->actingAs($comite)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
-            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0],
         ]);
 
         $respuesta->assertRedirect(route('auditoria.riesgos.show', $riesgo));

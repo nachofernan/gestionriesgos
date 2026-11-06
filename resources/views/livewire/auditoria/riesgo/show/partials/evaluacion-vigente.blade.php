@@ -40,8 +40,13 @@
                         <div>
                             <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">{{ $titulo }} = {{ $riesgo->$eje }}</p>
                             <ul class="space-y-1.5">
+                                @php $grupoAnterior = null; @endphp
                                 @foreach($preguntas[$eje] as $p)
                                     @php $valor = $r[$eje][$p['id']] ?? null; @endphp
+                                    @if(($p['grupo'] ?? null) !== null && $p['grupo'] !== $grupoAnterior)
+                                        <li class="pt-1 text-[10px] font-bold uppercase tracking-wider text-indigo-500">{{ $p['grupo'] }}</li>
+                                        @php $grupoAnterior = $p['grupo']; @endphp
+                                    @endif
                                     <li class="text-xs leading-5">
                                         <span class="text-gray-500">{{ $p['pregunta'] }}</span>
                                         <span class="block font-semibold text-gray-800">{{ $opcion($p['opciones'], $valor) }} <span class="text-gray-400 font-normal">({{ $valor ?? '—' }})</span></span>

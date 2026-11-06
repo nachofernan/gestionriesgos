@@ -190,7 +190,7 @@ class EvaluacionAmbientalTest extends TestCase
     {
         $datos = $this->datosAlta([
             'probabilidad_respuestas' => [1 => 2, 2 => 2, 3 => 2, 4 => 2, 5 => 2],
-            'impacto_respuestas' => [1 => 2, 2 => 2, 3 => 2, 4 => 2, 5 => 2],
+            'impacto_respuestas' => array_fill(1, 10, 1),
         ]);
         unset($datos['ambiental']);
 
@@ -205,7 +205,7 @@ class EvaluacionAmbientalTest extends TestCase
         $datos = $this->datosAlta([
             'tipo_riesgo_id' => $this->clasico->id,
             'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
-            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0],
         ]);
 
         $this->actingAs($this->gerente)->post(route('auditoria.riesgos.store'), $datos)

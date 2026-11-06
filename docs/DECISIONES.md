@@ -1459,3 +1459,29 @@ para todas las áreas. Detalle y ejemplo en `docs/propuesta-borrador-interno.md`
 Tests: `BorradorInternoTest`, `ProyeccionInternaTest`.
 
 Fuente: sesión 2026-11-03/04, con el usuario presente.
+
+---
+
+## D-045 — Impacto clásico con doble materialidad (2026-11-06)
+
+**Decisión.** El impacto del método clásico deja de ser 5 preguntas de 0 a 2 y pasa a ser 10 preguntas
+de sí/no (1 punto cada una), en dos grupos: *Materialidad de impacto* (salud y seguridad, derechos
+humanos y laborales, ambiente, terceros y comunidad, impactos extendidos) y *Materialidad financiera*
+(operación, pérdidas y costos, imagen y reputación, incumplimiento, ingresos y mercados). Las preguntas
+viven en `config/riesgo_preguntas.php` con una clave `grupo`. La probabilidad clásica y el método
+ambiental no cambian.
+
+- **La escala sigue siendo 0-10**: `EvaluacionRiesgo::calcular()` sigue sumando las respuestas del
+  eje. La clasificación, la mayor criticidad (≥14) y el residual no cambian.
+- `EvaluacionRiesgo::reglas()` toma la cantidad de respuestas y su rango de la config, en vez de
+  tenerlos fijos.
+
+**Datos existentes.** No se migran ni se convierten. Los riesgos cargados vienen del seeder sin
+respuestas guardadas, así que no hay evaluaciones del cuestionario anterior que traducir.
+
+**Motivo.** Pedido de auditoría: evaluar el impacto con el enfoque de doble materialidad.
+
+Tests: `el_impacto_clasico_exige_las_diez_respuestas`, `el_impacto_clasico_solo_acepta_si_o_no`
+(`EvaluacionRiesgoTest`).
+
+Fuente: sesión 2026-11-06, con el usuario presente.

@@ -30,7 +30,7 @@ class EvaluacionRiesgoTest extends TestCase
 
     private const PROBABILIDAD = [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2]; // 6
 
-    private const IMPACTO = [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1]; // 3
+    private const IMPACTO = [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0]; // 3
 
     private Area $gerencia;
 
@@ -123,7 +123,7 @@ class EvaluacionRiesgoTest extends TestCase
         $this->assertEquals('borrador', $propuesta->estado->nombre);
         $this->assertEquals(['evaluacion'], array_keys($propuesta->data['diff']['campos']));
         $this->assertSame('Respuestas del cuestionario', $propuesta->diffLegible()['campos'][0]['etiqueta']);
-        $this->assertSame('Prob. 1·2·0·1·2 · Imp. 1·1·0·0·1', $propuesta->diffLegible()['campos'][0]['despues']);
+        $this->assertSame('Prob. 1·2·0·1·2 · Imp. 1·1·0·0·1·0·0·0·0·0', $propuesta->diffLegible()['campos'][0]['despues']);
     }
 
     #[Test]
@@ -134,7 +134,7 @@ class EvaluacionRiesgoTest extends TestCase
         $riesgo = Riesgo::factory()->validado()->create([
             'area_id' => $this->gerencia->id, 'probabilidad' => 6, 'impacto' => 3, 'evaluacion' => $this->evaluacion(),
         ]);
-        $nuevoImpacto = [1 => 2, 2 => 2, 3 => 2, 4 => 0, 5 => 0];
+        $nuevoImpacto = [1 => 1, 2 => 1, 3 => 1, 4 => 0, 5 => 0, 6 => 1, 7 => 1, 8 => 1, 9 => 0, 10 => 0];
 
         $this->recalcular($empleado, $riesgo, self::PROBABILIDAD, $nuevoImpacto);
         $this->assertEquals(3, $riesgo->fresh()->impacto);
@@ -179,5 +179,35 @@ class EvaluacionRiesgoTest extends TestCase
         ]);
 
         $this->assertNull(EvaluacionRiesgo::desdeHistorial($riesgo->id, 9, 9));
+    }
+
+    #[Test]
+    public function el_impacto_clasico_exige_las_diez_respuestas(): void
+    {
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $riesgo = Riesgo::factory()->borrador()->create([
+            'area_id' => $this->gerencia->id, 'probabilidad' => 6, 'impacto' => 3, 'evaluacion' => $this->evaluacion(),
+        ]);
+
+        // El cuestionario anterior (5 respuestas de 0-2) ya no alcanza (D-045).
+        $this->recalcular($gerente, $riesgo, self::PROBABILIDAD, [1 => 2, 2 => 2, 3 => 2, 4 => 2, 5 => 2])
+            ->assertSessionHasErrors('impacto_respuestas');
+
+        $this->assertEquals(3, $riesgo->fresh()->impacto);
+    }
+
+    #[Test]
+    public function el_impacto_clasico_solo_acepta_si_o_no(): void
+    {
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $riesgo = Riesgo::factory()->borrador()->create([
+            'area_id' => $this->gerencia->id, 'probabilidad' => 6, 'impacto' => 3, 'evaluacion' => $this->evaluacion(),
+        ]);
+        $conUnDos = array_replace(array_fill(1, 10, 1), [1 => 2]);
+
+        $this->recalcular($gerente, $riesgo, self::PROBABILIDAD, $conUnDos)
+            ->assertSessionHasErrors('impacto_respuestas.1');
+
+        $this->assertEquals(3, $riesgo->fresh()->impacto);
     }
 }

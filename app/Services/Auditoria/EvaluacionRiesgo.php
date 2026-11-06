@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
  * recalcularStore(), para que el alta y el recálculo no puedan calcular distinto.
  *
  * La evaluación guardada es `['metodo' => ..., 'respuestas' => [...]]`.
- * Clásica: respuestas = {probabilidad: {id: 0-2}, impacto: {id: 0-2}}.
+ * Clásica: respuestas = {probabilidad: {id: 0-2}, impacto: {id: 0-1}} (D-045).
  * Ambiental: respuestas = {control, frecuencia, medio, naturaleza, magnitud,
  * materialidad_impacto: [ids], materialidad_financiera: [ids]}.
  */
@@ -32,16 +32,24 @@ class EvaluacionRiesgo
         'magnitud' => 'impacto.magnitud',
     ];
 
-    /** Reglas del request (mismos nombres de campo que el form del wizard). */
+    /**
+     * Reglas del request (mismos nombres de campo que el form del wizard). En el
+     * clásico, una respuesta por pregunta de config/riesgo_preguntas.php, con el
+     * rango de valores de sus opciones (probabilidad 0-2, impacto sí/no, D-045).
+     * Tests: el_impacto_clasico_exige_las_diez_respuestas,
+     * el_impacto_clasico_solo_acepta_si_o_no.
+     */
     public static function reglas(MetodoEvaluacion $metodo): array
     {
         if ($metodo === MetodoEvaluacion::Clasica) {
-            return [
-                'probabilidad_respuestas' => 'required|array|size:5',
-                'probabilidad_respuestas.*' => 'required|integer|min:0|max:2',
-                'impacto_respuestas' => 'required|array|size:5',
-                'impacto_respuestas.*' => 'required|integer|min:0|max:2',
-            ];
+            $reglas = [];
+            foreach (config('riesgo_preguntas') as $eje => $preguntas) {
+                $valores = array_column($preguntas[0]['opciones'], 'v');
+                $reglas[$eje.'_respuestas'] = 'required|array|size:'.count($preguntas);
+                $reglas[$eje.'_respuestas.*'] = 'required|integer|min:'.min($valores).'|max:'.max($valores);
+            }
+
+            return $reglas;
         }
 
         $config = config('riesgo_ambiental');
@@ -103,7 +111,8 @@ class EvaluacionRiesgo
 
     /**
      * Impacto y probabilidad que da una evaluación.
-     * Clásica: cada eje es la suma de sus 5 respuestas (0-2), de 0 a 10.
+     * Clásica: cada eje es la suma de sus respuestas, de 0 a 10: probabilidad,
+     * 5 de 0-2; impacto, 10 de sí/no (D-045).
      * Ambiental: probabilidad = control + frecuencia (2 a 10). Impacto = medio +
      * naturaleza + magnitud (3 a 10) más un extra por materialidades marcadas
      * (ver extraMaterialidad()), con tope 10.

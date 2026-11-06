@@ -135,7 +135,7 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
    historial no se reescribe: una corrección es una entrada nueva, no una edición de la vieja.
 
 5. **Impacto y probabilidad no se cargan a mano.** Salen del wizard, cuyo método define el tipo de
-   riesgo: el clásico (5 preguntas por eje) o la matriz ambiental (D-043). El cálculo vive en un solo
+   riesgo: el clásico (5 preguntas de probabilidad y 10 de sí/no de impacto, D-045) o la matriz ambiental (D-043). El cálculo vive en un solo
    lugar (`EvaluacionRiesgo`) y las respuestas vigentes quedan en el riesgo (D-042). En la edición son
    de solo lectura; para cambiarlos hay que "Recalcular", que arranca con las respuestas vigentes.
    Ninguna pantalla los deja editar libremente (D-041).
