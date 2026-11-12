@@ -4,7 +4,7 @@
     Variables: $sedes (colección), $seleccionadas (ids marcados por defecto).
 --}}
 @php $marcadas = collect(old('sedes', $seleccionadas))->map(fn ($id) => (int) $id); @endphp
-<div x-data="{ marcarTodas() { this.$root.querySelectorAll('input[name=\'sedes[]\']').forEach(c => c.checked = true) } }">
+<div x-data="{ marcarTodas() { this.$root.querySelectorAll('input[name=\'sedes[]\']').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })) }) } }">
     <div class="flex items-center justify-between mb-2">
         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Sedes *</label>
         <button type="button" @click="marcarTodas()" class="text-xs font-semibold text-gray-400 hover:text-indigo-600 transition-colors">

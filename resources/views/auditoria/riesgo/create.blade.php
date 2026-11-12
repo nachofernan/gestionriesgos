@@ -30,7 +30,8 @@
 
     <div class="grid grid-cols-2 gap-6 items-start"
          x-data="riesgoWizard({{ $pasoInicial }})">
-    <form action="{{ route('auditoria.riesgos.store') }}" method="POST" class="flex-1 min-w-0">
+    <form action="{{ route('auditoria.riesgos.store') }}" method="POST" class="flex-1 min-w-0"
+          x-ref="formulario" @change="leerFormulario()" @input="leerFormulario()">
         @csrf
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
 
@@ -64,7 +65,7 @@
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Descripción</label>
-                    <textarea name="descripcion" rows="3"
+                    <textarea name="descripcion" rows="3" x-model="descripcion"
                         class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Descripción detallada del riesgo...">{{ old('descripcion') }}</textarea>
                 </div>
@@ -110,22 +111,26 @@
             {{-- Paso 4: respuesta, criticidad, área --}}
             <div x-show="paso === 4" class="space-y-5">
 
-                <div class="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Probabilidad calculada</p>
-                        <p class="text-2xl font-extrabold text-gray-800" x-text="probabilidadTotal"></p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Impacto calculado</p>
-                        <p class="text-2xl font-extrabold text-gray-800" x-text="impactoTotal"></p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Valor total</p>
-                        <div class="flex items-baseline gap-2">
-                            <p class="text-2xl font-extrabold" :class="clasificacion.texto" x-text="valorTotal"></p>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
-                                  :class="clasificacion.badge" x-text="clasificacion.etiqueta"></span>
+                <div class="flex items-center justify-between gap-4 px-5 py-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div class="flex items-center gap-4">
+                        <div class="text-center">
+                            <p class="text-2xl font-extrabold text-gray-800 tabular-nums leading-none" x-text="probabilidadTotal"></p>
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1.5">Probabilidad</p>
                         </div>
+                        <span class="text-xl font-light text-gray-300 -mt-4">+</span>
+                        <div class="text-center">
+                            <p class="text-2xl font-extrabold text-gray-800 tabular-nums leading-none" x-text="impactoTotal"></p>
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1.5">Impacto</p>
+                        </div>
+                        <span class="text-xl font-light text-gray-300 -mt-4">=</span>
+                    </div>
+                    <div class="flex items-center gap-3 pl-4 border-l border-gray-200">
+                        <div class="text-center">
+                            <p class="text-3xl font-extrabold tabular-nums leading-none" :class="clasificacion.texto" x-text="valorTotal"></p>
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1.5">Valor total</p>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold -mt-4"
+                              :class="clasificacion.badge" x-text="clasificacion.etiqueta"></span>
                     </div>
                 </div>
 
@@ -233,9 +238,14 @@
         </div>
     </form>
 
-    {{-- Panel de referencia: tipos de riesgo y dimensiones --}}
-    <div class="shrink-0">
-        @include('auditoria.partials.referencia-riesgo', ['dimensionesMarcadas' => old('dimensiones', [])])
+    {{-- Panel derecho: referencia de tipos y dimensiones en el paso 1; desde el 2, el resumen de lo cargado --}}
+    <div class="shrink-0 sticky top-6">
+        <div x-show="paso === 1">
+            @include('auditoria.partials.referencia-riesgo', ['dimensionesMarcadas' => old('dimensiones', [])])
+        </div>
+        <div x-show="paso >= 2" x-cloak>
+            @include('auditoria.riesgo.partials.resumen-wizard')
+        </div>
     </div>
     </div>
 
@@ -246,6 +256,7 @@
         Alpine.data('riesgoWizard', (pasoInicial) => ({
             paso: pasoInicial,
             nombre: @js(old('nombre', '')),
+            descripcion: @js(old('descripcion', '') ?? ''),
             tipoRiesgoId: @js((string) old('tipo_riesgo_id', '')),
             // Los usa el partial dimensiones-checkboxes (D-032).
             dimensiones: @js(collect(old('dimensiones', []))->map(fn ($id) => (string) $id)->values()),
@@ -269,6 +280,12 @@
                 responsabilidad: @js(old('responsabilidad')),
             },
             respuesta: @js(old('respuesta', '')),
+            // Paso 4 para el resumen: los llena leerFormulario().
+            fundamento: '',
+            areaId: '',
+            sedesMarcadas: [],
+            interno: false,
+            mayorCriticidad: false,
             tiposRestringidos: @js($tiposRiesgo->where('restringe_respuesta')->pluck('id')->map(fn($id) => (string) $id)->values()),
             respuestasRestringidas: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::restringidas(), 'value')),
             respuestasConFundamento: @js(array_column(\App\Enums\Auditoria\RespuestaRiesgo::exigenFundamento(), 'value')),
@@ -282,7 +299,19 @@
                 return this.respuestasConFundamento.includes(this.respuesta);
             },
 
+            // Copia del paso 4 para el resumen. Se lee del DOM porque área, sedes e interno
+            // vienen de partials compartidos con la edición, que no usan x-model.
+            leerFormulario() {
+                const datos = new FormData(this.$refs.formulario);
+                this.fundamento = datos.get('fundamento') ?? '';
+                this.areaId = datos.get('area_id') ?? '';
+                this.sedesMarcadas = datos.getAll('sedes[]');
+                this.interno = datos.getAll('interno').includes('1');
+                this.mayorCriticidad = datos.getAll('mayor_criticidad').includes('1');
+            },
+
             init() {
+                this.$nextTick(() => this.leerFormulario());
                 // Volver al paso 1 y pasar el riesgo a un tipo restringido dejaría
                 // seleccionada una respuesta que ya no es válida para ese tipo.
                 this.$watch('tipoRestringido', (restringido) => {
@@ -349,10 +378,16 @@
                 return true;
             },
             siguiente() {
-                if (this.pasoCompleto) this.paso++;
+                if (!this.pasoCompleto) return;
+                this.paso++;
+                this.subir();
             },
             atras() {
                 this.paso--;
+                this.subir();
+            },
+            subir() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             },
         }));
     });
