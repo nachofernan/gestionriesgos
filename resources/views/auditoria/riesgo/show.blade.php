@@ -35,24 +35,9 @@
         <div class="flex items-center gap-2 flex-wrap lg:justify-end">
             @include('auditoria.partials.estado-acciones', ['item' => $riesgo, 'routePrefix' => 'riesgos'])
 
-            @can('delete', $riesgo)
-                <div class="relative" x-data="{ abierto: false }" x-on:click.outside="abierto = false">
-                    <button type="button" x-on:click="abierto = !abierto" title="Más acciones"
-                        class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors">
-                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"/></svg>
-                    </button>
-                    <div x-show="abierto" x-cloak x-transition.origin.top.right
-                         class="absolute right-0 mt-2 w-44 rounded-xl bg-white border border-gray-200 shadow-lg py-1 z-30">
-                        <form action="{{ route('auditoria.riesgos.destroy', $riesgo) }}" method="POST"
-                              onsubmit="return confirm('¿Eliminar este riesgo? Esta acción no se puede deshacer.')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="w-full text-left px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
-                                Eliminar riesgo
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            @endcan
+            @if($eliminacion)
+                @include('auditoria.riesgo.partials.modal-eliminacion', ['riesgo' => $riesgo, 'dependientes' => $eliminacion])
+            @endif
         </div>
     </header>
 

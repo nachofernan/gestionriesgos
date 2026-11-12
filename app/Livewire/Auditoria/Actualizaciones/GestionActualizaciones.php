@@ -19,6 +19,7 @@ use App\Services\Auditoria\EvaluacionRiesgo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -293,9 +294,34 @@ class GestionActualizaciones extends Component
         $this->authorize('aprobar', $actualizacion);
         $comite = Validator::make(['comite' => $comite], Actualizacion::reglasComite(), Actualizacion::mensajesComite())
             ->validate()['comite'] ?? null;
-        $actualizacion->marcarAprobada(Auth::user(), $comite);
+
+        try {
+            $actualizacion->marcarAprobada(Auth::user(), $comite);
+        } catch (ValidationException $e) {
+            // Una eliminación que ya no procede (D-047): no se aplicó nada. Se recarga
+            // para que el aviso se vea en el layout.
+            session()->flash('error', $e->validator->errors()->first());
+            $this->redirect(url()->previous());
+
+            return;
+        }
+
+        // Una eliminación aprobada deja la entidad borrada: su ficha ya no es la pantalla.
+        if ($this->resolverModelo()->estado?->nombre === 'borrado') {
+            $this->redirectRoute(self::RUTAS_INDICE[$this->modelType], navigate: false);
+
+            return;
+        }
         $this->dispatch("{$this->modelType}-actualizado");
     }
+
+    private const RUTAS_INDICE = [
+        'riesgo' => 'auditoria.riesgos.index',
+        'control' => 'auditoria.controles.index',
+        'objetivo' => 'auditoria.objetivos.index',
+        'plan' => 'auditoria.planes.index',
+        'tarea' => 'auditoria.tareas.index',
+    ];
 
     /** Rechaza con motivo obligatorio (D-031). Test: rechazar_una_propuesta_exige_motivo_y_lo_guarda. */
     public function rechazarActualizacion(int $actualizacionId, string $motivo = ''): void

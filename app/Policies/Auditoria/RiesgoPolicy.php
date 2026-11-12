@@ -2,6 +2,7 @@
 
 namespace App\Policies\Auditoria;
 
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\User;
 
@@ -58,9 +59,18 @@ class RiesgoPolicy
             || $user->puedeProponerComoAuditor($riesgo->estado?->nombre);
     }
 
+    /**
+     * Proponer la eliminación (D-047): quien gestiona el área, salvo el auditor, sobre
+     * un riesgo aprobado que no tenga ya una eliminación pendiente. La aplica el
+     * comité al aprobarla; si la propone el comité, se aplica en el acto.
+     * Tests: EliminacionRiesgoTest.
+     */
     public function delete(User $user, Riesgo $riesgo): bool
     {
-        return ! $user->esAuditor() && $user->puedeGestionarArea($riesgo->area_id);
+        return ! $user->esAuditor()
+            && $user->puedeGestionarArea($riesgo->area_id)
+            && $riesgo->motivoBloqueoEliminacion() === null
+            && Actualizacion::eliminacionPendienteDe($riesgo) === null;
     }
 
     /**

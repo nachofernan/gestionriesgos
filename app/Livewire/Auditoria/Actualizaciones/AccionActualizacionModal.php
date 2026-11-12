@@ -5,6 +5,7 @@ namespace App\Livewire\Auditoria\Actualizaciones;
 use App\Models\Auditoria\Actualizacion;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -77,11 +78,18 @@ class AccionActualizacionModal extends Component
             $this->validate(Actualizacion::reglasComite(), Actualizacion::mensajesComite());
         }
 
-        match ($this->accion) {
-            'validar' => $actualizacion->marcarValidada(Auth::user()),
-            'aprobar' => $actualizacion->marcarAprobada(Auth::user(), $this->comite),
-            'rechazar' => $actualizacion->marcarRechazada(Auth::user(), trim($this->motivo)),
-        };
+        try {
+            match ($this->accion) {
+                'validar' => $actualizacion->marcarValidada(Auth::user()),
+                'aprobar' => $actualizacion->marcarAprobada(Auth::user(), $this->comite),
+                'rechazar' => $actualizacion->marcarRechazada(Auth::user(), trim($this->motivo)),
+            };
+        } catch (ValidationException $e) {
+            // Una eliminación que ya no procede (D-047): no se aplicó nada.
+            $this->error = $e->validator->errors()->first();
+
+            return;
+        }
 
         $this->abierto = false;
         $this->dispatch('actualizacion-procesada', id: $actualizacion->id);

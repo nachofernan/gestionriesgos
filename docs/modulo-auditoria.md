@@ -155,7 +155,7 @@ POST   /auditoria/riesgos                       → RiesgoController@store
 GET    /auditoria/riesgos/{riesgo}              → RiesgoController@show
 GET    /auditoria/riesgos/{riesgo}/edit         → RiesgoController@edit
 PUT    /auditoria/riesgos/{riesgo}              → RiesgoController@update
-DELETE /auditoria/riesgos/{riesgo}              → RiesgoController@destroy
+POST   /auditoria/riesgos/{riesgo}/eliminacion  → RiesgoController@proponerEliminacion (D-047, sin destroy)
 
 # Controles
 GET/POST/PUT/DELETE /auditoria/controles/{...}  → ControlController (resource completo)
@@ -199,6 +199,12 @@ filtra el Responsable con Alpine al cambiar el Área. Tests: `AltaAreaResponsabl
 - **`recalcular` / `recalcularStore`**: el wizard del método del riesgo, precargado con su evaluación
   vigente. Cambiar sólo respuestas, aunque el número no se mueva, también es una propuesta (D-042).
 - **`update`**: `area_id` es obligatorio y de la línea del usuario.
+- **`proponerEliminacion`** (D-047): sobre un riesgo aprobado, observaciones obligatorias y un adjunto
+  opcional. Crea una propuesta de eliminación (`Actualizacion::registrarEliminacion()`, un `cambio` con
+  `data.eliminacion`) para el riesgo y otra por cada control o plan marcado, que tiene que estar entre
+  los de una sola asociación (`Riesgo::dependientesEliminables()`). Al aprobarse,
+  `Actualizacion::aplicarEliminacion()` vuelve a revisar `motivoBloqueoEliminacion()` y pasa la
+  entidad a `borrado`. Un plan arrastra sus tareas que no están en otro plan (`PlanAccion::tareasQueCaen()`).
 
 ### `PlanAccionController`
 

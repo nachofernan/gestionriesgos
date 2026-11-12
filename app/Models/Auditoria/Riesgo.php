@@ -168,6 +168,52 @@ class Riesgo extends Model implements HasMedia
         return null;
     }
 
+    /**
+     * Motivo por el que el riesgo no se puede eliminar (null si se puede, D-047): la
+     * eliminación por propuesta es sólo para lo aprobado. Borrador y validado se
+     * sacan con el rechazo con motivo (D-031). Se revisa al proponer
+     * (RiesgoPolicy::delete()) y al aplicar (Actualizacion::aplicarEliminacion()).
+     */
+    public function motivoBloqueoEliminacion(): ?string
+    {
+        return $this->estado?->nombre === 'aprobado' ? null : 'Sólo se elimina un riesgo aprobado.';
+    }
+
+    /**
+     * Controles y planes del riesgo que se ofrecen para eliminar junto con él
+     * (D-047). Sólo se pueden elegir los que $user puede eliminar, están aprobados,
+     * no se asocian a otro riesgo vigente y no tienen ya una eliminación
+     * pendiente. Los demás vienen con el motivo, para mostrarlos deshabilitados.
+     * Cada plan trae las tareas que caerían con él. Lo consumen show() (modal) y
+     * proponerEliminacion() (que valida contra los seleccionables).
+     * Tests: solo_se_ofrecen_los_controles_y_planes_de_una_sola_asociacion,
+     * no_se_puede_colar_un_control_compartido.
+     *
+     * @return array{controles: list<array>, planes: list<array>}
+     */
+    public function dependientesEliminables(User $user): array
+    {
+        $borrado = Estado::borrado()->id;
+        $describir = function (Model $elemento) use ($user): array {
+            $motivo = match (true) {
+                ! $user->can('delete', $elemento) => 'No lo gestionás.',
+                default => $elemento->motivoBloqueoEliminacion($this->id)
+                    ?? (Actualizacion::eliminacionPendienteDe($elemento) ? 'Ya tiene una eliminación propuesta.' : null),
+            };
+
+            return ['id' => $elemento->id, 'nombre' => $elemento->nombre, 'seleccionable' => $motivo === null, 'motivo' => $motivo];
+        };
+
+        return [
+            'controles' => $this->controles()->with('estado')->where('controles.estado_id', '!=', $borrado)->orderBy('nombre')->get()
+                ->map($describir)->values()->all(),
+            'planes' => $this->planesAccion()->with('estado')->where('planes_accion.estado_id', '!=', $borrado)->orderBy('nombre')->get()
+                ->map(fn (PlanAccion $plan) => $describir($plan) + [
+                    'tareas' => $plan->tareasQueCaen()->pluck('nombre')->all(),
+                ])->values()->all(),
+        ];
+    }
+
     /** Sedes a las que corresponde el riesgo (al menos una, D-029). Informativa: no da acceso. */
     public function sedes(): BelongsToMany
     {

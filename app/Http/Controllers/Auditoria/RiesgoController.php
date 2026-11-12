@@ -7,8 +7,10 @@ use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Dimension;
 use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Sede;
 use App\Models\Auditoria\TipoRiesgo;
@@ -17,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * CRUD de Riesgo más su ciclo de vida de estados: borrador → validado → aprobado,
@@ -187,7 +190,10 @@ class RiesgoController extends Controller
         // Comité de la aprobación vigente (D-039), para el encabezado.
         $comite = Actualizacion::comiteVigenteDe($riesgo);
 
-        return view('auditoria.riesgo.show', compact('riesgo', 'comite'));
+        // Modal de eliminación (D-047): sólo si el usuario puede proponerla.
+        $eliminacion = Auth::user()->can('delete', $riesgo) ? $riesgo->dependientesEliminables(Auth::user()) : null;
+
+        return view('auditoria.riesgo.show', compact('riesgo', 'comite', 'eliminacion'));
     }
 
     public function edit(Riesgo $riesgo)
@@ -391,13 +397,69 @@ class RiesgoController extends Controller
         return $redirect->with('ok', 'Impacto y probabilidad recalculados.');
     }
 
-    public function destroy(Riesgo $riesgo)
+    /**
+     * Propuesta de eliminación de un riesgo aprobado (D-047), con observaciones
+     * obligatorias y un adjunto opcional. En el mismo pedido se pueden marcar los
+     * controles y planes de una sola asociación (Riesgo::dependientesEliminables()):
+     * cada uno lleva su propia propuesta, que se resuelve por separado. El riesgo
+     * va primero, así si lo propone el comité (se aplica en el acto) el plan ya no
+     * queda como único plan de un riesgo vigente.
+     * Tests: EliminacionRiesgoTest.
+     */
+    public function proponerEliminacion(Request $request, Riesgo $riesgo)
     {
         $this->authorize('delete', $riesgo);
 
-        $riesgo->delete();
+        $data = $request->validate([
+            'observaciones' => 'required|string|min:3|max:5000',
+            'adjunto' => 'nullable|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+            'controles' => 'array',
+            'controles.*' => 'integer',
+            'planes' => 'array',
+            'planes.*' => 'integer',
+        ], [
+            'observaciones.required' => 'Contá por qué se elimina el riesgo.',
+            'observaciones.min' => 'Contá por qué se elimina el riesgo.',
+        ]);
 
-        return redirect()->route('auditoria.riesgos.index')->with('ok', 'Riesgo eliminado.');
+        $user = Auth::user();
+        $dependientes = $riesgo->dependientesEliminables($user);
+        $elegidos = [];
+        foreach (['controles' => Control::class, 'planes' => PlanAccion::class] as $tipo => $clase) {
+            $ids = array_map('intval', $data[$tipo] ?? []);
+            $seleccionables = collect($dependientes[$tipo])->where('seleccionable', true)->pluck('id')->all();
+            if (array_diff($ids, $seleccionables)) {
+                throw ValidationException::withMessages([$tipo => 'Sólo se eliminan los controles y planes que no se asocian a otro riesgo.']);
+            }
+            $elegidos[$tipo] = $clase::whereIn('id', $ids)->get();
+        }
+
+        $propuestas = DB::transaction(function () use ($riesgo, $user, $data, $elegidos) {
+            $propuestas = [Actualizacion::registrarEliminacion($riesgo, $user, $data['observaciones'])];
+            foreach ([...$elegidos['controles'], ...$elegidos['planes']] as $elemento) {
+                $propuestas[] = Actualizacion::registrarEliminacion($elemento, $user, $data['observaciones'], $riesgo->id);
+            }
+
+            return $propuestas;
+        });
+
+        // Los medios mueven archivos en disco: van después del commit. Cada propuesta
+        // lleva su copia, porque se resuelven por separado.
+        if ($archivo = $request->file('adjunto')) {
+            foreach ($propuestas as $propuesta) {
+                $propuesta->addMedia($archivo->getRealPath())
+                    ->preservingOriginal()
+                    ->usingFileName($archivo->getClientOriginalName())
+                    ->toMediaCollection('adjuntos');
+            }
+        }
+
+        if ($riesgo->fresh()->estado?->nombre === 'borrado') {
+            return redirect()->route('auditoria.riesgos.index')->with('ok', 'Riesgo eliminado.');
+        }
+
+        return redirect()->route('auditoria.riesgos.show', $riesgo)
+            ->with('ok', count($propuestas) > 1 ? 'Propuestas de eliminación registradas.' : 'Propuesta de eliminación registrada.');
     }
 
     /**

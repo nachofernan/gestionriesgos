@@ -1514,3 +1514,44 @@ Tests: `el_recalculo_de_un_riesgo_aprobado_queda_como_propuesta_hasta_que_aprueb
 `un_recalculo_validado_resuelve_la_falta_de_evaluacion` (`DetectorInconsistenciasTest`).
 
 Fuente: sesión 2026-11-12, con el usuario presente.
+
+---
+
+## D-047 — La eliminación de un riesgo es una propuesta que aprueba el comité (2026-11-12)
+
+**Decisión.**
+- **Sólo para riesgos aprobados.** Un borrador o un validado se sigue sacando con el rechazo con
+  motivo (D-031). Desaparece el `destroy` del riesgo (la ruta incluida), que era un soft delete
+  directo en cualquier estado y fuera del ciclo.
+- **Es una propuesta del circuito de siempre:** una `Actualizacion` de tipo `cambio` con
+  `data.eliminacion` (`Actualizacion::registrarEliminacion()`). Lleva observaciones obligatorias (el
+  `mensaje`) y un adjunto opcional. La del empleado nace en borrador y la valida su gerente, y la del
+  gerente nace validada. Mientras espera, el riesgo sigue aprobado y mitiga. Cuando el comité la
+  aprueba, el riesgo pasa a `borrado`. Si la carga el comité, se aplica en el acto, como cualquier
+  cambio suyo sobre algo aprobado. La propone quien gestiona el área, salvo el auditor, y una sola a
+  la vez (`RiesgoPolicy::delete()`).
+- **Controles y planes en el mismo pedido.** Se ofrecen los del riesgo que están aprobados y no se
+  asocian a ningún otro riesgo vigente (`Riesgo::dependientesEliminables()`). Los demás aparecen
+  deshabilitados con el motivo. Cada uno marcado lleva **su propia propuesta, independiente**: el
+  comité puede rechazar la del riesgo y aprobar la del control. `junto_con_riesgo_id` es sólo una
+  referencia.
+- **Un plan arrastra sus tareas** que no están en otro plan vigente (`PlanAccion::tareasQueCaen()`),
+  y lo anota en su actividad.
+- **Se revisa otra vez al aprobar** (`Actualizacion::aplicarEliminacion()`). Si en el medio el control
+  o el plan quedó asociado a otro riesgo, no se aplica. Tampoco se aplica la de un plan que es el único
+  plan vigente de un riesgo que se mitiga (`PlanAccion::motivoBloqueoRechazo()`): primero se aprueba la
+  del riesgo.
+
+**Motivo.** Pedido de la reunión del 2026-11-12: lo aprobado no debería desaparecer sin pasar por el
+comité, y al sacar un riesgo hay que poder llevarse lo que sólo existía para él.
+
+**Descartado.**
+- Propuestas atadas al riesgo (si se rechaza el riesgo, caen las dependientes) y todo o nada: el
+  usuario prefirió que cada una se decida sola.
+- Eliminación por propuesta en cualquier estado: para borrador y validado ya está el rechazo.
+- Ofrecer objetivos y llevar el mismo circuito a las otras cuatro entidades: queda en el ROADMAP.
+- Una tabla o un estado nuevo: alcanzó con una marca en la propuesta, sin migración.
+
+Tests: `EliminacionRiesgoTest`. Detalle en [updates/2026-11-12.md](updates/2026-11-12.md).
+
+Fuente: sesión 2026-11-12, con el usuario presente.

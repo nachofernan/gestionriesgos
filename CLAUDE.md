@@ -129,6 +129,8 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
    compartido entre gerencias (D-028). Una propuesta de cambio la valida un gerente de esa área y,
    si corresponde, la aprueba el comité. Rechazar es definitivo (`borrado`): el gerente rechaza
    borradores y el comité lo validado que le llega, y **todo rechazo lleva motivo** (D-031).
+   Lo aprobado no se borra directo: eliminar un riesgo es una propuesta con observaciones, que pasa
+   a `borrado` recién cuando la aprueba el comité (D-047).
 
 4. **El historial es append-only, polimórfico y auditable.** Los cambios sobre las entidades quedan
    registrados como `Actualizacion` (`morphMany`: quién, qué campo, valor anterior/nuevo, cuándo). El

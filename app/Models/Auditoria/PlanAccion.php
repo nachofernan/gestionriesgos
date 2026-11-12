@@ -238,7 +238,7 @@ class PlanAccion extends Model implements HasMedia
      * Riesgo::motivosBloqueoValidacion() (D-031). Lo consulta PlanAccionController::rechazar().
      * Test: no_se_rechaza_el_unico_plan_valido_de_un_riesgo_validado_que_mitiga.
      */
-    public function motivoBloqueoRechazo(): ?string
+    public function motivoBloqueoRechazo(string $accion = 'rechazar'): ?string
     {
         $vigentes = ['validado', 'aprobado'];
 
@@ -249,7 +249,38 @@ class PlanAccion extends Model implements HasMedia
             ));
 
         return $riesgo
-            ? "No se puede rechazar: es el único plan vigente del riesgo «{$riesgo->nombre}», que se mitiga con un plan. Primero hay que resolver ese riesgo."
+            ? "No se puede {$accion}: es el único plan vigente del riesgo «{$riesgo->nombre}», que se mitiga con un plan. Primero hay que resolver ese riesgo."
             : null;
+    }
+
+    /**
+     * Motivo por el que el plan no se puede eliminar (null si se puede, D-047): tiene
+     * que estar aprobado y no estar asociado a ningún riesgo vigente salvo
+     * $juntoConRiesgoId, el riesgo con el que se propuso eliminarlo. Se consulta al
+     * ofrecerlo (Riesgo::dependientesEliminables()) y otra vez al aplicar.
+     */
+    public function motivoBloqueoEliminacion(?int $juntoConRiesgoId = null): ?string
+    {
+        if ($this->estado?->nombre !== 'aprobado') {
+            return 'No está aprobado.';
+        }
+
+        $otros = $this->riesgos()
+            ->where('riesgos.id', '!=', $juntoConRiesgoId ?? 0)
+            ->where('riesgos.estado_id', '!=', Estado::borrado()->id)
+            ->exists();
+
+        return $otros ? 'También está asociado a otros riesgos.' : null;
+    }
+
+    /** Tareas que caen con el plan al eliminarlo: las que no están en otro plan vigente (D-047). */
+    public function tareasQueCaen(): Collection
+    {
+        $borrado = Estado::borrado()->id;
+
+        return $this->tareas()
+            ->where('tareas.estado_id', '!=', $borrado)
+            ->whereDoesntHave('planesAccion', fn ($q) => $q->where('planes_accion.id', '!=', $this->id)->where('planes_accion.estado_id', '!=', $borrado))
+            ->get();
     }
 }

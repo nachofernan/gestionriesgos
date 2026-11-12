@@ -180,8 +180,10 @@ class AuditorTest extends TestCase
         $this->assertTrue($this->auditor->can('update', $borradorPropio));
         $this->assertFalse($this->auditor->can('delete', $borradorPropio));
 
+        // Tampoco propone eliminar uno aprobado de su área (D-047).
+        $aprobadoPropio = $this->riesgo($this->gerenciaAuditoria, 'aprobado');
         $this->actingAs($this->auditor)
-            ->delete(route('auditoria.riesgos.destroy', $borradorPropio))
+            ->post(route('auditoria.riesgos.eliminacion', $aprobadoPropio), ['observaciones' => 'No aplica más.'])
             ->assertForbidden();
     }
 

@@ -40,8 +40,12 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // -------------------------------------------------------------------
     // Riesgos
     // -------------------------------------------------------------------
+    // Sin destroy: la eliminación de un riesgo es una propuesta (D-047).
     Route::resource('riesgos', RiesgoController::class)
-        ->parameters(['riesgos' => 'riesgo']);
+        ->parameters(['riesgos' => 'riesgo'])
+        ->except('destroy');
+    Route::post('riesgos/{riesgo}/eliminacion', [RiesgoController::class, 'proponerEliminacion'])
+        ->name('riesgos.eliminacion');
     Route::get('riesgos/{riesgo}/recalcular', [RiesgoController::class, 'recalcular'])
         ->name('riesgos.recalcular');
     Route::post('riesgos/{riesgo}/recalcular', [RiesgoController::class, 'recalcularStore'])

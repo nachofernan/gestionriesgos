@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -497,6 +498,100 @@ class Actualizacion extends Model implements HasMedia
     }
 
     /**
+     * Propuesta de eliminación de un elemento aprobado (D-047): un 'cambio' con la
+     * marca `eliminacion`, así recorre el circuito de siempre (Pendientes, validar,
+     * aprobar, rechazar, retirar). Nace según el rol (estadoInicialParaCambio()):
+     * la del empleado en borrador, la del gerente validada y la del comité se
+     * aplica en el acto. $juntoConRiesgoId marca un control o plan que se propuso
+     * junto con la eliminación de ese riesgo: es sólo referencia, las propuestas se
+     * resuelven por separado. Quien llama ya autorizó y validó las observaciones.
+     * Tests: un_gerente_propone_eliminar_y_el_riesgo_queda_borrado_cuando_aprueba_el_comite,
+     * el_comite_elimina_en_el_acto.
+     */
+    public static function registrarEliminacion(Model $entidad, User $usuario, string $observaciones, ?int $juntoConRiesgoId = null): self
+    {
+        $estadoId = static::estadoInicialParaCambio($usuario, $entidad->estado?->nombre);
+
+        $diff = ['campos' => ['estado' => ['antes' => $entidad->estado?->nombre, 'despues' => 'borrado']]];
+        if ($entidad instanceof PlanAccion && ($tareas = $entidad->tareasQueCaen())->isNotEmpty()) {
+            $diff['relaciones'] = ['tareas' => ['quita' => $tareas->map(fn (Tarea $t) => ['id' => $t->id, 'nombre' => $t->nombre])->all()]];
+        }
+
+        $data = array_filter([
+            'tipo' => 'cambio',
+            'eliminacion' => true,
+            'junto_con_riesgo_id' => $juntoConRiesgoId,
+            'diff' => $diff,
+        ]);
+        $aplicar = $estadoId === Estado::aprobado()->id;
+        if ($aplicar) {
+            $data['activated_by'] = $usuario->name;
+        }
+
+        return DB::transaction(function () use ($entidad, $usuario, $observaciones, $estadoId, $data, $aplicar) {
+            $actualizacion = $entidad->actualizaciones()->create([
+                'user_id' => $usuario->id,
+                'mensaje' => $observaciones,
+                'estado_id' => $estadoId,
+                'data' => $data,
+            ]);
+
+            if ($aplicar) {
+                $actualizacion->aplicarEliminacion($usuario);
+            }
+
+            return $actualizacion;
+        });
+    }
+
+    /** Propuesta de eliminación pendiente del elemento (D-047), o null. */
+    public static function eliminacionPendienteDe(Model $entidad): ?self
+    {
+        return $entidad->actualizaciones()->propuestasPendientes()
+            ->whereJsonContainsKey('data->eliminacion')
+            ->first();
+    }
+
+    /**
+     * Pasa a borrado la entidad de una propuesta de eliminación (D-047). Vuelve a
+     * revisar las condiciones antes de aplicar, porque entre la propuesta y la
+     * aprobación el control o el plan pudo quedar asociado a otro riesgo, y un plan
+     * no deja sin plan a un riesgo vigente que se mitiga. Si no se puede, corta con
+     * ValidationException y la transacción de quien llama no aplica nada. Un plan se
+     * lleva sus tareas que no están en ningún otro plan vigente.
+     * Tests: un_control_asociado_despues_a_otro_riesgo_no_se_elimina_al_aprobar,
+     * al_eliminar_el_plan_caen_sus_tareas_que_no_estan_en_otro_plan.
+     */
+    private function aplicarEliminacion(User $usuario): void
+    {
+        $entidad = $this->actualizable;
+        $motivo = match (true) {
+            $entidad instanceof Riesgo => $entidad->motivoBloqueoEliminacion(),
+            $entidad instanceof PlanAccion => $entidad->motivoBloqueoEliminacion($this->data['junto_con_riesgo_id'] ?? null)
+                ?? $entidad->motivoBloqueoRechazo('eliminar'),
+            default => $entidad->motivoBloqueoEliminacion($this->data['junto_con_riesgo_id'] ?? null),
+        };
+        if ($motivo) {
+            throw ValidationException::withMessages(['eliminacion' => $motivo]);
+        }
+
+        $tareas = $entidad instanceof PlanAccion ? $entidad->tareasQueCaen() : collect();
+
+        $entidad->update(['estado_id' => Estado::borrado()->id]);
+
+        foreach ($tareas as $tarea) {
+            $tarea->update(['estado_id' => Estado::borrado()->id]);
+            $tarea->actualizaciones()->create([
+                'user_id' => $usuario->id,
+                'mensaje' => "Eliminada junto con el plan «{$entidad->nombre}»",
+                'estado_id' => Estado::aprobado()->id,
+                'data' => ['tipo' => 'eliminacion', 'plan_id' => $entidad->id],
+            ]);
+            $tarea->registrarEnSusPlanes('eliminada', $usuario, $this->mensaje);
+        }
+    }
+
+    /**
      * Si un cambio recién registrado se aplica en el acto: nace aprobado, o nace
      * validado sobre una entidad que ya está validada.
      */
@@ -555,6 +650,7 @@ class Actualizacion extends Model implements HasMedia
             'temporalidad' => 'Temporalidad', 'condicion' => 'Condición', 'responsabilidad' => 'Responsabilidad',
             'mitigacion_default' => 'Mitigación', 'checks' => 'Checks', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance', 'interno' => 'Interno',
+            'estado' => 'Estado',
         ];
         $formatear = function ($campo, $valor) use ($tiposRiesgo) {
             if ($valor === null || $valor === '') {
@@ -570,6 +666,8 @@ class Actualizacion extends Model implements HasMedia
                 'respuesta' => RespuestaRiesgo::tryFrom($valor)?->label() ?? $valor,
                 'fecha_objetivo', 'fecha' => Carbon::parse($valor)->format('d/m/Y'),
                 'porcentaje_avance', 'efectividad' => $valor.'%',
+                // Sólo lo propone una eliminación (D-047).
+                'estado' => $valor === 'borrado' ? 'Eliminado' : ucfirst($valor),
                 default => is_bool($valor) ? ($valor ? 'Sí' : 'No') : $valor,
             };
         };
@@ -707,6 +805,12 @@ class Actualizacion extends Model implements HasMedia
 
         $tipo = $data['tipo'] ?? null;
         if ($tipo !== null && $tipo !== 'cambio') {
+            return;
+        }
+
+        if (! empty($data['eliminacion'])) {
+            $this->aplicarEliminacion($usuario ?? $this->user);
+
             return;
         }
 
