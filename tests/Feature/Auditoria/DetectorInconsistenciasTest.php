@@ -31,6 +31,11 @@ class DetectorInconsistenciasTest extends TestCase
 
     private Area $area;
 
+    private const EVALUACION_CLASICA = [
+        'metodo' => 'clasica',
+        'respuestas' => ['probabilidad' => [1, 1, 1, 1, 1], 'impacto' => [1, 1, 1, 1, 1, 0, 0, 0, 0, 0]],
+    ];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -56,6 +61,7 @@ class DetectorInconsistenciasTest extends TestCase
             'impacto' => 5,
             'probabilidad' => 5,
             'respuesta' => RespuestaRiesgo::Mitigar,
+            'evaluacion' => self::EVALUACION_CLASICA,
             ...$atributos,
         ]);
         $riesgo->objetivos()->attach($this->objetivo()->id);
@@ -178,6 +184,25 @@ class DetectorInconsistenciasTest extends TestCase
         $riesgo->controles()->detach();
 
         $this->assertSame(['valor_en_cero' => 'advertencia', 'sin_controles' => 'advertencia'], $this->hallazgos($riesgo));
+    }
+
+    #[Test]
+    public function un_riesgo_sin_evaluacion_es_error(): void
+    {
+        $sinEvaluacion = $this->riesgoCompleto(['evaluacion' => null]);
+        $deOtroMetodo = $this->riesgoCompleto(['evaluacion' => ['metodo' => 'ambiental', 'respuestas' => []]]);
+
+        $this->assertSame(['sin_evaluacion' => 'error'], $this->hallazgos($sinEvaluacion));
+        $this->assertSame(['sin_evaluacion' => 'error'], $this->hallazgos($deOtroMetodo));
+    }
+
+    #[Test]
+    public function un_recalculo_validado_resuelve_la_falta_de_evaluacion(): void
+    {
+        $riesgo = $this->riesgoCompleto(['evaluacion' => null]);
+        $this->proponer($riesgo, ['campos' => ['impacto' => 5, 'probabilidad' => 5, 'evaluacion' => self::EVALUACION_CLASICA]]);
+
+        $this->assertSame(['sin_evaluacion' => 'en_curso'], $this->hallazgos($riesgo));
     }
 
     #[Test]

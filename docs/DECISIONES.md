@@ -1485,3 +1485,32 @@ Tests: `el_impacto_clasico_exige_las_diez_respuestas`, `el_impacto_clasico_solo_
 (`EvaluacionRiesgoTest`).
 
 Fuente: sesión 2026-11-06, con el usuario presente.
+
+---
+
+## D-046 — Un riesgo aprobado se recalcula por propuesta; la revisión inicial exige evaluación (2026-11-12)
+
+**Decisión.**
+- **Recalcular deja de estar bloqueado en aprobado** (`Riesgo::motivoBloqueoRecalculo()`). Sobre un
+  aprobado el recálculo es una propuesta más, con el circuito de siempre
+  (`Actualizacion::estadoInicialParaCambio()`): la del empleado o el auditor nace en borrador y la
+  valida su gerente, y la del gerente nace validada. El número y las respuestas cambian recién cuando
+  el comité la aprueba. El comité sigue sin poder recalcular.
+- **Revisión inicial:** el detector suma el error `sin_evaluacion`. Aparece cuando un riesgo no tiene
+  evaluación vigente o la tiene de un método distinto al de su tipo. Bloquea la firma. Por D-025, un
+  recálculo validado que espera al comité lo deja `en_curso` y alcanza para firmar.
+- **Testeo:** una relación control-riesgo sin testeos muestra "—" en lugar de "100%" en la evidencia
+  del panel del control. Para el cálculo sigue valiendo 100.
+
+**Motivo.** Pedido de la reunión del 2026-11-12: en la revisión inicial todos los riesgos se tienen que
+recalcular, y la carga inicial entra aprobada y sin respuestas. Un 100% sin testeo aparenta una
+medición que nadie hizo.
+
+**Descartado.** Que el error sea una advertencia, porque se podría firmar sin recalcular. Recalcular
+lo aprobado en el acto, porque saltearía al comité.
+
+Tests: `el_recalculo_de_un_riesgo_aprobado_queda_como_propuesta_hasta_que_aprueba_el_comite`
+(`RiesgoRecalcularTest`), `un_riesgo_sin_evaluacion_es_error` y
+`un_recalculo_validado_resuelve_la_falta_de_evaluacion` (`DetectorInconsistenciasTest`).
+
+Fuente: sesión 2026-11-12, con el usuario presente.

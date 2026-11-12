@@ -37,7 +37,7 @@ class DetectorInconsistencias
     public static function consulta(string $clase): Builder
     {
         return match ($clase) {
-            Riesgo::class => Riesgo::query()->withCount(['objetivos', 'planesAccion', 'controles']),
+            Riesgo::class => Riesgo::query()->with('tipoRiesgo')->withCount(['objetivos', 'planesAccion', 'controles']),
             Control::class => Control::query()->withCount([
                 'riesgos',
                 'riesgos as riesgos_sin_mitigacion_count' => fn ($q) => $q->where('control_riesgo.mitigacion', 0),
@@ -228,6 +228,11 @@ class DetectorInconsistencias
         }
         if ($riesgo->respuesta?->exigeFundamento() && blank($riesgo->fundamento)) {
             $hallazgos[] = $this->error('sin_fundamento', "La respuesta {$riesgo->respuesta->label()} exige fundamento y no lo tiene.");
+        }
+        // La carga inicial llega sin respuestas: todo riesgo tiene que pasar por el
+        // wizard antes de firmarse (D-046). Un recálculo validado lo deja en curso.
+        if (($riesgo->evaluacion['metodo'] ?? null) !== $riesgo->metodoEvaluacion()->value) {
+            $hallazgos[] = $this->error('sin_evaluacion', 'No tiene evaluación vigente: hay que recalcular impacto y probabilidad.');
         }
         if ((int) $riesgo->impacto === 0 || (int) $riesgo->probabilidad === 0) {
             $hallazgos[] = $this->advertencia('valor_en_cero', 'El impacto o la probabilidad están en 0.');

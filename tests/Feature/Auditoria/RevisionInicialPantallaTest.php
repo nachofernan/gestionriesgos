@@ -121,7 +121,7 @@ class RevisionInicialPantallaTest extends TestCase
     #[Test]
     public function con_el_arreglo_validado_el_gerente_firma_sin_esperar_al_comite(): void
     {
-        $riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->sistemas->id, 'impacto' => 5, 'probabilidad' => 5]);
+        $riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->sistemas->id, 'impacto' => 5, 'probabilidad' => 5, 'evaluacion' => ['metodo' => 'clasica', 'respuestas' => []]]);
         $riesgo->controles()->attach($this->control->id);
         $objetivo = Objetivo::create(['nombre' => 'Continuidad operativa', 'area_id' => $this->sistemas->id, 'user_id' => $this->gerente->id]);
         $riesgo->actualizaciones()->create([
@@ -142,7 +142,7 @@ class RevisionInicialPantallaTest extends TestCase
     /** Riesgo sin objetivo con una propuesta del coordinador en borrador. */
     private function riesgoConPropuestaDeEmpleado(array $data): array
     {
-        $riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->sistemas->id, 'impacto' => 5, 'probabilidad' => 5]);
+        $riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->sistemas->id, 'impacto' => 5, 'probabilidad' => 5, 'evaluacion' => ['metodo' => 'clasica', 'respuestas' => []]]);
         $riesgo->controles()->attach($this->control->id);
         $propuesta = $riesgo->actualizaciones()->create([
             'user_id' => $this->coordinador->id,

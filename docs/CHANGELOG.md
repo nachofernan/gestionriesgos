@@ -6,6 +6,7 @@ Para el detalle de arquitectura y estado general del módulo, ver `modulo-audito
 
 ---
 
+- **2026-11-12** — **Recalcular lo aprobado y evaluación exigida en la revisión** ([D-046](DECISIONES.md#d-046)): un riesgo aprobado se recalcula por propuesta, que se aplica cuando la aprueba el comité. El detector de la revisión inicial marca como error un riesgo sin evaluación vigente. Una relación sin testeos muestra "—" en vez de "100%" de evidencia.
 - **2026-11-12** — **Resumen en vivo en el alta del riesgo**: desde el paso 2 del wizard, el panel derecho deja la referencia de tipos y dimensiones y muestra lo cargado: datos básicos, subtotales de probabilidad e impacto con el detalle por pregunta desplegable, y en el paso 4 el valor, la mayor criticidad, la respuesta y su fundamento, el área, las sedes y si es borrador interno. Partial `riesgo/partials/resumen-wizard`.
 - **2026-11-06** — **Impacto clásico con doble materialidad** ([D-045](DECISIONES.md#d-045)): el impacto de los riesgos no ambientales pasa de 5 preguntas de 0-2 a 10 de sí/no (materialidad de impacto y financiera), con la misma escala 0-10. Tests en `EvaluacionRiesgoTest`.
 - **2026-11-04** — [Borrador interno](propuesta-borrador-interno.md) ([D-044](DECISIONES.md#d-044)): flag `interno` en los cinco elementos, sólo en borrador. No se valida ni entra a Pendientes hasta quitarlo. Residual y avance proyectados con lo aprobado más lo interno, sin tocar el oficial. Panel interno del área. Tests en `BorradorInternoTest` y `ProyeccionInternaTest`.

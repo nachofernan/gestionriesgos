@@ -22,8 +22,8 @@ use Tests\TestCase;
  * update() y sólo cambian a través de recalcular()/recalcularStore(), que
  * repite el wizard de preguntas (ver RiesgoController y
  * config/riesgo_preguntas.php). El wizard está disponible en cualquier estado
- * salvo aprobado, y nunca para el comité; fuera de borrador es una propuesta
- * de cambio más (arranca según el rol de quien la crea, no se aplica sola).
+ * (D-046), y nunca para el comité; fuera de borrador es una propuesta de cambio
+ * más (arranca según el rol de quien la crea, no se aplica sola).
  */
 class RiesgoRecalcularTest extends TestCase
 {
@@ -117,14 +117,42 @@ class RiesgoRecalcularTest extends TestCase
     }
 
     #[Test]
-    public function no_se_puede_recalcular_un_riesgo_ya_aprobado(): void
+    public function el_recalculo_de_un_riesgo_aprobado_queda_como_propuesta_hasta_que_aprueba_el_comite(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
-        $riesgo = Riesgo::factory()->aprobado()->create(['user_id' => $user->id]);
+        // D-046: la revisión inicial obliga a recalcular lo aprobado. Entra como
+        // propuesta: el número y la evaluación cambian recién con el comité.
+        $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
+        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $riesgo = Riesgo::factory()->aprobado()->create([
+            'area_id' => $gerencia->id,
+            'impacto' => 0,
+            'probabilidad' => 0,
+        ]);
 
-        $respuesta = $this->actingAs($user)->get(route('auditoria.riesgos.recalcular', $riesgo));
+        $this->actingAs($gerente)->get(route('auditoria.riesgos.recalcular', $riesgo))->assertOk();
 
-        $respuesta->assertRedirect(route('auditoria.riesgos.show', $riesgo));
+        $this->actingAs($gerente)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
+            'probabilidad_respuestas' => [1 => 2, 2 => 1, 3 => 0, 4 => 1, 5 => 2],
+            'impacto_respuestas' => [1 => 1, 2 => 1, 3 => 0, 4 => 0, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0],
+        ])->assertRedirect(route('auditoria.riesgos.show', $riesgo));
+
+        $riesgo->refresh();
+        $this->assertEquals(0, $riesgo->impacto);
+        $this->assertNull($riesgo->evaluacion);
+        $this->assertEquals('aprobado', $riesgo->estado->nombre);
+
+        $propuesta = Actualizacion::latest('id')->first();
+        $this->assertEquals('validado', $propuesta->estado->nombre);
+        $this->assertEquals('cambio', $propuesta->data['tipo']);
+
+        $this->actingAs($comite)->post(route('auditoria.actualizaciones.aprobar', $propuesta));
+
+        $riesgo->refresh();
+        $this->assertEquals(3, $riesgo->impacto);
+        $this->assertEquals(6, $riesgo->probabilidad);
+        $this->assertEquals('clasica', $riesgo->evaluacion['metodo']);
+        $this->assertEquals('aprobado', $riesgo->estado->nombre);
     }
 
     #[Test]

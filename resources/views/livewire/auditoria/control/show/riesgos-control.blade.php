@@ -66,7 +66,12 @@
                 <div class="flex items-start gap-3 border-t border-gray-100 px-3 py-2">
                     <div class="shrink-0 pt-0.5">
                         <p class="text-[9px] font-bold uppercase tracking-widest text-gray-400">Evidencia</p>
-                        <p class="text-sm font-black tabular-nums {{ $efectividad < 100 ? 'text-amber-700' : 'text-indigo-700' }}">{{ $efectividad }}%</p>
+                        {{-- Sin testeo la relación mitiga como 100%, pero el número no se muestra: nadie lo midió. --}}
+                        @if($ultimo || $efectividad < 100)
+                            <p class="text-sm font-black tabular-nums {{ $efectividad < 100 ? 'text-amber-700' : 'text-indigo-700' }}">{{ $efectividad }}%</p>
+                        @else
+                            <p class="text-sm font-black text-gray-300">—</p>
+                        @endif
                     </div>
                     <div class="flex-1 min-w-0 text-[11px] text-gray-500">
                         @if($ultimo)
