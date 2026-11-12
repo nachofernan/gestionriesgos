@@ -84,7 +84,9 @@
             </ul>
         </details>
 
-        <dl class="text-xs space-y-1.5" x-show="esAmbiental" x-cloak>
+        <details class="text-xs" x-show="esAmbiental" x-cloak>
+            <summary class="cursor-pointer font-semibold text-gray-500">Detalle por pregunta</summary>
+            <dl class="mt-2 space-y-1.5">
             @foreach ($ambiental['probabilidad'] as $eje => $definicion)
                 <div>
                     <dt class="text-gray-500">{{ $definicion['titulo'] }}</dt>
@@ -99,7 +101,8 @@
                     </dd>
                 </div>
             @endforeach
-        </dl>
+            </dl>
+        </details>
     </div>
 
     {{-- Paso 3: impacto --}}
@@ -124,7 +127,9 @@
             </ul>
         </details>
 
-        <dl class="text-xs space-y-1.5" x-show="esAmbiental" x-cloak>
+        <details class="text-xs" x-show="esAmbiental" x-cloak>
+            <summary class="cursor-pointer font-semibold text-gray-500">Detalle por pregunta</summary>
+            <dl class="mt-2 space-y-1.5">
             @foreach ($ambiental['impacto'] as $eje => $definicion)
                 <div>
                     <dt class="text-gray-500">{{ $definicion['titulo'] }}</dt>
@@ -139,7 +144,8 @@
                     </dd>
                 </div>
             @endforeach
-        </dl>
+            </dl>
+        </details>
     </div>
 
     {{-- Valor: vista previa, se completa al llegar a la respuesta --}}
