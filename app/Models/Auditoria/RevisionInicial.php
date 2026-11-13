@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -121,6 +123,48 @@ class RevisionInicial extends Model
         ])->save();
 
         return $revision;
+    }
+
+    /**
+     * Valida las propuestas en borrador del elemento que el usuario puede validar
+     * (Actualizacion::marcarValidada(), el circuito de siempre) y lo firma. Todo
+     * o nada: si después de validar la firma no procede (errores, o advertencias
+     * sin comentario), no queda validado nada. Quien llama ya autorizó con
+     * RevisionInicialPolicy::firmar(). Lo usan RevisionInicial\Index y
+     * PendientesFicha. Devuelve cuántos cambios validó.
+     * Tests: validar_y_firmar_valida_los_cambios_y_firma,
+     * si_la_firma_no_procede_no_se_valida_nada, desde_la_ficha_el_gerente_valida_y_firma.
+     */
+    public static function validarYFirmar(Model $elemento, Area $gerencia, User $usuario, ?string $comentario = null): int
+    {
+        $cambios = static::cambiosAValidar($elemento, $usuario);
+
+        DB::transaction(function () use ($cambios, $elemento, $gerencia, $usuario, $comentario) {
+            foreach ($cambios as $cambio) {
+                Gate::forUser($usuario)->authorize('validar', $cambio);
+                $cambio->marcarValidada($usuario);
+            }
+
+            $recargado = DetectorInconsistencias::consulta($elemento::class)->findOrFail($elemento->getKey());
+            static::registrarFirma($recargado, $gerencia, $usuario, (new DetectorInconsistencias)->detectar($recargado), $comentario);
+        });
+
+        return $cambios->count();
+    }
+
+    /**
+     * Propuestas en borrador del elemento que el usuario puede validar. Si hay
+     * alguna, no se firma a secas: va por validarYFirmar().
+     * Tests: con_cambios_sin_validar_no_se_firma_a_secas.
+     */
+    public static function cambiosAValidar(Model $elemento, User $usuario): Collection
+    {
+        return $elemento->actualizaciones()->propuestasPendientes()
+            ->where('estado_id', Estado::borrador()->id)
+            ->get()
+            ->each(fn (Actualizacion $a) => $a->setRelation('actualizable', $elemento))
+            ->filter(fn (Actualizacion $a) => Gate::forUser($usuario)->allows('validar', $a))
+            ->values();
     }
 
     /**

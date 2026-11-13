@@ -15,7 +15,6 @@
                 $hallazgos->isNotEmpty() => ['caja' => 'border-amber-200 bg-amber-50/70', 'titulo' => 'text-amber-900'],
                 default => ['caja' => 'border-green-200 bg-green-50/70', 'titulo' => 'text-green-800'],
             };
-            $advertencias = $hallazgos->where('severidad', 'advertencia')->count();
             $punto = ['error' => 'bg-red-500', 'advertencia' => 'bg-amber-400', 'en_curso' => 'bg-sky-400'];
         @endphp
         <section class="rounded-2xl border {{ $tono['caja'] }} px-4 py-3">
@@ -65,6 +64,68 @@
                         </li>
                     @endforeach
                 </ul>
+            @endif
+
+            @if($mensaje)
+                <p class="mt-2 text-xs font-semibold text-green-700">{{ $mensaje }}</p>
+            @endif
+            @error('revision')
+                <p class="mt-2 text-xs font-semibold text-red-700">{{ $message }}</p>
+            @enderror
+
+            {{-- Revisar y firmar desde la ficha (D-049): mismas reglas que la pantalla de revisión. --}}
+            @if($puedeRevisar || $puedeFirmar)
+                @php
+                    $etiquetaFirma = $cambiosAValidar > 0
+                        ? "Validar y firmar ({$cambiosAValidar} ".($cambiosAValidar === 1 ? 'cambio' : 'cambios').')'
+                        : 'Firmar';
+                @endphp
+                <div class="mt-3 pt-3 border-t border-black/5">
+                    @if($accion)
+                        <label class="block text-[11px] font-semibold text-gray-600">
+                            Comentario
+                            @if($accion === 'firmar' && $advertencias > 0)
+                                <span class="text-amber-700">(obligatorio: firmás con advertencias)</span>
+                            @else
+                                <span class="font-normal text-gray-400">(opcional)</span>
+                            @endif
+                        </label>
+                        <textarea wire:model="comentario" rows="2"
+                                  class="mt-1 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-400 focus:ring-indigo-200"></textarea>
+                        @error('comentario')
+                            <p class="mt-1 text-xs font-semibold text-red-700">{{ $message }}</p>
+                        @enderror
+                        @if($accion === 'firmar' && $cambiosAValidar > 0)
+                            <p class="mt-1 text-[11px] text-gray-500">Se validan los cambios en borrador y se firma todo junto. Si la firma no procede, no se valida nada.</p>
+                        @endif
+                        <div class="mt-2 flex items-center justify-end gap-2">
+                            <button type="button" wire:click="cancelar"
+                                    class="text-xs font-semibold text-gray-500 hover:text-gray-800 px-2 py-1">Cancelar</button>
+                            <button type="button" wire:click="{{ $accion === 'firmar' ? 'firmar' : 'marcarRevisado' }}" wire:loading.attr="disabled"
+                                    class="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg px-3 py-1.5">
+                                <x-auditoria.spinner class="h-3.5 w-3.5" wire:loading wire:target="firmar,marcarRevisado" />
+                                Confirmar: {{ $accion === 'firmar' ? $etiquetaFirma : 'Marcar revisado' }}
+                            </button>
+                        </div>
+                    @else
+                        <div class="flex flex-wrap items-center justify-end gap-2">
+                            @if($puedeRevisar)
+                                <button type="button" wire:click="abrir('revisar')"
+                                        class="text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50 rounded-lg px-3 py-1.5">Marcar revisado</button>
+                            @endif
+                            @if($puedeFirmar)
+                                @if($errores > 0)
+                                    <span class="text-[11px] text-red-700">Arreglá los errores para poder firmar.</span>
+                                    <button type="button" disabled
+                                            class="text-xs font-bold text-white bg-gray-300 rounded-lg px-3 py-1.5 cursor-not-allowed">{{ $etiquetaFirma }}</button>
+                                @else
+                                    <button type="button" wire:click="abrir('firmar')"
+                                            class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg px-3 py-1.5">{{ $etiquetaFirma }}</button>
+                                @endif
+                            @endif
+                        </div>
+                    @endif
+                </div>
             @endif
         </section>
 

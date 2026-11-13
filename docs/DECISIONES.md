@@ -1586,3 +1586,31 @@ hacer en el lugar donde lo hace.
 Tests: `RevisionInicialFichaTest`.
 
 Fuente: sesión 2026-11-13, con el usuario presente.
+
+---
+
+## D-049 — Revisar y firmar desde la card de la ficha (2026-11-13)
+
+**Decisión.** La card "Para la revisión inicial" (D-048) suma las acciones de la pantalla de revisión:
+- **Marcar revisado** para el responsable o el coordinador.
+- **Firmar** para el gerente. Si hay propuestas en borrador que puede validar, el botón pasa a
+  **Validar y firmar (N cambios)**, con el mismo todo o nada.
+
+Valen las mismas reglas que en la pantalla:
+- Autoriza `RevisionInicialPolicy` (`revisar` / `firmar`).
+- Los errores bloquean la firma, y el botón queda deshabilitado con el aviso.
+- Las advertencias piden comentario.
+
+Para no duplicar la lógica, `cambiosAValidar()` y `validarYFirmar()` pasan de
+`RevisionInicial\Index` al modelo `RevisionInicial`, y los dos componentes los llaman.
+
+**Motivo.** Acercar al usuario: lo que le falta y la firma, en el mismo lugar.
+
+**Descartado.** Mandar a la pantalla de revisión cuando hay borradores: el usuario prefirió validar y
+firmar desde la card.
+
+Tests: `desde_la_ficha_el_gerente_firma`, `desde_la_ficha_el_gerente_valida_y_firma`,
+`desde_la_ficha_no_se_firma_con_errores`, `desde_la_ficha_el_coordinador_marca_revisado` y
+`quien_no_firma_recibe_403_desde_la_ficha` (`RevisionInicialFichaTest`).
+
+Fuente: sesión 2026-11-13, con el usuario presente.

@@ -135,7 +135,7 @@ Pantalla `auditoria/revision-inicial` (`Livewire\Auditoria\RevisionInicial\Index
 - **Gerencia firmante:** la del área del elemento (también para el riesgo, D-028).
 - **Comité y auditor:** miran, no revisan ni firman.
 
-**Arreglos.** Se hacen en el show del elemento, con el circuito de propuestas. Cada ficha (las cinco) muestra la card `RevisionInicialPendientesFicha` (D-048): los hallazgos del detector con su acción (Recalcular o un ancla al bloque), los bloques afectados marcados en rojo o ámbar y, firmado, una sola línea. La ve todo el que ve el elemento.
+**Arreglos.** Se hacen en el show del elemento, con el circuito de propuestas. Cada ficha (las cinco) muestra la card `RevisionInicialPendientesFicha` (D-048): los hallazgos del detector con su acción (Recalcular o un ancla al bloque), los bloques afectados marcados en rojo o ámbar y, firmado, una sola línea. La ve todo el que ve el elemento. Desde la card también se marca revisado y se firma, o se valida y firma (D-049): `cambiosAValidar()` y `validarYFirmar()` viven en el modelo `RevisionInicial` y los usan la pantalla y la card.
 
 Detalle en [updates/2026-10-06.md](updates/2026-10-06.md). Tests: `DetectorInconsistenciasTest`, `RevisionInicialTest`, `RevisionInicialPantallaTest`, `RevisionInicialFichaTest`.
 

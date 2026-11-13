@@ -18,8 +18,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -105,7 +103,7 @@ class Index extends Component
         [$elemento, $gerencia] = $this->resolver($tipo, $id, $gerenciaId);
         $this->authorize('firmar', [RevisionInicial::class, $elemento, $gerencia]);
 
-        if ($this->cambiosAValidar($elemento)->isNotEmpty()) {
+        if (RevisionInicial::cambiosAValidar($elemento, Auth::user())->isNotEmpty()) {
             throw ValidationException::withMessages(['revision' => 'Tiene cambios sin validar: usá «Validar y firmar».']);
         }
 
@@ -116,14 +114,7 @@ class Index extends Component
         $this->dispatch('revision-registrada');
     }
 
-    /**
-     * Valida todas las propuestas en borrador del elemento que el gerente puede
-     * validar (con el circuito de siempre, Actualizacion::marcarValidada()) y lo
-     * firma. Todo o nada: si después de validar la firma no procede (errores, o
-     * advertencias sin comentario), no queda validado nada.
-     * Tests: validar_y_firmar_valida_los_cambios_y_firma,
-     * si_la_firma_no_procede_no_se_valida_nada, con_cambios_sin_validar_no_se_firma_a_secas.
-     */
+    /** Valida los cambios en borrador y firma, todo o nada (RevisionInicial::validarYFirmar()). */
     public function validarYFirmar(string $tipo, int $id, int $gerenciaId, ?string $comentario = null): void
     {
         $this->resetErrorBag();
@@ -131,20 +122,9 @@ class Index extends Component
         [$elemento, $gerencia] = $this->resolver($tipo, $id, $gerenciaId);
         $this->authorize('firmar', [RevisionInicial::class, $elemento, $gerencia]);
 
-        $cambios = $this->cambiosAValidar($elemento);
+        $validados = RevisionInicial::validarYFirmar($elemento, $gerencia, Auth::user(), $comentario);
 
-        DB::transaction(function () use ($cambios, $tipo, $id, $gerencia, $comentario) {
-            foreach ($cambios as $cambio) {
-                $this->authorize('validar', $cambio);
-                $cambio->marcarValidada(Auth::user());
-            }
-
-            $elemento = DetectorInconsistencias::consulta(self::TIPOS[$tipo]['modelo'])->findOrFail($id);
-            $hallazgos = (new DetectorInconsistencias)->detectar($elemento);
-            RevisionInicial::registrarFirma($elemento, $gerencia, Auth::user(), $hallazgos, $comentario);
-        });
-
-        $this->mensaje = "«{$elemento->nombre}»: {$cambios->count()} cambio(s) validado(s) y firmado.";
+        $this->mensaje = "«{$elemento->nombre}»: {$validados} cambio(s) validado(s) y firmado.";
         $this->dispatch('revision-registrada');
     }
 
@@ -161,17 +141,6 @@ class Index extends Component
                 $r['items'],
             ))->all(),
         ];
-    }
-
-    /** Propuestas en borrador del elemento que el usuario puede validar. */
-    private function cambiosAValidar(Model $elemento): Collection
-    {
-        return $elemento->actualizaciones()->propuestasPendientes()
-            ->where('estado_id', Estado::borrador()->id)
-            ->get()
-            ->each(fn (Actualizacion $a) => $a->setRelation('actualizable', $elemento))
-            ->filter(fn (Actualizacion $a) => Gate::allows('validar', $a))
-            ->values();
     }
 
     /** @return array{0: Model, 1: Area} */

@@ -6,6 +6,7 @@ use App\Enums\Auditoria\TipoArea;
 use App\Livewire\Auditoria\RevisionInicial\PendientesFicha;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
+use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\RevisionInicial;
@@ -32,6 +33,10 @@ class RevisionInicialFichaTest extends TestCase
 
     private User $comite;
 
+    private User $coordinador;
+
+    private Control $control;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -43,6 +48,17 @@ class RevisionInicialFichaTest extends TestCase
 
         $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->sistemas->id]);
         $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => $raiz->id]);
+        $coordinacion = Area::create(['nombre' => 'Coordinación Infraestructura', 'area_padre_id' => $this->sistemas->id]);
+        $this->coordinador = User::factory()->create(['rol' => 'empleado', 'area_id' => $coordinacion->id]);
+
+        // Control sin inconsistencias: se firma a secas.
+        $this->control = Control::factory()->create([
+            'area_id' => $coordinacion->id,
+            'user_id' => $this->coordinador->id,
+            'estado_id' => Estado::aprobado()->id,
+            'mitigacion_default' => 3,
+        ]);
+        $this->control->riesgos()->attach(Riesgo::factory()->aprobado()->create(['area_id' => $this->sistemas->id])->id);
     }
 
     /** Riesgo aprobado como entra de la carga inicial: sin evaluación ni objetivos. */
@@ -134,5 +150,82 @@ class RevisionInicialFichaTest extends TestCase
                 ->assertOk()
                 ->assertSeeLivewire(PendientesFicha::class);
         }
+    }
+
+    #[Test]
+    public function desde_la_ficha_el_gerente_firma(): void
+    {
+        $this->card($this->gerente, 'control', $this->control->id)
+            ->assertSee('Firmar')
+            ->call('firmar')
+            ->assertHasNoErrors()
+            ->assertSee('Revisión inicial firmada por');
+
+        $this->assertEquals($this->gerente->id, RevisionInicial::where('revisable_id', $this->control->id)->value('firmado_por_id'));
+    }
+
+    #[Test]
+    public function desde_la_ficha_el_gerente_valida_y_firma(): void
+    {
+        $riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->sistemas->id, 'impacto' => 5, 'probabilidad' => 5, 'evaluacion' => ['metodo' => 'clasica', 'respuestas' => []]]);
+        $riesgo->controles()->attach($this->control->id);
+        $objetivo = Objetivo::create(['nombre' => 'Continuidad operativa', 'area_id' => $this->sistemas->id, 'user_id' => $this->gerente->id]);
+        $propuesta = $riesgo->actualizaciones()->create([
+            'user_id' => $this->coordinador->id,
+            'mensaje' => 'Corrección de la carga',
+            'estado_id' => Estado::borrador()->id,
+            'data' => ['tipo' => 'cambio', 'relaciones' => ['objetivos' => ['agregar' => [$objetivo->id => []]]]],
+        ]);
+
+        $this->card($this->gerente, 'riesgo', $riesgo->id)
+            ->assertSee('Validar y firmar (1 cambio)')
+            ->call('firmar')
+            ->assertHasNoErrors()
+            ->assertDispatched('riesgo-actualizado');
+
+        $this->assertEquals('validado', $propuesta->fresh()->estado->nombre);
+        $this->assertEquals($this->gerente->id, RevisionInicial::where('revisable_id', $riesgo->id)->value('firmado_por_id'));
+    }
+
+    #[Test]
+    public function desde_la_ficha_no_se_firma_con_errores(): void
+    {
+        $riesgo = $this->riesgoDeLaCarga();
+
+        $this->card($this->gerente, 'riesgo', $riesgo->id)
+            ->assertSee('Arreglá los errores para poder firmar.')
+            ->call('firmar')
+            ->assertHasErrors('revision');
+
+        $this->assertDatabaseCount('revisiones_iniciales', 0);
+    }
+
+    #[Test]
+    public function desde_la_ficha_el_coordinador_marca_revisado(): void
+    {
+        $this->card($this->coordinador, 'control', $this->control->id)
+            ->assertSee('Marcar revisado')
+            ->assertDontSee("wire:click=\"abrir('firmar')\"", false)
+            ->call('marcarRevisado')
+            ->assertHasNoErrors()
+            ->assertSee('Revisado por');
+
+        $revision = RevisionInicial::where('revisable_id', $this->control->id)->firstOrFail();
+        $this->assertEquals($this->coordinador->id, $revision->revisado_por_id);
+        $this->assertNull($revision->firmado_en);
+    }
+
+    #[Test]
+    public function quien_no_firma_recibe_403_desde_la_ficha(): void
+    {
+        $this->card($this->comite, 'control', $this->control->id)
+            ->assertDontSee('Marcar revisado')
+            ->call('firmar')
+            ->assertForbidden();
+        $this->card($this->comite, 'control', $this->control->id)->call('marcarRevisado')->assertForbidden();
+        $this->card($this->coordinador, 'control', $this->control->id)->call('firmar')->assertForbidden();
+        $this->card($this->gerente, 'control', $this->control->id)->call('marcarRevisado')->assertForbidden();
+
+        $this->assertDatabaseCount('revisiones_iniciales', 0);
     }
 }
