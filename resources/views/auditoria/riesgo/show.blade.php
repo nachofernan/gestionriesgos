@@ -43,6 +43,7 @@
 
     {{-- Propuestas pendientes: cuántas, cuáles me tocan y dónde están --}}
     @livewire('auditoria.riesgo.show.resumen-propuestas', ['riesgo' => $riesgo])
+    @livewire('auditoria.revision-inicial.pendientes-ficha', ['tipo' => 'riesgo', 'modeloId' => $riesgo->id])
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 

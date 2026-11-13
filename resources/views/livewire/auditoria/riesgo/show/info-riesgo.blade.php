@@ -23,6 +23,15 @@
         @endif
     </div>
 
+    {{-- Oculto: lo muestra la card de la revisión inicial (PendientesFicha) cuando falta la evaluación (D-048). --}}
+    <div data-revision-recalcular class="hidden mx-4 mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5">
+        <p class="text-xs text-red-800"><strong>Valor de la carga inicial.</strong> Falta recalcularlo con el wizard para la revisión.</p>
+        @if($puedeRecalcular)
+            <a href="{{ route('auditoria.riesgos.recalcular', $riesgo) }}"
+               class="mt-2 block text-center text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg px-3 py-1.5">Recalcular ahora</a>
+        @endif
+    </div>
+
     {{-- Residual, protagonista --}}
     <div class="mx-4 rounded-xl {{ $cResidual['bg'] }} px-4 py-3 flex items-end justify-between">
         <div>

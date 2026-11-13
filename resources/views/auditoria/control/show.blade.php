@@ -54,6 +54,9 @@
         </div>
     </header>
 
+    {{-- Qué le falta para la revisión inicial (D-048) --}}
+    @livewire('auditoria.revision-inicial.pendientes-ficha', ['tipo' => 'control', 'modeloId' => $control->id])
+
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
         {{-- Qué es el control y qué riesgos mitiga --}}

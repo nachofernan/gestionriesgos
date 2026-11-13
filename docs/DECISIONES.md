@@ -1555,3 +1555,34 @@ comité, y al sacar un riesgo hay que poder llevarse lo que sólo existía para 
 Tests: `EliminacionRiesgoTest`. Detalle en [updates/2026-11-12.md](updates/2026-11-12.md).
 
 Fuente: sesión 2026-11-12, con el usuario presente.
+
+---
+
+## D-048 — La revisión inicial se muestra en la ficha de cada elemento (2026-11-13)
+
+**Decisión.**
+- Las cinco fichas (riesgo, control, objetivo, plan y tarea) llevan bajo el encabezado la card
+  "Para la revisión inicial" (`Livewire\Auditoria\RevisionInicial\PendientesFicha`). Lista lo que
+  devuelve `DetectorInconsistencias::detectar()`, la misma fuente que la pantalla y la firma. Cada
+  hallazgo lleva su acción: **Recalcular** para `sin_evaluacion`, o un link al bloque donde se arregla.
+- **Bloques marcados:** la card emite un `<style>` que pinta en rojo (error) o ámbar (advertencia)
+  el bloque de cada hallazgo, por su id de ancla. Lo "en curso" no marca. En el riesgo sin evaluación,
+  la card de Valor muestra el aviso "Valor de la carga inicial" con **Recalcular ahora**.
+- **La ve todo el que ve el elemento**, también el comité y el auditor. Recalcular aparece sólo para
+  quien puede recalcular (misma condición que `InfoRiesgo`). Revisar y firmar siguen en la pantalla
+  de Revisión inicial.
+- **Firmado**, la card se reduce a "Revisión inicial firmada por X el dd/mm".
+
+**Motivo.** El recálculo obligatorio (D-046) sólo se veía en la pantalla de revisión. La ficha no
+decía qué faltaba, y Recalcular era un link chico. Se busca acercar al usuario a lo que tiene que
+hacer en el lugar donde lo hace.
+
+**Descartado.**
+- Llevar los hallazgos a cada componente de bloque: eran unos doce componentes para lo mismo que
+  resuelve un selector por ancla.
+- Mostrarla sólo a quien revisa o firma: el usuario prefirió que la vea todo el que ve el elemento.
+- Seguir mostrando hallazgos después de firmar, porque la firma es un registro que no se deshace.
+
+Tests: `RevisionInicialFichaTest`.
+
+Fuente: sesión 2026-11-13, con el usuario presente.

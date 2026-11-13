@@ -67,6 +67,9 @@
         </div>
     </header>
 
+    {{-- Qué le falta para la revisión inicial (D-048) --}}
+    @livewire('auditoria.revision-inicial.pendientes-ficha', ['tipo' => 'objetivo', 'modeloId' => $objetivo->id])
+
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
         {{-- Qué es el objetivo, qué riesgos lo tienen y con qué planes se trabaja --}}
