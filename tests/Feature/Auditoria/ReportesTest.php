@@ -75,7 +75,7 @@ class ReportesTest extends TestCase
             'porcentaje_avance' => $avance,
         ]);
         $plan->tareas()->attach($tarea);
-        $riesgo->planesAccion()->attach($plan, ['mitigacion' => 0]);
+        $riesgo->planesAccion()->attach($plan);
 
         return $plan;
     }

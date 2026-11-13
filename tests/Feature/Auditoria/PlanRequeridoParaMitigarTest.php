@@ -74,7 +74,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id]); // borrador por defecto
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $motivos = $riesgo->motivosBloqueoValidacion();
 
@@ -87,7 +87,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->assertEmpty($riesgo->motivosBloqueoValidacion());
     }
@@ -109,7 +109,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $riesgo = $this->riesgoMitigarConObjetivo();
         $riesgo->update(['estado_id' => Estado::validado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $motivos = $riesgo->motivosBloqueoAprobacion();
 
@@ -123,7 +123,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $riesgo = $this->riesgoMitigarConObjetivo();
         $riesgo->update(['estado_id' => Estado::validado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->assertEmpty($riesgo->motivosBloqueoAprobacion());
     }
@@ -157,7 +157,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->actingAs($this->gerente)
             ->post(route('auditoria.riesgos.validar', $riesgo))
@@ -172,7 +172,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $riesgo = $this->riesgoMitigarConObjetivo();
         $riesgo->update(['estado_id' => Estado::validado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->actingAs($this->comite)
             ->post(route('auditoria.riesgos.aprobar', $riesgo))
@@ -187,7 +187,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $riesgo = $this->riesgoMitigarConObjetivo();
         $riesgo->update(['estado_id' => Estado::validado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->actingAs($this->comite)
             ->post(route('auditoria.riesgos.aprobar', $riesgo))
@@ -205,7 +205,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $analisis = app(ValidacionMasivaService::class)->analizar($riesgo, 'validar', $this->gerente);
 
@@ -218,7 +218,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         Livewire::actingAs($this->gerente)
             ->test(ValidacionCascadaModal::class)
@@ -235,7 +235,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $analisis = app(ValidacionMasivaService::class)->analizar($plan, 'validar', $this->gerente);
 
@@ -247,7 +247,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo(); // riesgo queda en borrador
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->actingAs($this->gerente)
             ->post(route('auditoria.planes.validar', $plan))
@@ -269,7 +269,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
         $riesgo->update(['estado_id' => Estado::aprobado()->id]);
 
         Livewire::actingAs($this->gerente)
@@ -285,7 +285,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo();
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
         $riesgo->update(['estado_id' => Estado::validado()->id]);
 
         Livewire::actingAs($this->gerente)
@@ -302,7 +302,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $riesgo = $this->riesgoMitigarConObjetivo();
         $respaldo = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
         $borrador = PlanAccion::factory()->create(['area_id' => $this->area->id]); // borrador
-        $riesgo->planesAccion()->attach([$respaldo->id => ['mitigacion' => 5], $borrador->id => ['mitigacion' => 0]]);
+        $riesgo->planesAccion()->attach([$respaldo->id, $borrador->id]);
         $riesgo->update(['estado_id' => Estado::validado()->id]);
 
         Livewire::actingAs($this->gerente)
@@ -318,7 +318,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
     {
         $riesgo = $this->riesgoMitigarConObjetivo(); // borrador
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         Livewire::actingAs($this->gerente)
             ->test(GestionPlanes::class, ['riesgo' => $riesgo])
@@ -337,7 +337,7 @@ class PlanRequeridoParaMitigarTest extends TestCase
             'fundamento' => 'Riesgo aceptado por bajo impacto.',
         ]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         Livewire::actingAs($this->gerente)
             ->test(GestionPlanes::class, ['riesgo' => $riesgo])

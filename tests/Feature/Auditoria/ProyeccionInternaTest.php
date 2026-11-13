@@ -43,9 +43,9 @@ class ProyeccionInternaTest extends TestCase
         return Control::factory()->create(['estado_id' => $this->estado($estado), 'interno' => $interno]);
     }
 
-    private function plan(string $estado, bool $interno = false): PlanAccion
+    private function plan(string $estado, bool $interno = false, int $impacto = 4): PlanAccion
     {
-        return PlanAccion::factory()->create(['estado_id' => $this->estado($estado), 'interno' => $interno]);
+        return PlanAccion::factory()->valorado($impacto, 0)->create(['estado_id' => $this->estado($estado), 'interno' => $interno]);
     }
 
     private function tarea(int $avance, string $estado, bool $interno = false): Tarea
@@ -73,7 +73,7 @@ class ProyeccionInternaTest extends TestCase
             $this->tarea(100, 'borrador', interno: true)->id,
             $this->tarea(0, 'validado')->id,
         ]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 4]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $riesgo = $this->cargado($riesgo);
 
@@ -92,11 +92,11 @@ class ProyeccionInternaTest extends TestCase
 
         $planValidado = $this->plan('validado');
         $planValidado->tareas()->attach($this->tarea(100, 'aprobado')->id);
-        $riesgo->planesAccion()->attach($planValidado->id, ['mitigacion' => 4]);
+        $riesgo->planesAccion()->attach($planValidado->id);
 
         $planSinFlag = $this->plan('borrador');
         $planSinFlag->tareas()->attach($this->tarea(100, 'borrador', interno: true)->id);
-        $riesgo->planesAccion()->attach($planSinFlag->id, ['mitigacion' => 4]);
+        $riesgo->planesAccion()->attach($planSinFlag->id);
 
         $this->assertSame(16, $this->cargado($riesgo)->valor_residual_proyectado);
     }
@@ -114,7 +114,7 @@ class ProyeccionInternaTest extends TestCase
     #[Test]
     public function una_tarea_sin_flag_o_validada_no_mueve_el_avance_proyectado(): void
     {
-        $plan = $this->plan('borrador', interno: true);
+        $plan = $this->plan('borrador', interno: true, impacto: 10);
         $plan->tareas()->attach([
             $this->tarea(40, 'borrador', interno: true)->id,
             $this->tarea(80, 'borrador', interno: true)->id,
@@ -129,7 +129,7 @@ class ProyeccionInternaTest extends TestCase
 
         $this->assertSame(60, $plan->avance_proyectado);
         $this->assertNull($plan->avance);
-        $this->assertSame(6, $plan->mitigacionEfectivaProyectada(10));
+        $this->assertSame(['impacto' => 6, 'probabilidad' => 0], $plan->reduccion_efectiva_proyectada); // 10 × 60%
     }
 
     #[Test]
@@ -148,10 +148,10 @@ class ProyeccionInternaTest extends TestCase
     public function la_proyeccion_no_cambia_el_residual_oficial(): void
     {
         $riesgo = $this->riesgo();
-        $riesgo->controles()->attach($this->control('borrador', interno: true)->id, ['mitigacion' => 5]);
-        $plan = $this->plan('borrador', interno: true);
+        $riesgo->controles()->attach($this->control('borrador', interno: true)->id, ['mitigacion' => 4]);
+        $plan = $this->plan('borrador', interno: true, impacto: 6);
         $plan->tareas()->attach($this->tarea(100, 'borrador', interno: true)->id);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $riesgo = $this->cargado($riesgo);
 

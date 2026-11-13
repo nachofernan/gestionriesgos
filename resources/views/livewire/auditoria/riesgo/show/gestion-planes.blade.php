@@ -1,13 +1,12 @@
 <div>
     @php
         $agregados = collect($diffEnCurso['agrega'] ?? [])->pluck('id');
-        $cambiados = collect($diffEnCurso['cambia'] ?? [])->pluck('id');
         $quitados = $diffEnCurso['quita'] ?? [];
         $hoy = now()->startOfDay();
     @endphp
 
     <x-auditoria.bloque-riesgo ancla="planes" titulo="Planes de acción"
-        subtitulo="Aprobados, descuentan del residual en proporción a su avance."
+        subtitulo="Aprobados, descuentan por eje según su valoración y su avance."
         :modo="$modo" :editando="$editando" :hayPropuestas="$propuestas->isNotEmpty()">
 
         <x-slot:accion>
@@ -22,7 +21,9 @@
                 $avance = $plan['avg_avance'];
                 $completo = $avance === 100;
                 $mitiga = ($plan['estado'] ?? null) === 'aprobado';
-                $efectiva = \App\Models\Auditoria\PlanAccion::aplicarAvance((int) $plan['mitigacion'], (int) ($plan['suma_avance'] ?? 0), (int) ($plan['tareas_aprobadas'] ?? 0));
+                $efectiva = $plan['reduccion'];
+                $nominal = $plan['nominal'];
+                $sinValorar = $nominal['impacto'] + $nominal['probabilidad'] === 0;
                 $nuevo = $agregados->contains($plan['id']);
                 $bloqueado = in_array($plan['id'], $bloqueados);
                 // Sólo tareas aprobadas: las validadas/borrador son trabajo en curso que se ve en el plan.
@@ -47,20 +48,12 @@
                     </div>
                     @if($nuevo)
                         <span class="text-[10px] font-bold text-indigo-700">nuevo</span>
-                    @elseif($cambiados->contains($plan['id']))
-                        <span class="text-[10px] font-bold text-indigo-700">modificado</span>
                     @endif
                     @foreach($marcas[$plan['id']] ?? [] as $marca)
                         <span class="text-[10px] font-bold text-amber-800 bg-amber-100 rounded-full px-2 py-0.5 whitespace-nowrap">{{ $marca }}</span>
                     @endforeach
 
                     @if($editando)
-                        <label class="flex items-center gap-1 shrink-0 text-[10px] font-bold text-gray-500">
-                            mit.
-                            <input type="number" value="{{ $plan['mitigacion'] }}" min="0" max="20"
-                                wire:change="actualizarMitigacion({{ $plan['id'] }}, $event.target.value)" @disabled($bloqueado)
-                                class="w-14 border-gray-200 rounded-lg px-2 py-1 text-xs text-center focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-400" />
-                        </label>
                         <button type="button" wire:click="quitar({{ $plan['id'] }})" title="Quitar" @disabled($bloqueado)
                             class="text-gray-300 hover:text-red-500 transition-colors shrink-0 disabled:opacity-30 disabled:hover:text-gray-300 disabled:cursor-not-allowed">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -68,8 +61,12 @@
                     @else
                         <span class="shrink-0 min-w-[3rem] text-center text-xs font-extrabold rounded-lg px-2 py-1 tabular-nums
                                      {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : 'text-gray-400 bg-white border border-dashed border-gray-200' }}"
-                              title="{{ $mitiga ? 'Descuenta del residual según el avance' : 'Descuenta recién cuando el plan esté aprobado' }}">
-                            −{{ $efectiva }}@if($efectiva !== (int) $plan['mitigacion']) <span class="font-medium opacity-60">de {{ $plan['mitigacion'] }}</span>@endif
+                              title="{{ $sinValorar ? 'El plan todavía no tiene valoración' : ($mitiga ? 'Reducción por eje según el avance (tope: el valor de cada eje del riesgo)' : 'Descuenta recién cuando el plan esté aprobado') }}">
+                            @if($sinValorar)
+                                sin valorar
+                            @else
+                                I −{{ $efectiva['impacto'] }} · P −{{ $efectiva['probabilidad'] }}@if($efectiva !== $nominal) <span class="font-medium opacity-60">de {{ $nominal['impacto'] }}/{{ $nominal['probabilidad'] }}</span>@endif
+                            @endif
                         </span>
                     @endif
                 </div>

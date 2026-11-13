@@ -13,6 +13,8 @@ use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use App\Models\User;
+use App\Services\Auditoria\EvaluacionPlan;
+use Database\Factories\Auditoria\PlanAccionFactory;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -20,13 +22,14 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Cubre las tres reglas de mitigación del valor_residual:
+ * Cubre las reglas de mitigación del valor_residual:
  * 1) Sólo los controles en estado "aprobado" descuentan mitigación.
  * 2) El avance del plan promedia sólo las tareas aprobadas; las tareas en estado
  *    "borrado" quedan fuera del plan (no cuentan ni se muestran).
- * 3) La mitigación de un plan aprobado cuenta en proporción a su avance (promedio
- *    exacto de las tareas aprobadas, hacia abajo, D-037), combinada de forma
- *    aditiva con la de los controles.
+ * 3) Un plan aprobado reduce impacto y probabilidad según su valoración (la
+ *    final si existe, si no la estimada, D-049), en proporción a su avance y
+ *    hacia abajo (D-037), con tope en cada eje del riesgo; después restan los
+ *    controles.
  */
 class MitigacionPlanTest extends TestCase
 {
@@ -47,12 +50,12 @@ class MitigacionPlanTest extends TestCase
     }
 
     /**
-     * Plan en estado "aprobado" con una única tarea aprobada al porcentaje dado
-     * (el caso que descuenta: sólo un plan aprobado y al 100% mitiga).
+     * Plan aprobado, valorado en $impacto / $probabilidad, con una única tarea
+     * aprobada al porcentaje dado.
      */
-    private function planCon(int $porcentaje): PlanAccion
+    private function planCon(int $porcentaje, int $impacto = 6, int $probabilidad = 0): PlanAccion
     {
-        $plan = PlanAccion::factory()->create(['estado_id' => Estado::aprobado()->id]);
+        $plan = PlanAccion::factory()->valorado($impacto, $probabilidad)->create(['estado_id' => Estado::aprobado()->id]);
         $plan->tareas()->attach($this->tareaConEstado($porcentaje, 'aprobado'));
 
         return $plan;
@@ -64,39 +67,67 @@ class MitigacionPlanTest extends TestCase
     }
 
     // -------------------------------------------------------
-    // Regla 3 — mitigación de planes al 100%
+    // Regla 3 — mitigación de planes, por eje (D-049)
     // -------------------------------------------------------
 
     #[Test]
-    public function un_plan_al_100_descuenta_su_mitigacion_del_valor_residual()
+    public function el_plan_reduce_dos_puntos_por_cada_si_en_su_eje()
     {
-        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $plan = $this->planCon(100);
+        $evaluacion = PlanAccionFactory::evaluacion(6, 4);
 
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
-
-        $this->assertEquals(16, $riesgo->fresh()->valor_total);
-        $this->assertEquals(10, $riesgo->fresh()->valor_residual); // 16 - 6
+        $this->assertSame(3, array_sum($evaluacion['impacto']));
+        $this->assertSame(['impacto' => 6, 'probabilidad' => 4], EvaluacionPlan::calcular($evaluacion));
+        $this->assertSame(['impacto' => 0, 'probabilidad' => 0], EvaluacionPlan::calcular(null));
     }
 
     #[Test]
-    public function un_plan_al_80_mitiga_el_80_por_ciento_redondeado_hacia_abajo()
+    public function un_plan_al_100_descuenta_su_reduccion_del_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $plan = $this->planCon(80);
+        $riesgo->planesAccion()->attach($this->planCon(100, 4, 2));
 
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+        $this->assertEquals(16, $riesgo->fresh()->valor_total);
+        $this->assertEquals(10, $riesgo->fresh()->valor_residual); // 16 - 4 - 2
+    }
 
-        $this->assertEquals(12, $riesgo->fresh()->valor_residual); // 6 × 80% = 4,8 → 4
+    #[Test]
+    public function un_plan_mitiga_por_eje_hasta_el_valor_de_cada_eje()
+    {
+        // El ejemplo del cliente: imp 5 / prob 5, un plan que reduce 8 de impacto y 2 de probabilidad.
+        $riesgo = Riesgo::factory()->create(['impacto' => 5, 'probabilidad' => 5]);
+        $riesgo->planesAccion()->attach($this->planCon(100, 8, 2));
+
+        $riesgo = $riesgo->fresh();
+        $this->assertEquals(7, $riesgo->mitigacion_planes); // 5 (tope de impacto) + 2
+        $this->assertEquals(3, $riesgo->valor_residual);    // 0 de impacto + 3 de probabilidad
+    }
+
+    #[Test]
+    public function dos_planes_que_superan_un_eje_quedan_topeados_en_ese_eje()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 5, 'probabilidad' => 5]);
+        $riesgo->planesAccion()->attach([$this->planCon(100, 4, 0)->id, $this->planCon(100, 4, 2)->id]);
+
+        $this->assertEquals(7, $riesgo->fresh()->mitigacion_planes); // impacto 4 + 4 topeado en 5, probabilidad 2
+    }
+
+    #[Test]
+    public function un_plan_al_80_reduce_cada_eje_en_proporcion_hacia_abajo()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $plan = $this->planCon(80, 6, 4);
+        $riesgo->planesAccion()->attach($plan);
+
+        // 6 × 80% = 4,8 → 4; 4 × 80% = 3,2 → 3. Cada eje se redondea por separado.
+        $this->assertSame(['impacto' => 4, 'probabilidad' => 3], PlanAccion::with('tareas.estado')->find($plan->id)->reduccion_efectiva);
+        $this->assertEquals(9, $riesgo->fresh()->valor_residual);
     }
 
     #[Test]
     public function un_plan_al_99_no_mitiga_el_valor_entero()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $plan = $this->planCon(99);
-
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+        $riesgo->planesAccion()->attach($this->planCon(99));
 
         $this->assertEquals(11, $riesgo->fresh()->valor_residual); // 6 × 99% = 5,94 → 5
     }
@@ -105,14 +136,13 @@ class MitigacionPlanTest extends TestCase
     public function un_plan_casi_completo_no_mitiga_el_valor_entero()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $plan = PlanAccion::factory()->create(['estado_id' => Estado::aprobado()->id]);
+        $plan = PlanAccion::factory()->valorado(6, 0)->create(['estado_id' => Estado::aprobado()->id]);
         $plan->tareas()->attach([
             $this->tareaConEstado(100, 'aprobado')->id,
             $this->tareaConEstado(100, 'aprobado')->id,
             $this->tareaConEstado(99, 'aprobado')->id,
         ]);
-
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         // En pantalla figura 100% (99,67 redondeado), pero no mitiga el valor entero.
         $this->assertEquals(100, PlanAccion::with('tareas.estado')->find($plan->id)->avance);
@@ -125,8 +155,7 @@ class MitigacionPlanTest extends TestCase
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
         $plan = $this->planCon(100);
         $plan->update(['estado_id' => Estado::validado()->id]);
-
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->assertTrue($plan->fresh()->estaCompleto());
         $this->assertEquals(16, $riesgo->fresh()->valor_residual); // validado no mitiga, aunque esté completo
@@ -138,7 +167,7 @@ class MitigacionPlanTest extends TestCase
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
         $plan = $this->planCon(100);
         $plan->update(['estado_id' => Estado::validado()->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->assertEquals(16, $riesgo->fresh()->valor_residual);
 
@@ -148,29 +177,64 @@ class MitigacionPlanTest extends TestCase
     }
 
     #[Test]
+    public function un_plan_sin_evaluacion_no_mitiga()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]);
+        $plan = PlanAccion::factory()->create(['estado_id' => Estado::aprobado()->id]);
+        $plan->tareas()->attach($this->tareaConEstado(100, 'aprobado'));
+        $riesgo->planesAccion()->attach($plan->id);
+
+        $this->assertEquals(16, $riesgo->fresh()->valor_residual);
+    }
+
+    #[Test]
+    public function la_evaluacion_final_reemplaza_a_la_estimada()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
+        $plan = $this->planCon(100, 6, 0);
+        $riesgo->planesAccion()->attach($plan->id);
+
+        $plan->update(['evaluacion_final' => PlanAccionFactory::evaluacion(2, 2)]); // logró menos de lo estimado
+        $this->assertEquals(12, $riesgo->fresh()->valor_residual);
+
+        $plan->update(['evaluacion_final' => PlanAccionFactory::evaluacion(8, 4)]); // o más
+        $this->assertEquals(4, $riesgo->fresh()->valor_residual);
+    }
+
+    #[Test]
     public function el_preview_en_vivo_de_planes_cuenta_los_aprobados_en_proporcion_a_su_avance()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $aprobado = $this->planCon(50);
-        $aprobado->update(['estado_id' => Estado::aprobado()->id]);
-        $validado = $this->planCon(100);
+        $aprobado = $this->planCon(50, 6, 0);
+        $validado = $this->planCon(100, 4, 0);
         $validado->update(['estado_id' => Estado::validado()->id]);
 
         Livewire::actingAs(User::factory()->create())
             ->test(GestionPlanes::class, ['riesgo' => $riesgo])
             ->call('activarEdicion')
             ->call('agregar', $aprobado->id)
-            ->call('actualizarMitigacion', $aprobado->id, 6)
             ->call('agregar', $validado->id)
-            ->call('actualizarMitigacion', $validado->id, 5)
             ->assertDispatched('residual-actualizado', valor: 13); // 16 - 3 (6 al 50%; el validado no descuenta)
+    }
+
+    #[Test]
+    public function el_preview_en_vivo_de_planes_respeta_el_tope_por_eje()
+    {
+        $riesgo = Riesgo::factory()->create(['impacto' => 5, 'probabilidad' => 5]);
+        $plan = $this->planCon(100, 8, 2);
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(GestionPlanes::class, ['riesgo' => $riesgo])
+            ->call('activarEdicion')
+            ->call('agregar', $plan->id)
+            ->assertDispatched('residual-actualizado', valor: 3);
     }
 
     #[Test]
     public function la_preview_de_gestion_controles_usa_la_mitigacion_proporcional_de_los_planes()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $riesgo->planesAccion()->attach($this->planCon(50)->id, ['mitigacion' => 6]); // descuenta 3
+        $riesgo->planesAccion()->attach($this->planCon(50)->id); // descuenta 3
         $control = Control::factory()->create(['estado_id' => Estado::aprobado()->id, 'mitigacion_default' => 2]);
 
         Livewire::actingAs(User::factory()->create())
@@ -184,9 +248,8 @@ class MitigacionPlanTest extends TestCase
     public function un_plan_sin_tareas_no_afecta_el_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]);
-        $plan = PlanAccion::factory()->create();
-
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+        $plan = PlanAccion::factory()->valorado(6, 0)->create(['estado_id' => Estado::aprobado()->id]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->assertNull($plan->fresh()->avance);
         $this->assertEquals(16, $riesgo->fresh()->valor_residual);
@@ -196,13 +259,24 @@ class MitigacionPlanTest extends TestCase
     public function la_mitigacion_del_plan_y_la_de_los_controles_aprobados_se_suman()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $control = $this->controlAprobado();
-        $plan = $this->planCon(100);
-
-        $riesgo->controles()->attach($control->id, ['mitigacion' => 5]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+        $riesgo->controles()->attach($this->controlAprobado()->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($this->planCon(100)->id);
 
         $this->assertEquals(5, $riesgo->fresh()->valor_residual); // 16 - 5 - 6
+    }
+
+    #[Test]
+    public function primero_los_planes_por_eje_y_despues_los_controles()
+    {
+        // El plan reduce 10 pero en este riesgo sólo 7 (tope de impacto); el control resta del resto.
+        $riesgo = Riesgo::factory()->create(['impacto' => 5, 'probabilidad' => 5]);
+        $riesgo->planesAccion()->attach($this->planCon(100, 8, 2)->id);
+        $riesgo->controles()->attach($this->controlAprobado()->id, ['mitigacion' => 2]);
+
+        $this->assertEquals(1, $riesgo->fresh()->valor_residual); // 10 - 7 - 2
+
+        $riesgo->controles()->attach($this->controlAprobado()->id, ['mitigacion' => 4]);
+        $this->assertEquals(0, $riesgo->fresh()->valor_residual); // nunca menos de 0
     }
 
     #[Test]
@@ -213,10 +287,7 @@ class MitigacionPlanTest extends TestCase
             $this->controlAprobado()->id => ['mitigacion' => 5],
             Control::factory()->create(['estado_id' => Estado::borrador()->id])->id => ['mitigacion' => 3],
         ]);
-        $riesgo->planesAccion()->attach([
-            $this->planCon(100)->id => ['mitigacion' => 6],
-            $this->planCon(50)->id => ['mitigacion' => 4],
-        ]);
+        $riesgo->planesAccion()->attach([$this->planCon(100, 6, 0)->id, $this->planCon(50, 4, 0)->id]);
 
         $riesgo = $riesgo->fresh();
         $this->assertEquals(5, $riesgo->mitigacion_controles); // el control en borrador no cuenta
@@ -228,10 +299,9 @@ class MitigacionPlanTest extends TestCase
     public function el_valor_residual_nunca_baja_de_cero()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 2, 'probabilidad' => 2]); // total 4
-        $plan = $this->planCon(100);
+        $riesgo->planesAccion()->attach($this->planCon(100, 10, 10)->id);
 
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 20]);
-
+        $this->assertEquals(4, $riesgo->fresh()->mitigacion_planes);
         $this->assertEquals(0, $riesgo->fresh()->valor_residual);
     }
 
@@ -289,7 +359,7 @@ class MitigacionPlanTest extends TestCase
         $validada = $this->tareaConEstado(50, 'validado');
         $validada->update(['nombre' => 'Tarea Validada Oculta']);
         $plan->tareas()->attach([$aprobada->id, $validada->id]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 0]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->actingAs(User::factory()->create())
             ->get(route('auditoria.riesgos.show', $riesgo))

@@ -55,7 +55,7 @@ class PlanShowTest extends TestCase
         $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
         $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
 
-        $this->plan = PlanAccion::factory()->create([
+        $this->plan = PlanAccion::factory()->valorado(6, 0)->create([
             'nombre' => 'Plan de proveedores',
             'estado_id' => Estado::validado()->id,
             'area_id' => $this->gerencia->id,
@@ -136,7 +136,7 @@ class PlanShowTest extends TestCase
         // Plan aprobado y completo (100%): descuenta 6 de un riesgo de total 16.
         $this->plan->update(['estado_id' => Estado::aprobado()->id]);
         $riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->gerencia->id, 'impacto' => 8, 'probabilidad' => 8]);
-        $riesgo->planesAccion()->attach($this->plan->id, ['mitigacion' => 6]);
+        $riesgo->planesAccion()->attach($this->plan->id);
         $residual = fn () => Riesgo::with(['controles.estado', 'planesAccion.estado', 'planesAccion.tareas.estado'])->findOrFail($riesgo->id)->valor_residual;
         $this->assertEquals(10, $residual());
 

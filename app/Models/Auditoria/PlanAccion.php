@@ -5,6 +5,7 @@ namespace App\Models\Auditoria;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Models\Concerns\HasVisibilityScope;
 use App\Models\User;
+use App\Services\Auditoria\EvaluacionPlan;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +30,8 @@ class PlanAccion extends Model implements HasMedia
     protected $fillable = [
         'nombre',
         'descripcion',
+        'evaluacion_estimada',
+        'evaluacion_final',
         'estado_id',
         'interno',
         'user_id',
@@ -37,6 +40,8 @@ class PlanAccion extends Model implements HasMedia
 
     protected $casts = [
         'interno' => 'boolean',
+        'evaluacion_estimada' => 'array',
+        'evaluacion_final' => 'array',
     ];
 
     protected static function booted()
@@ -71,7 +76,6 @@ class PlanAccion extends Model implements HasMedia
     public function riesgos(): BelongsToMany
     {
         return $this->belongsToMany(Riesgo::class, 'plan_accion_riesgo')
-            ->withPivot('mitigacion')
             ->withTimestamps();
     }
 
@@ -100,7 +104,7 @@ class PlanAccion extends Model implements HasMedia
      * "aprobado" (0-100), o null si no tiene ninguna tarea aprobada. Las tareas en
      * borrador/validado son trabajo real pendiente pero no cuentan para el avance, y
      * las de estado "borrado" quedan fuera por completo. Es el valor de pantalla
-     * (redondeado): la mitigación usa el promedio exacto, ver mitigacionEfectiva().
+     * (redondeado): la mitigación usa el promedio exacto, ver getReduccionEfectivaAttribute().
      * Consumir con `tareas.estado` eager-loaded.
      */
     public function getAvanceAttribute(): ?int
@@ -127,7 +131,7 @@ class PlanAccion extends Model implements HasMedia
 
     /**
      * Regla de estado de si el plan descuenta del residual de sus riesgos: sólo si
-     * está aprobado (cuánto descuenta lo dice mitigacionEfectiva()). Requiere
+     * está aprobado (cuánto descuenta lo dice reduccion_efectiva). Requiere
      * `estado` cargado. Test: un_plan_validado_al_100_no_afecta_el_valor_residual.
      */
     public function mitiga(): bool
@@ -136,25 +140,53 @@ class PlanAccion extends Model implements HasMedia
     }
 
     /**
-     * Mitigación que aplica de verdad el plan sobre un riesgo: la nominal del
-     * pivot en proporción al promedio exacto de avance de sus tareas aprobadas,
-     * hacia abajo (D-037). Sin tareas aprobadas, 0. La consumen
-     * Riesgo::getMitigacionPlanesAttribute() y las pantallas que la muestran.
-     * Requiere `tareas.estado` cargado.
-     * Tests: un_plan_al_80_mitiga_el_80_por_ciento_redondeado_hacia_abajo,
-     * un_plan_casi_completo_no_mitiga_el_valor_entero.
+     * Cuánto reduce el plan cada eje según su valoración (D-049): la evaluación
+     * final si ya está cargada, si no la estimada; sin ninguna, 0 y 0. Es lo que
+     * reduce al 100% de avance, antes del tope de cada riesgo.
+     * Tests: la_evaluacion_final_reemplaza_a_la_estimada, un_plan_sin_evaluacion_no_mitiga.
+     *
+     * @return array{impacto:int, probabilidad:int}
      */
-    public function mitigacionEfectiva(int $nominal): int
+    public function getReduccionNominalAttribute(): array
     {
-        $aprobadas = $this->tareasAprobadas();
-
-        return self::aplicarAvance($nominal, (int) $aprobadas->sum('porcentaje_avance'), $aprobadas->count());
+        return EvaluacionPlan::calcular($this->evaluacion_final ?? $this->evaluacion_estimada);
     }
 
     /**
-     * Regla única del redondeo de los planes, para quien sólo tiene los números
-     * (la preview de GestionPlanes): floor(nominal × suma / (cantidad × 100)), en
-     * enteros para que un 99,67% no se convierta en 100 (D-037).
+     * Reducción que aplica de verdad el plan: la nominal de cada eje en
+     * proporción al promedio exacto de avance de sus tareas aprobadas, hacia
+     * abajo y eje por eje (D-037, D-049). Sin tareas aprobadas, 0. El tope contra
+     * el impacto y la probabilidad de cada riesgo lo pone Riesgo::mitigacionPorEjes().
+     * Requiere `tareas.estado` cargado.
+     * Tests: un_plan_al_80_reduce_cada_eje_en_proporcion_hacia_abajo,
+     * un_plan_casi_completo_no_mitiga_el_valor_entero.
+     *
+     * @return array{impacto:int, probabilidad:int}
+     */
+    public function getReduccionEfectivaAttribute(): array
+    {
+        return $this->reduccionConTareas($this->tareasAprobadas());
+    }
+
+    private function reduccionConTareas(Collection $tareas): array
+    {
+        $suma = (int) $tareas->sum('porcentaje_avance');
+
+        return array_map(fn (int $eje) => self::aplicarAvance($eje, $suma, $tareas->count()), $this->reduccion_nominal);
+    }
+
+    /**
+     * El plan terminó (D-049): tareas al 100% y la evaluación final ya aplicada.
+     * Requiere `tareas.estado` cargado. Test: con_la_evaluacion_final_aprobada_el_plan_queda_finalizado.
+     */
+    public function getFinalizadoAttribute(): bool
+    {
+        return $this->evaluacion_final !== null && $this->estaCompleto();
+    }
+
+    /**
+     * Regla única del redondeo de los planes, por eje: floor(nominal × suma /
+     * (cantidad × 100)), en enteros para que un 99,67% no se convierta en 100 (D-037).
      */
     public static function aplicarAvance(int $nominal, int $sumaAvance, int $cantidad): int
     {
@@ -192,15 +224,15 @@ class PlanAccion extends Model implements HasMedia
     }
 
     /**
-     * Como mitigacionEfectiva() pero con las tareas proyectadas, mismo redondeo
+     * Como reduccion_efectiva pero con las tareas proyectadas, mismo redondeo
      * hacia abajo (D-037). Tests: el_residual_proyectado_suma_lo_aprobado_y_lo_interno,
      * una_tarea_sin_flag_o_validada_no_mueve_el_avance_proyectado.
+     *
+     * @return array{impacto:int, probabilidad:int}
      */
-    public function mitigacionEfectivaProyectada(int $nominal): int
+    public function getReduccionEfectivaProyectadaAttribute(): array
     {
-        $tareas = $this->tareasProyectadas();
-
-        return self::aplicarAvance($nominal, (int) $tareas->sum('porcentaje_avance'), $tareas->count());
+        return $this->reduccionConTareas($this->tareasProyectadas());
     }
 
     /**

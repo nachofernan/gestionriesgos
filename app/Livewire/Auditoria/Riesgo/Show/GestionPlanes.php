@@ -14,8 +14,8 @@ use Livewire\Component;
 
 /**
  * Gestión de los Planes de Acción asociados a un Riesgo (patrón $seleccionados
- * en memoria → guardar()), incluyendo el valor de mitigación por plan: lo que el
- * plan descuenta del valor residual del riesgo en proporción a su avance.
+ * en memoria → guardar()). Lo que cada plan descuenta no se carga acá: sale de
+ * la valoración del propio plan, por eje y en proporción a su avance (D-049).
  * Si el riesgo está en borrador, sincroniza directo; si no, la asociación queda
  * como una Actualizacion (propuesta de cambio) que se aplica de inmediato sólo si
  * el estado resultante lo amerita (ver estadoParaActualizacion()). Emite
@@ -55,7 +55,7 @@ class GestionPlanes extends Component
     /** Mitigación de los controles ya asociados, base fija del preview de residual. */
     public int $mitigacionControlesBase = 0;
 
-    /** @var array<int, array{id:int, nombre:string, mitigacion:int, avg_avance:?int, suma_avance:int, tareas_aprobadas:int}> */
+    /** @var array<int, array{id:int, nombre:string, reduccion:array{impacto:int, probabilidad:int}, nominal:array{impacto:int, probabilidad:int}, avg_avance:?int}> */
     public array $seleccionados = [];
 
     /**
@@ -117,25 +117,6 @@ class GestionPlanes extends Component
         $this->modalAbierto = false;
     }
 
-    /**
-     * Ajusta la mitigación nominal del plan, la que aplica al 100% (0-20, acotado al
-     * valor_total del riesgo ya que no tiene sentido mitigar más que el riesgo entero).
-     */
-    public function actualizarMitigacion(int $planId, int $valor): void
-    {
-        if ($this->elementoConPropuesta('planesAccion', $planId)) {
-            return;
-        }
-
-        foreach ($this->seleccionados as &$item) {
-            if ($item['id'] === $planId) {
-                $item['mitigacion'] = max(0, min(20, $valor));
-                break;
-            }
-        }
-        $this->dispatch('residual-actualizado', valor: $this->residualActual());
-    }
-
     public function agregar(int $planId): void
     {
         if ($this->elementoConPropuesta('planesAccion', $planId)) {
@@ -158,10 +139,9 @@ class GestionPlanes extends Component
             'estado' => $plan->estado?->nombre ?? 'borrador',
             'estado_color' => $plan->estado?->color ?? 'gray',
             'area' => $plan->area?->nombre,
-            'mitigacion' => 0,
+            'reduccion' => $plan->reduccion_efectiva,
+            'nominal' => $plan->reduccion_nominal,
             'avg_avance' => $plan->avance,
-            'suma_avance' => (int) $plan->tareasAprobadas()->sum('porcentaje_avance'),
-            'tareas_aprobadas' => $plan->tareasAprobadas()->count(),
             'tareas_count' => $plan->tareas->count(),
             'vencimiento' => $plan->vencimiento?->format('d/m/Y'),
             'puede_ver' => Auth::user()->can('view', $plan),
@@ -209,8 +189,8 @@ class GestionPlanes extends Component
     }
 
     /**
-     * Si el riesgo está en borrador, sincroniza los planes y sus mitigaciones de
-     * inmediato. Si no, arma el diff (agrega/quita/cambia mitigación) y lo guarda
+     * Si el riesgo está en borrador, sincroniza los planes de inmediato. Si no,
+     * arma el diff (agrega/quita) y lo guarda
      * como Actualizacion; según el estado que le toque (estadoParaActualizacion())
      * la aplica en el momento o la deja pendiente de validación.
      */
@@ -219,15 +199,10 @@ class GestionPlanes extends Component
         $riesgo = Riesgo::with('planesAccion.estado')->findOrFail($this->riesgoId);
         $this->authorize('proponer', $riesgo);
 
+        // Los ocultos (borrado / no visibles) se re-agregan al sync para no detacharlos.
         $sync = [];
-        foreach ($this->seleccionados as $item) {
-            $sync[(string) $item['id']] = ['mitigacion' => $item['mitigacion']];
-        }
-        // Los ocultos (borrado / no visibles) se re-agregan al sync (mitigación
-        // persistida) para no detacharlos.
-        foreach ($this->ocultosIds as $id) {
-            $antes = $riesgo->planesAccion->firstWhere('id', $id);
-            $sync[(string) $id] = ['mitigacion' => $antes?->pivot->mitigacion];
+        foreach ([...collect($this->seleccionados)->pluck('id'), ...$this->ocultosIds] as $id) {
+            $sync[(string) $id] = [];
         }
 
         $diffRel = $this->construirDiff($riesgo);
@@ -288,7 +263,7 @@ class GestionPlanes extends Component
     }
 
     /**
-     * Diff (agrega/quita/cambia mitigación) entre los planes actualmente
+     * Diff (agrega/quita) entre los planes actualmente
      * persistidos en el riesgo y la selección en memoria. Vacío si nada cambió.
      * Lo consumen ambas ramas de guardar() (borrador y propuesta de cambio) y lo
      * pinta el historial de actualizaciones vía data['diff']['relaciones'].
@@ -300,38 +275,33 @@ class GestionPlanes extends Component
         $user = Auth::user();
         $antesMap = $riesgo->planesAccion
             ->reject(fn ($p) => $p->estado?->nombre === 'borrado' || ! $user->can('view', $p))
-            // Mismo valor efectivo que muestra cargar(): ver GestionControles::construirDiff().
-            ->mapWithKeys(fn ($p) => [$p->id => ['nombre' => $p->nombre, 'mitigacion' => (int) ($p->pivot->mitigacion ?? 0)]]);
+            ->mapWithKeys(fn ($p) => [$p->id => ['nombre' => $p->nombre]]);
         $antesIds = $antesMap->keys();
         $despuesIds = collect($this->seleccionados)->pluck('id');
 
         return array_filter([
             'agrega' => collect($this->seleccionados)
                 ->filter(fn ($p) => ! $antesIds->contains($p['id']))
-                ->map(fn ($p) => ['id' => $p['id'], 'nombre' => $p['nombre'], 'mitigacion' => $p['mitigacion']])
+                ->map(fn ($p) => ['id' => $p['id'], 'nombre' => $p['nombre']])
                 ->values()->toArray(),
             'quita' => $antesMap->filter(fn ($v, $k) => ! $despuesIds->contains($k))
                 ->map(fn ($v, $k) => ['id' => $k, 'nombre' => $v['nombre']])
-                ->values()->toArray(),
-            'cambia' => collect($this->seleccionados)
-                ->filter(fn ($p) => $antesIds->contains($p['id']) && $antesMap[$p['id']]['mitigacion'] !== (int) $p['mitigacion'])
-                ->map(fn ($p) => ['id' => $p['id'], 'nombre' => $p['nombre'], 'mitigacion_antes' => $antesMap[$p['id']]['mitigacion'], 'mitigacion_despues' => $p['mitigacion']])
                 ->values()->toArray(),
         ], fn ($a) => ! empty($a));
     }
 
     /**
-     * Residual = valor total menos la mitigación ya persistida de los controles
-     * menos la de los planes seleccionados que estén aprobados, en proporción a su
-     * avance (no persiste, es sólo feedback en vivo). Misma regla que
-     * Riesgo::getValorResidualAttribute, vía PlanAccion::aplicarAvance() (D-037).
+     * Residual = valor total menos lo que reducen los planes seleccionados que
+     * estén aprobados (por eje, con tope, Riesgo::mitigacionPorEjes(), D-049)
+     * menos la mitigación ya persistida de los controles (no persiste, es sólo
+     * feedback en vivo). Misma regla que Riesgo::getValorResidualAttribute.
      * Test: el_preview_en_vivo_de_planes_cuenta_los_aprobados_en_proporcion_a_su_avance.
      */
     private function residualActual(): int
     {
-        $mitigacionPlanes = collect($this->seleccionados)
-            ->filter(fn ($p) => ($p['estado'] ?? null) === 'aprobado')
-            ->sum(fn ($p) => PlanAccion::aplicarAvance((int) $p['mitigacion'], (int) ($p['suma_avance'] ?? 0), (int) ($p['tareas_aprobadas'] ?? 0)));
+        $mitigacionPlanes = Riesgo::findOrFail($this->riesgoId)->mitigacionPorEjes(
+            collect($this->seleccionados)->filter(fn ($p) => ($p['estado'] ?? null) === 'aprobado')->pluck('reduccion')
+        );
 
         return max(0, $this->valorTotal - $this->mitigacionControlesBase - $mitigacionPlanes);
     }
@@ -384,10 +354,9 @@ class GestionPlanes extends Component
                 'estado' => $p->estado?->nombre ?? 'borrador',
                 'estado_color' => $p->estado?->color ?? 'gray',
                 'area' => $p->area?->nombre,
-                'mitigacion' => (int) ($p->pivot->mitigacion ?? 0),
+                'reduccion' => $p->reduccion_efectiva,
+                'nominal' => $p->reduccion_nominal,
                 'avg_avance' => $p->avance,
-                'suma_avance' => (int) $p->tareasAprobadas()->sum('porcentaje_avance'),
-                'tareas_aprobadas' => $p->tareasAprobadas()->count(),
                 'tareas_count' => $p->tareas->count(),
                 'vencimiento' => $p->vencimiento?->format('d/m/Y'),
                 'puede_ver' => true,

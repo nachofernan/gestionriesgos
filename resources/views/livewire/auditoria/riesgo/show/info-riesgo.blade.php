@@ -95,7 +95,7 @@
             <dd class="font-bold text-indigo-700 tabular-nums">−{{ $riesgo->mitigacion_controles }}</dd>
         </div>
         <div class="flex items-center justify-between py-1.5">
-            <dt><a href="#planes" class="text-gray-500 hover:text-indigo-700">− Planes completos</a></dt>
+            <dt><a href="#planes" class="text-gray-500 hover:text-indigo-700">− Planes aprobados</a></dt>
             <dd class="font-bold text-indigo-700 tabular-nums">−{{ $riesgo->mitigacion_planes }}</dd>
         </div>
         <div class="flex items-center justify-between py-1.5">

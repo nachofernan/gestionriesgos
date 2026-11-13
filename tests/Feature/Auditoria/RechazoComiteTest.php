@@ -119,7 +119,7 @@ class RechazoComiteTest extends TestCase
     {
         $plan = $this->plan('validado');
         $riesgo = Riesgo::factory()->validado()->create(['area_id' => $this->gerencia->id, 'respuesta' => RespuestaRiesgo::Mitigar]);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 2]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $this->actingAs($this->comite)
             ->post(route('auditoria.planes.rechazar', $plan), ['motivo' => 'No sirve'])
@@ -127,7 +127,7 @@ class RechazoComiteTest extends TestCase
         $this->assertSame('validado', $plan->fresh()->estado->nombre);
 
         // Con otro plan vigente, el riesgo sigue cumpliendo y se puede rechazar.
-        $riesgo->planesAccion()->attach($this->plan('aprobado')->id, ['mitigacion' => 2]);
+        $riesgo->planesAccion()->attach($this->plan('aprobado')->id);
         $this->actingAs($this->comite)
             ->post(route('auditoria.planes.rechazar', $plan), ['motivo' => 'No sirve'])
             ->assertSessionMissing('error');

@@ -1,6 +1,6 @@
 <div>
     <x-auditoria.bloque-riesgo ancla="riesgos" titulo="Riesgos que mitiga" :contador="$riesgos->count() + $ocultos"
-        :subtitulo="$mitiga ? 'La asociación y su mitigación se gestionan desde cada riesgo.' : 'No descuenta del residual hasta que el plan esté aprobado.'">
+        :subtitulo="$mitiga ? 'Lo que descuenta sale del valor del plan, con tope en cada eje del riesgo.' : 'No descuenta del residual hasta que el plan esté aprobado.'">
 
         @forelse ($riesgos as $riesgo)
             <div wire:key="riesgo-{{ $riesgo->id }}"
@@ -17,8 +17,8 @@
                 </div>
                 <span class="shrink-0 min-w-[3rem] text-center text-xs font-extrabold rounded-lg px-2 py-1 tabular-nums
                              {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : 'text-gray-400 bg-white border border-dashed border-gray-200' }}"
-                      title="{{ $mitiga ? 'Descuenta del residual de este riesgo según el avance' : 'No descuenta hasta que el plan esté aprobado' }}">
-                    @php $nominal = (int) ($riesgo->pivot->mitigacion ?? 0); $efectiva = $plan->mitigacionEfectiva($nominal); @endphp
+                      title="{{ $mitiga ? 'Lo que este plan descuenta de este riesgo: su reducción por eje según el avance, con tope en el impacto ('.$riesgo->impacto.') y la probabilidad ('.$riesgo->probabilidad.') del riesgo' : 'No descuenta hasta que el plan esté aprobado' }}">
+                    @php $nominal = $riesgo->mitigacionPorEjes([$plan->reduccion_nominal]); $efectiva = $riesgo->mitigacionPorEjes([$plan->reduccion_efectiva]); @endphp
                     −{{ $efectiva }}@if($efectiva !== $nominal) <span class="font-medium opacity-60">de {{ $nominal }}</span>@endif
                 </span>
                 <span class="shrink-0 w-20 text-right text-xs tabular-nums text-gray-500" title="Valor total → residual">

@@ -254,7 +254,6 @@ class Riesgo extends Model implements HasMedia
     public function planesAccion(): BelongsToMany
     {
         return $this->belongsToMany(PlanAccion::class, 'plan_accion_riesgo')
-            ->withPivot('mitigacion')
             ->withTimestamps();
     }
 
@@ -268,14 +267,16 @@ class Riesgo extends Model implements HasMedia
     }
 
     /**
-     * Resta al valor_total la mitigación efectiva de los controles asociados (el
-     * número de cada relación regulado por la efectividad de esa misma relación,
-     * D-040) más la de los
-     * planes de acción aprobados en proporción a su avance (D-037). Las dos se
-     * redondean hacia abajo. Sólo mitigan los controles y planes en estado
-     * "aprobado": uno en borrador/validado no baja el valor del riesgo. El
-     * residual nunca baja de 0. Consumir con `controles.estado` y
+     * Resta al valor_total lo que mitigan los planes de acción aprobados (por
+     * eje, con tope en el impacto y la probabilidad del riesgo, D-049) y después
+     * la mitigación efectiva de los controles (el número de cada relación
+     * regulado por su efectividad, D-040). Todo se redondea hacia abajo. Sólo
+     * mitigan los controles y planes en estado "aprobado": uno en
+     * borrador/validado no baja el valor del riesgo. El residual nunca baja de 0.
+     * Consumir con `controles.estado` y
      * `planesAccion.estado`/`planesAccion.tareas.estado` eager-loaded.
+     * Tests: primero_los_planes_por_eje_y_despues_los_controles,
+     * el_desglose_de_mitigacion_separa_controles_y_planes_y_cuadra_con_el_residual.
      */
     public function getValorResidualAttribute(): int
     {
@@ -300,17 +301,39 @@ class Riesgo extends Model implements HasMedia
 
     /**
      * Parte del residual que descuentan los planes: sólo los aprobados
-     * (PlanAccion::mitiga()), con la mitigación del pivot en proporción a su
-     * avance y hacia abajo (PlanAccion::mitigacionEfectiva(), D-037). Ver
+     * (PlanAccion::mitiga()), cada uno con su reducción por eje en proporción a
+     * su avance (PlanAccion::reduccion_efectiva, D-037), sumadas y topeadas en
+     * cada eje del riesgo (mitigacionPorEjes(), D-049). Ver
      * getMitigacionControlesAttribute().
-     * Tests: un_plan_al_80_mitiga_el_80_por_ciento_redondeado_hacia_abajo,
-     * el_desglose_de_mitigacion_separa_controles_y_planes_y_cuadra_con_el_residual.
+     * Tests: un_plan_mitiga_por_eje_hasta_el_valor_de_cada_eje,
+     * dos_planes_que_superan_un_eje_quedan_topeados_en_ese_eje.
      */
     public function getMitigacionPlanesAttribute(): int
     {
-        return (int) $this->planesAccion
-            ->filter(fn ($plan) => $plan->mitiga())
-            ->sum(fn ($plan) => $plan->mitigacionEfectiva((int) ($plan->pivot->mitigacion ?? 0)));
+        return $this->mitigacionPorEjes(
+            $this->planesAccion->filter(fn ($plan) => $plan->mitiga())->map(fn ($plan) => $plan->reduccion_efectiva)
+        );
+    }
+
+    /**
+     * Regla única del tope por eje (D-049): suma por separado lo que reducen
+     * $reducciones en impacto y en probabilidad, y cada suma no pasa del valor de
+     * ese eje en el riesgo. Ej.: riesgo 5/5 con un plan 8 imp / 2 prob mitiga
+     * 5 + 2 = 7. La usan los accessors oficial y proyectado, la preview de
+     * GestionPlanes y lo que muestra cada plan por riesgo.
+     * Test: un_plan_mitiga_por_eje_hasta_el_valor_de_cada_eje.
+     *
+     * @param  iterable<array{impacto:int, probabilidad:int}>  $reducciones
+     */
+    public function mitigacionPorEjes(iterable $reducciones): int
+    {
+        $impacto = $probabilidad = 0;
+        foreach ($reducciones as $r) {
+            $impacto += $r['impacto'];
+            $probabilidad += $r['probabilidad'];
+        }
+
+        return min((int) $this->impacto, $impacto) + min((int) $this->probabilidad, $probabilidad);
     }
 
     /**
@@ -335,12 +358,12 @@ class Riesgo extends Model implements HasMedia
             ->sum(fn ($control) => $control->pivot->mitigacionEfectiva((int) $control->mitigacion_default));
     }
 
-    /** Ver getValorResidualProyectadoAttribute() y PlanAccion::mitigacionEfectivaProyectada(). */
+    /** Ver getValorResidualProyectadoAttribute(), PlanAccion::reduccion_efectiva_proyectada y mitigacionPorEjes(). */
     public function getMitigacionPlanesProyectadaAttribute(): int
     {
-        return (int) $this->planesAccion
-            ->filter(fn ($plan) => $plan->mitigaProyectado())
-            ->sum(fn ($plan) => $plan->mitigacionEfectivaProyectada((int) ($plan->pivot->mitigacion ?? 0)));
+        return $this->mitigacionPorEjes(
+            $this->planesAccion->filter(fn ($plan) => $plan->mitigaProyectado())->map(fn ($plan) => $plan->reduccion_efectiva_proyectada)
+        );
     }
 
     /**

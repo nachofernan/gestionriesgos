@@ -272,8 +272,9 @@ class PropuestasPorElementoTest extends TestCase
     }
 
     #[Test]
-    public function agregar_un_plan_con_mitigacion_se_propone_y_se_aplica_con_su_pivot(): void
+    public function agregar_un_plan_se_propone_y_se_aplica_sin_numero_en_la_relacion(): void
     {
+        // D-049: lo que descuenta el plan sale de su valoración, no de la relación.
         $plan = PlanAccion::factory()->create([
             'area_id' => $this->gerencia->id,
             'estado_id' => Estado::aprobado()->id,
@@ -283,16 +284,15 @@ class PropuestasPorElementoTest extends TestCase
             ->test(GestionPlanes::class, ['riesgo' => $this->riesgo])
             ->call('activarEdicion')
             ->call('agregar', $plan->id)
-            ->call('actualizarMitigacion', $plan->id, 5)
             ->call('guardar');
 
         $propuesta = $this->propuestas()->sole();
-        $this->assertEquals(['agregar' => [$plan->id => ['mitigacion' => 5]]], $propuesta->data['relaciones']['planesAccion']);
+        $this->assertEquals(['agregar' => [$plan->id => []]], $propuesta->data['relaciones']['planesAccion']);
         $this->assertCount(0, $this->riesgo->refresh()->planesAccion);
 
         $this->validarComo($this->gerente, $propuesta);
 
-        $this->assertEquals(5, $this->riesgo->refresh()->planesAccion->sole()->pivot->mitigacion);
+        $this->assertEquals([$plan->id], $this->riesgo->refresh()->planesAccion->pluck('id')->all());
     }
 
     // -------------------------------------------------------

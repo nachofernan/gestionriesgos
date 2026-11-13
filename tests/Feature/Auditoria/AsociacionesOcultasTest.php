@@ -167,7 +167,7 @@ class AsociacionesOcultasTest extends TestCase
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id]);
         $borrado = PlanAccion::factory()->create(['estado_id' => Estado::borrado()->id]);
-        $riesgo->planesAccion()->attach($borrado->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($borrado->id);
 
         Livewire::actingAs($this->grassi)
             ->test(GestionPlanes::class, ['riesgo' => $riesgo])

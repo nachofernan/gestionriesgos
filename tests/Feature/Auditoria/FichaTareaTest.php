@@ -55,9 +55,9 @@ class FichaTareaTest extends TestCase
             'estado_id' => Estado::aprobado()->id,
             'area_id' => $this->gerencia->id,
         ]);
-        $plan = PlanAccion::factory()->create(['estado_id' => Estado::aprobado()->id, 'area_id' => $this->gerencia->id]);
+        $plan = PlanAccion::factory()->valorado(6, 0)->create(['estado_id' => Estado::aprobado()->id, 'area_id' => $this->gerencia->id]);
         $plan->tareas()->attach($this->tarea->id);
-        $this->riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 6]);
+        $this->riesgo->planesAccion()->attach($plan->id);
     }
 
     private function residual(): int

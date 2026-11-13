@@ -51,13 +51,14 @@ class PlanAccionSeeder extends Seeder
                 'user_id' => $user->id,
                 'area_id' => $user->area_id,
                 'estado_id' => $estadoIds[$estadoPlan],
+                // Valoración estimada al azar (D-049): cada respuesta es sí (1) o no (0).
+                'evaluacion_estimada' => collect(config('plan_preguntas'))
+                    ->map(fn ($preguntas) => collect($preguntas)->mapWithKeys(fn ($p) => [$p['id'] => rand(0, 1)])->all())
+                    ->all(),
             ]);
 
-            // 1-3 riesgos, cada uno con la mitigación que el plan aplica al llegar al 100%.
             $rSample = (array) array_rand($riesgoIds, rand(1, min(3, count($riesgoIds))));
-            $plan->riesgos()->attach(
-                collect($rSample)->mapWithKeys(fn ($idx) => [$riesgoIds[$idx] => ['mitigacion' => rand(2, 8)]])->all()
-            );
+            $plan->riesgos()->attach(collect($rSample)->map(fn ($idx) => $riesgoIds[$idx])->all());
 
             // 3-5 tareas, pero solo de las compatibles con el estado del plan (ver arriba).
             // Las tareas son many-to-many, así que reusarlas entre planes es válido.
@@ -78,6 +79,6 @@ class PlanAccionSeeder extends Seeder
             ->whereHas('estado', fn ($q) => $q->whereIn('nombre', ['validado', 'aprobado']))
             ->whereDoesntHave('planesAccion')
             ->get()
-            ->each(fn ($riesgo) => $riesgo->planesAccion()->attach($planIds[array_rand($planIds)], ['mitigacion' => rand(2, 8)]));
+            ->each(fn ($riesgo) => $riesgo->planesAccion()->attach($planIds[array_rand($planIds)]));
     }
 }

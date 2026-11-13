@@ -62,7 +62,7 @@ class CascadaGruposIndependientesTest extends TestCase
         ]); // borrador por defecto
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id]); // borrador por defecto
         $riesgo->objetivos()->attach($objetivo->id);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         return [$riesgo, $objetivo, $plan];
     }
@@ -184,7 +184,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $objetivo = Objetivo::create(['nombre' => 'Objetivo', 'area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
         $riesgo->objetivos()->attach($objetivo->id);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $analisis = app(ValidacionMasivaService::class)->analizar($riesgo, 'aprobar', $this->comite);
 
@@ -210,7 +210,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $objetivo = Objetivo::create(['nombre' => 'Objetivo', 'area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
         $riesgo->objetivos()->attach($objetivo->id);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $analisis = app(ValidacionMasivaService::class)->analizar($riesgo, 'aprobar', $this->comite);
 
@@ -225,7 +225,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $objetivo = Objetivo::create(['nombre' => 'Objetivo', 'area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
         $riesgo->objetivos()->attach($objetivo->id);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $componente = Livewire::actingAs($this->comite)
             ->test(ValidacionCascadaModal::class)
@@ -257,7 +257,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $objetivo = Objetivo::create(['nombre' => 'Objetivo', 'area_id' => $this->area->id, 'estado_id' => Estado::aprobado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
         $riesgo->objetivos()->attach($objetivo->id);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         Livewire::actingAs($this->comite)
             ->test(ValidacionCascadaModal::class)
@@ -283,7 +283,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $objetivo = Objetivo::create(['nombre' => 'Objetivo', 'area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
         $riesgo->objetivos()->attach($objetivo->id);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         $componente = Livewire::actingAs($this->comite)
             ->test(ValidacionCascadaModal::class)
@@ -319,7 +319,7 @@ class CascadaGruposIndependientesTest extends TestCase
         $objetivo = Objetivo::create(['nombre' => 'Objetivo', 'area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->area->id, 'estado_id' => Estado::validado()->id]);
         $riesgo->objetivos()->attach($objetivo->id);
-        $riesgo->planesAccion()->attach($plan->id, ['mitigacion' => 5]);
+        $riesgo->planesAccion()->attach($plan->id);
 
         Livewire::actingAs($this->comite)
             ->test(ValidacionCascadaModal::class)

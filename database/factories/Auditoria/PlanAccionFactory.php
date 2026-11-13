@@ -18,4 +18,25 @@ class PlanAccionFactory extends Factory
             'user_id' => User::factory(),
         ];
     }
+
+    /** Plan con la estimación que reduce $impacto y $probabilidad (pares, 0-10, D-049). */
+    public function valorado(int $impacto, int $probabilidad): static
+    {
+        return $this->state(['evaluacion_estimada' => self::evaluacion($impacto, $probabilidad)]);
+    }
+
+    /**
+     * Respuestas del cuestionario del plan que dan esa reducción por eje: los
+     * primeros N/2 "sí" de cada eje (config/plan_preguntas.php).
+     *
+     * @return array{probabilidad: array<int,int>, impacto: array<int,int>}
+     */
+    public static function evaluacion(int $impacto, int $probabilidad): array
+    {
+        $eje = fn (string $nombre, int $reduccion) => collect(config("plan_preguntas.$nombre"))
+            ->mapWithKeys(fn ($p, $i) => [$p['id'] => $i < intdiv($reduccion, 2) ? 1 : 0])
+            ->all();
+
+        return ['probabilidad' => $eje('probabilidad', $probabilidad), 'impacto' => $eje('impacto', $impacto)];
+    }
 }
