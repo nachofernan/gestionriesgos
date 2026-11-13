@@ -268,7 +268,7 @@ class Riesgo extends Model implements HasMedia
 
     /**
      * Resta al valor_total lo que mitigan los planes de acción aprobados (por
-     * eje, con tope en el impacto y la probabilidad del riesgo, D-049) y después
+     * eje, con tope en el impacto y la probabilidad del riesgo, D-050) y después
      * la mitigación efectiva de los controles (el número de cada relación
      * regulado por su efectividad, D-040). Todo se redondea hacia abajo. Sólo
      * mitigan los controles y planes en estado "aprobado": uno en
@@ -303,7 +303,7 @@ class Riesgo extends Model implements HasMedia
      * Parte del residual que descuentan los planes: sólo los aprobados
      * (PlanAccion::mitiga()), cada uno con su reducción por eje en proporción a
      * su avance (PlanAccion::reduccion_efectiva, D-037), sumadas y topeadas en
-     * cada eje del riesgo (mitigacionPorEjes(), D-049). Ver
+     * cada eje del riesgo (mitigacionPorEjes(), D-050). Ver
      * getMitigacionControlesAttribute().
      * Tests: un_plan_mitiga_por_eje_hasta_el_valor_de_cada_eje,
      * dos_planes_que_superan_un_eje_quedan_topeados_en_ese_eje.
@@ -316,7 +316,7 @@ class Riesgo extends Model implements HasMedia
     }
 
     /**
-     * Regla única del tope por eje (D-049): suma por separado lo que reducen
+     * Regla única del tope por eje (D-050): suma por separado lo que reducen
      * $reducciones en impacto y en probabilidad, y cada suma no pasa del valor de
      * ese eje en el riesgo. Ej.: riesgo 5/5 con un plan 8 imp / 2 prob mitiga
      * 5 + 2 = 7. La usan los accessors oficial y proyectado, la preview de

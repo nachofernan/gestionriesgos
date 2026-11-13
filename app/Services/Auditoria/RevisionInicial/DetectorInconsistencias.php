@@ -285,7 +285,7 @@ class DetectorInconsistencias
         if ($plan->tareas_count === 0) {
             $hallazgos[] = $this->advertencia('sin_tareas', 'No tiene tareas.');
         }
-        // Sin estimación el plan no mitiga nada (D-049): así se ven los planes
+        // Sin estimación el plan no mitiga nada (D-050): así se ven los planes
         // anteriores a la valoración, que pasaron a descontar 0.
         if ($plan->evaluacion_estimada === null) {
             $hallazgos[] = $this->advertencia('sin_valor', 'No tiene el valor estimado: no descuenta del residual de sus riesgos.');

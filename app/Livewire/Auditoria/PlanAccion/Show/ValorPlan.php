@@ -9,7 +9,7 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Card "Valor del plan" de planaccion/show (D-049): muestra cuánto se estima que
+ * Card "Valor del plan" de planaccion/show (D-050): muestra cuánto se estima que
  * reduce el plan en probabilidad e impacto, la evaluación final si ya está, y lo
  * que descuenta hoy según su avance. Abre el cuestionario de
  * config/plan_preguntas.php para estimar (desde que existe el plan) o para la

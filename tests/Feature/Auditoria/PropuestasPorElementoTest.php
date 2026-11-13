@@ -274,7 +274,7 @@ class PropuestasPorElementoTest extends TestCase
     #[Test]
     public function agregar_un_plan_se_propone_y_se_aplica_sin_numero_en_la_relacion(): void
     {
-        // D-049: lo que descuenta el plan sale de su valoración, no de la relación.
+        // D-050: lo que descuenta el plan sale de su valoración, no de la relación.
         $plan = PlanAccion::factory()->create([
             'area_id' => $this->gerencia->id,
             'estado_id' => Estado::aprobado()->id,

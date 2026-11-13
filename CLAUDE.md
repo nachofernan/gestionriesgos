@@ -112,12 +112,15 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
    vistas. Toda ruta o método que muta lleva su test de 403.
 
 2. **El valor de un riesgo se deriva de datos, nunca se calcula "a ojo" en una vista.**
-   `valor_total = impacto + probabilidad`. `valor_residual` descuenta la mitigación de los controles
-   **en estado aprobado**, regulada por la efectividad de **cada relación control-riesgo** (D-040),
-   más la de los planes de acción **aprobados, en proporción a su avance**, y nunca baja de 0. Las dos
+   `valor_total = impacto + probabilidad`. `valor_residual` descuenta primero lo que reducen los
+   planes de acción **aprobados**: **por eje**, según la valoración del plan (la evaluación final si
+   existe, si no la estimada, D-050), en proporción a su avance y con tope en el impacto y la
+   probabilidad del riesgo. Después descuenta la mitigación de los controles **en estado aprobado**,
+   regulada por la efectividad de **cada relación control-riesgo** (D-040). Nunca baja de 0. Las
    proporciones se redondean **hacia abajo**: sólo al 100% se mitiga el valor entero (D-037). El
    número de una relación nunca pasa el del control, que sale de sus checks. Un control o plan en
-   borrador/validado no baja el valor; un plan al 99% no mitiga el valor entero. Estos
+   borrador/validado no baja el valor; un plan al 99% no mitiga el valor entero; un plan sin
+   estimación no se valida. Estos
    accessors calculados viven en el modelo `Riesgo`, se consumen con las relaciones eager-loaded, y
    son la fuente de verdad: ninguna vista recalcula el residual por su cuenta.
    Un borrador **interno** (D-044) tiene además un residual *proyectado*, donde también cuentan los

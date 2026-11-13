@@ -20,7 +20,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Valoración del plan por cuestionario (D-049): la estimación (card "Valor del
+ * Valoración del plan por cuestionario (D-050): la estimación (card "Valor del
  * plan", obligatoria para validar) y la evaluación final (plan aprobado al
  * 100%), con sus permisos y su paso por propuesta. El cálculo del residual con
  * esas valoraciones está en MitigacionPlanTest.

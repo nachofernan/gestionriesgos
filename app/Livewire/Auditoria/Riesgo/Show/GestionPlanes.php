@@ -15,7 +15,7 @@ use Livewire\Component;
 /**
  * Gestión de los Planes de Acción asociados a un Riesgo (patrón $seleccionados
  * en memoria → guardar()). Lo que cada plan descuenta no se carga acá: sale de
- * la valoración del propio plan, por eje y en proporción a su avance (D-049).
+ * la valoración del propio plan, por eje y en proporción a su avance (D-050).
  * Si el riesgo está en borrador, sincroniza directo; si no, la asociación queda
  * como una Actualizacion (propuesta de cambio) que se aplica de inmediato sólo si
  * el estado resultante lo amerita (ver estadoParaActualizacion()). Emite
@@ -292,7 +292,7 @@ class GestionPlanes extends Component
 
     /**
      * Residual = valor total menos lo que reducen los planes seleccionados que
-     * estén aprobados (por eje, con tope, Riesgo::mitigacionPorEjes(), D-049)
+     * estén aprobados (por eje, con tope, Riesgo::mitigacionPorEjes(), D-050)
      * menos la mitigación ya persistida de los controles (no persiste, es sólo
      * feedback en vivo). Misma regla que Riesgo::getValorResidualAttribute.
      * Test: el_preview_en_vivo_de_planes_cuenta_los_aprobados_en_proporcion_a_su_avance.

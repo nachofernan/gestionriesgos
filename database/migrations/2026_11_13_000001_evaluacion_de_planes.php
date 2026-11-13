@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * D-049: el plan se valora con un cuestionario (estimado al diseñarlo, real al
+ * D-050: el plan se valora con un cuestionario (estimado al diseñarlo, real al
  * terminarlo) que reduce impacto y probabilidad por separado. La mitigación
  * manual de cada relación plan-riesgo desaparece.
  *

@@ -1,6 +1,6 @@
 <?php
 
-// Preguntas para valorar un plan de acción (D-049): 5 de reducción de la
+// Preguntas para valorar un plan de acción (D-050): 5 de reducción de la
 // probabilidad y 5 de reducción del impacto, de sí/no. Cada sí reduce 2 puntos
 // su eje (hasta 10). Cada pregunta tiene dos redacciones: 'estimada' (al diseñar
 // el plan: ¿se espera que logre…?) y 'final' (con el plan implementado: ¿logró…?).

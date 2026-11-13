@@ -27,7 +27,7 @@ use Tests\TestCase;
  * 2) El avance del plan promedia sólo las tareas aprobadas; las tareas en estado
  *    "borrado" quedan fuera del plan (no cuentan ni se muestran).
  * 3) Un plan aprobado reduce impacto y probabilidad según su valoración (la
- *    final si existe, si no la estimada, D-049), en proporción a su avance y
+ *    final si existe, si no la estimada, D-050), en proporción a su avance y
  *    hacia abajo (D-037), con tope en cada eje del riesgo; después restan los
  *    controles.
  */
@@ -67,7 +67,7 @@ class MitigacionPlanTest extends TestCase
     }
 
     // -------------------------------------------------------
-    // Regla 3 — mitigación de planes, por eje (D-049)
+    // Regla 3 — mitigación de planes, por eje (D-050)
     // -------------------------------------------------------
 
     #[Test]

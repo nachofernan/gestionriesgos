@@ -49,7 +49,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | `Testeo` | `testeos` | Testeo de la evidencia de cumplimiento de una relación (D-040): fecha, % antes/después, comentario, adjuntos. Append-only. Lo carga sólo el auditor y se aplica en el acto (`Testeo::registrar()`). |
 | `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `peis` (boolean): si es true, requiere al menos un `PeisItem` asociado (ver validación en `ObjetivoController`). |
 | `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
-| `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
+| `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Se valora con un cuestionario (D-050): `evaluacion_estimada` y `evaluacion_final` (json, `{probabilidad: {id: 0|1}, impacto: {id: 0|1}}`, preguntas en `config/plan_preguntas.php`, cálculo en `EvaluacionPlan`). `reduccion_nominal` es la final si existe, si no la estimada (2 puntos por sí, hasta 10 por eje); `reduccion_efectiva` la aplica según el avance, eje por eje. `finalizado`: evaluación final y avance 100. Sin estimación no se valida ni se aprueba (`motivosBloqueoValidacion()`). Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
 | `Tarea` | `tareas` | Unidad de trabajo. `fecha` casteada a `date`, `porcentaje_avance` (0-100). |
 | `Actualizacion` | `actualizaciones` | Historial de actualizaciones polimórfico. Tiene `mensaje`, `data` (JSON) y `user_id`. Las aprobaciones llevan `comite_numero`/`comite_fecha` opcionales; una entrada `tipo = comite` con `comite_de_id` los carga o corrige después (D-039). |
 | `EstadoRiesgo` | `estados_riesgo` | Catálogo: borrador, validado, activo, mitigado, eliminado. |
@@ -70,15 +70,15 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | `control_riesgo` | Control ↔ Riesgo | `mitigacion` (nullable, sobreescribe `mitigacion_default`) |
 | `objetivo_riesgo` | Objetivo ↔ Riesgo | — |
 | `objetivo_peis_item` | Objetivo ↔ PeisItem | — |
-| `plan_accion_riesgo` | PlanAccion ↔ Riesgo | — |
+| `plan_accion_riesgo` | PlanAccion ↔ Riesgo | — (la `mitigacion` manual se eliminó en D-050) |
 | `plan_accion_tarea` | PlanAccion ↔ Tarea | — |
 
 ### Accessors calculados en Riesgo
 
 - **`valor_total`**: `impacto + probabilidad` (0–20)
 - **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control, y la regula por la `efectividad` **de esa relación**: `floor(número × efectividad / 100)`, por cada relación antes de sumar (`ControlRiesgo::mitigacionEfectiva()`, D-037, D-040).
-- **`mitigacion_planes`**: Σ `pivot->mitigacion` de los planes **aprobados**, en proporción al promedio exacto de avance de sus tareas aprobadas: `floor(nominal × Σ avance / (cantidad × 100))` (`PlanAccion::mitigacionEfectiva()` / `aplicarAvance()`, D-037). Sin tareas aprobadas, 0.
-- **`valor_residual`**: `valor_total − mitigacion_controles − mitigacion_planes` (mínimo 0).
+- **`mitigacion_planes`**: lo que reducen los planes **aprobados**, **por eje** (D-050). Cada plan aporta su `reduccion_efectiva`: la nominal de cada eje en proporción al promedio exacto de avance de sus tareas aprobadas, `floor(nominal × Σ avance / (cantidad × 100))` (`aplicarAvance()`, D-037). Se suman por eje y cada suma tiene tope en el impacto y la probabilidad del riesgo: `min(impacto, Σ imp) + min(probabilidad, Σ prob)` (`Riesgo::mitigacionPorEjes()`). Ej.: riesgo 5/5 con un plan 8 imp / 2 prob → 7.
+- **`valor_residual`**: `valor_total − mitigacion_planes − mitigacion_controles` (mínimo 0). Los planes topean por eje y los controles restan de lo que queda.
 - **`valor_residual_proyectado`** (borrador interno, D-044): igual que `valor_residual`, pero también descuentan los controles y planes en borrador **con** flag `interno` (`Control::mitigaProyectado()`, `PlanAccion::mitigaProyectado()`). Un plan cuenta sus tareas aprobadas e internas (`PlanAccion::tareasProyectadas()`, `avance_proyectado`). Los desgloses son `mitigacion_controles_proyectada` y `mitigacion_planes_proyectada`. No reemplaza al oficial.
 
 ---
@@ -284,7 +284,8 @@ app/Livewire/Auditoria/
     ├── FichaPlan.php           — datos del plan, editables en el bloque
     ├── GestionTareas.php       — tareas del plan, propuesta por elemento (D-018)
     ├── RiesgosPlan.php         — riesgos que mitiga (sólo lectura, se refresca con las tareas)
-    └── InfoPlan.php            — tarjeta Avance del lateral (mitigación, vencimiento)
+    ├── InfoPlan.php            — tarjeta Avance del lateral (mitigación, vencimiento)
+    └── ValorPlan.php           — card Valor del plan: estimación y evaluación final por cuestionario (D-050)
 ```
 
 **riesgo/show (rediseño, ver [D-016](DECISIONES.md#d-016) y [updates/2026-09-24](updates/2026-09-24.md)):**

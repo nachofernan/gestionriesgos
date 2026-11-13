@@ -141,7 +141,7 @@ class PlanAccion extends Model implements HasMedia
     }
 
     /**
-     * Cuánto reduce el plan cada eje según su valoración (D-049): la evaluación
+     * Cuánto reduce el plan cada eje según su valoración (D-050): la evaluación
      * final si ya está cargada, si no la estimada; sin ninguna, 0 y 0. Es lo que
      * reduce al 100% de avance, antes del tope de cada riesgo.
      * Tests: la_evaluacion_final_reemplaza_a_la_estimada, un_plan_sin_evaluacion_no_mitiga.
@@ -156,7 +156,7 @@ class PlanAccion extends Model implements HasMedia
     /**
      * Reducción que aplica de verdad el plan: la nominal de cada eje en
      * proporción al promedio exacto de avance de sus tareas aprobadas, hacia
-     * abajo y eje por eje (D-037, D-049). Sin tareas aprobadas, 0. El tope contra
+     * abajo y eje por eje (D-037, D-050). Sin tareas aprobadas, 0. El tope contra
      * el impacto y la probabilidad de cada riesgo lo pone Riesgo::mitigacionPorEjes().
      * Requiere `tareas.estado` cargado.
      * Tests: un_plan_al_80_reduce_cada_eje_en_proporcion_hacia_abajo,
@@ -177,7 +177,7 @@ class PlanAccion extends Model implements HasMedia
     }
 
     /**
-     * El plan terminó (D-049): tareas al 100% y la evaluación final ya aplicada.
+     * El plan terminó (D-050): tareas al 100% y la evaluación final ya aplicada.
      * Requiere `tareas.estado` cargado. Test: con_la_evaluacion_final_aprobada_el_plan_queda_finalizado.
      */
     public function getFinalizadoAttribute(): bool
@@ -186,7 +186,7 @@ class PlanAccion extends Model implements HasMedia
     }
 
     // -------------------------------------------------------
-    // Valoración del plan (D-049)
+    // Valoración del plan (D-050)
     // -------------------------------------------------------
 
     /**

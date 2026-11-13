@@ -16,18 +16,18 @@ class PlanAccionFactory extends Factory
             'nombre' => $this->faker->sentence(3),
             'descripcion' => $this->faker->paragraph(),
             'user_id' => User::factory(),
-            // Estimado con todo en "no": se puede validar y no mitiga nada (D-049).
+            // Estimado con todo en "no": se puede validar y no mitiga nada (D-050).
             'evaluacion_estimada' => self::evaluacion(0, 0),
         ];
     }
 
-    /** Plan todavía sin estimar: no se valida ni mitiga (D-049). */
+    /** Plan todavía sin estimar: no se valida ni mitiga (D-050). */
     public function sinValorar(): static
     {
         return $this->state(['evaluacion_estimada' => null]);
     }
 
-    /** Plan con la estimación que reduce $impacto y $probabilidad (pares, 0-10, D-049). */
+    /** Plan con la estimación que reduce $impacto y $probabilidad (pares, 0-10, D-050). */
     public function valorado(int $impacto, int $probabilidad): static
     {
         return $this->state(['evaluacion_estimada' => self::evaluacion($impacto, $probabilidad)]);

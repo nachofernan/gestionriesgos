@@ -1,0 +1,32 @@
+Al momento de diseñar el plan y asociarlo al riesgo (daría un estimado de valoración del riesgo luego del tratamiento):
+
+
+I.	¿SE ESPERA QUE EL PLAN DE ACCIÓN, UNA VEZ IMPLEMENTADO EN SU TOTALIDAD, LOGRE…? 
+a.	Reducción de la probabilidad (En todas, las opciones de respuesta son SI=2/NO=0, máxima reducción= 10 puntos)
+1.	¿Eliminar o reducir las causas directas o subyacentes que podrían dar origen al riesgo?
+2.	¿Reducir la exposición al riesgo, disminuyendo las oportunidades, operaciones, procesos o situaciones en las que podría producirse?
+3.	¿Incorporar o fortalecer controles preventivos, mecanismos de autorización, supervisión o verificación que disminuyan la posibilidad de ocurrencia del riesgo?
+4.	¿Reducir la dependencia de decisiones individuales o discrecionales, o establecer una mayor separación de funciones en las actividades expuestas al riesgo?
+5.	¿Establecer mecanismos de seguimiento, indicadores o alertas tempranas que permitan identificar y corregir oportunamente desvíos antes de que el riesgo se materialice?
+b.	Reducción del Impacto (En todas, las opciones de respuesta son SI=2/NO=0, máxima reducción= 10 puntos)
+6.	¿Reducir la cantidad de personas, áreas, procesos o terceros que podrían resultar afectados por la materialización del riesgo?
+7.	¿Disminuir la gravedad de las consecuencias sobre la salud, seguridad, integridad o derechos de las personas?
+8.	¿Reducir las posibles pérdidas económicas, costos, sanciones o indemnizaciones derivadas de la materialización del riesgo?
+9.	¿Disminuir las posibles consecuencias sobre la continuidad operativa, la prestación del servicio o el funcionamiento de los procesos?
+10.	¿Disminuir las posibles consecuencias legales, regulatorias o reputacionales para la organización y/o terceros?
+
+Al momento de que se implementa el plan al 100%, lo que confirma o no la reducción del riesgo que se estimó al diseñarlo:
+II. ¿EL PLAN DE ACCIÓN IMPLEMENTADO EN SU TOTALIDAD LOGRÓ…? 
+a. Reducción de la probabilidad (En todas, las opciones de respuesta son SI=2/NO=0, máxima reducción= 10 puntos)
+1.	¿Eliminar o reducir las causas directas o subyacentes que podrían dar origen al riesgo?	
+2.	¿Reducir la exposición al riesgo, disminuyendo las oportunidades, operaciones, procesos o situaciones en las que podría producirse?	
+3.	¿Incorporar o fortalecer controles preventivos, mecanismos de autorización, supervisión o verificación que disminuyan la posibilidad de ocurrencia del riesgo?	
+4.	¿Reducir la dependencia de decisiones individuales o discrecionales, o estableció una mayor separación de funciones en las actividades expuestas al riesgo?	
+5.	¿Establecer mecanismos de seguimiento, indicadores o alertas tempranas que permitan identificar y corregir oportunamente desvíos antes de que el riesgo se materialice?	
+2. Reducción del impacto (En todas, las opciones de respuesta son SI=2/NO=0, máxima reducción= 10 puntos)
+1.	¿Reducir la cantidad de personas, áreas, procesos o terceros que podrían resultar afectados por la materialización del riesgo?	
+2.	¿Disminuir la gravedad de las consecuencias sobre la salud, seguridad, integridad o derechos de las personas?	
+3.	¿Reducir las posibles pérdidas económicas, costos, sanciones o indemnizaciones derivadas de la materialización del riesgo?	
+4.	¿Disminuir las posibles consecuencias sobre la continuidad operativa, la prestación del servicio o el funcionamiento de los procesos?	
+5.	¿Disminuir las posibles consecuencias legales, regulatorias o reputacionales para la organización y/o terceros?	
+

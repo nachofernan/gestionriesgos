@@ -18,6 +18,8 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 - [ ] **Dimensiones del riesgo: darle más entidad a las referencias** ([D-032](DECISIONES.md#d-032), [D-035](DECISIONES.md#d-035)). Hoy se ven como ayuda en el panel del alta. Queda ver si se asocian al riesgo, se filtran en el panel, etc. Falta además el texto completo de la referencia de Gobernanza (llegó cortado).
 - [ ] **Checks definitivos de mitigación** ([D-040](DECISIONES.md#d-040)). Los 5 checks de `Control::CHECKS` son inventados para ver la mecánica. Cuando auditoría pase los reales, se reemplazan ahí (claves y textos). Queda decidir qué pasa con los controles de la carga inicial, que tienen números sin checks (14 son impares).
 - [x] ~~**Riesgos ambientales de antes de D-043**~~ (2026-11-12) — resuelto por [D-046](DECISIONES.md#d-046): la revisión inicial marca como error todo riesgo sin evaluación de su método, así que se recalculan antes de firmarse.
+- [ ] **Valorar los planes existentes** ([D-050](DECISIONES.md#d-050)). Los planes de antes de la valoración por cuestionario no tienen estimación y mitigan 0: hay que cargarla desde la card "Valor del plan". El detector de la revisión inicial los marca como advertencia (`sin_valor`); falta decidir si pasa a error para que no se firmen sin valorar.
+- [ ] **Controles por eje** (idea, [D-050](DECISIONES.md#d-050)): los planes ya mitigan impacto y probabilidad por separado y los controles siguen restando del total. Llevarlos al mismo esquema exige rediseñar sus checks.
 - [ ] **Eliminación por propuesta en el resto de las entidades** ([D-047](DECISIONES.md#d-047)). El riesgo ya se elimina por propuesta, pero el "Eliminar" de control, objetivo, plan y tarea desde su propia ficha sigue siendo un soft delete directo, fuera del ciclo. Falta llevarlos al mismo circuito, y decidir si los objetivos de una sola asociación también se ofrecen al eliminar el riesgo.
 - [ ] **El comité no debería poder crear elementos** — hoy crea y al redirigir al show del borrador recién creado se come un 403. El `create()` de las 5 policies usa `puedeGestionarArea()` y el comité cuelga del área raíz, así que da `true`, pero `view()` le corta el borrador. Se resuelve junto con los permisos particulares en la migración del módulo al sistema real (decisión del 2026-07-17), no antes.
 
@@ -64,4 +66,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-11-12.*
+*Última revisión: 2026-11-13.*

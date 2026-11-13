@@ -151,7 +151,7 @@ class PlanAccionController extends Controller
     /**
      * Valida el plan y arrastra a "validado" todas sus actualizaciones que
      * seguían en borrador, para que queden listas para aprobar() junto al plan.
-     * Sin estimación de su valor no se valida (PlanAccion::motivosBloqueoValidacion(), D-049).
+     * Sin estimación de su valor no se valida (PlanAccion::motivosBloqueoValidacion(), D-050).
      */
     public function validar(PlanAccion $planAccion)
     {

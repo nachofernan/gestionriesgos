@@ -1614,3 +1614,62 @@ Tests: `desde_la_ficha_el_gerente_firma`, `desde_la_ficha_el_gerente_valida_y_fi
 `quien_no_firma_recibe_403_desde_la_ficha` (`RevisionInicialFichaTest`).
 
 Fuente: sesión 2026-11-13, con el usuario presente.
+
+---
+
+## D-050 — El plan se valora con un cuestionario y mitiga por eje (2026-11-13)
+
+**Decisión.** La mitigación de un plan deja de ser un número cargado a mano en cada relación
+plan-riesgo (`plan_accion_riesgo.mitigacion`, que se elimina). La valoración es **del plan** y sale de
+10 preguntas de sí/no (`config/plan_preguntas.php`, del documento del cliente): 5 de reducción de la
+probabilidad y 5 de reducción del impacto. Cada sí reduce 2 puntos su eje, hasta 10.
+
+- **Dos momentos.** La **estimación** se carga desde la card "Valor del plan", una vez creado el plan
+  (no en el alta). Es **obligatoria para validar y aprobar** el plan, también en la validación masiva y
+  en la cascada de un riesgo. La **evaluación final** ("¿logró…?") se habilita con el plan aprobado y
+  al 100%, y da el valor real, que **reemplaza** al estimado. Con la final aplicada y al 100%, el plan
+  queda `finalizado`.
+- **Cómo mitiga.** Mientras se ejecuta, el plan aprobado reduce el estimado × avance, eje por eje y
+  hacia abajo (D-037 sigue). En cada riesgo, lo que reducen sus planes se suma por eje y cada suma no
+  pasa del impacto o la probabilidad del riesgo (`Riesgo::mitigacionPorEjes()`). Un plan 8 imp / 2 prob
+  sobre un riesgo 5/5 mitiga 7, no 10.
+- **Planes primero, controles después.** Los controles siguen restando del total, sin separar eje,
+  sobre lo que dejan los planes. Piso 0.
+- **Circuito.** En borrador la valoración se guarda en el acto, con su entrada en el historial. Fuera
+  de borrador es un cambio de campo (`Actualizacion::registrarCambioCampos()`). Sobre un plan aprobado
+  queda como propuesta: la valida el gerente y la aprueba el comité, y no mueve el residual hasta
+  entonces. Una propuesta pendiente sobre la misma valoración frena otra. **El comité no valora**:
+  aprueba lo que le proponen, como en el recálculo de un riesgo (D-046).
+- **Datos existentes.** Los planes de antes no tienen estimación: mitigan 0 hasta que alguien los
+  valore, así que los residuales suben. El detector de la revisión inicial lo marca como advertencia
+  (`sin_valor`). La migración limpia el número de las propuestas pendientes que lo llevaban, para que
+  sigan aplicando; el `diff` del historial queda como estaba.
+
+**Motivo.** El cliente quería que el valor de mitigación del plan no fuera subjetivo. Además, el
+número entero sobre el total no respetaba la forma del riesgo: un plan que actúa sobre el impacto no
+puede bajar más impacto del que hay.
+
+**Descartado.**
+- **Controles también por eje.** Es más coherente, pero hay que rediseñar los checks del control.
+  Queda para cuando haga falta.
+- **Nada hasta la evaluación final.** El plan dejaría de mitigar durante la ejecución, cosa que D-037
+  había resuelto a propósito.
+- **Un estado "finalizado" en el ciclo del plan.** Alcanza con una condición derivada
+  (evaluación final aplicada y avance 100) sin tocar el ciclo de estados.
+- **Mantener el número manual como respaldo para los planes viejos.** Harían convivir dos reglas.
+- **Que el plan sin estimación sea error en la revisión inicial** (como el riesgo sin evaluación,
+  D-046). Se dejó como advertencia; si se quiere forzar la valoración antes de firmar, es cambiar el
+  nivel en `DetectorInconsistencias::plan()`.
+
+**Efecto en cascada anotado.** Núcleo: cambia el residual de todo riesgo con planes. Esquema
+(migración `2026_11_13_000001_evaluacion_de_planes`), `PlanAccion` (`reduccion_nominal`,
+`reduccion_efectiva`, `reduccion_efectiva_proyectada`, `finalizado`, `motivosBloqueoValidacion()`,
+`motivoBloqueoValoracion()`, `registrarValoracion()`; sale `mitigacionEfectiva()`), `Riesgo`
+(`mitigacion_planes` y su proyectada, `mitigacionPorEjes()`), `GestionPlanes` (sale el input de
+mitigación), `PlanAccionController::validar`/`aprobar`, `ValidacionMasivaService`, detector de la
+revisión inicial, factory (estimación con todo en "no" por defecto, estado `sinValorar()`) y seeder.
+
+Tests: `MitigacionPlanTest` (reescrito) y `ValorPlanTest` (nuevo); adaptados los que cargaban el número
+en la relación.
+
+Fuente: sesión 2026-11-13, con el usuario presente. Las preguntas, en `docs/preguntas_plan.txt`.

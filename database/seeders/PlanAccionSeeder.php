@@ -51,7 +51,7 @@ class PlanAccionSeeder extends Seeder
                 'user_id' => $user->id,
                 'area_id' => $user->area_id,
                 'estado_id' => $estadoIds[$estadoPlan],
-                // Valoración estimada al azar (D-049): cada respuesta es sí (1) o no (0).
+                // Valoración estimada al azar (D-050): cada respuesta es sí (1) o no (0).
                 'evaluacion_estimada' => collect(config('plan_preguntas'))
                     ->map(fn ($preguntas) => collect($preguntas)->mapWithKeys(fn ($p) => [$p['id'] => rand(0, 1)])->all())
                     ->all(),
