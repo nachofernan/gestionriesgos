@@ -66,6 +66,13 @@ class ValidacionMasivaService
 
                     continue;
                 }
+                // Un plan sin estimación de su valor no se valida ni se aprueba (D-049).
+                if ($modelo instanceof PlanAccion && ($motivos = $modelo->motivosBloqueoValidacion())) {
+                    $fallidos[] = ['nombre' => $modelo->nombre, 'razon' => implode(' ', $motivos)];
+                    $bloqueanteFallo = true;
+
+                    continue;
+                }
                 $this->procesarTransicion($modelo, $accion, $usuario, $comite);
                 $exitosos[] = $modelo->nombre;
             }
@@ -104,6 +111,11 @@ class ValidacionMasivaService
 
                     return ['error' => implode(' ', $motivos)];
                 }
+            }
+            if ($entidad instanceof PlanAccion && ($motivos = $entidad->motivosBloqueoValidacion())) {
+                DB::rollBack();
+
+                return ['error' => implode(' ', $motivos)];
             }
 
             // 4. Procesar entidad principal
@@ -204,7 +216,8 @@ class ValidacionMasivaService
      * El plan de acción se valida/aprueba de forma independiente del estado del
      * riesgo: la causalidad es al revés (el riesgo depende del plan, ver
      * analizarRiesgo() y Riesgo::motivosBloqueoValidacion()/motivosBloqueoAprobacion()),
-     * así que acá no hay bloqueantes — sólo tareas ofrecidas como opcionales.
+     * así que acá no hay bloqueantes — sólo tareas ofrecidas como opcionales. Lo
+     * que sí exige el plan (su estimación, D-049) lo revisa ejecutar().
      */
     private function analizarPlanAccion(PlanAccion $plan, string $accion, User $usuario): array
     {

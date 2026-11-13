@@ -73,6 +73,7 @@
         {{-- Lateral: cuánto avanzó, cuándo vence, qué pasó --}}
         <aside class="lg:col-span-4 space-y-5 order-1 lg:order-2 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pb-2 lg:-mr-2 lg:pr-2">
             @livewire('auditoria.plan-accion.show.info-plan', ['plan' => $planAccion])
+            @livewire('auditoria.plan-accion.show.valor-plan', ['plan' => $planAccion])
             @livewire('auditoria.actualizaciones.gestion-actualizaciones', ['modelType' => 'plan', 'modelId' => $planAccion->id, 'variante' => 'timeline'])
         </aside>
 

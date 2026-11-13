@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -182,6 +183,94 @@ class PlanAccion extends Model implements HasMedia
     public function getFinalizadoAttribute(): bool
     {
         return $this->evaluacion_final !== null && $this->estaCompleto();
+    }
+
+    // -------------------------------------------------------
+    // Valoración del plan (D-049)
+    // -------------------------------------------------------
+
+    /**
+     * Motivos por los que el plan no se valida ni se aprueba (vacío si se puede):
+     * sin la estimación de su valor no hay con qué medir lo que va a mitigar. Lo
+     * consultan PlanAccionController::validar()/aprobar() y ValidacionMasivaService.
+     * Tests: un_plan_sin_estimacion_no_se_valida, la_validacion_masiva_no_valida_un_plan_sin_estimacion.
+     *
+     * @return list<string>
+     */
+    public function motivosBloqueoValidacion(): array
+    {
+        return $this->evaluacion_estimada === null
+            ? ['Falta estimar el valor del plan (card «Valor del plan»).']
+            : [];
+    }
+
+    /**
+     * Motivo por el que $user no puede cargar ahora la valoración $campo
+     * ('evaluacion_estimada' o 'evaluacion_final'), o null si puede. El comité no
+     * valora: aprueba lo que le proponen (como en el recálculo de un riesgo,
+     * D-046). La final pide el plan aprobado, con estimación y al 100%. Una
+     * propuesta pendiente sobre el mismo campo frena otra. Quien llama ya
+     * autorizó 'proponer'. Requiere `estado` y `tareas.estado` cargados.
+     * Tests: el_comite_no_valora_planes, la_evaluacion_final_no_se_habilita_antes_del_100.
+     */
+    public function motivoBloqueoValoracion(User $user, string $campo): ?string
+    {
+        if ($user->esComite()) {
+            return 'El comité no valora planes: aprueba la valoración que le proponen.';
+        }
+
+        $pendiente = $this->actualizaciones()->propuestasPendientes('campos')->get()
+            ->contains(fn (Actualizacion $a) => array_key_exists($campo, $a->data['campos'] ?? []));
+        if ($pendiente) {
+            return 'Ya hay una propuesta pendiente sobre esta valoración.';
+        }
+
+        if ($campo === 'evaluacion_final') {
+            return match (true) {
+                $this->estado?->nombre !== 'aprobado' => 'La evaluación final se carga con el plan aprobado.',
+                $this->evaluacion_estimada === null => 'Primero hay que estimar el valor del plan.',
+                ! $this->estaCompleto() => 'Se habilita cuando sus tareas aprobadas lleguen al 100%.',
+                default => null,
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * Registra la valoración $campo con $evaluacion (ya validada con
+     * EvaluacionPlan::reglas()). En borrador se aplica en el acto y deja rastro en
+     * el historial; fuera de borrador es un cambio de campo como cualquier otro
+     * (Actualizacion::registrarCambioCampos()): sobre un plan aprobado queda como
+     * propuesta y no mueve el residual hasta que la aprueba el comité. Devuelve
+     * null si no cambió nada. Quien llama ya autorizó y consultó
+     * motivoBloqueoValoracion().
+     * Tests: en_borrador_la_estimacion_se_guarda_en_el_acto,
+     * en_un_plan_aprobado_la_estimacion_queda_como_propuesta_hasta_que_aprueba_el_comite.
+     */
+    public function registrarValoracion(User $user, string $campo, array $evaluacion): ?Actualizacion
+    {
+        if ($evaluacion == $this->$campo) {
+            return null;
+        }
+
+        $mensaje = $campo === 'evaluacion_final' ? 'Evaluación final del plan' : 'Valor estimado del plan';
+
+        if ($this->estado?->nombre !== 'borrador') {
+            return Actualizacion::registrarCambioCampos($this, $user, $mensaje, [$campo => $evaluacion]);
+        }
+
+        return DB::transaction(function () use ($user, $campo, $evaluacion, $mensaje) {
+            $antes = $this->$campo;
+            $this->update([$campo => $evaluacion]);
+
+            return $this->actualizaciones()->create([
+                'user_id' => $user->id,
+                'mensaje' => $mensaje,
+                'estado_id' => Estado::borrador()->id,
+                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => [$campo => ['antes' => $antes, 'despues' => $evaluacion]]]],
+            ]);
+        });
     }
 
     /**

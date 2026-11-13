@@ -256,9 +256,9 @@ class DetectorInconsistenciasTest extends TestCase
     #[Test]
     public function un_plan_sin_riesgos_ni_tareas_son_advertencias(): void
     {
-        $plan = PlanAccion::factory()->create(['area_id' => $this->area->id]);
+        $plan = PlanAccion::factory()->sinValorar()->create(['area_id' => $this->area->id]);
 
-        $this->assertSame(['sin_riesgos' => 'advertencia', 'sin_tareas' => 'advertencia'], $this->hallazgos($plan));
+        $this->assertSame(['sin_riesgos' => 'advertencia', 'sin_tareas' => 'advertencia', 'sin_valor' => 'advertencia'], $this->hallazgos($plan));
     }
 
     #[Test]

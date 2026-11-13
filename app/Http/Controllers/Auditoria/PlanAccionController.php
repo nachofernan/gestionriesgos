@@ -151,10 +151,15 @@ class PlanAccionController extends Controller
     /**
      * Valida el plan y arrastra a "validado" todas sus actualizaciones que
      * seguían en borrador, para que queden listas para aprobar() junto al plan.
+     * Sin estimación de su valor no se valida (PlanAccion::motivosBloqueoValidacion(), D-049).
      */
     public function validar(PlanAccion $planAccion)
     {
         $this->authorize('validar', $planAccion);
+
+        if ($motivos = $planAccion->motivosBloqueoValidacion()) {
+            return back()->with('error', implode(' ', $motivos));
+        }
 
         $planAccion->update(['estado_id' => Estado::validado()->id]);
 
@@ -175,10 +180,15 @@ class PlanAccionController extends Controller
     /**
      * Aprueba el plan y aplica los cambios de todas sus actualizaciones ya
      * validadas (creación y ediciones acumuladas) en una sola transacción.
+     * Mismo requisito de estimación que validar().
      */
     public function aprobar(Request $request, PlanAccion $planAccion)
     {
         $this->authorize('aprobar', $planAccion);
+
+        if ($motivos = $planAccion->motivosBloqueoValidacion()) {
+            return back()->with('error', implode(' ', $motivos));
+        }
         $comite = $request->validate(Actualizacion::reglasComite())['comite'] ?? null;
 
         DB::transaction(function () use ($planAccion, $comite) {

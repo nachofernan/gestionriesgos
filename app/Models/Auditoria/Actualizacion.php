@@ -7,6 +7,7 @@ use App\Enums\Auditoria\Responsabilidad;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Enums\Auditoria\Temporalidad;
 use App\Models\User;
+use App\Services\Auditoria\EvaluacionPlan;
 use App\Services\Auditoria\EvaluacionRiesgo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -650,7 +651,7 @@ class Actualizacion extends Model implements HasMedia
             'temporalidad' => 'Temporalidad', 'condicion' => 'Condición', 'responsabilidad' => 'Responsabilidad',
             'mitigacion_default' => 'Mitigación', 'checks' => 'Checks', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance', 'interno' => 'Interno',
-            'estado' => 'Estado',
+            'estado' => 'Estado', 'evaluacion_estimada' => 'Valor estimado', 'evaluacion_final' => 'Valor final',
         ];
         $formatear = function ($campo, $valor) use ($tiposRiesgo) {
             if ($valor === null || $valor === '') {
@@ -660,6 +661,7 @@ class Actualizacion extends Model implements HasMedia
             return (string) match ($campo) {
                 'tipo_riesgo_id' => $tiposRiesgo[$valor] ?? '#'.$valor,
                 'evaluacion' => EvaluacionRiesgo::resumen($valor),
+                'evaluacion_estimada', 'evaluacion_final' => EvaluacionPlan::resumen($valor),
                 'temporalidad' => Temporalidad::tryFrom($valor)?->label() ?? $valor,
                 'condicion' => Condicion::tryFrom($valor)?->label() ?? $valor,
                 'responsabilidad' => Responsabilidad::tryFrom($valor)?->label() ?? $valor,

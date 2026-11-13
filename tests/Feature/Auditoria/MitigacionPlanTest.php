@@ -180,7 +180,7 @@ class MitigacionPlanTest extends TestCase
     public function un_plan_sin_evaluacion_no_mitiga()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]);
-        $plan = PlanAccion::factory()->create(['estado_id' => Estado::aprobado()->id]);
+        $plan = PlanAccion::factory()->sinValorar()->create(['estado_id' => Estado::aprobado()->id]);
         $plan->tareas()->attach($this->tareaConEstado(100, 'aprobado'));
         $riesgo->planesAccion()->attach($plan->id);
 
