@@ -27,7 +27,7 @@
     };
     $pad = $compacto ? 'px-4' : 'px-5';
 @endphp
-<section id="{{ $ancla }}" @if($editando) data-editando @endif class="scroll-mt-24 bg-white rounded-2xl border shadow-sm overflow-hidden transition-shadow {{ $borde }}">
+<section id="{{ $ancla }}" @if($editando) data-editando @endif class="scroll-mt-24 bg-white rounded-2xl border shadow-sm transition-shadow {{ $borde }}">
 
     <header class="{{ $pad }} pt-4 pb-3 flex items-start justify-between gap-3">
         <div class="min-w-0">
@@ -71,12 +71,13 @@
     {{-- Se decide con los props y no mirando si el slot vino vacío: Livewire mete
          marcadores <!--[if BLOCK]--> dentro de @if/@foreach y el slot nunca queda vacío. --}}
     @if($editando && isset($pie))
-        <div class="{{ $pad }} py-3 border-t border-gray-100 bg-gray-50/70">{{ $pie }}</div>
+        <div class="{{ $pad }} py-3 border-t border-gray-100 bg-gray-50/70 last:rounded-b-2xl">{{ $pie }}</div>
     @endif
 
     @isset($propuestas)
         @if($hayPropuestas)
-            <div class="border-t-2 border-dashed border-amber-200 bg-[repeating-linear-gradient(135deg,rgba(254,243,199,0.35)_0_10px,rgba(255,251,235,0.6)_10px_20px)] {{ $pad }} py-3 space-y-2">
+            {{-- Sin overflow-hidden en el section (cortaba el popover del comité): las esquinas se redondean acá. --}}
+            <div class="last:rounded-b-2xl border-t-2 border-dashed border-amber-200 bg-[repeating-linear-gradient(135deg,rgba(254,243,199,0.35)_0_10px,rgba(255,251,235,0.6)_10px_20px)] {{ $pad }} py-3 space-y-2">
                 <p class="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-amber-700">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                     En propuesta · todavía no forma parte {{ $del }}

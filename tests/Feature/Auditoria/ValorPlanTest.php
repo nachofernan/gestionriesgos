@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\TipoArea;
+use App\Livewire\Auditoria\Actualizaciones\AccionActualizacionModal;
 use App\Livewire\Auditoria\PlanAccion\Show\ValorPlan;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
@@ -139,6 +140,22 @@ class ValorPlanTest extends TestCase
         $propuesta->marcarAprobada($this->comite);
 
         $this->assertSame(10, $this->residual($riesgo));
+    }
+
+    #[Test]
+    public function el_modal_de_aprobacion_muestra_la_valoracion_propuesta_en_texto(): void
+    {
+        // Regresión: el modal pintaba el array crudo de la evaluación (htmlspecialchars TypeError).
+        $plan = $this->plan('aprobado');
+        $plan->update(['evaluacion_estimada' => PlanAccionFactory::evaluacion(2, 0)]);
+        $this->valorar($this->gerente, $plan, 'estimada', 6, 4);
+        $propuesta = $plan->actualizaciones()->propuestasPendientes('campos')->sole();
+
+        Livewire::actingAs($this->comite)
+            ->test(AccionActualizacionModal::class)
+            ->call('abrir', $propuesta->id, 'aprobar')
+            ->assertSee('Valor estimado')
+            ->assertSee('Prob. −4 · Imp. −6');
     }
 
     #[Test]

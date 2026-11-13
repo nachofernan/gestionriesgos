@@ -54,7 +54,8 @@ class AccionActualizacionModal extends Component
         $this->accion = $accion;
         $this->mensaje = $actualizacion->mensaje;
         $this->entidadNombre = $actualizacion->actualizable?->nombre ?? '';
-        $this->diff = $actualizacion->data['diff']['campos'] ?? [];
+        // Filas ya formateadas (etiqueta, antes, después): mismo texto que el resto de las pantallas.
+        $this->diff = $actualizacion->diffLegible()['campos'];
         $this->abierto = true;
     }
 
