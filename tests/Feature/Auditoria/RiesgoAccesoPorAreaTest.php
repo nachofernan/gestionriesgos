@@ -50,9 +50,9 @@ class RiesgoAccesoPorAreaTest extends TestCase
         $this->subarea = Area::create(['nombre' => 'Sistemas', 'area_padre_id' => $this->gerencia->id]);
         $this->otraGerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
 
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->subarea->id]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->otraGerencia->id]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->subarea->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->gerenteAjeno = User::factory()->gerente()->create(['area_id' => $this->otraGerencia->id]);
     }
 
     private function riesgo(string $estado = 'borrador', ?Area $area = null): Riesgo
@@ -113,7 +113,7 @@ class RiesgoAccesoPorAreaTest extends TestCase
     #[Test]
     public function mover_el_area_de_un_borrador_mueve_el_acceso(): void
     {
-        $gerenteMovido = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->otraGerencia->id]);
+        $gerenteMovido = User::factory()->gerente()->create(['area_id' => $this->otraGerencia->id]);
         $riesgo = $this->riesgo();
 
         $riesgo->update(['area_id' => $this->otraGerencia->id]);

@@ -47,7 +47,7 @@ class TesteoRelacionTest extends TestCase
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
         $this->otraGerencia = Area::create(['nombre' => 'Gerencia Auditoría', 'tipo' => TipoArea::Gerencia]);
         // Auditor de otra área: testea igual, el alcance no depende del área.
-        $this->auditor = User::factory()->create(['rol' => 'auditor', 'area_id' => $this->otraGerencia->id]);
+        $this->auditor = User::factory()->auditor()->create(['area_id' => $this->otraGerencia->id]);
 
         $this->control = Control::factory()->create([
             'nombre' => 'Control de stock',
@@ -131,9 +131,9 @@ class TesteoRelacionTest extends TestCase
     #[Test]
     public function nadie_mas_que_el_auditor_registra_un_testeo(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
 
         foreach ([$gerente, $empleado, $comite] as $usuario) {
             Livewire::actingAs($usuario)

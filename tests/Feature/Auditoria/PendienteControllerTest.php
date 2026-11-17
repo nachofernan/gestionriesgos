@@ -47,10 +47,10 @@ class PendienteControllerTest extends TestCase
         $this->gerProd = Area::create(['nombre' => 'Ger. Prod',  'area_padre_id' => $this->comite->id]);
         $this->sectA = Area::create(['nombre' => 'Sector A',   'area_padre_id' => $this->gerAdmin->id]);
 
-        $this->lucia = User::factory()->create(['rol' => 'comite',   'area_id' => $this->comite->id]);
-        $this->canela = User::factory()->create(['rol' => 'gerente',  'area_id' => $this->gerAdmin->id]);
-        $this->grassi = User::factory()->create(['rol' => 'gerente',  'area_id' => $this->gerProd->id]);
-        $this->nacho = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectA->id]);
+        $this->lucia = User::factory()->comite()->create(['area_id' => $this->comite->id]);
+        $this->canela = User::factory()->gerente()->create(['area_id' => $this->gerAdmin->id]);
+        $this->grassi = User::factory()->gerente()->create(['area_id' => $this->gerProd->id]);
+        $this->nacho = User::factory()->empleado()->create(['area_id' => $this->sectA->id]);
     }
 
     #[Test]

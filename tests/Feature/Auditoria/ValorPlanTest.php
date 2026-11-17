@@ -44,9 +44,9 @@ class ValorPlanTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => null]);
     }
 
     /** Plan del área en $estado, con una tarea aprobada al $avance. */
@@ -177,7 +177,7 @@ class ValorPlanTest extends TestCase
     public function quien_no_gestiona_el_plan_recibe_403(): void
     {
         $otra = Area::create(['nombre' => 'Gerencia Ventas', 'tipo' => TipoArea::Gerencia]);
-        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $otra->id]);
+        $ajeno = User::factory()->gerente()->create(['area_id' => $otra->id]);
         $plan = $this->plan('borrador');
 
         Livewire::actingAs($ajeno)

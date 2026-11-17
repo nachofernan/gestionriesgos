@@ -53,7 +53,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function la_pagina_de_creacion_renderiza_el_wizard(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->gerente()->create(['area_id' => null]);
         TipoRiesgo::factory()->create();
 
         $respuesta = $this->actingAs($user)->get(route('auditoria.riesgos.create'));
@@ -66,7 +66,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function el_wizard_crea_el_riesgo_con_impacto_y_probabilidad_calculados_de_las_respuestas(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->gerente()->create(['area_id' => null]);
 
         $respuesta = $this->actingAs($user)
             ->post(route('auditoria.riesgos.store'), $this->datosWizard());
@@ -80,7 +80,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function el_wizard_no_exige_objetivos_para_crear_el_riesgo(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->gerente()->create(['area_id' => null]);
 
         $respuesta = $this->actingAs($user)
             ->post(route('auditoria.riesgos.store'), $this->datosWizard());
@@ -92,7 +92,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function el_historial_de_actualizaciones_se_renderiza_sin_error_tras_crear_el_riesgo(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->gerente()->create(['area_id' => null]);
 
         $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard());
         $riesgo = Riesgo::firstOrFail();
@@ -106,7 +106,7 @@ class RiesgoWizardTest extends TestCase
     public function el_riesgo_creado_queda_en_el_area_elegida_y_su_creador_lo_gestiona(): void
     {
         $area = Area::firstOrCreate(['nombre' => 'Área de prueba']);
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
+        $user = User::factory()->gerente()->create(['area_id' => $area->id]);
 
         $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard());
 
@@ -118,7 +118,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function el_wizard_exige_las_cinco_respuestas_de_cada_eje(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->gerente()->create(['area_id' => null]);
 
         $respuesta = $this->actingAs($user)->post(route('auditoria.riesgos.store'), $this->datosWizard([
             'sedes' => Sede::pluck('id')->all(),
@@ -133,7 +133,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function no_se_puede_validar_un_riesgo_sin_objetivos(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create(['user_id' => $gerente->id]);
 
         $respuesta = $this->actingAs($gerente)->post(route('auditoria.riesgos.validar', $riesgo));
@@ -145,7 +145,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function no_se_puede_validar_un_riesgo_con_respuesta_mitigar_sin_plan_de_accion(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba']);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $gerente->id,
@@ -167,7 +167,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function se_puede_validar_un_riesgo_con_respuesta_mitigar_si_tiene_objetivo_y_plan_validado(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba', 'estado_id' => Estado::validado()->id]);
         $plan = PlanAccion::factory()->create(['estado_id' => Estado::validado()->id]);
         $riesgo = Riesgo::factory()->borrador()->create([
@@ -186,7 +186,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function un_plan_en_borrador_no_alcanza_para_validar_un_riesgo_mitigar_aunque_exista(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba']);
         $plan = PlanAccion::factory()->create(); // borrador por defecto
         $riesgo = Riesgo::factory()->borrador()->create([
@@ -205,7 +205,7 @@ class RiesgoWizardTest extends TestCase
     #[Test]
     public function se_puede_validar_un_riesgo_sin_mitigar_con_solo_un_objetivo(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo de prueba', 'estado_id' => Estado::validado()->id]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $gerente->id,

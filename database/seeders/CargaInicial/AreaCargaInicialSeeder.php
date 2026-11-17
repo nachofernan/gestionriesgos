@@ -71,8 +71,8 @@ class AreaCargaInicialSeeder extends Seeder
             'email' => strtolower($apellido).'@example.com',
             'password' => Hash::make('password'),
             'area_id' => MapeoCargaInicial::$areaIdPorCodigo[$codigoArea],
-            'rol' => $rol,
         ]);
+        $user->assignRole($rol);
 
         MapeoCargaInicial::$userIdPorApellido[$apellido] = $user->id;
     }

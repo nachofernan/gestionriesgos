@@ -57,7 +57,7 @@ class EvaluacionRiesgoTest extends TestCase
     #[Test]
     public function el_alta_guarda_la_evaluacion_y_calcula_con_ella(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
 
         $this->actingAs($gerente)->post(route('auditoria.riesgos.store'), [
             'sedes' => Sede::pluck('id')->all(),
@@ -79,7 +79,7 @@ class EvaluacionRiesgoTest extends TestCase
     #[Test]
     public function el_recalculo_en_borrador_reemplaza_la_evaluacion(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'area_id' => $this->gerencia->id, 'probabilidad' => 6, 'impacto' => 3, 'evaluacion' => $this->evaluacion(),
         ]);
@@ -95,7 +95,7 @@ class EvaluacionRiesgoTest extends TestCase
     #[Test]
     public function el_wizard_de_recalculo_arranca_con_las_respuestas_vigentes(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'area_id' => $this->gerencia->id, 'probabilidad' => 6, 'impacto' => 3, 'evaluacion' => $this->evaluacion(),
         ]);
@@ -108,7 +108,7 @@ class EvaluacionRiesgoTest extends TestCase
     #[Test]
     public function un_recalculo_que_solo_cambia_respuestas_queda_como_propuesta(): void
     {
-        $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
+        $empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
         $riesgo = Riesgo::factory()->validado()->create([
             'area_id' => $this->gerencia->id, 'probabilidad' => 6, 'impacto' => 3, 'evaluacion' => $this->evaluacion(),
         ]);
@@ -129,8 +129,8 @@ class EvaluacionRiesgoTest extends TestCase
     #[Test]
     public function la_propuesta_de_recalculo_aplica_la_evaluacion_recien_al_aprobarse(): void
     {
-        $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
         $riesgo = Riesgo::factory()->validado()->create([
             'area_id' => $this->gerencia->id, 'probabilidad' => 6, 'impacto' => 3, 'evaluacion' => $this->evaluacion(),
         ]);
@@ -184,7 +184,7 @@ class EvaluacionRiesgoTest extends TestCase
     #[Test]
     public function el_impacto_clasico_exige_las_diez_respuestas(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'area_id' => $this->gerencia->id, 'probabilidad' => 6, 'impacto' => 3, 'evaluacion' => $this->evaluacion(),
         ]);
@@ -199,7 +199,7 @@ class EvaluacionRiesgoTest extends TestCase
     #[Test]
     public function el_impacto_clasico_solo_acepta_si_o_no(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'area_id' => $this->gerencia->id, 'probabilidad' => 6, 'impacto' => 3, 'evaluacion' => $this->evaluacion(),
         ]);

@@ -143,7 +143,7 @@ class EfectividadRelacionTest extends TestCase
 
         $this->assertEquals(14, $this->residual($riesgo));
 
-        Livewire::actingAs(User::factory()->create(['rol' => 'comite', 'area_id' => null]))
+        Livewire::actingAs(User::factory()->comite()->create(['area_id' => null]))
             ->test(GestionControles::class, ['riesgo' => $riesgo])
             ->call('activarEdicion')
             ->call('agregar', $nuevo->id)
@@ -156,7 +156,7 @@ class EfectividadRelacionTest extends TestCase
         $riesgo = $this->riesgoConControl(80, valor: 4);
         $controlId = $riesgo->controles()->first()->id;
 
-        Livewire::actingAs(User::factory()->create(['rol' => 'comite', 'area_id' => null]))
+        Livewire::actingAs(User::factory()->comite()->create(['area_id' => null]))
             ->test(GestionControles::class, ['riesgo' => $riesgo])
             ->call('activarEdicion')
             ->call('quitar', $controlId)

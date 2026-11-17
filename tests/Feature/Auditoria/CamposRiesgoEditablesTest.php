@@ -51,7 +51,7 @@ class CamposRiesgoEditablesTest extends TestCase
     public function el_modal_de_actualizacion_de_un_riesgo_ofrece_los_campos_editables(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $gerencia->id]);
         $riesgo = $this->riesgoValidado($gerencia);
 
         Livewire::actingAs($gerente)
@@ -66,7 +66,7 @@ class CamposRiesgoEditablesTest extends TestCase
     public function el_modal_no_deja_cambiar_impacto_ni_probabilidad_a_mano(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->aprobado()->create([
             'area_id' => $gerencia->id,
             'impacto' => 4,
@@ -96,7 +96,7 @@ class CamposRiesgoEditablesTest extends TestCase
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
         $otra = Area::create(['nombre' => 'Gerencia B', 'tipo' => TipoArea::Gerencia]);
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->aprobado()->create([
             'area_id' => $gerencia->id,
             'respuesta' => RespuestaRiesgo::Aceptar,
@@ -121,7 +121,7 @@ class CamposRiesgoEditablesTest extends TestCase
     public function un_gerente_puede_proponer_un_cambio_de_nombre_sobre_un_riesgo_aprobado(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $gerencia->id]);
         $riesgo = Riesgo::factory()->aprobado()->create([
             'area_id' => $gerencia->id,
             'nombre' => 'Riesgo original',
@@ -150,7 +150,7 @@ class CamposRiesgoEditablesTest extends TestCase
     public function el_comite_aplica_al_toque_un_cambio_sobre_un_riesgo_aprobado(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->aprobado()->create([
             'area_id' => $gerencia->id,
             'nombre' => 'Riesgo original',
@@ -174,7 +174,7 @@ class CamposRiesgoEditablesTest extends TestCase
     public function no_admite_cambiar_la_respuesta_a_compartir_en_un_tipo_de_riesgo_restringido(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $gerencia->id]);
         $tipoRestringido = TipoRiesgo::factory()->create(['restringe_respuesta' => true]);
         $riesgo = $this->riesgoValidado($gerencia, ['tipo_riesgo_id' => $tipoRestringido->id]);
 
@@ -191,7 +191,7 @@ class CamposRiesgoEditablesTest extends TestCase
     public function exige_fundamento_si_la_nueva_respuesta_lo_requiere(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $gerencia->id]);
         $riesgo = $this->riesgoValidado($gerencia, ['respuesta' => RespuestaRiesgo::Evitar, 'fundamento' => null]);
 
         Livewire::actingAs($gerente)
@@ -207,7 +207,7 @@ class CamposRiesgoEditablesTest extends TestCase
     public function una_actualizacion_de_riesgo_sin_cambios_de_campo_crea_solo_el_mensaje(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $gerencia->id]);
         $riesgo = $this->riesgoValidado($gerencia);
 
         Livewire::actingAs($gerente)

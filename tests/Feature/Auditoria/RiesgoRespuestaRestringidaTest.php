@@ -46,7 +46,7 @@ class RiesgoRespuestaRestringidaTest extends TestCase
             'nombre' => 'Operacional',
             'restringe_respuesta' => false,
         ]);
-        $this->usuario = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $this->usuario = User::factory()->gerente()->create(['area_id' => null]);
     }
 
     private function datosWizard(array $overrides = []): array

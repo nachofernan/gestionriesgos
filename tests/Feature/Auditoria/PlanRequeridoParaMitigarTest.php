@@ -43,8 +43,8 @@ class PlanRequeridoParaMitigarTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $this->area = Area::create(['nombre' => 'Gerencia', 'area_padre_id' => null]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->area->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->area->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => null]);
     }
 
     private function riesgoMitigarConObjetivo(): Riesgo

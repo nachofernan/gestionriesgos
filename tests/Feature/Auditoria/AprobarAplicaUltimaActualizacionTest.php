@@ -43,9 +43,9 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $this->area = Area::create(['nombre' => 'Ger. Admin', 'area_padre_id' => null]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->area->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->area->id]);
         // area_id null: puedeGestionarArea() siempre true, no depende de jerarquía para este test.
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $this->comite = User::factory()->comite()->create(['area_id' => null]);
     }
 
     /** Crea 3 actualizaciones "validado" sobre $entidad con timestamps crecientes, en un orden de creación deliberadamente distinto al cronológico para no depender del orden de inserción. */

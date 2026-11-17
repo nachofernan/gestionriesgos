@@ -41,8 +41,8 @@ class BorradorInternoTest extends TestCase
 
         $raiz = Area::create(['nombre' => 'Comité']);
         $this->gerencia = Area::create(['nombre' => 'Medio Ambiente', 'area_padre_id' => $raiz->id]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => $raiz->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => $raiz->id]);
     }
 
     /** Un borrador de cada entidad, de la gerencia, con o sin flag. */
@@ -168,7 +168,7 @@ class BorradorInternoTest extends TestCase
     {
         $otra = Area::create(['nombre' => 'Recursos Humanos', 'area_padre_id' => $this->gerencia->area_padre_id]);
 
-        return User::factory()->create(['rol' => 'gerente', 'area_id' => $otra->id]);
+        return User::factory()->gerente()->create(['area_id' => $otra->id]);
     }
 
     #[Test]
@@ -188,7 +188,7 @@ class BorradorInternoTest extends TestCase
     #[Test]
     public function la_edicion_del_borrador_pone_y_saca_el_flag_y_queda_en_el_historial(): void
     {
-        $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
+        $empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
         $plan = PlanAccion::factory()->create(['area_id' => $this->gerencia->id]);
         $editar = fn (string $interno) => $this->actingAs($empleado)
             ->put(route('auditoria.planes.update', $plan), ['nombre' => $plan->nombre, 'area_id' => $this->gerencia->id, 'interno' => $interno])

@@ -35,7 +35,7 @@ class TrazabilidadValidacionTest extends TestCase
     #[Test]
     public function validar_un_riesgo_deja_quien_y_cuando_en_el_propio_riesgo(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo', 'estado_id' => Estado::validado()->id]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $gerente->id,
@@ -53,7 +53,7 @@ class TrazabilidadValidacionTest extends TestCase
     #[Test]
     public function aprobar_un_riesgo_deja_quien_y_cuando_en_el_propio_riesgo(): void
     {
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
         $objetivo = Objetivo::create(['nombre' => 'Objetivo', 'estado_id' => Estado::aprobado()->id]);
         $riesgo = Riesgo::factory()->validado()->create([
             'respuesta' => RespuestaRiesgo::Aceptar,
@@ -70,7 +70,7 @@ class TrazabilidadValidacionTest extends TestCase
     #[Test]
     public function rechazar_un_riesgo_deja_quien_y_cuando_en_el_propio_riesgo(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create(['user_id' => $gerente->id]);
 
         $this->actingAs($gerente)->post(route('auditoria.riesgos.rechazar', $riesgo), ['motivo' => 'No corresponde']);
@@ -83,7 +83,7 @@ class TrazabilidadValidacionTest extends TestCase
     #[Test]
     public function marcar_validada_una_actualizacion_deja_quien_y_cuando(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create();
         $actualizacion = $riesgo->actualizaciones()->create([
             'user_id' => User::factory()->create()->id,
@@ -102,7 +102,7 @@ class TrazabilidadValidacionTest extends TestCase
     #[Test]
     public function marcar_aprobada_una_actualizacion_deja_quien_y_cuando(): void
     {
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->validado()->create();
         $actualizacion = $riesgo->actualizaciones()->create([
             'user_id' => User::factory()->create()->id,
@@ -121,7 +121,7 @@ class TrazabilidadValidacionTest extends TestCase
     #[Test]
     public function marcar_rechazada_una_actualizacion_deja_quien_y_cuando(): void
     {
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create();
         $actualizacion = $riesgo->actualizaciones()->create([
             'user_id' => User::factory()->create()->id,

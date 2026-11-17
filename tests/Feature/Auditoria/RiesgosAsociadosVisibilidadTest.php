@@ -71,8 +71,8 @@ class RiesgosAsociadosVisibilidadTest extends TestCase
         $this->gerProd = Area::create(['nombre' => 'Ger. Prod', 'area_padre_id' => $this->comite->id, 'tipo' => TipoArea::Gerencia]);
         $this->sectC = Area::create(['nombre' => 'Sector C', 'area_padre_id' => $this->gerProd->id]);
 
-        $this->canela = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerAdmin->id]);
-        $this->grassi = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerProd->id]);
+        $this->canela = User::factory()->gerente()->create(['area_id' => $this->gerAdmin->id]);
+        $this->grassi = User::factory()->gerente()->create(['area_id' => $this->gerProd->id]);
 
         $this->tipo = TipoRiesgo::factory()->create();
 

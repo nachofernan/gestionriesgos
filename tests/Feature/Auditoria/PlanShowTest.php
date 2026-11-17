@@ -51,9 +51,9 @@ class PlanShowTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => null]);
 
         $this->plan = PlanAccion::factory()->valorado(6, 0)->create([
             'nombre' => 'Plan de proveedores',
@@ -195,7 +195,7 @@ class PlanShowTest extends TestCase
     public function la_ficha_del_plan_devuelve_403_a_un_gerente_de_otra_gerencia(): void
     {
         $ajena = Area::create(['nombre' => 'Gerencia Ajena', 'tipo' => TipoArea::Gerencia]);
-        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+        $ajeno = User::factory()->gerente()->create(['area_id' => $ajena->id]);
 
         Livewire::actingAs($ajeno)
             ->test(FichaPlan::class, ['plan' => $this->plan])

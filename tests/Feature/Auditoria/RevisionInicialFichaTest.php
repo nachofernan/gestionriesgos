@@ -46,10 +46,10 @@ class RevisionInicialFichaTest extends TestCase
         $raiz = Area::create(['nombre' => 'Comité de Riesgo', 'tipo' => TipoArea::Gerencia]);
         $this->sistemas = Area::create(['nombre' => 'Gerencia Sistemas', 'tipo' => TipoArea::Gerencia, 'area_padre_id' => $raiz->id]);
 
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->sistemas->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => $raiz->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->sistemas->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => $raiz->id]);
         $coordinacion = Area::create(['nombre' => 'Coordinación Infraestructura', 'area_padre_id' => $this->sistemas->id]);
-        $this->coordinador = User::factory()->create(['rol' => 'empleado', 'area_id' => $coordinacion->id]);
+        $this->coordinador = User::factory()->empleado()->create(['area_id' => $coordinacion->id]);
 
         // Control sin inconsistencias: se firma a secas.
         $this->control = Control::factory()->valorado()->create([

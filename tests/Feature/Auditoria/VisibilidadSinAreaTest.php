@@ -72,11 +72,11 @@ class VisibilidadSinAreaTest extends TestCase
         $this->sectA1 = Area::create(['nombre' => 'Sector A1', 'area_padre_id' => $this->gerA->id]);
         $this->sectA2 = Area::create(['nombre' => 'Sector A2', 'area_padre_id' => $this->gerA->id]);
 
-        $this->lucia = User::factory()->create(['rol' => 'comite', 'area_id' => $this->comite->id]);
-        $this->canela = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerA->id]);
-        $this->nacho = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectA1->id]);
-        $this->tito = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectA2->id]);
-        $this->grassi = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerB->id]);
+        $this->lucia = User::factory()->comite()->create(['area_id' => $this->comite->id]);
+        $this->canela = User::factory()->gerente()->create(['area_id' => $this->gerA->id]);
+        $this->nacho = User::factory()->empleado()->create(['area_id' => $this->sectA1->id]);
+        $this->tito = User::factory()->empleado()->create(['area_id' => $this->sectA2->id]);
+        $this->grassi = User::factory()->gerente()->create(['area_id' => $this->gerB->id]);
 
         $this->borradorId = Estado::borrador()->id;
         $this->validadoId = Estado::validado()->id;

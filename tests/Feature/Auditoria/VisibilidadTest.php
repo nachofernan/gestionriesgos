@@ -85,12 +85,12 @@ class VisibilidadTest extends TestCase
         $this->sectB = Area::create(['nombre' => 'Sector B',   'area_padre_id' => $this->gerAdmin->id]);
         $this->sectC = Area::create(['nombre' => 'Sector C',   'area_padre_id' => $this->gerProd->id]);
 
-        $this->lucia = User::factory()->create(['rol' => 'comite',   'area_id' => $this->comite->id]);
-        $this->canela = User::factory()->create(['rol' => 'gerente',  'area_id' => $this->gerAdmin->id]);
-        $this->nacho = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectA->id]);
-        $this->tito = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectB->id]);
-        $this->grassi = User::factory()->create(['rol' => 'gerente',  'area_id' => $this->gerProd->id]);
-        $this->nocetti = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectC->id]);
+        $this->lucia = User::factory()->comite()->create(['area_id' => $this->comite->id]);
+        $this->canela = User::factory()->gerente()->create(['area_id' => $this->gerAdmin->id]);
+        $this->nacho = User::factory()->empleado()->create(['area_id' => $this->sectA->id]);
+        $this->tito = User::factory()->empleado()->create(['area_id' => $this->sectB->id]);
+        $this->grassi = User::factory()->gerente()->create(['area_id' => $this->gerProd->id]);
+        $this->nocetti = User::factory()->empleado()->create(['area_id' => $this->sectC->id]);
 
         $this->borradorId = Estado::borrador()->id;
         $this->validadoId = Estado::validado()->id;
@@ -295,7 +295,7 @@ class VisibilidadTest extends TestCase
     #[Test]
     public function superadmin_sin_area_ve_todo_incluyendo_borradores(): void
     {
-        $admin = User::factory()->create(['area_id' => null, 'rol' => 'empleado']);
+        $admin = User::factory()->empleado()->create(['area_id' => null]);
         $r1 = $this->riesgo($this->borradorId, $this->sectA);
         $r2 = $this->riesgo($this->borradorId, $this->sectC);
 

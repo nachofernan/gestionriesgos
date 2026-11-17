@@ -31,7 +31,7 @@ class RiesgoFundamentoTest extends TestCase
     {
         parent::setUp();
         $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, DimensionSeeder::class]);
-        $this->usuario = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $this->usuario = User::factory()->gerente()->create(['area_id' => null]);
     }
 
     private function datosWizard(array $overrides = []): array

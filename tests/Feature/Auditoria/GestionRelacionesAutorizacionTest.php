@@ -46,8 +46,8 @@ class GestionRelacionesAutorizacionTest extends TestCase
         $gerProd = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
         $gerAdmin = Area::create(['nombre' => 'Gerencia Administración', 'tipo' => TipoArea::Gerencia]);
 
-        $this->gerenteProd = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerProd->id]);
-        $this->gerenteAdmin = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerAdmin->id]);
+        $this->gerenteProd = User::factory()->gerente()->create(['area_id' => $gerProd->id]);
+        $this->gerenteAdmin = User::factory()->gerente()->create(['area_id' => $gerAdmin->id]);
 
         $this->gerProd = $gerProd;
     }

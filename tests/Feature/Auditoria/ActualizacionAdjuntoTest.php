@@ -59,8 +59,8 @@ class ActualizacionAdjuntoTest extends TestCase
         $this->sectA = Area::create(['nombre' => 'Sector A',   'area_padre_id' => $this->gerAdmin->id]);
         $this->sectC = Area::create(['nombre' => 'Sector C',   'area_padre_id' => $this->gerProd->id]);
 
-        $this->nacho = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectA->id]);
-        $this->nocetti = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectC->id]);
+        $this->nacho = User::factory()->empleado()->create(['area_id' => $this->sectA->id]);
+        $this->nocetti = User::factory()->empleado()->create(['area_id' => $this->sectC->id]);
     }
 
     // -------------------------------------------------------

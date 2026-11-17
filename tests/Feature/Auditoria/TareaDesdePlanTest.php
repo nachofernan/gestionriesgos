@@ -54,11 +54,11 @@ class TareaDesdePlanTest extends TestCase
         $this->sectorRrhh = Area::create(['nombre' => 'Capacitación', 'area_padre_id' => $gerRrhh->id]);
         $gerOtra = Area::create(['nombre' => 'Gerencia Finanzas', 'area_padre_id' => $comite->id, 'tipo' => TipoArea::Gerencia]);
 
-        $this->empleadoAmbiente = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectorAmbiente->id]);
-        $this->gerenteAmbiente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerAmbiente->id]);
-        $this->gerenteRrhh = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerRrhh->id]);
-        $this->empleadoRrhh = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sectorRrhh->id]);
-        $this->tercero = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerOtra->id]);
+        $this->empleadoAmbiente = User::factory()->empleado()->create(['area_id' => $this->sectorAmbiente->id]);
+        $this->gerenteAmbiente = User::factory()->gerente()->create(['area_id' => $gerAmbiente->id]);
+        $this->gerenteRrhh = User::factory()->gerente()->create(['area_id' => $gerRrhh->id]);
+        $this->empleadoRrhh = User::factory()->empleado()->create(['area_id' => $this->sectorRrhh->id]);
+        $this->tercero = User::factory()->gerente()->create(['area_id' => $gerOtra->id]);
 
         $this->plan = PlanAccion::factory()->create([
             'area_id' => $this->sectorAmbiente->id,
@@ -201,7 +201,7 @@ class TareaDesdePlanTest extends TestCase
     #[Test]
     public function el_auditor_no_crea_tareas_desde_un_plan(): void
     {
-        $auditor = User::factory()->create(['rol' => 'auditor', 'area_id' => $this->sectorAmbiente->id]);
+        $auditor = User::factory()->auditor()->create(['area_id' => $this->sectorAmbiente->id]);
 
         Livewire::actingAs($auditor)
             ->test(GestionTareas::class, ['plan' => $this->plan])

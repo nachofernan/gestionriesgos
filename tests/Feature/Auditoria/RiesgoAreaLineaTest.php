@@ -42,7 +42,7 @@ class RiesgoAreaLineaTest extends TestCase
         $this->subarea = Area::create(['nombre' => 'Sub-área Propia', 'area_padre_id' => $this->gerencia->id]);
         $this->hermana = Area::create(['nombre' => 'Gerencia Hermana', 'area_padre_id' => $raiz->id]);
 
-        $this->usuario = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $this->usuario = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
     }
 
     private function datosWizard(array $overrides = []): array

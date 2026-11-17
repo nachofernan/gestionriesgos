@@ -40,8 +40,8 @@ class RechazoComiteTest extends TestCase
 
         $raiz = Area::create(['nombre' => 'Comité de Riesgo', 'tipo' => TipoArea::Gerencia]);
         $this->gerencia = Area::create(['nombre' => 'Gerencia Legales', 'area_padre_id' => $raiz->id, 'tipo' => TipoArea::Gerencia]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => $raiz->id]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => $raiz->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
     }
 
     private function objetivo(string $estado): Objetivo

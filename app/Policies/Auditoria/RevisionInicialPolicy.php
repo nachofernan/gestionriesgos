@@ -26,7 +26,7 @@ class RevisionInicialPolicy
      */
     public function revisar(User $user, Model $elemento, Area $gerencia): bool
     {
-        if (! $this->habilitada($user, $elemento, $gerencia) || $user->rol === 'gerente') {
+        if (! $this->habilitada($user, $elemento, $gerencia) || $user->hasRole('gerente')) {
             return false;
         }
 
@@ -48,7 +48,7 @@ class RevisionInicialPolicy
      */
     public function firmar(User $user, Model $elemento, Area $gerencia): bool
     {
-        if (! $this->habilitada($user, $elemento, $gerencia) || $user->rol !== 'gerente') {
+        if (! $this->habilitada($user, $elemento, $gerencia) || ! $user->hasRole('gerente')) {
             return false;
         }
 
@@ -80,7 +80,7 @@ class RevisionInicialPolicy
     {
         $responsable = $elemento->user;
 
-        return $responsable?->rol === 'gerente' && $responsable->areaGerencia()?->is($gerencia)
+        return $responsable?->hasRole('gerente') && $responsable->areaGerencia()?->is($gerencia)
             ? $responsable
             : null;
     }

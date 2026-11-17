@@ -46,7 +46,7 @@ class EvaluacionAmbientalTest extends TestCase
         parent::setUp();
         $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, DimensionSeeder::class]);
         $this->gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
         $this->ambiental = TipoRiesgo::factory()->ambiental()->create(['nombre' => 'Ambiental']);
         $this->clasico = TipoRiesgo::factory()->create(['nombre' => 'Operacional']);
     }
@@ -223,7 +223,7 @@ class EvaluacionAmbientalTest extends TestCase
     public function un_gerente_de_otra_gerencia_no_puede_dar_de_alta_un_riesgo_ambiental_ajeno(): void
     {
         $ajena = Area::create(['nombre' => 'Gerencia B', 'tipo' => TipoArea::Gerencia]);
-        $gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+        $gerenteAjeno = User::factory()->gerente()->create(['area_id' => $ajena->id]);
 
         $this->actingAs($gerenteAjeno)->post(route('auditoria.riesgos.store'), $this->datosAlta())
             ->assertForbidden();
@@ -273,7 +273,7 @@ class EvaluacionAmbientalTest extends TestCase
     {
         $riesgo = $this->riesgoAmbiental();
         $ajena = Area::create(['nombre' => 'Gerencia B', 'tipo' => TipoArea::Gerencia]);
-        $gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+        $gerenteAjeno = User::factory()->gerente()->create(['area_id' => $ajena->id]);
 
         $this->actingAs($gerenteAjeno)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [
             'ambiental' => ['control' => 5, 'frecuencia' => 5, 'medio' => 3, 'naturaleza' => 3, 'magnitud' => 4],

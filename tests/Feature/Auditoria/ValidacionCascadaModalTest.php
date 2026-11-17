@@ -33,7 +33,7 @@ class ValidacionCascadaModalTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $area = Area::create(['nombre' => 'Gerencia', 'area_padre_id' => null]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $area->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $area->id]);
 
         $this->riesgo = Riesgo::factory()->borrador()->create([
             'area_id' => $area->id,

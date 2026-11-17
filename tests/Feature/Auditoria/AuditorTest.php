@@ -60,9 +60,9 @@ class AuditorTest extends TestCase
         $this->gerenciaA = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
         $this->gerenciaB = Area::create(['nombre' => 'Gerencia B', 'tipo' => TipoArea::Gerencia]);
 
-        $this->auditor = User::factory()->create(['rol' => 'auditor', 'area_id' => $this->gerenciaAuditoria->id]);
-        $this->gerenteA = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerenciaA->id]);
-        $this->gerenteB = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerenciaB->id]);
+        $this->auditor = User::factory()->auditor()->create(['area_id' => $this->gerenciaAuditoria->id]);
+        $this->gerenteA = User::factory()->gerente()->create(['area_id' => $this->gerenciaA->id]);
+        $this->gerenteB = User::factory()->gerente()->create(['area_id' => $this->gerenciaB->id]);
     }
 
     private function riesgo(Area $area, string $estado): Riesgo
@@ -298,7 +298,7 @@ class AuditorTest extends TestCase
         $this->assertFalse($this->auditor->can('rechazar', $borradorPropio));
         $this->assertFalse($this->auditor->can('aprobar', $validado));
 
-        $empleadoA = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerenciaA->id]);
+        $empleadoA = User::factory()->empleado()->create(['area_id' => $this->gerenciaA->id]);
         $this->proponerDescripcion($empleadoA, $validado, 'Cambio del empleado');
         $propuesta = $validado->actualizaciones()->propuestasPendientes('campos')->sole();
 

@@ -38,8 +38,8 @@ class FichaObjetivoTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
         $this->objetivo = Objetivo::create([
             'nombre' => 'Reducir reclamos',
             'descripcion' => 'Bajar un 20%',
@@ -101,7 +101,7 @@ class FichaObjetivoTest extends TestCase
     public function la_ficha_del_objetivo_devuelve_403_a_un_gerente_de_otra_gerencia(): void
     {
         $ajena = Area::create(['nombre' => 'Gerencia Ajena', 'tipo' => TipoArea::Gerencia]);
-        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+        $ajeno = User::factory()->gerente()->create(['area_id' => $ajena->id]);
 
         Livewire::actingAs($ajeno)
             ->test(FichaObjetivo::class, ['objetivo' => $this->objetivo])

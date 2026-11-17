@@ -40,8 +40,8 @@ class EliminacionRiesgoTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => null]);
     }
 
     private function riesgo(string $estado = 'aprobado', ?Area $area = null): Riesgo
@@ -102,7 +102,7 @@ class EliminacionRiesgoTest extends TestCase
     #[Test]
     public function la_propuesta_del_empleado_la_valida_su_gerente_y_la_aprueba_el_comite(): void
     {
-        $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
+        $empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
         $riesgo = $this->riesgo();
 
         $this->proponer($empleado, $riesgo);
@@ -245,8 +245,8 @@ class EliminacionRiesgoTest extends TestCase
     public function nadie_de_otra_gerencia_ni_el_auditor_propone_eliminar(): void
     {
         $otra = Area::create(['nombre' => 'Gerencia B', 'tipo' => TipoArea::Gerencia]);
-        $gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $otra->id]);
-        $auditor = User::factory()->create(['rol' => 'auditor', 'area_id' => $otra->id]);
+        $gerenteAjeno = User::factory()->gerente()->create(['area_id' => $otra->id]);
+        $auditor = User::factory()->auditor()->create(['area_id' => $otra->id]);
         $riesgo = $this->riesgo();
 
         $this->proponer($gerenteAjeno, $riesgo)->assertForbidden();
@@ -271,7 +271,7 @@ class EliminacionRiesgoTest extends TestCase
         $riesgo = $this->riesgo();
 
         $this->actingAs($this->gerente)->get(route('auditoria.riesgos.show', $riesgo))->assertSee('Proponer eliminación');
-        $empleadoAjeno = User::factory()->create(['rol' => 'empleado', 'area_id' => Area::create(['nombre' => 'Otra'])->id]);
+        $empleadoAjeno = User::factory()->empleado()->create(['area_id' => Area::create(['nombre' => 'Otra'])->id]);
         $this->actingAs($empleadoAjeno)->get(route('auditoria.riesgos.show', $riesgo))->assertDontSee('Proponer eliminación');
     }
 }

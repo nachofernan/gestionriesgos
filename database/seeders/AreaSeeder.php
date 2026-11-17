@@ -53,8 +53,7 @@ class AreaSeeder extends Seeder
                 'email' => strtolower($area['responsable']).'@example.com',
                 'password' => Hash::make('password'),
                 'area_id' => $area['area']->id,
-                'rol' => $area['rol'],
-            ]);
+            ])->assignRole($area['rol']);
         }
     }
 }

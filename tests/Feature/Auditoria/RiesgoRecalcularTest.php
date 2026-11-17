@@ -38,7 +38,7 @@ class RiesgoRecalcularTest extends TestCase
     #[Test]
     public function editar_un_riesgo_no_modifica_impacto_ni_probabilidad_aunque_se_envien(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->gerente()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $user->id,
             'impacto' => 5,
@@ -66,7 +66,7 @@ class RiesgoRecalcularTest extends TestCase
     #[Test]
     public function la_pagina_de_recalcular_renderiza_el_wizard_de_preguntas(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->gerente()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create(['user_id' => $user->id]);
 
         $respuesta = $this->actingAs($user)->get(route('auditoria.riesgos.recalcular', $riesgo));
@@ -78,7 +78,7 @@ class RiesgoRecalcularTest extends TestCase
     #[Test]
     public function recalcular_actualiza_impacto_y_probabilidad_segun_las_respuestas(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->gerente()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $user->id,
             'impacto' => 0,
@@ -98,7 +98,7 @@ class RiesgoRecalcularTest extends TestCase
     #[Test]
     public function recalcular_deja_registro_del_cambio_en_el_historial(): void
     {
-        $user = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $user = User::factory()->gerente()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create([
             'user_id' => $user->id,
             'impacto' => 0,
@@ -122,8 +122,8 @@ class RiesgoRecalcularTest extends TestCase
         // D-046: la revisión inicial obliga a recalcular lo aprobado. Entra como
         // propuesta: el número y la evaluación cambian recién con el comité.
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $gerencia->id]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->aprobado()->create([
             'area_id' => $gerencia->id,
             'impacto' => 0,
@@ -158,7 +158,7 @@ class RiesgoRecalcularTest extends TestCase
     #[Test]
     public function el_comite_no_puede_recalcular_ni_siquiera_en_borrador(): void
     {
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->borrador()->create();
 
         $respuesta = $this->actingAs($comite)->get(route('auditoria.riesgos.recalcular', $riesgo));
@@ -172,7 +172,7 @@ class RiesgoRecalcularTest extends TestCase
         // La propuesta arranca "validado" (estadoInicialParaCambio()) y el riesgo ya
         // está justo ahí: no hace falta que nadie más la valide, se aplica en el acto
         // — mismo criterio que un cambio de campo cualquiera vía GestionActualizaciones.
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => null]);
+        $gerente = User::factory()->gerente()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->validado()->create([
             'user_id' => $gerente->id,
             'impacto' => 0,
@@ -200,7 +200,7 @@ class RiesgoRecalcularTest extends TestCase
     public function un_empleado_recalcula_un_riesgo_validado_y_queda_pendiente(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $gerencia->id]);
+        $empleado = User::factory()->empleado()->create(['area_id' => $gerencia->id]);
         $riesgo = Riesgo::factory()->validado()->create([
             'area_id' => $gerencia->id,
             'impacto' => 0,
@@ -232,7 +232,7 @@ class RiesgoRecalcularTest extends TestCase
     {
         // El GET a recalcular() ya lo bloquea, pero el guard también vive en
         // recalcularStore(): un POST directo a la ruta no debe colarse.
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
         $riesgo = Riesgo::factory()->validado()->create(['impacto' => 0, 'probabilidad' => 0]);
 
         $respuesta = $this->actingAs($comite)->post(route('auditoria.riesgos.recalcular.store', $riesgo), [

@@ -41,7 +41,7 @@ class PanelRiesgosTest extends TestCase
         $this->gerAdmin = Area::create(['nombre' => 'Ger. Admin', 'area_padre_id' => $comite->id, 'tipo' => TipoArea::Gerencia]);
         $this->gerProd = Area::create(['nombre' => 'Ger. Prod', 'area_padre_id' => $comite->id, 'tipo' => TipoArea::Gerencia]);
 
-        $this->canela = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerAdmin->id]);
+        $this->canela = User::factory()->gerente()->create(['area_id' => $this->gerAdmin->id]);
     }
 
     private function crearRiesgo(string $estado, Area $area, int $impacto = 5, int $probabilidad = 5): Riesgo
@@ -81,7 +81,7 @@ class PanelRiesgosTest extends TestCase
     #[Test]
     public function el_comite_ve_los_riesgos_de_todas_las_gerencias(): void
     {
-        $comiteUser = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comiteUser = User::factory()->comite()->create(['area_id' => null]);
         $this->crearRiesgo('aprobado', $this->gerAdmin);
         $this->crearRiesgo('aprobado', $this->gerProd);
 

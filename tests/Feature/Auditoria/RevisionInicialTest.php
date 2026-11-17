@@ -54,12 +54,12 @@ class RevisionInicialTest extends TestCase
         $this->coordinacion = Area::create(['nombre' => 'Coordinación Infraestructura', 'area_padre_id' => $this->sistemas->id]);
         $this->finanzas = Area::create(['nombre' => 'Gerencia Finanzas', 'tipo' => TipoArea::Gerencia, 'area_padre_id' => $raiz->id]);
 
-        $this->gerenteSistemas = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->sistemas->id]);
-        $this->coordinador = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->coordinacion->id]);
-        $this->empleadoCoordinacion = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->coordinacion->id]);
-        $this->gerenteFinanzas = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->finanzas->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => $raiz->id]);
-        $this->auditor = User::factory()->create(['rol' => 'auditor', 'area_id' => $this->finanzas->id]);
+        $this->gerenteSistemas = User::factory()->gerente()->create(['area_id' => $this->sistemas->id]);
+        $this->coordinador = User::factory()->empleado()->create(['area_id' => $this->coordinacion->id]);
+        $this->empleadoCoordinacion = User::factory()->empleado()->create(['area_id' => $this->coordinacion->id]);
+        $this->gerenteFinanzas = User::factory()->gerente()->create(['area_id' => $this->finanzas->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => $raiz->id]);
+        $this->auditor = User::factory()->auditor()->create(['area_id' => $this->finanzas->id]);
     }
 
     private function control(User $responsable): Control

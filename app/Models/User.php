@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -23,7 +24,6 @@ class User extends Authenticatable
         'email',
         'password',
         'area_id',
-        'rol',
     ];
 
     /**
@@ -54,19 +54,23 @@ class User extends Authenticatable
         return $this->belongsTo(Area::class);
     }
 
+    /**
+     * Los roles viven en spatie (D-052) y un usuario puede tener más de uno
+     * (gerente + comité). Sin área propia (superusuario) cuenta como gerente.
+     */
     public function esGerente(): bool
     {
-        return $this->rol === 'gerente' || ! $this->area_id;
+        return $this->hasRole('gerente') || ! $this->area_id;
     }
 
     public function esEmpleado(): bool
     {
-        return $this->rol === 'empleado';
+        return $this->hasRole('empleado');
     }
 
     public function esComite(): bool
     {
-        return $this->rol === 'comite';
+        return $this->hasRole('comite');
     }
 
     /**
@@ -76,7 +80,7 @@ class User extends Authenticatable
      */
     public function esAuditor(): bool
     {
-        return $this->rol === 'auditor';
+        return $this->hasRole('auditor');
     }
 
     /**

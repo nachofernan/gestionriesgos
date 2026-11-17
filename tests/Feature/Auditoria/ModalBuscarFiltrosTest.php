@@ -47,8 +47,8 @@ class ModalBuscarFiltrosTest extends TestCase
 
         $this->gerAdmin = Area::create(['nombre' => 'Ger. Admin', 'tipo' => TipoArea::Gerencia]);
         $this->gerProd = Area::create(['nombre' => 'Ger. Prod', 'tipo' => TipoArea::Gerencia]);
-        $this->canela = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerAdmin->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $this->canela = User::factory()->gerente()->create(['area_id' => $this->gerAdmin->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => null]);
 
         $this->riesgo = Riesgo::factory()->create([
             'area_id' => $this->gerAdmin->id,

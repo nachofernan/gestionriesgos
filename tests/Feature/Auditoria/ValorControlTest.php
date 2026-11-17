@@ -53,9 +53,9 @@ class ValorControlTest extends TestCase
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
         $this->otraGerencia = Area::create(['nombre' => 'Gerencia Finanzas', 'tipo' => TipoArea::Gerencia]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => null]);
     }
 
     private function control(string $estado, ?int $puntaje = null, ?int $numeroViejo = null): Control
@@ -300,7 +300,7 @@ class ValorControlTest extends TestCase
     #[Test]
     public function quien_no_gestiona_el_control_recibe_403(): void
     {
-        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->otraGerencia->id]);
+        $ajeno = User::factory()->gerente()->create(['area_id' => $this->otraGerencia->id]);
         $control = $this->control('borrador');
 
         Livewire::actingAs($ajeno)
@@ -397,7 +397,7 @@ class ValorControlTest extends TestCase
     public function editar_un_borrador_ajeno_devuelve_403_y_no_toca_nada(): void
     {
         $control = $this->control('borrador', 6);
-        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->otraGerencia->id]);
+        $ajeno = User::factory()->gerente()->create(['area_id' => $this->otraGerencia->id]);
 
         $this->actingAs($ajeno)
             ->put(route('auditoria.controles.update', $control), ['nombre' => 'X'])
@@ -410,7 +410,7 @@ class ValorControlTest extends TestCase
     public function la_ficha_del_control_devuelve_403_a_un_gerente_de_otra_gerencia(): void
     {
         $control = $this->control('aprobado', 6);
-        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->otraGerencia->id]);
+        $ajeno = User::factory()->gerente()->create(['area_id' => $this->otraGerencia->id]);
 
         Livewire::actingAs($ajeno)
             ->test(FichaControl::class, ['control' => $control])
@@ -433,7 +433,7 @@ class ValorControlTest extends TestCase
 
     private function auditor(): User
     {
-        return User::factory()->create(['rol' => 'auditor', 'area_id' => $this->otraGerencia->id]);
+        return User::factory()->auditor()->create(['area_id' => $this->otraGerencia->id]);
     }
 
     private function reevaluar(User $user, Control $control, array $cuestionario, string $comentario = 'Se revisó una muestra de 30 operaciones.', array $archivos = [])

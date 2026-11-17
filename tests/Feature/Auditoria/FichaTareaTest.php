@@ -43,8 +43,8 @@ class FichaTareaTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => null]);
 
         // Riesgo total 16, con un plan aprobado (mitigación 6) de una sola tarea aprobada al 80%.
         $this->riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->gerencia->id, 'impacto' => 8, 'probabilidad' => 8]);
@@ -108,7 +108,7 @@ class FichaTareaTest extends TestCase
     public function la_ficha_de_la_tarea_devuelve_403_a_un_gerente_de_otra_gerencia(): void
     {
         $ajena = Area::create(['nombre' => 'Gerencia Ajena', 'tipo' => TipoArea::Gerencia]);
-        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+        $ajeno = User::factory()->gerente()->create(['area_id' => $ajena->id]);
 
         Livewire::actingAs($ajeno)
             ->test(FichaTarea::class, ['tarea' => $this->tarea])

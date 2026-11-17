@@ -11,8 +11,8 @@ class RolSeeder extends Seeder
     {
         // Primer usuario existente → gerente
         $primero = User::orderBy('id')->first();
-        if ($primero && !$primero->area_id) {
-            $primero->update(['rol' => 'gerente']);
+        if ($primero && ! $primero->area_id) {
+            $primero->syncRoles(['gerente']);
         }
     }
 }

@@ -63,12 +63,12 @@ class AltaAreaResponsableTest extends TestCase
         $this->compras = Area::create(['nombre' => 'Coordinación Compras', 'area_padre_id' => $this->gerencia->id]);
         $this->contabilidad = Area::create(['nombre' => 'Gerencia Contabilidad', 'area_padre_id' => $raiz->id, 'tipo' => TipoArea::Gerencia]);
 
-        $this->presidenta = User::factory()->create(['rol' => 'gerente', 'area_id' => $raiz->id]);
+        $this->presidenta = User::factory()->gerente()->create(['area_id' => $raiz->id]);
 
-        $this->piris = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->aieta = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->sistemas->id]);
-        $this->compradora = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->compras->id]);
-        $this->contador = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->contabilidad->id]);
+        $this->piris = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->aieta = User::factory()->empleado()->create(['area_id' => $this->sistemas->id]);
+        $this->compradora = User::factory()->empleado()->create(['area_id' => $this->compras->id]);
+        $this->contador = User::factory()->gerente()->create(['area_id' => $this->contabilidad->id]);
     }
 
     public static function entidades(): array
@@ -198,7 +198,7 @@ class AltaAreaResponsableTest extends TestCase
     #[Test]
     public function el_comite_puede_crear_en_cualquier_area(): void
     {
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
 
         $this->actingAs($comite)
             ->post(route('auditoria.controles.store'), [

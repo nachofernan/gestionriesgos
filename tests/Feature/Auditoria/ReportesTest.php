@@ -51,8 +51,8 @@ class ReportesTest extends TestCase
         $this->gerAdmin = Area::create(['nombre' => 'Ger. Admin', 'area_padre_id' => $raiz->id, 'tipo' => TipoArea::Gerencia]);
         $this->gerProd = Area::create(['nombre' => 'Ger. Prod', 'area_padre_id' => $raiz->id, 'tipo' => TipoArea::Gerencia]);
 
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
-        $this->canela = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerAdmin->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => null]);
+        $this->canela = User::factory()->gerente()->create(['area_id' => $this->gerAdmin->id]);
     }
 
     private function riesgo(Area $area, int $impacto = 5, int $probabilidad = 5, array $extra = []): Riesgo

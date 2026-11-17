@@ -56,8 +56,8 @@ class PropuestasPorElementoTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
 
         // Total 12. Respuesta "evitar" para que Planes no exija conservar un plan.
         $this->riesgo = Riesgo::factory()->validado()->create([
@@ -263,7 +263,7 @@ class PropuestasPorElementoTest extends TestCase
     #[Test]
     public function el_modo_de_cambio_del_bloque_depende_del_estado_y_el_rol(): void
     {
-        $comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comite = User::factory()->comite()->create(['area_id' => null]);
         $modo = fn (User $user, Riesgo $riesgo) => Livewire::actingAs($user)
             ->test(GestionControles::class, ['riesgo' => $riesgo])
             ->viewData('modo');
@@ -346,7 +346,7 @@ class PropuestasPorElementoTest extends TestCase
         $propuesta = $this->propuestas()->sole();
 
         $ajena = Area::create(['nombre' => 'Gerencia Ajena', 'tipo' => TipoArea::Gerencia]);
-        $gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+        $gerenteAjeno = User::factory()->gerente()->create(['area_id' => $ajena->id]);
 
         Livewire::actingAs($gerenteAjeno)
             ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $this->riesgo->id, 'variante' => 'timeline'])

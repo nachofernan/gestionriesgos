@@ -42,7 +42,7 @@ class ConversacionTest extends TestCase
         $this->seed(EstadoRiesgoSeeder::class);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
         $this->riesgo = Riesgo::factory()->validado()->create([
             'area_id' => $this->gerencia->id,
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
@@ -86,7 +86,7 @@ class ConversacionTest extends TestCase
     public function enviar_una_nota_devuelve_403_a_quien_no_gestiona_el_riesgo(): void
     {
         $ajena = Area::create(['nombre' => 'Gerencia Ajena', 'tipo' => TipoArea::Gerencia]);
-        $gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+        $gerenteAjeno = User::factory()->gerente()->create(['area_id' => $ajena->id]);
 
         Livewire::actingAs($gerenteAjeno)
             ->test(Conversacion::class, ['modelType' => 'riesgo', 'modelId' => $this->riesgo->id])
@@ -102,7 +102,7 @@ class ConversacionTest extends TestCase
     {
         $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::aprobado()->id]);
         $ajena = Area::create(['nombre' => 'Gerencia Ajena', 'tipo' => TipoArea::Gerencia]);
-        $gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+        $gerenteAjeno = User::factory()->gerente()->create(['area_id' => $ajena->id]);
 
         Livewire::actingAs($gerenteAjeno)
             ->test(Conversacion::class, ['modelType' => 'control', 'modelId' => $control->id])

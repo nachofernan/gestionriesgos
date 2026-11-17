@@ -41,8 +41,8 @@ class FichaRiesgoTest extends TestCase
         $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, DimensionSeeder::class]);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
 
         $this->riesgo = Riesgo::factory()->validado()->create([
             'area_id' => $this->gerencia->id,
@@ -136,7 +136,7 @@ class FichaRiesgoTest extends TestCase
     public function la_ficha_devuelve_403_a_un_gerente_de_otra_gerencia(): void
     {
         $ajena = Area::create(['nombre' => 'Gerencia Ajena', 'tipo' => TipoArea::Gerencia]);
-        $gerenteAjeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $ajena->id]);
+        $gerenteAjeno = User::factory()->gerente()->create(['area_id' => $ajena->id]);
 
         Livewire::actingAs($gerenteAjeno)
             ->test(FichaRiesgo::class, ['riesgo' => $this->riesgo])

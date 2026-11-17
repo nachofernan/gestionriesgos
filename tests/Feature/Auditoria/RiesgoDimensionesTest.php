@@ -40,8 +40,8 @@ class RiesgoDimensionesTest extends TestCase
         $this->seed([EstadoRiesgoSeeder::class, SedeSeeder::class, DimensionSeeder::class]);
 
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
-        $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->gerencia->id]);
+        $this->empleado = User::factory()->empleado()->create(['area_id' => $this->gerencia->id]);
     }
 
     private function dimension(string $nombre): Dimension
@@ -230,7 +230,7 @@ class RiesgoDimensionesTest extends TestCase
     {
         $riesgo = $this->riesgoValidado();
         $otraGerencia = Area::create(['nombre' => 'Gerencia Finanzas', 'tipo' => TipoArea::Gerencia]);
-        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $otraGerencia->id]);
+        $ajeno = User::factory()->gerente()->create(['area_id' => $otraGerencia->id]);
 
         Livewire::actingAs($ajeno)
             ->test(FichaRiesgo::class, ['riesgo' => $riesgo])

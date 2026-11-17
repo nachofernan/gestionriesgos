@@ -37,7 +37,7 @@ class MensajePuroSinValidacionTest extends TestCase
     public function un_mensaje_puro_no_tiene_estado_ni_datos_de_cambio(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $gerencia->id]);
         $control = Control::factory()->create(['area_id' => $gerencia->id, 'estado_id' => Estado::validado()->id]);
 
         Livewire::actingAs($gerente)
@@ -57,7 +57,7 @@ class MensajePuroSinValidacionTest extends TestCase
     public function un_mensaje_puro_no_aparece_en_pendientes_ni_admite_validar(): void
     {
         $gerencia = Area::create(['nombre' => 'Gerencia A', 'tipo' => TipoArea::Gerencia]);
-        $gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $gerencia->id]);
+        $gerente = User::factory()->gerente()->create(['area_id' => $gerencia->id]);
         $control = Control::factory()->create(['area_id' => $gerencia->id, 'estado_id' => Estado::validado()->id]);
 
         Livewire::actingAs($gerente)

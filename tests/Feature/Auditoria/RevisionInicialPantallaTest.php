@@ -52,10 +52,10 @@ class RevisionInicialPantallaTest extends TestCase
         $coordinacion = Area::create(['nombre' => 'Coordinación Infraestructura', 'area_padre_id' => $this->sistemas->id]);
         $this->finanzas = Area::create(['nombre' => 'Gerencia Finanzas', 'tipo' => TipoArea::Gerencia, 'area_padre_id' => $raiz->id]);
 
-        $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->sistemas->id]);
-        $this->coordinador = User::factory()->create(['rol' => 'empleado', 'area_id' => $coordinacion->id]);
-        $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => $raiz->id]);
-        $this->empleadoFinanzas = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->finanzas->id]);
+        $this->gerente = User::factory()->gerente()->create(['area_id' => $this->sistemas->id]);
+        $this->coordinador = User::factory()->empleado()->create(['area_id' => $coordinacion->id]);
+        $this->comite = User::factory()->comite()->create(['area_id' => $raiz->id]);
+        $this->empleadoFinanzas = User::factory()->empleado()->create(['area_id' => $this->finanzas->id]);
 
         $this->control = Control::factory()->valorado()->create([
             'nombre' => 'Backup diario de servidores',

@@ -37,7 +37,7 @@ class VencimientoControllerTest extends TestCase
         $this->gerAdmin = Area::create(['nombre' => 'Ger. Admin', 'area_padre_id' => $comite->id]);
         $this->gerProd = Area::create(['nombre' => 'Ger. Prod', 'area_padre_id' => $comite->id]);
 
-        $this->canela = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerAdmin->id]);
+        $this->canela = User::factory()->gerente()->create(['area_id' => $this->gerAdmin->id]);
     }
 
     private function crearTarea(array $attrs = []): Tarea
@@ -200,7 +200,7 @@ class VencimientoControllerTest extends TestCase
     #[Test]
     public function el_comite_ve_los_vencimientos_de_cualquier_gerencia(): void
     {
-        $comiteUser = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
+        $comiteUser = User::factory()->comite()->create(['area_id' => null]);
         $tareaAdmin = $this->crearTarea(['fecha' => today()->subDays(5), 'area_id' => $this->gerAdmin->id]);
         $tareaProd = $this->crearTarea(['fecha' => today()->subDays(5), 'area_id' => $this->gerProd->id]);
 
