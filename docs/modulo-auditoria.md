@@ -44,8 +44,8 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | Modelo | Tabla | Descripción |
 |---|---|---|
 | `Riesgo` | `riesgos` | Entidad central. Tiene impacto, probabilidad y criticidad_alta. Calcula `valor_total` e `valor_residual` como accessors. `evaluacion` (json) guarda `{metodo, respuestas}` del último wizard aplicado (D-042). Los ambientales llevan `temporalidad`, `condicion` y `responsabilidad` (enums, D-043). `metodoEvaluacion()` sale del tipo; `reglaTipoRiesgo()` impide cambiar a un tipo de otro método. |
-| `Control` | `controles` | Medidas de mitigación. `mitigacion_default` (0-10) sale de `checks` (5 de `Control::CHECKS`, 2 puntos cada uno, hook `saving`) y es el tope de cada relación (D-040). `trasCambiarDefault()`: si el número cambia, propaga a todas las relaciones (opcional, D-017) o recorta las que lo pasan. `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). `aplicarEfectividad()` es la regla única del redondeo (D-037). |
-| `ControlRiesgo` | `control_riesgo` | Pivot de la relación control-riesgo (D-040): `mitigacion` (null = hereda el del control), `checks` (con checks, el número se recalcula al guardar: `min(puntaje, tope)`) y `efectividad` (0-100, "Evidencia de cumplimiento", nace en 100). `mitigacionEfectiva()` es lo que descuenta la relación. |
+| `Control` | `controles` | Medidas de mitigación. Se valora con un cuestionario de 7 preguntas (D-051): `evaluacion` (json, `{respuestas: {id: 0|1}, procedimiento, sistemas[], sistema_otro, frecuencia}`, preguntas y listas en `config/control_preguntas.php`, cálculo en `EvaluacionControl`). `mitigacion_default` es lo que mitiga en cada riesgo: un hook `saving` lo deriva del cuestionario (el puntaje, 1-10, o 0 si es una expresión de deseo). Sin cuestionario conserva el número que traía. `puntaje` (accessor) y `clasificacion()` (< 4 deficiente, 4–6 moderado, 7+ suficiente). Sin cuestionario no se valida ni se aprueba (`motivosBloqueoValidacion()`). `registrarValoracion()` es el circuito del área; `reevaluar()`, el del auditor sobre lo aprobado, en el acto. `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). `aplicarEvidencia()` es la regla única de los tramos de evidencia (`TRAMOS_EVIDENCIA`, hacia abajo, D-037). |
+| `ControlRiesgo` | `control_riesgo` | Pivot de la relación control-riesgo (D-051): sólo `efectividad` (0-100, "Evidencia de cumplimiento", nace en 100). La relación no tiene número propio. `mitigacionEfectiva($valorControl)` es lo que descuenta la relación: el valor del control por el tramo de su evidencia. |
 | `Testeo` | `testeos` | Testeo de la evidencia de cumplimiento de una relación (D-040): fecha, % antes/después, comentario, adjuntos. Append-only. Lo carga sólo el auditor y se aplica en el acto (`Testeo::registrar()`). |
 | `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `peis` (boolean): si es true, requiere al menos un `PeisItem` asociado (ver validación en `ObjetivoController`). |
 | `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
@@ -67,7 +67,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 
 | Tabla pivot | Entidades | Campos extra |
 |---|---|---|
-| `control_riesgo` | Control ↔ Riesgo | `mitigacion` (nullable, sobreescribe `mitigacion_default`) |
+| `control_riesgo` | Control ↔ Riesgo | `efectividad` (evidencia de cumplimiento, 0-100) |
 | `objetivo_riesgo` | Objetivo ↔ Riesgo | — |
 | `objetivo_peis_item` | Objetivo ↔ PeisItem | — |
 | `plan_accion_riesgo` | PlanAccion ↔ Riesgo | — (la `mitigacion` manual se eliminó en D-050) |
@@ -76,7 +76,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 ### Accessors calculados en Riesgo
 
 - **`valor_total`**: `impacto + probabilidad` (0–20)
-- **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Usa `pivot->mitigacion` si está definida, si no `mitigacion_default` del control, y la regula por la `efectividad` **de esa relación**: `floor(número × efectividad / 100)`, por cada relación antes de sumar (`ControlRiesgo::mitigacionEfectiva()`, D-037, D-040).
+- **`mitigacion_controles`**: Σ mitigación de los controles **aprobados**. Cada uno aporta su `mitigacion_default` regulado por el tramo de la `efectividad` **de esa relación** (D-051): < 60 → 0 · 60–69 → 20% · 70–79 → 40% · 80–90 → 60% · 91–98 → 80% · 99–100 → 100%, hacia abajo y por cada relación antes de sumar (`ControlRiesgo::mitigacionEfectiva()`, `Control::aplicarEvidencia()`).
 - **`mitigacion_planes`**: lo que reducen los planes **aprobados**, **por eje** (D-050). Cada plan aporta su `reduccion_efectiva`: la nominal de cada eje en proporción al promedio exacto de avance de sus tareas aprobadas, `floor(nominal × Σ avance / (cantidad × 100))` (`aplicarAvance()`, D-037). Se suman por eje y cada suma tiene tope en el impacto y la probabilidad del riesgo: `min(impacto, Σ imp) + min(probabilidad, Σ prob)` (`Riesgo::mitigacionPorEjes()`). Ej.: riesgo 5/5 con un plan 8 imp / 2 prob → 7.
 - **`valor_residual`**: `valor_total − mitigacion_planes − mitigacion_controles` (mínimo 0). Los planes topean por eje y los controles restan de lo que queda.
 - **`valor_residual_proyectado`** (borrador interno, D-044): igual que `valor_residual`, pero también descuentan los controles y planes en borrador **con** flag `interno` (`Control::mitigaProyectado()`, `PlanAccion::mitigaProyectado()`). Un plan cuenta sus tareas aprobadas e internas (`PlanAccion::tareasProyectadas()`, `avance_proyectado`). Los desgloses son `mitigacion_controles_proyectada` y `mitigacion_planes_proyectada`. No reemplaza al oficial.
@@ -92,7 +92,7 @@ El rol vive en `users.rol` y el área en `users.area_id`. Las Policies están en
 | `empleado` | Lo validado o aprobado de todos, más todo lo de su subárbol | Sobre lo de su subárbol. Fuera de borrador, su propuesta nace en borrador | — | En su subárbol |
 | `gerente` | Igual que el empleado | Igual. Fuera de borrador aplica directo | Valida lo de su subárbol | En su subárbol |
 | `comite` | Sólo lo validado o aprobado | Aplica directo sobre lo aprobado | Aprueba, y rechaza lo validado | Ver D-006 |
-| `auditor` | Igual que el empleado | **Sobre cualquier elemento validado o aprobado.** Su propuesta siempre nace en borrador | — | — |
+| `auditor` | Igual que el empleado | **Sobre cualquier elemento validado o aprobado.** Su propuesta siempre nace en borrador. Aplica en el acto el testeo de evidencia (D-040) y la reevaluación del cuestionario de un control aprobado (`ControlPolicy::reevaluar`, D-051) | — | — |
 
 **`update` y `proponer` (D-020).**
 - `update` es mutar directo: el formulario de un borrador, un alta desde un bloque (nueva tarea), el avance de una tarea.
@@ -264,13 +264,14 @@ app/Livewire/Auditoria/
 │   ├── ResumenPropuestas.php   — banner con las propuestas pendientes del riesgo
 │   ├── FichaRiesgo.php         — datos propios del riesgo, editables en el bloque
 │   ├── InfoRiesgo.php          — tarjeta Valor: total, desglose de mitigación, residual
-│   ├── GestionControles.php    — maneja controles de un riesgo (checks de cada relación, D-040)
+│   ├── GestionControles.php    — maneja controles de un riesgo (alta y baja; cada uno mitiga su valor según la evidencia, D-051)
 │   ├── GestionObjetivos.php    — maneja objetivos de un riesgo (mínimo 1 requerido)
 │   └── GestionPlanes.php       — maneja planes de acción de un riesgo
 ├── Control/Show/
-│   ├── FichaControl.php        — datos y checks del control, editables en el bloque (propaga o recorta)
-│   ├── RiesgosControl.php      — riesgos que mitiga: checks de cada relación, evidencia y testeos del auditor (D-040)
-│   └── InfoControl.php         — tarjeta Mitigación del lateral
+│   ├── FichaControl.php        — nombre y descripción del control, editables en el bloque
+│   ├── RiesgosControl.php      — riesgos que mitiga: lo que descuenta en cada uno, evidencia y testeos del auditor (D-040)
+│   ├── ValorControl.php        — card Valor del control: cuestionario del área y reevaluación del auditor (D-051)
+│   └── InfoControl.php         — tarjeta Datos del lateral
 ├── Objetivo/Show/
 │   ├── FichaObjetivo.php       — datos del objetivo, editables en el bloque
 │   └── InfoObjetivo.php        — tarjeta Fecha objetivo del lateral (clasificación y PEIS)
@@ -417,7 +418,7 @@ Orden de ejecución (respeta dependencias de FK):
 | `RiesgoFactory` | `Riesgo` — crea `TipoRiesgo` y `EstadoRiesgo` asociados |
 | `PlanAccionFactory` | `PlanAccion` |
 | `TareaFactory` | `Tarea` |
-| `ControlFactory` | `Control` |
+| `ControlFactory` | `Control` — sin cuestionario por defecto (número suelto); `valorado($puntaje, $operativo)` lo contesta |
 | `TipoRiesgoFactory` | `TipoRiesgo` |
 | `EstadoRiesgoFactory` | `EstadoRiesgo` |
 | `ActualizacionTareaFactory` | `Actualizacion` — campos: `user_id`, `mensaje`, `data` |
@@ -439,7 +440,7 @@ Suite de tests de integración con `RefreshDatabase`. El `setUp()` ejecuta `Esta
 | `una_tarea_puede_pertenecer_a_muchos_planes` | Relación inversa Tarea ↔ PlanAccion |
 | `una_tarea_tiene_fecha_y_actualizaciones` | `fecha` cast a Carbon, `actualizaciones` polimórficas |
 | `riesgo_tiene_mayor_criticidad` | Campo `mayor_criticidad` |
-| `un_riesgo_puede_tener_muchos_controles_con_mitigacion_pivot` | Pivot `control_riesgo` con campo `mitigacion` |
+| `un_riesgo_puede_tener_muchos_controles_con_evidencia_en_el_pivot` | Pivot `control_riesgo` con campo `efectividad` |
 | `objetivo_tiene_fecha_nullable` | `fecha_objetivo` nullable y cast a Carbon |
 
 Las actualizaciones se crean via `$tarea->actualizaciones()->create([...])` (no factory directa) porque el modelo es polimórfico y requiere que el relationship setee `actualizable_type` / `actualizable_id`.

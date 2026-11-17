@@ -1673,3 +1673,114 @@ Tests: `MitigacionPlanTest` (reescrito) y `ValorPlanTest` (nuevo); adaptados los
 en la relación.
 
 Fuente: sesión 2026-11-13, con el usuario presente. Las preguntas, en `docs/preguntas_plan.txt`.
+
+---
+
+## D-051 — El control se valora con un cuestionario y la evidencia aplica por tramos (2026-11-17)
+
+**Decisión.** El valor de un control deja de salir de los 5 checks provisorios de D-040 y la relación
+control-riesgo deja de tener número propio. Reemplaza las partes de D-040 sobre el número del control,
+el número de la relación, el tope, el recorte y la propagación. El testeo del auditor por relación
+sigue igual.
+
+- **Cuestionario** (`config/control_preguntas.php`, del documento del cliente). Son 7 preguntas de
+  sí/no:
+
+  | Pregunta | Sí | No |
+  |---|---|---|
+  | ¿Está operativo hoy? | 1 | 0 |
+  | ¿Está documentado? | 2, con el procedimiento como texto libre | 0 |
+  | ¿Ocurre en un sistema? | 3, con uno o más de la lista, u «otro» con texto | 1 (manual) |
+  | ¿Tiene responsable? | 1 | 0 |
+  | ¿Tiene una frecuencia? | 1, con cuál | 0 |
+  | ¿Deja evidencia? | 1 | 0 |
+  | ¿Previno o detectó errores? | 1 | 0 |
+
+  El puntaje va de 1 a 10.
+
+  En el texto original la última pregunta valía 1 por sí y 2 por no. El usuario confirmó que era un
+  error.
+- **Expresión de deseo.** Si la primera respuesta es «no», el cuestionario se contesta igual y el
+  puntaje se muestra, pero el control **mitiga 0** y queda deficiente.
+- **Clasificación.** Menos de 4 es deficiente (rojo), de 4 a 6 moderado (amarillo) y 7 o más suficiente
+  (verde).
+- **El valor es del control.** `mitigacion_default` sale del cuestionario (hook `saving`) y vale igual
+  en cada riesgo que el control mitiga. Salen `control_riesgo.mitigacion` y `control_riesgo.checks`.
+- **Evidencia por tramos.** Cada relación aplica un porcentaje del valor del control según su evidencia
+  de cumplimiento, hacia abajo y por relación (D-037 sigue):
+
+  | Evidencia | Aplica |
+  |---|---|
+  | Menos de 60 | 0 % |
+  | 60–69 | 20 % |
+  | 70–79 | 40 % |
+  | 80–90 | 60 % |
+  | 91–98 | 80 % |
+  | 99–100 | 100 % |
+
+  La regla vive en `Control::aplicarEvidencia()`.
+- **Orden del residual.** No cambia: primero los planes por eje (D-050) y después los controles sobre
+  lo que queda, con piso 0.
+- **Circuito.**
+  - En borrador, el área contesta el cuestionario y se guarda en el acto.
+  - Fuera de borrador, el área lo cambia por propuesta, con el circuito de siempre. El comité no valora:
+    aprueba lo que le proponen.
+  - Con el control aprobado, el **auditor**, de cualquier área, lo reevalúa **en el acto** con
+    `ControlPolicy::reevaluar`. Lleva un comentario obligatorio y adjuntos opcionales, y no pasa por
+    gerente ni comité.
+  - El auditor no propone por el circuito del área.
+  - Una propuesta pendiente sobre el cuestionario frena otra, y también la reevaluación del auditor.
+- **Requisito para validar.** Sin cuestionario, el control no se valida ni se aprueba. Vale también en
+  la validación masiva y en la cascada de un riesgo, donde ese control queda en su estado y el resto
+  sigue.
+- **Datos existentes.** Los controles de antes no tienen cuestionario. **Conservan su número** hasta que
+  alguien lo conteste, y se clasifican por ese número. El detector de la revisión inicial los marca
+  como advertencia (`sin_cuestionario`). Las relaciones con número propio (la carga inicial) pasan a
+  usar el valor del control.
+
+**Motivo.** El cliente quería que el valor del control no fuera subjetivo y que se aplicara igual en
+todos los riesgos. Según auditoría, la evidencia regula ese valor por escalones, no en proporción
+exacta.
+
+**Descartado.**
+- **Mitigación 0 para los controles viejos hasta contestar**, como los planes en D-050. El usuario
+  prefirió que conserven su número: se espera una reevaluación general.
+- **Que sólo el auditor conteste el cuestionario.** El control nace y se valida por el ciclo normal del
+  área. El auditor entra recién sobre lo aprobado.
+- **Una tabla propia para las reevaluaciones del auditor**, como `testeos`. Alcanza con una
+  `Actualizacion` aprobada con `origen = reevaluacion_auditor`, con el comentario como mensaje y los
+  adjuntos en su colección. Queda excluida de `esAprobacion()`, así que no admite carga de comité.
+- **Controles por eje**, como los planes. Sigue en el ROADMAP.
+
+**Efecto en cascada anotado.**
+- **Núcleo.** Cambia el residual de todo riesgo con controles: hay tramos y no hay número por relación.
+  También cambian la autorización (habilidad nueva con sus 403) y el ciclo, porque el cuestionario pasa
+  a ser requisito para validar.
+- **Migraciones.**
+  - `2026_11_17_000001_relacion_control_sin_numero` saca el número y los checks del pivot, y limpia
+    las propuestas pendientes que los llevaban.
+  - `2026_11_17_000002_evaluacion_de_controles` agrega `controles.evaluacion`, saca `controles.checks`
+    y limpia de las propuestas pendientes los checks y el número que los acompañaba.
+- **`Control`.**
+  - Se agregan `aplicarEvidencia()`, `puntaje`, `clasificacion()`, `motivosBloqueoValidacion()`,
+    `motivoBloqueoValoracion()`, `registrarValoracion()` y `reevaluar()`.
+  - Salen `CHECKS`, `numeroRelacion()`, `trasCambiarDefault()` y la propagación y el recorte.
+- **Otros modelos.** `ControlRiesgo` sin hook. `Actualizacion` pierde `registrarCambioPivot()`, la
+  operación `actualizar` por elemento y el flag `propagar_mitigacion`.
+- **Servicios.** `EvaluacionControl` es nuevo. `ValidacionMasivaService` bloquea los controles sin
+  cuestionario.
+- **Componentes.**
+  - `ValorControl` es nuevo.
+  - `GestionControles` y `RiesgosControl` pierden los checks por relación.
+  - `FichaControl` sólo edita el nombre y la descripción.
+  - `InfoControl` pasa a ser una card de datos.
+- **Detector y datos de prueba.** El detector gana `sin_cuestionario` y pierde `asociacion_en_cero`.
+  El factory queda sin cuestionario por defecto y suma el estado `valorado()`. Se ajustaron los
+  seeders.
+- **Docs.** Cambia el axioma 2 de CLAUDE.md.
+
+Tests: `ValorControlTest` (nuevo), `EfectividadRelacionTest` (reescrito con los tramos) y
+`TesteoRelacionTest`. Se borraron `ChecksRelacionTest` y `PropagacionMitigacionControlTest`, y se
+adaptaron los que cargaban el número en la relación.
+
+Fuente: sesión 2026-11-17, con el usuario presente.
