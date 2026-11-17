@@ -5,14 +5,16 @@
     se pueden elegir aparecen deshabilitados con su motivo. El servidor vuelve a
     validar contra la misma lista en proponerEliminacion().
     Variables: $riesgo, $dependientes (['controles' => [...], 'planes' => [...]]),
-    $eligeRol (gerente y comité sobre su área, D-052: propone o la establece como comité).
+    $eligeRol (gerente y comité sobre su área, D-052: propone o la establece como comité),
+    $comiteEliminacion (la elimina el comité en el acto: pide N° y fecha, D-053).
 --}}
 @php
     $conErrores = $errors->hasAny(['observaciones', 'adjunto', 'controles', 'planes', 'comite.numero', 'comite.fecha']);
     $eligeRol = $eligeRol ?? false;
+    $comiteEliminacion = $comiteEliminacion ?? false;
     $marcados = fn (string $tipo) => array_map('intval', (array) old($tipo, []));
 @endphp
-<div x-data="{ menu: false, abierto: @js($conErrores), como: @js(old('como', 'propuesta')) }" x-on:keydown.escape.window="abierto = false">
+<div x-data="{ menu: false, abierto: @js($conErrores), como: @js(old('como', $comiteEliminacion ? 'comite' : 'propuesta')) }" x-on:keydown.escape.window="abierto = false">
     <div class="relative" x-on:click.outside="menu = false">
         <button type="button" x-on:click="menu = !menu" title="Más acciones"
             class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors">
@@ -22,7 +24,7 @@
              class="absolute right-0 mt-2 w-52 rounded-xl bg-white border border-gray-200 shadow-lg py-1 z-30">
             <button type="button" x-on:click="menu = false; abierto = true"
                 class="w-full text-left px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
-                Proponer eliminación
+                {{ $comiteEliminacion ? 'Eliminar riesgo' : 'Proponer eliminación' }}
             </button>
         </div>
     </div>
@@ -36,9 +38,9 @@
 
             <div class="flex items-start justify-between gap-3 px-6 py-4 border-b border-gray-100">
                 <div class="min-w-0">
-                    <p class="text-xs font-bold text-red-600 uppercase tracking-widest mb-0.5">Proponer eliminación</p>
+                    <p class="text-xs font-bold text-red-600 uppercase tracking-widest mb-0.5">{{ $comiteEliminacion ? 'Eliminar como comité' : 'Proponer eliminación' }}</p>
                     <h3 class="text-base font-extrabold text-gray-900 leading-tight">{{ $riesgo->nombre }}</h3>
-                    <p class="mt-1 text-xs text-gray-500">El riesgo sigue vigente hasta que el comité apruebe la eliminación.</p>
+                    <p class="mt-1 text-xs text-gray-500">{{ $comiteEliminacion ? 'Se elimina en el acto como aprobación del comité.' : 'El riesgo sigue vigente hasta que el comité apruebe la eliminación.' }}</p>
                 </div>
                 <button type="button" x-on:click="abierto = false" class="text-gray-400 hover:text-gray-600 p-1 shrink-0">
                     <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
@@ -87,6 +89,15 @@
                         </fieldset>
                     @endif
                 @endforeach
+
+                @if($comiteEliminacion)
+                    <input type="hidden" name="como" value="comite">
+                    <div>
+                        <p class="block text-xs font-bold text-gray-700 mb-1">Comité que lo resuelve</p>
+                        @include('auditoria.partials.campos-comite', ['livewire' => false])
+                        <p class="mt-1 text-[11px] text-gray-500">Si todavía no tenés el N° o la fecha, se pueden completar después.</p>
+                    </div>
+                @endif
 
                 @if($eligeRol)
                     <fieldset class="space-y-2">

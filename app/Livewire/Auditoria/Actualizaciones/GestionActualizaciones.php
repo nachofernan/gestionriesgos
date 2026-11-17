@@ -144,6 +144,15 @@ class GestionActualizaciones extends Component
         };
     }
 
+    /** Una nota suelta no se aprueba: sólo un cambio de campos pide elegir rol o comité (EligeRol). */
+    protected function guardaCambiosParaComite(): bool
+    {
+        return collect($this->cambios)
+            ->only(array_keys($this->camposEditables()))
+            ->filter(fn ($v) => $v !== null && $v !== '')
+            ->isNotEmpty();
+    }
+
     /**
      * Valida el formulario y crea la Actualizacion: una nota si no trae cambios de
      * campo, o un cambio de campos (Actualizacion::registrarCambioCampos(), que

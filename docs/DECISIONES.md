@@ -1849,3 +1849,34 @@ quien no tiene el rol.
 - **Docs.** Cambia el axioma 1 de CLAUDE.md: el comité es un rol, no "`area_id = null`".
 
 Fuente: sesión 2026-11-17, con el usuario presente.
+
+---
+
+## D-053 — Lo que el comité establece en el acto pide confirmación con N° y fecha (2026-11-17)
+
+**Decisión.** Cuando un cambio sobre algo aprobado se va a aplicar en el acto como comité, antes de
+guardar se abre el modal de D-052 sin la opción de propuesta: pide el N° y la fecha del comité y un
+botón "Establecer como comité". Vale para el comité puro y para quien tiene doble rol fuera de su
+subárbol. Con doble rol en su subárbol sigue el modal de elegir de D-052.
+
+- **El motivo** es que un cambio del comité aplicaba directo con un solo clic, y cargar el comité
+  después llevaba dos pasos más (D-039).
+- **N° y fecha siguen siendo opcionales**, como en D-039: el modal ya funciona como confirmación. Se
+  pueden completar después.
+- **Dónde aplica:** las fichas, los bloques de relaciones, la actualización genérica y la eliminación
+  del riesgo. En la eliminación el modal pasa a "Eliminar como comité" con los campos del comité.
+- **Las notas sueltas no lo piden**, porque no se aprueba nada.
+
+**Descartado.** N° y fecha obligatorios: hay casos en que el comité actúa antes de tener el acta.
+
+**Efecto en cascada anotado.**
+- **Trait `EligeRol`.** Suma `estableceComoComite()` y `pedirGuardar()`, que es lo que llama el botón de
+  guardar. `GestionActualizaciones` redefine `guardaCambiosParaComite()` para que una nota no lo pida.
+- **Riesgo.** `RiesgoController::show()` pasa `comiteEliminacion` al modal de eliminación.
+
+Tests en `DobleRolGerenteComiteTest`:
+- `el_comite_confirma_con_numero_y_fecha_al_editar_lo_aprobado`;
+- `una_nota_del_comite_no_pide_comite`;
+- `el_comite_elimina_con_numero_y_fecha`.
+
+Fuente: sesión 2026-11-17, con el usuario presente.

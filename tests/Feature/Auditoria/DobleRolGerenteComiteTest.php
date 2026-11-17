@@ -4,6 +4,7 @@ namespace Tests\Feature\Auditoria;
 
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Enums\Auditoria\TipoArea;
+use App\Livewire\Auditoria\Actualizaciones\GestionActualizaciones;
 use App\Livewire\Auditoria\Riesgo\Show\FichaRiesgo;
 use App\Livewire\Auditoria\Riesgo\Show\GestionControles;
 use App\Models\Auditoria\Actualizacion;
@@ -202,16 +203,93 @@ class DobleRolGerenteComiteTest extends TestCase
     }
 
     #[Test]
-    public function con_doble_rol_fuera_de_su_area_actua_como_comite_sin_preguntar(): void
+    public function con_doble_rol_fuera_de_su_area_no_elige_pero_confirma_el_comite(): void
     {
         $riesgo = $this->riesgoAprobado($this->ajena);
 
         $componente = $this->editarFicha($this->dobleRol, $riesgo);
         $this->assertFalse($componente->instance()->requiereElegirRol());
-        $componente->call('guardar')->assertHasNoErrors();
+        $this->assertTrue($componente->instance()->estableceComoComite());
+        $componente->call('pedirGuardar')->assertSet('eligiendoRol', true);
+        $this->assertSame('Original', $riesgo->fresh()->nombre);
 
-        $this->assertSame('aprobado', $this->ultimaActualizacion($riesgo)->estado->nombre);
+        $componente->set('comite', ['numero' => '15', 'fecha' => null])
+            ->call('guardarComo', 'comite')
+            ->assertHasNoErrors();
+
+        $cambio = $this->ultimaActualizacion($riesgo);
+        $this->assertSame('aprobado', $cambio->estado->nombre);
+        $this->assertSame('15', $cambio->comite_numero);
         $this->assertSame('Nuevo nombre', $riesgo->fresh()->nombre);
+    }
+
+    #[Test]
+    public function el_comite_confirma_con_numero_y_fecha_al_editar_lo_aprobado(): void
+    {
+        $comite = User::factory()->comite()->create(['area_id' => $this->propia->area_padre_id]);
+        $riesgo = $this->riesgoAprobado($this->propia);
+
+        $componente = $this->editarFicha($comite, $riesgo)
+            ->call('pedirGuardar')
+            ->assertSet('eligiendoRol', true);
+        $this->assertSame('Original', $riesgo->fresh()->nombre);
+
+        $componente->set('comite', ['numero' => '3', 'fecha' => today()->toDateString()])
+            ->call('guardarComo', 'comite')
+            ->assertHasNoErrors()
+            ->assertSet('eligiendoRol', false);
+
+        $cambio = $this->ultimaActualizacion($riesgo);
+        $this->assertSame('aprobado', $cambio->estado->nombre);
+        $this->assertSame('3', $cambio->comite_numero);
+        $this->assertSame(today()->toDateString(), $cambio->comite_fecha->toDateString());
+        $this->assertSame('Nuevo nombre', $riesgo->fresh()->nombre);
+    }
+
+    #[Test]
+    public function el_gerente_guarda_sin_modal(): void
+    {
+        $gerente = User::factory()->gerente()->create(['area_id' => $this->propia->id]);
+        $riesgo = $this->riesgoAprobado($this->propia);
+
+        $this->editarFicha($gerente, $riesgo)
+            ->call('pedirGuardar')
+            ->assertSet('eligiendoRol', false)
+            ->assertHasNoErrors();
+
+        $this->assertSame('validado', $this->ultimaActualizacion($riesgo)->estado->nombre);
+    }
+
+    #[Test]
+    public function una_nota_del_comite_no_pide_comite(): void
+    {
+        $comite = User::factory()->comite()->create(['area_id' => $this->propia->area_padre_id]);
+        $riesgo = $this->riesgoAprobado($this->propia);
+
+        Livewire::actingAs($comite)
+            ->test(GestionActualizaciones::class, ['modelType' => 'riesgo', 'modelId' => $riesgo->id])
+            ->set('mensaje', 'Nota del comité')
+            ->call('pedirGuardar')
+            ->assertSet('eligiendoRol', false)
+            ->assertHasNoErrors();
+
+        $nota = $this->ultimaActualizacion($riesgo);
+        $this->assertSame('Nota del comité', $nota->mensaje);
+        $this->assertNull($nota->estado_id);
+    }
+
+    #[Test]
+    public function el_comite_elimina_con_numero_y_fecha(): void
+    {
+        $comite = User::factory()->comite()->create(['area_id' => $this->propia->area_padre_id]);
+        $riesgo = $this->riesgoAprobado($this->propia);
+
+        $this->actingAs($comite)->post(route('auditoria.riesgos.eliminacion', $riesgo), [
+            'observaciones' => 'Ya no aplica.', 'como' => 'comite', 'comite' => ['numero' => '21', 'fecha' => null],
+        ]);
+
+        $this->assertSame('borrado', $riesgo->fresh()->estado->nombre);
+        $this->assertSame('21', $riesgo->actualizaciones()->where('data->eliminacion', true)->firstOrFail()->comite_numero);
     }
 
     #[Test]

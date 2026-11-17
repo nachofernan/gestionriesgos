@@ -194,8 +194,10 @@ class RiesgoController extends Controller
         $eliminacion = Auth::user()->can('delete', $riesgo) ? $riesgo->dependientesEliminables(Auth::user()) : null;
         // Con rol de gerente y de comité elige si la propone o la establece (D-052).
         $eligeRolEliminacion = $eliminacion !== null && Auth::user()->eligeRolEn($riesgo->estado?->nombre, $riesgo->area_id);
+        // Si la elimina el comité sin elegir, se aplica en el acto: pide N° y fecha (D-053).
+        $comiteEliminacion = $eliminacion !== null && ! $eligeRolEliminacion && Auth::user()->esComite();
 
-        return view('auditoria.riesgo.show', compact('riesgo', 'comite', 'eliminacion', 'eligeRolEliminacion'));
+        return view('auditoria.riesgo.show', compact('riesgo', 'comite', 'eliminacion', 'eligeRolEliminacion', 'comiteEliminacion'));
     }
 
     public function edit(Riesgo $riesgo)

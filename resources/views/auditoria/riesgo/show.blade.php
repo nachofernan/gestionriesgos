@@ -36,7 +36,7 @@
             @include('auditoria.partials.estado-acciones', ['item' => $riesgo, 'routePrefix' => 'riesgos'])
 
             @if($eliminacion)
-                @include('auditoria.riesgo.partials.modal-eliminacion', ['riesgo' => $riesgo, 'dependientes' => $eliminacion, 'eligeRol' => $eligeRolEliminacion])
+                @include('auditoria.riesgo.partials.modal-eliminacion', ['riesgo' => $riesgo, 'dependientes' => $eliminacion, 'eligeRol' => $eligeRolEliminacion, 'comiteEliminacion' => $comiteEliminacion])
             @endif
         </div>
     </header>

@@ -10,10 +10,11 @@ use Livewire\Attributes\Locked;
  * Elegir con qué rol se guarda un cambio cuando el usuario es gerente y comité
  * (D-052): sobre algo aprobado de su subárbol, "Enviar como propuesta" (nace
  * validada, como cualquier gerente) o "Establecer como comité" (nace aprobada,
- * se aplica y guarda N° y fecha del comité). El botón de guardar llama a
- * abrirElegirRol() cuando requiereElegirRol(); el modal
- * (auditoria.partials.elegir-rol-modal) llama a guardarComo(), que termina en el
- * guardar() del componente. Requiere `$estadoModelo` y que el componente cargue
+ * se aplica y guarda N° y fecha del comité). Cuando el cambio igual se va a
+ * establecer como comité (comité puro, o doble rol fuera de su subárbol), el
+ * mismo modal sólo confirma y pide N° y fecha (D-053). El botón de guardar llama
+ * a pedirGuardar(); el modal (auditoria.partials.elegir-rol-modal) llama a
+ * guardarComo(), que termina en el guardar() del componente. Requiere `$estadoModelo` y que el componente cargue
  * `$areaModelo` (Actualizacion::areaDe()) al renderizar.
  * Tests: DobleRolGerenteComiteTest.
  */
@@ -34,6 +35,39 @@ trait EligeRol
         return Auth::user()->eligeRolEn($this->estadoModelo, $this->areaModelo);
     }
 
+    /**
+     * Si el cambio se establece como comité sin opción de propuesta: algo aprobado
+     * que edita quien tiene el rol de comité y no tiene que elegir (D-053).
+     */
+    public function estableceComoComite(): bool
+    {
+        return $this->estadoModelo === 'aprobado'
+            && Auth::user()->esComite()
+            && ! $this->requiereElegirRol();
+    }
+
+    /**
+     * Lo que llama el botón de guardar: abre el modal si hay que elegir rol o
+     * confirmar el comité, y si no guarda directo.
+     * Tests: el_comite_confirma_con_numero_y_fecha_al_editar_lo_aprobado.
+     */
+    public function pedirGuardar(): void
+    {
+        if (($this->requiereElegirRol() || $this->estableceComoComite()) && $this->guardaCambiosParaComite()) {
+            $this->abrirElegirRol();
+
+            return;
+        }
+
+        $this->guardar();
+    }
+
+    /** Si lo que se guarda lleva comité. Lo redefine quien también guarda notas sueltas. */
+    protected function guardaCambiosParaComite(): bool
+    {
+        return true;
+    }
+
     public function abrirElegirRol(): void
     {
         $this->resetErrorBag('comite');
@@ -43,7 +77,7 @@ trait EligeRol
 
     public function guardarComo(string $como): void
     {
-        $this->comoComite = $como === 'comite' && $this->requiereElegirRol();
+        $this->comoComite = $como === 'comite' && ($this->requiereElegirRol() || $this->estableceComoComite());
         if ($this->comoComite) {
             $this->validate(Actualizacion::reglasComite(), Actualizacion::mensajesComite());
         }
