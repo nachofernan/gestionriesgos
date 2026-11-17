@@ -46,7 +46,9 @@ class ControlCargaInicialSeeder extends Seeder
     {
         $vistos = [];
 
-        foreach ($this->filasCsv('ControlRiesgo.csv') as [$controlCsvId, $riesgoCsvId, $mitigacionTxt]) {
+        // La tercera columna (número propio de la relación) ya no se usa: el control
+        // mitiga su propio valor en cada riesgo (D-051).
+        foreach ($this->filasCsv('ControlRiesgo.csv') as [$controlCsvId, $riesgoCsvId]) {
             $clave = $controlCsvId.'-'.$riesgoCsvId;
             if (isset($vistos[$clave])) {
                 continue;
@@ -59,9 +61,7 @@ class ControlCargaInicialSeeder extends Seeder
                 continue;
             }
 
-            Control::find($controlId)->riesgos()->syncWithoutDetaching([
-                $riesgoId => ['mitigacion' => $mitigacionTxt !== '' ? (int) $mitigacionTxt : null],
-            ]);
+            Control::find($controlId)->riesgos()->syncWithoutDetaching([$riesgoId]);
         }
     }
 }

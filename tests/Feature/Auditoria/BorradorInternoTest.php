@@ -113,7 +113,7 @@ class BorradorInternoTest extends TestCase
         $riesgo = Riesgo::factory()->borrador()->create(['area_id' => $this->gerencia->id]);
         $interno = Control::factory()->create(['area_id' => $this->gerencia->id, 'interno' => true]);
         $comun = Control::factory()->create(['area_id' => $this->gerencia->id]);
-        $riesgo->controles()->attach([$interno->id => ['mitigacion' => 2], $comun->id => ['mitigacion' => 2]]);
+        $riesgo->controles()->attach([$interno->id, $comun->id]);
 
         $plan = PlanAccion::factory()->create(['area_id' => $this->gerencia->id]);
         $tareaInterna = Tarea::factory()->create(['area_id' => $this->gerencia->id, 'interno' => true]);
@@ -240,8 +240,8 @@ class BorradorInternoTest extends TestCase
     {
         $sector = Area::create(['nombre' => 'Sector efluentes', 'area_padre_id' => $this->gerencia->id]);
         $delSector = Riesgo::factory()->borrador()->create(['area_id' => $sector->id, 'interno' => true, 'impacto' => 8, 'probabilidad' => 8]);
-        $control = Control::factory()->create(['area_id' => $sector->id, 'interno' => true]);
-        $delSector->controles()->attach($control->id, ['mitigacion' => 4]);
+        $control = Control::factory()->create(['area_id' => $sector->id, 'interno' => true, 'mitigacion_default' => 4]);
+        $delSector->controles()->attach($control->id);
         Riesgo::factory()->borrador()->create(['area_id' => $this->gerencia->id]);
 
         $otro = $this->otraGerencia();

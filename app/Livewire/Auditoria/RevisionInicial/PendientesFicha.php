@@ -36,7 +36,6 @@ class PendientesFicha extends Component
         ],
         'control' => [
             'mitigacion_en_cero' => ['mitigacion', 'Ver mitigación'],
-            'asociacion_en_cero' => ['riesgos', 'Ver riesgos'],
             'sin_riesgos' => ['riesgos', 'Ver riesgos'],
         ],
         'objetivo' => [

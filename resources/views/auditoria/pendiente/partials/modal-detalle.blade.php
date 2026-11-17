@@ -145,10 +145,6 @@
                         <p class="text-sm text-gray-400 italic">La propuesta no trae un detalle de cambios.</p>
                     </template>
 
-                    <template x-if="item.propagar_mitigacion">
-                        <p class="inline-block text-[10px] font-bold text-indigo-700 bg-indigo-50 rounded-full px-2 py-0.5">Se aplica también a los riesgos asociados</p>
-                    </template>
-
                     <template x-if="item.mensaje">
                         <p class="text-sm text-gray-500 italic whitespace-pre-line" x-text="'“' + item.mensaje + '”'"></p>
                     </template>

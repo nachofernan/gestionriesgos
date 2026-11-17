@@ -230,7 +230,7 @@ class Riesgo extends Model implements HasMedia
     {
         return $this->belongsToMany(Control::class, 'control_riesgo')
             ->using(ControlRiesgo::class)
-            ->withPivot('mitigacion', 'checks', 'efectividad')
+            ->withPivot('efectividad')
             ->withTimestamps();
     }
 
@@ -269,8 +269,8 @@ class Riesgo extends Model implements HasMedia
     /**
      * Resta al valor_total lo que mitigan los planes de acción aprobados (por
      * eje, con tope en el impacto y la probabilidad del riesgo, D-050) y después
-     * la mitigación efectiva de los controles (el número de cada relación
-     * regulado por su efectividad, D-040). Todo se redondea hacia abajo. Sólo
+     * la mitigación efectiva de los controles (el valor del control regulado por
+     * el tramo de evidencia de cada relación, D-051). Todo se redondea hacia abajo. Sólo
      * mitigan los controles y planes en estado "aprobado": uno en
      * borrador/validado no baja el valor del riesgo. El residual nunca baja de 0.
      * Consumir con `controles.estado` y
@@ -286,9 +286,9 @@ class Riesgo extends Model implements HasMedia
     /**
      * Parte del residual que descuentan los controles: sólo los que mitigan
      * (Control::mitiga(): los aprobados), cada uno con lo que descuenta su
-     * relación con este riesgo (ControlRiesgo::mitigacionEfectiva(): número ×
-     * efectividad, hacia abajo, por relación). Separada de valor_residual para
-     * que la ficha pueda mostrar el desglose sin recalcularlo.
+     * relación con este riesgo (ControlRiesgo::mitigacionEfectiva(): valor del
+     * control × tramo de evidencia, hacia abajo, por relación). Separada de
+     * valor_residual para que la ficha pueda mostrar el desglose sin recalcularlo.
      * Tests: el_desglose_de_mitigacion_separa_controles_y_planes_y_cuadra_con_el_residual,
      * la_mitigacion_efectiva_se_redondea_por_relacion.
      */

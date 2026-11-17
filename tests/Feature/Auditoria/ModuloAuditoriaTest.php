@@ -110,15 +110,15 @@ class ModuloAuditoriaTest extends TestCase
     }
 
     #[Test]
-    public function un_riesgo_puede_tener_muchos_controles_con_mitigacion_pivot()
+    public function un_riesgo_puede_tener_muchos_controles_con_evidencia_en_el_pivot()
     {
         $riesgo = Riesgo::factory()->create();
         $control = Control::factory()->create();
 
-        $riesgo->controles()->attach($control->id, ['mitigacion' => 5]);
+        $riesgo->controles()->attach($control->id);
 
         $this->assertCount(1, $riesgo->controles);
-        $this->assertEquals(5, $riesgo->controles->first()->pivot->mitigacion);
+        $this->assertEquals(100, $riesgo->controles->first()->pivot->efectividad);
     }
 
     #[Test]

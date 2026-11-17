@@ -1,7 +1,6 @@
 <div>
     @php
         $agregados = collect($diffEnCurso['agrega'] ?? [])->pluck('id');
-        $cambiados = collect($diffEnCurso['cambia'] ?? [])->pluck('id');
         $quitados = $diffEnCurso['quita'] ?? [];
     @endphp
 
@@ -21,11 +20,11 @@
                 $mitiga = $ctrl['mitiga'] ?? false;
                 $bloqueado = in_array($ctrl['id'], $bloqueados);
             @endphp
-            <div wire:key="ctrl-{{ $ctrl['id'] }}" x-data="{ checks: false }">
+            <div wire:key="ctrl-{{ $ctrl['id'] }}">
             <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors
                      {{ $nuevo ? 'border-dashed border-indigo-300 bg-indigo-50/50' : 'border-gray-100 bg-gray-50/60' }}
                      {{ !$editando ? 'cursor-pointer hover:border-indigo-200 hover:bg-white' : '' }}"
-                 @if(!$editando) onclick="Livewire.dispatch('ver-control', {id: {{ $ctrl['id'] }}, mitigacion: {{ $ctrl['mitigacion'] }}})" @endif>
+                 @if(!$editando) onclick="Livewire.dispatch('ver-control', {id: {{ $ctrl['id'] }}})" @endif>
                 <x-auditoria.estado-punto :color="$ctrl['estado_color']" :nombre="$ctrl['estado'] ?? 'borrador'" soloPunto />
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-gray-800 truncate">
@@ -33,26 +32,18 @@
                     </p>
                     <p class="text-[11px] text-gray-500 truncate">
                         {{ $ctrl['area'] ?? '—' }}
-                        @if($editando) · tope {{ $ctrl['mitigacion_default'] }} @endif
-                        @if(($ctrl['efectividad'] ?? 100) < 100) · efectividad {{ $ctrl['efectividad'] }}% @endif
+                        · valor {{ $ctrl['mitigacion_default'] }}
+                        @if(($ctrl['efectividad'] ?? 100) < 100) · evidencia {{ $ctrl['efectividad'] }}% (aplica {{ \App\Models\Auditoria\Control::porcentajeDeEvidencia((int) $ctrl['efectividad']) }}%) @endif
                     </p>
                 </div>
                 @if($nuevo)
                     <span class="text-[10px] font-bold text-indigo-700">nuevo</span>
-                @elseif($cambiados->contains($ctrl['id']))
-                    <span class="text-[10px] font-bold text-indigo-700">modificado</span>
                 @endif
                 @foreach($marcas[$ctrl['id']] ?? [] as $marca)
                     <span class="text-[10px] font-bold text-amber-800 bg-amber-100 rounded-full px-2 py-0.5 whitespace-nowrap">{{ $marca }}</span>
                 @endforeach
 
                 @if($editando)
-                    <button type="button" x-on:click="checks = !checks" @disabled($bloqueado) title="Checks de lo que mitiga en este riesgo"
-                        class="shrink-0 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold text-gray-700 hover:border-indigo-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-                        x-bind:class="checks ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200 bg-white'">
-                        mit. <span class="tabular-nums text-indigo-700">{{ $ctrl['mitigacion'] }}</span><span class="font-medium text-gray-400">/{{ $ctrl['mitigacion_default'] }}</span>
-                        <svg class="h-3 w-3 text-gray-400 transition-transform" x-bind:class="checks && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                    </button>
                     <button type="button" wire:click="quitar({{ $ctrl['id'] }})" title="Quitar" @disabled($bloqueado)
                         class="text-gray-300 hover:text-red-500 transition-colors shrink-0 disabled:opacity-30 disabled:hover:text-gray-300 disabled:cursor-not-allowed">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -61,19 +52,11 @@
                     <span class="shrink-0 min-w-[3rem] text-center text-xs font-extrabold rounded-lg px-2 py-1 tabular-nums
                                  {{ $mitiga ? 'text-indigo-700 bg-indigo-50' : 'text-gray-400 bg-white border border-dashed border-gray-200' }}"
                           title="{{ $mitiga ? 'Descuenta del residual' : 'No descuenta hasta que el control esté aprobado' }}">
-                        −{{ \App\Models\Auditoria\Control::aplicarEfectividad((int) $ctrl['mitigacion'], (int) ($ctrl['efectividad'] ?? 100)) }}@if(($ctrl['efectividad'] ?? 100) < 100) <span class="font-medium opacity-60">de {{ $ctrl['mitigacion'] }}</span>@endif
+                        @php $efectiva = \App\Models\Auditoria\Control::aplicarEvidencia((int) $ctrl['mitigacion_default'], (int) ($ctrl['efectividad'] ?? 100)); @endphp
+                        −{{ $efectiva }}@if($efectiva < (int) $ctrl['mitigacion_default']) <span class="font-medium opacity-60">de {{ $ctrl['mitigacion_default'] }}</span>@endif
                     </span>
                 @endif
             </div>
-            @if($editando && !$bloqueado)
-                <div x-show="checks" x-cloak>
-                    @include('auditoria.partials.checks-relacion', [
-                        'accion' => "alternarCheck({$ctrl['id']}, '%s')",
-                        'checks' => $ctrl['checks'] ?? [],
-                        'tope' => $ctrl['mitigacion_default'],
-                    ])
-                </div>
-            @endif
             </div>
         @empty
             <p class="text-sm text-gray-400 italic py-2">Sin controles asociados.</p>
@@ -114,7 +97,7 @@
                         <x-auditoria.interno-badge :activo="$ctrl->interno ?? false" size="xs" class="shrink-0" />
                     </div>
                     <p class="mt-0.5 text-[11px] text-gray-500 truncate">
-                        <span class="font-bold text-indigo-700">mit. default {{ $ctrl->mitigacion_default }}</span>
+                        <span class="font-bold text-indigo-700">valor {{ $ctrl->mitigacion_default }}</span>
                         @if($ctrl->area) · {{ $ctrl->area->nombre }} @endif
                     </p>
                     @if($ctrl->descripcion)

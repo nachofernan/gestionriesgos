@@ -38,9 +38,9 @@ class ProyeccionInternaTest extends TestCase
         return Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8, 'interno' => true]);
     }
 
-    private function control(string $estado, bool $interno = false): Control
+    private function control(string $estado, bool $interno = false, int $valor = 4): Control
     {
-        return Control::factory()->create(['estado_id' => $this->estado($estado), 'interno' => $interno]);
+        return Control::factory()->create(['estado_id' => $this->estado($estado), 'interno' => $interno, 'mitigacion_default' => $valor]);
     }
 
     private function plan(string $estado, bool $interno = false, int $impacto = 4): PlanAccion
@@ -63,9 +63,9 @@ class ProyeccionInternaTest extends TestCase
     {
         // El ejemplo de la propuesta: 16 → oficial 13, proyectado 6.
         $riesgo = $this->riesgo();
-        $riesgo->controles()->attach($this->control('aprobado')->id, ['mitigacion' => 3]);
-        $riesgo->controles()->attach($this->control('borrador', interno: true)->id, ['mitigacion' => 4]);
-        $riesgo->controles()->attach($this->control('borrador')->id, ['mitigacion' => 2]);
+        $riesgo->controles()->attach($this->control('aprobado', valor: 3)->id);
+        $riesgo->controles()->attach($this->control('borrador', interno: true, valor: 4)->id);
+        $riesgo->controles()->attach($this->control('borrador', valor: 2)->id);
 
         $plan = $this->plan('borrador', interno: true);
         $plan->tareas()->attach([
@@ -87,8 +87,8 @@ class ProyeccionInternaTest extends TestCase
     public function un_borrador_sin_flag_o_un_validado_no_proyectan(): void
     {
         $riesgo = $this->riesgo();
-        $riesgo->controles()->attach($this->control('borrador')->id, ['mitigacion' => 4]);
-        $riesgo->controles()->attach($this->control('validado')->id, ['mitigacion' => 4]);
+        $riesgo->controles()->attach($this->control('borrador', valor: 4)->id);
+        $riesgo->controles()->attach($this->control('validado', valor: 4)->id);
 
         $planValidado = $this->plan('validado');
         $planValidado->tareas()->attach($this->tarea(100, 'aprobado')->id);
@@ -106,7 +106,7 @@ class ProyeccionInternaTest extends TestCase
     {
         // El flag sólo vale en borrador: si quedara puesto en otro estado no cuenta.
         $riesgo = $this->riesgo();
-        $riesgo->controles()->attach($this->control('validado', interno: true)->id, ['mitigacion' => 4]);
+        $riesgo->controles()->attach($this->control('validado', interno: true, valor: 4)->id);
 
         $this->assertSame(16, $this->cargado($riesgo)->valor_residual_proyectado);
     }
@@ -148,7 +148,7 @@ class ProyeccionInternaTest extends TestCase
     public function la_proyeccion_no_cambia_el_residual_oficial(): void
     {
         $riesgo = $this->riesgo();
-        $riesgo->controles()->attach($this->control('borrador', interno: true)->id, ['mitigacion' => 4]);
+        $riesgo->controles()->attach($this->control('borrador', interno: true, valor: 4)->id);
         $plan = $this->plan('borrador', interno: true, impacto: 6);
         $plan->tareas()->attach($this->tarea(100, 'borrador', interno: true)->id);
         $riesgo->planesAccion()->attach($plan->id);
@@ -165,7 +165,7 @@ class ProyeccionInternaTest extends TestCase
     public function el_residual_proyectado_nunca_baja_de_cero(): void
     {
         $riesgo = $this->riesgo();
-        $riesgo->controles()->attach($this->control('borrador', interno: true)->id, ['mitigacion' => 20]);
+        $riesgo->controles()->attach($this->control('borrador', interno: true, valor: 20)->id);
 
         $this->assertSame(0, $this->cargado($riesgo)->valor_residual_proyectado);
     }

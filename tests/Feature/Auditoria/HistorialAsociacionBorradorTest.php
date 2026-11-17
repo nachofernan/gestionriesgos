@@ -63,7 +63,7 @@ class HistorialAsociacionBorradorTest extends TestCase
         $agrega = $act->data['diff']['relaciones']['controles']['agrega'];
         $this->assertCount(1, $agrega);
         $this->assertEquals($control->id, $agrega[0]['id']);
-        $this->assertEquals(4, $agrega[0]['mitigacion']);
+        $this->assertEquals('Control Alfa', $agrega[0]['nombre']);
     }
 
     #[Test]
@@ -143,7 +143,7 @@ class HistorialAsociacionBorradorTest extends TestCase
     {
         $riesgo = $this->riesgoBorrador();
         $control = Control::factory()->create(['mitigacion_default' => 4]);
-        $riesgo->controles()->attach($control->id, ['mitigacion' => 4]);
+        $riesgo->controles()->attach($control->id);
 
         Livewire::actingAs(User::factory()->create())
             ->test(GestionControles::class, ['riesgo' => $riesgo])

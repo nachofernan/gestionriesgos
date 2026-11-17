@@ -90,7 +90,7 @@ trait PropuestasEnBloque
             ->unique()->values()->all();
     }
 
-    /** Guarda de borde para agregar()/quitar()/actualizarMitigacion()/alternarCheck(): ver idsConPropuesta(). */
+    /** Guarda de borde para agregar()/quitar(): ver idsConPropuesta(). */
     private function elementoConPropuesta(string $relacion, int $id): bool
     {
         $entidad = $this->entidadDelBloque();
@@ -109,9 +109,9 @@ trait PropuestasEnBloque
 
     /**
      * Convierte el diff del bloque en una propuesta por elemento, cada una con su
-     * operación puntual ('agregar' / 'detach' / 'actualizar', ver
+     * operación puntual ('agregar' / 'detach', ver
      * Actualizacion::aplicarOperacionesPorElemento()) en lugar de un 'sync' del
-     * bloque entero: así cada alta, baja o cambio de mitigación se valida, aprueba
+     * bloque entero: así cada alta o baja se valida, aprueba
      * o rechaza por separado y no arrastra el estado del resto.
      * Tests: un_empleado_que_agrega_y_quita_controles_genera_una_propuesta_por_elemento,
      * un_empleado_que_agrega_y_quita_tareas_genera_una_propuesta_por_elemento.
@@ -120,20 +120,11 @@ trait PropuestasEnBloque
     {
         $propuestas = [];
         foreach ($diffRel['agrega'] ?? [] as $item) {
-            $pivot = array_intersect_key($item, array_flip(['mitigacion', 'checks']));
-            $propuestas[] = ["Agregar {$sustantivo} «{$item['nombre']}»", ['agregar' => [$item['id'] => $pivot]], ['agrega' => [$item]]];
+            $propuestas[] = ["Agregar {$sustantivo} «{$item['nombre']}»", ['agregar' => [$item['id'] => []]], ['agrega' => [$item]]];
         }
         foreach ($diffRel['quita'] ?? [] as $item) {
             $propuestas[] = ["Quitar {$sustantivo} «{$item['nombre']}»", ['detach' => [$item['id']]], ['quita' => [$item]]];
         }
-        foreach ($diffRel['cambia'] ?? [] as $item) {
-            $propuestas[] = [
-                "Mitigación de «{$item['nombre']}»: {$item['mitigacion_antes']} → {$item['mitigacion_despues']}",
-                ['actualizar' => [$item['id'] => ['mitigacion' => $item['mitigacion_despues']] + array_intersect_key($item, array_flip(['checks']))]],
-                ['cambia' => [$item]],
-            ];
-        }
-
         DB::transaction(function () use ($entidad, $relacion, $propuestas, $estadoId) {
             foreach ($propuestas as [$mensaje, $ops, $diff]) {
                 $entidad->actualizaciones()->create([

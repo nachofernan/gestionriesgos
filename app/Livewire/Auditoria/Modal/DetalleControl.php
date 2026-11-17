@@ -18,11 +18,9 @@ class DetalleControl extends Component
 
     public ?Control $control = null;
 
-    public ?int $mitigacion = null;
-
     /** riesgos filtrados por visibilidad (axioma 1 + scopeVisiblePara), ver DetalleObjetivo::abrir(). */
     #[On('ver-control')]
-    public function abrir(int $id, ?int $mitigacion = null): void
+    public function abrir(int $id): void
     {
         $this->control = Control::with([
             'estado', 'area', 'user',
@@ -34,7 +32,6 @@ class DetalleControl extends Component
             $this->control->setRelation('riesgos', Estado::ordenarColeccion($this->control->riesgos));
         }
 
-        $this->mitigacion = $mitigacion;
         $this->abierto = (bool) $this->control;
     }
 
@@ -42,7 +39,6 @@ class DetalleControl extends Component
     {
         $this->abierto = false;
         $this->control = null;
-        $this->mitigacion = null;
     }
 
     public function render()

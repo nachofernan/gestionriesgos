@@ -26,9 +26,9 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Rediseño de riesgo/show: fuera del modo directo, cada alta, baja o cambio de
- * mitigación en Objetivos/Controles/Planes es su propia propuesta, con una
- * operación puntual ('agregar' / 'detach' / 'actualizar') en vez de un 'sync' del
+ * Rediseño de riesgo/show: fuera del modo directo, cada alta o baja en
+ * Objetivos/Controles/Planes es su propia propuesta, con una
+ * operación puntual ('agregar' / 'detach') en vez de un 'sync' del
  * bloque. Así se valida o rechaza cada elemento por separado, sin arrastrar al
  * resto. Un elemento con una propuesta pendiente no se puede volver a tocar hasta
  * resolverla. Cubre también el modo de cambio que anuncia cada bloque, el scope
@@ -68,21 +68,18 @@ class PropuestasPorElementoTest extends TestCase
             'tipo_riesgo_id' => TipoRiesgo::factory()->create()->id,
         ]);
 
-        $this->control1 = $this->controlAprobado('Control uno');
-        $this->control2 = $this->controlAprobado('Control dos');
-        $this->riesgo->controles()->attach([
-            $this->control1->id => ['mitigacion' => 3],
-            $this->control2->id => ['mitigacion' => 4],
-        ]);
+        $this->control1 = $this->controlAprobado('Control uno', 3);
+        $this->control2 = $this->controlAprobado('Control dos', 4);
+        $this->riesgo->controles()->attach([$this->control1->id, $this->control2->id]);
     }
 
-    private function controlAprobado(string $nombre): Control
+    private function controlAprobado(string $nombre, int $valor = 10): Control
     {
         return Control::factory()->create([
             'nombre' => $nombre,
             'area_id' => $this->gerencia->id,
             'estado_id' => Estado::aprobado()->id,
-            'checks' => array_keys(Control::CHECKS), // 10
+            'mitigacion_default' => $valor,
         ]);
     }
 
@@ -118,7 +115,7 @@ class PropuestasPorElementoTest extends TestCase
         $this->assertCount(2, $propuestas);
 
         $ops = $propuestas->map(fn ($p) => $p->data['relaciones']['controles'])->all();
-        $this->assertEquals(['agregar' => [$nuevo->id => ['mitigacion' => 10, 'checks' => array_keys(Control::CHECKS)]]], $ops[0]);
+        $this->assertEquals(['agregar' => [$nuevo->id => []]], $ops[0]);
         $this->assertEquals(['detach' => [$this->control1->id]], $ops[1]);
         $this->assertTrue($propuestas->every(fn ($p) => $p->estado->nombre === 'borrador'));
 
@@ -161,42 +158,8 @@ class PropuestasPorElementoTest extends TestCase
     }
 
     #[Test]
-    public function un_cambio_de_mitigacion_propuesto_solo_toca_el_pivot_de_ese_control(): void
+    public function reguardar_los_controles_sin_tocarlos_no_genera_una_propuesta_fantasma(): void
     {
-        Livewire::actingAs($this->empleado)
-            ->test(GestionControles::class, ['riesgo' => $this->riesgo])
-            ->call('activarEdicion')
-            // El pivot tiene número propio y no tiene checks: se arranca de cero, 4 checks = 8.
-            ->call('alternarCheck', $this->control1->id, 'documentado')
-            ->call('alternarCheck', $this->control1->id, 'responsable_asignado')
-            ->call('alternarCheck', $this->control1->id, 'frecuencia_definida')
-            ->call('alternarCheck', $this->control1->id, 'deja_evidencia')
-            ->call('guardar');
-
-        $checks = ['documentado', 'responsable_asignado', 'frecuencia_definida', 'deja_evidencia'];
-        $propuesta = $this->propuestas()->sole();
-        $this->assertEquals(
-            ['actualizar' => [$this->control1->id => ['mitigacion' => 8, 'checks' => $checks]]],
-            $propuesta->data['relaciones']['controles']
-        );
-        $this->assertEquals(5, $this->riesgo->refresh()->valor_residual); // 12 - 3 - 4, sin cambios todavía
-
-        $this->validarComo($this->gerente, $propuesta);
-
-        $controles = $this->riesgo->refresh()->controles->keyBy('id');
-        $this->assertEquals(8, $controles[$this->control1->id]->pivot->mitigacion);
-        $this->assertEquals($checks, $controles[$this->control1->id]->pivot->checks);
-        $this->assertEquals(4, $controles[$this->control2->id]->pivot->mitigacion);
-        $this->assertEquals(0, $this->riesgo->valor_residual); // 12 - 8 - 4
-    }
-
-    #[Test]
-    public function un_control_con_mitigacion_default_no_genera_un_cambio_fantasma(): void
-    {
-        // Pivot en null: la mitigación efectiva es la default del control. Reguardar sin
-        // tocar nada no puede proponer "cambió a N".
-        $sinPivot = $this->controlAprobado('Control sin pivot');
-        $this->riesgo->controles()->attach($sinPivot->id, ['mitigacion' => null]);
 
         Livewire::actingAs($this->empleado)
             ->test(GestionControles::class, ['riesgo' => $this->riesgo])
@@ -222,12 +185,10 @@ class PropuestasPorElementoTest extends TestCase
             ->test(GestionControles::class, ['riesgo' => $this->riesgo])
             ->call('activarEdicion')
             ->call('quitar', $this->control1->id)          // su baja ya está propuesta
-            ->call('alternarCheck', $this->control1->id, 'documentado')
             ->call('agregar', $nuevo->id);                 // su alta ya está propuesta
 
         $seleccionados = collect($componente->get('seleccionados'))->keyBy('id');
         $this->assertTrue($seleccionados->has($this->control1->id));
-        $this->assertEquals(3, $seleccionados[$this->control1->id]['mitigacion']);
         $this->assertFalse($seleccionados->has($nuevo->id));
 
         $componente->call('guardar');
@@ -238,7 +199,7 @@ class PropuestasPorElementoTest extends TestCase
     public function aplicar_operaciones_por_elemento_no_duplica_un_elemento_ya_asociado(): void
     {
         Actualizacion::aplicarOperacionesPorElemento($this->riesgo, 'controles', [
-            'agregar' => [$this->control1->id => ['mitigacion' => 3]],
+            'agregar' => [$this->control1->id => []],
         ]);
 
         $this->assertEquals(1, $this->riesgo->controles()->where('controles.id', $this->control1->id)->count());
@@ -359,7 +320,7 @@ class PropuestasPorElementoTest extends TestCase
             ->test(GestionControles::class, ['riesgo' => $this->riesgo])
             ->call('activarEdicion')
             ->call('quitar', $this->control1->id)
-            ->call('alternarCheck', $this->control2->id, 'documentado')
+            ->call('quitar', $this->control2->id)
             ->call('guardar');
 
         // El proponente las ve pero no las resuelve (sólo puede retirarlas).

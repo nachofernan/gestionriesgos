@@ -226,7 +226,6 @@ class PendienteController extends Controller
         $entidad = $actualizacion->actualizable;
         $tipo = $entidad ? collect(self::TIPOS)->search(fn ($cfg) => $entidad instanceof $cfg['modelo']) : null;
         $tipo = $tipo ?: null;
-        $data = $actualizacion->data ?? [];
 
         return [
             'modo' => 'propuesta',
@@ -241,7 +240,6 @@ class PendienteController extends Controller
             'situacion' => $actualizacion->estado?->nombre === 'validado' ? 'Espera al comité' : 'Espera validación',
             'mensaje' => $actualizacion->mensaje,
             'diff' => $actualizacion->diffLegible(),
-            'propagar_mitigacion' => ! empty($data['propagar_mitigacion']),
             'url' => $tipo ? route(self::TIPOS[$tipo]['prefijo'].'.show', $entidad) : null,
             'puede_ver' => $entidad !== null && $user->can('view', $entidad),
             'accion' => $accion,

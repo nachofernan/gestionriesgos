@@ -4,7 +4,6 @@
         $label = 'block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1';
         $esPropuesta = $modo !== 'directo';
         $bloq = fn ($c) => in_array($c, $bloqueados, true);
-        $cantidadAfectados = $afectados->count() + $ocultos;
     @endphp
 
     <x-auditoria.bloque-riesgo ancla="ficha" titulo="Ficha del control" sujeto="control"
@@ -60,41 +59,6 @@
                     @error('form.checks') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     @error('form.checks.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
-
-                @if($cantidadAfectados > 0)
-                    <div class="col-span-6 rounded-xl border px-3 py-2.5 transition-colors {{ $propagar ? 'border-indigo-300 bg-indigo-50/60' : 'border-gray-200 bg-gray-50/60' }}">
-                        <label class="flex items-start gap-2 text-sm text-gray-800 cursor-pointer">
-                            <input type="checkbox" wire:model.live="propagar" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                x-on:click="if ($event.target.checked && !confirm(@js('Vas a llevar la mitigación de este control a '.$puntaje.' en '.($cantidadAfectados === 1 ? 'el riesgo asociado' : "los {$cantidadAfectados} riesgos asociados").', aunque hoy tengan otro valor.'.($esPropuesta ? ' Se aplica cuando se apruebe la propuesta.' : ' Se aplica en el acto.').' ¿Confirmás?'))) $event.preventDefault()">
-                            <span>
-                                Aplicar también a {{ $cantidadAfectados === 1 ? 'el riesgo asociado' : "los {$cantidadAfectados} riesgos asociados" }}
-                                <span class="block text-[11px] text-gray-500">
-                                    La mitigación de este control pasa a {{ $puntaje }} en cada uno, aunque hoy tenga otro valor.
-                                    Sin tildar, sólo bajan a {{ $puntaje }} los que hoy lo pasan.
-                                    @if($modo !== 'directo') Se aplica cuando se apruebe la propuesta. @endif
-                                </span>
-                            </span>
-                        </label>
-                        <ul class="mt-2 pl-6 space-y-0.5 text-xs text-gray-600">
-                            @foreach($afectados as $r)
-                                <li class="flex items-center gap-2 min-w-0">
-                                    <span class="truncate">{{ $r['nombre'] }}</span>
-                                    @php $cambia = $propagar ? $r['mitigacion'] != $puntaje : ($r['propia'] && $r['mitigacion'] > $puntaje); @endphp
-                                    <span class="ml-auto shrink-0 tabular-nums font-bold {{ $cambia ? 'text-indigo-700' : 'text-gray-400' }}">
-                                        @if($cambia)
-                                            <span class="line-through font-normal text-gray-400">{{ $r['mitigacion'] }}</span> → {{ $puntaje }}
-                                        @else
-                                            {{ $r['mitigacion'] }}
-                                        @endif
-                                    </span>
-                                </li>
-                            @endforeach
-                            @if($ocultos > 0)
-                                <li class="text-gray-400 italic">y {{ $ocultos }} {{ $ocultos === 1 ? 'riesgo' : 'riesgos' }} de otras áreas que no podés ver</li>
-                            @endif
-                        </ul>
-                    </div>
-                @endif
 
                 @if(!empty($bloqueados))
                     <p class="col-span-6 text-[11px] text-amber-700">Los campos grisados ya tienen una propuesta pendiente: se pueden volver a tocar cuando se resuelva.</p>

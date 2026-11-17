@@ -38,10 +38,7 @@ class DetectorInconsistencias
     {
         return match ($clase) {
             Riesgo::class => Riesgo::query()->with('tipoRiesgo')->withCount(['objetivos', 'planesAccion', 'controles']),
-            Control::class => Control::query()->withCount([
-                'riesgos',
-                'riesgos as riesgos_sin_mitigacion_count' => fn ($q) => $q->where('control_riesgo.mitigacion', 0),
-            ]),
+            Control::class => Control::query()->withCount('riesgos'),
             Objetivo::class => Objetivo::query()->withCount(['riesgos', 'peisItems']),
             PlanAccion::class => PlanAccion::query()->withCount(['riesgos', 'tareas']),
             Tarea::class => Tarea::query()->withCount('planesAccion'),
@@ -250,9 +247,6 @@ class DetectorInconsistencias
 
         if ((int) $control->mitigacion_default === 0) {
             $hallazgos[] = $this->advertencia('mitigacion_en_cero', 'La mitigación por defecto está en 0.');
-        }
-        if ($control->riesgos_sin_mitigacion_count > 0) {
-            $hallazgos[] = $this->advertencia('asociacion_en_cero', "Mitiga 0 en {$control->riesgos_sin_mitigacion_count} de sus riesgos.");
         }
         if ($control->riesgos_count === 0) {
             $hallazgos[] = $this->advertencia('sin_riesgos', 'No mitiga ningún riesgo.');

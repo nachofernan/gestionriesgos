@@ -16,10 +16,10 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Efectividad de cada relación control-riesgo (D-040): regula cuánto del número
- * de la relación (o del mitigacion_default si no tiene uno propio) descuenta del
- * residual. floor(número × efectividad / 100), por relación. También cubre el
- * puntaje de los checks del control.
+ * Evidencia de cumplimiento de cada relación control-riesgo (columna
+ * `efectividad`, D-051): regula por tramos cuánto del valor del control
+ * descuenta del residual. < 60 → 0 · 60–69 → 20% · 70–79 → 40% · 80–90 → 60% ·
+ * 91–98 → 80% · 99–100 → 100%. Redondea hacia abajo y por relación (D-037).
  */
 class EfectividadRelacionTest extends TestCase
 {
@@ -34,12 +34,12 @@ class EfectividadRelacionTest extends TestCase
         $this->gerencia = Area::create(['nombre' => 'Gerencia Producción', 'tipo' => TipoArea::Gerencia]);
     }
 
-    private function control(int $default = 4, string $estado = 'aprobado'): Control
+    private function control(int $valor = 10, string $estado = 'aprobado'): Control
     {
         return Control::factory()->create([
             'area_id' => $this->gerencia->id,
             'estado_id' => Estado::where('nombre', $estado)->value('id'),
-            'mitigacion_default' => $default,
+            'mitigacion_default' => $valor,
         ]);
     }
 
@@ -49,12 +49,17 @@ class EfectividadRelacionTest extends TestCase
         return Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8, 'area_id' => $this->gerencia->id]);
     }
 
-    private function riesgoConControl(int $efectividad, ?int $numero, int $default = 4, string $estado = 'aprobado'): Riesgo
+    private function riesgoConControl(int $evidencia, int $valor = 10, string $estado = 'aprobado'): Riesgo
     {
         $riesgo = $this->riesgo();
-        $riesgo->controles()->attach($this->control($default, $estado)->id, ['mitigacion' => $numero, 'efectividad' => $efectividad]);
+        $riesgo->controles()->attach($this->control($valor, $estado)->id, ['efectividad' => $evidencia]);
 
         return $riesgo;
+    }
+
+    private function mitigacion(Riesgo $riesgo): int
+    {
+        return Riesgo::with('controles.estado')->findOrFail($riesgo->id)->mitigacion_controles;
     }
 
     private function residual(Riesgo $riesgo): int
@@ -67,79 +72,76 @@ class EfectividadRelacionTest extends TestCase
     public function una_relacion_nueva_nace_con_efectividad_100(): void
     {
         $riesgo = $this->riesgo();
-        $riesgo->controles()->attach($this->control()->id, ['mitigacion' => 4]);
+        $riesgo->controles()->attach($this->control()->id);
 
         $this->assertSame(100, $riesgo->controles()->first()->pivot->efectividad);
+        $this->assertSame(10, $this->mitigacion($riesgo));
     }
 
     #[Test]
-    public function una_relacion_al_100_por_ciento_mitiga_su_numero_completo(): void
+    public function una_evidencia_menor_a_60_no_mitiga_nada(): void
     {
-        $this->assertEquals(12, $this->residual($this->riesgoConControl(100, 4))); // 16 - 4
+        $this->assertSame(0, $this->mitigacion($this->riesgoConControl(59)));
+        $this->assertSame(0, $this->mitigacion($this->riesgoConControl(0)));
+        $this->assertEquals(16, $this->residual($this->riesgoConControl(30)));
     }
 
     #[Test]
-    public function la_relacion_al_50_por_ciento_mitiga_la_mitad(): void
+    public function cada_tramo_de_evidencia_mitiga_su_porcentaje_hacia_abajo(): void
     {
-        $riesgo = $this->riesgoConControl(50, 4);
+        // Control de 10: cada tramo, en sus dos bordes.
+        $esperado = [60 => 2, 69 => 2, 70 => 4, 79 => 4, 80 => 6, 90 => 6, 91 => 8, 98 => 8, 99 => 10, 100 => 10];
+        foreach ($esperado as $evidencia => $mitiga) {
+            $this->assertSame($mitiga, $this->mitigacion($this->riesgoConControl($evidencia)), "evidencia {$evidencia}");
+        }
 
-        $this->assertEquals(2, Riesgo::with('controles.estado')->find($riesgo->id)->mitigacion_controles);
-        $this->assertEquals(14, $this->residual($riesgo)); // 16 - 2
+        // Control de 7 al 60%: 1,4 → 1.
+        $this->assertSame(1, $this->mitigacion($this->riesgoConControl(60, valor: 7)));
     }
 
     #[Test]
-    public function una_efectividad_baja_puede_dejar_la_mitigacion_en_cero(): void
+    public function una_evidencia_de_98_no_mitiga_el_valor_entero(): void
     {
-        $this->assertEquals(16, $this->residual($this->riesgoConControl(10, 4))); // 4 × 10% = 0,4 → 0
-    }
-
-    #[Test]
-    public function una_relacion_al_99_no_mitiga_el_valor_entero(): void
-    {
-        $this->assertEquals(13, $this->residual($this->riesgoConControl(99, 4))); // 3,96 → 3
+        $this->assertEquals(8, $this->residual($this->riesgoConControl(98))); // 16 - 8
+        $this->assertEquals(6, $this->residual($this->riesgoConControl(99))); // 16 - 10
     }
 
     #[Test]
     public function la_mitigacion_efectiva_se_redondea_por_relacion(): void
     {
-        $riesgo = $this->riesgoConControl(50, 3); // 1,5 → 1
-        $riesgo->controles()->attach($this->control(3)->id, ['mitigacion' => 3, 'efectividad' => 50]);
+        $riesgo = $this->riesgoConControl(70, valor: 7); // 2,8 → 2
+        $riesgo->controles()->attach($this->control(7)->id, ['efectividad' => 70]);
 
-        // 1 + 1 = 2, no floor(1,5 + 1,5) = 3.
-        $this->assertEquals(14, $this->residual($riesgo));
+        // 2 + 2 = 4, no floor(2,8 + 2,8) = 5.
+        $this->assertEquals(12, $this->residual($riesgo));
     }
 
     #[Test]
-    public function dos_relaciones_del_mismo_control_mitigan_segun_su_propia_efectividad(): void
+    public function dos_relaciones_del_mismo_control_mitigan_segun_su_propia_evidencia(): void
     {
         $control = $this->control(6);
         $uno = $this->riesgo();
         $otro = $this->riesgo();
-        $uno->controles()->attach($control->id, ['mitigacion' => 6, 'efectividad' => 100]);
-        $otro->controles()->attach($control->id, ['mitigacion' => 6, 'efectividad' => 50]);
+        $uno->controles()->attach($control->id, ['efectividad' => 100]);
+        $otro->controles()->attach($control->id, ['efectividad' => 80]);
 
         $this->assertEquals(10, $this->residual($uno)); // 16 - 6
-        $this->assertEquals(13, $this->residual($otro)); // 16 - 3
-    }
-
-    #[Test]
-    public function sin_numero_propio_la_relacion_hereda_el_default_del_control(): void
-    {
-        $this->assertEquals(13, $this->residual($this->riesgoConControl(50, 6, default: 2))); // 6 × 50% = 3
-        $this->assertEquals(15, $this->residual($this->riesgoConControl(50, null, default: 2))); // 2 × 50% = 1
+        $this->assertEquals(13, $this->residual($otro)); // 16 - 3 (6 × 60% = 3,6 → 3)
     }
 
     #[Test]
     public function un_control_en_borrador_no_mitiga_aunque_la_relacion_este_al_100(): void
     {
-        $this->assertEquals(16, $this->residual($this->riesgoConControl(100, 4, estado: 'borrador')));
+        $this->assertEquals(16, $this->residual($this->riesgoConControl(100, estado: 'borrador')));
     }
 
     #[Test]
     public function la_preview_de_gestion_controles_cuadra_con_el_residual_del_modelo(): void
     {
-        $riesgo = $this->riesgoConControl(50, 4); // residual 14
+        $riesgo = $this->riesgoConControl(80, valor: 4); // 2,4 → 2: residual 14
         $nuevo = $this->control(5);
+
+        $this->assertEquals(14, $this->residual($riesgo));
 
         Livewire::actingAs(User::factory()->create(['rol' => 'comite', 'area_id' => null]))
             ->test(GestionControles::class, ['riesgo' => $riesgo])
@@ -151,7 +153,7 @@ class EfectividadRelacionTest extends TestCase
     #[Test]
     public function quitar_y_volver_a_agregar_un_control_conserva_su_efectividad(): void
     {
-        $riesgo = $this->riesgoConControl(50, 4);
+        $riesgo = $this->riesgoConControl(80, valor: 4);
         $controlId = $riesgo->controles()->first()->id;
 
         Livewire::actingAs(User::factory()->create(['rol' => 'comite', 'area_id' => null]))
@@ -162,17 +164,7 @@ class EfectividadRelacionTest extends TestCase
             ->assertDispatched('residual-actualizado', valor: 14)
             ->call('guardar');
 
-        $this->assertSame(50, $riesgo->controles()->first()->pivot->efectividad);
+        $this->assertSame(80, $riesgo->controles()->first()->pivot->efectividad);
         $this->assertEquals(14, $this->residual($riesgo));
-    }
-
-    #[Test]
-    public function el_puntaje_suma_dos_por_cada_check_valido(): void
-    {
-        $this->assertSame(0, Control::puntajeChecks(null));
-        $this->assertSame(4, Control::puntajeChecks(['documentado', 'deja_evidencia']));
-        $this->assertSame(10, Control::puntajeChecks(array_keys(Control::CHECKS)));
-        // Las claves desconocidas o repetidas no suman.
-        $this->assertSame(2, Control::puntajeChecks(['documentado', 'documentado', 'inventado']));
     }
 }

@@ -72,10 +72,7 @@ class ControlSeeder extends Seeder
                     'estado_id' => $estadoIds[$pool[array_rand($pool)]],
                 ]);
 
-                $control->riesgos()->attach([
-                    // La mitad hereda el número del control; el resto, sus propios checks (sin pasar el tope).
-                    $riesgoId => rand(0, 1) ? ['mitigacion' => null] : ['checks' => $this->checksAlAzar()],
-                ]);
+                $control->riesgos()->attach($riesgoId);
 
                 $controlCounter++;
             }

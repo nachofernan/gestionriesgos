@@ -61,9 +61,9 @@ class MitigacionPlanTest extends TestCase
         return $plan;
     }
 
-    private function controlAprobado(): Control
+    private function controlAprobado(int $valor = 5): Control
     {
-        return Control::factory()->create(['estado_id' => Estado::aprobado()->id]);
+        return Control::factory()->create(['estado_id' => Estado::aprobado()->id, 'mitigacion_default' => $valor]);
     }
 
     // -------------------------------------------------------
@@ -259,7 +259,7 @@ class MitigacionPlanTest extends TestCase
     public function la_mitigacion_del_plan_y_la_de_los_controles_aprobados_se_suman()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $riesgo->controles()->attach($this->controlAprobado()->id, ['mitigacion' => 5]);
+        $riesgo->controles()->attach($this->controlAprobado(5)->id);
         $riesgo->planesAccion()->attach($this->planCon(100)->id);
 
         $this->assertEquals(5, $riesgo->fresh()->valor_residual); // 16 - 5 - 6
@@ -271,11 +271,11 @@ class MitigacionPlanTest extends TestCase
         // El plan reduce 10 pero en este riesgo sólo 7 (tope de impacto); el control resta del resto.
         $riesgo = Riesgo::factory()->create(['impacto' => 5, 'probabilidad' => 5]);
         $riesgo->planesAccion()->attach($this->planCon(100, 8, 2)->id);
-        $riesgo->controles()->attach($this->controlAprobado()->id, ['mitigacion' => 2]);
+        $riesgo->controles()->attach($this->controlAprobado(2)->id);
 
         $this->assertEquals(1, $riesgo->fresh()->valor_residual); // 10 - 7 - 2
 
-        $riesgo->controles()->attach($this->controlAprobado()->id, ['mitigacion' => 4]);
+        $riesgo->controles()->attach($this->controlAprobado(4)->id);
         $this->assertEquals(0, $riesgo->fresh()->valor_residual); // nunca menos de 0
     }
 
@@ -284,8 +284,8 @@ class MitigacionPlanTest extends TestCase
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
         $riesgo->controles()->attach([
-            $this->controlAprobado()->id => ['mitigacion' => 5],
-            Control::factory()->create(['estado_id' => Estado::borrador()->id])->id => ['mitigacion' => 3],
+            $this->controlAprobado(5)->id,
+            Control::factory()->create(['estado_id' => Estado::borrador()->id, 'mitigacion_default' => 3])->id,
         ]);
         $riesgo->planesAccion()->attach([$this->planCon(100, 6, 0)->id, $this->planCon(50, 4, 0)->id]);
 
@@ -313,9 +313,9 @@ class MitigacionPlanTest extends TestCase
     public function un_control_no_aprobado_no_baja_el_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $control = Control::factory()->create(['estado_id' => Estado::borrador()->id]);
+        $control = Control::factory()->create(['estado_id' => Estado::borrador()->id, 'mitigacion_default' => 5]);
 
-        $riesgo->controles()->attach($control->id, ['mitigacion' => 5]);
+        $riesgo->controles()->attach($control->id);
 
         $this->assertEquals(16, $riesgo->fresh()->valor_residual); // el borrador no mitiga
     }
@@ -324,8 +324,8 @@ class MitigacionPlanTest extends TestCase
     public function al_aprobar_el_control_recien_ahi_baja_el_valor_residual()
     {
         $riesgo = Riesgo::factory()->create(['impacto' => 8, 'probabilidad' => 8]); // total 16
-        $control = Control::factory()->create(['estado_id' => Estado::borrador()->id]);
-        $riesgo->controles()->attach($control->id, ['mitigacion' => 5]);
+        $control = Control::factory()->create(['estado_id' => Estado::borrador()->id, 'mitigacion_default' => 5]);
+        $riesgo->controles()->attach($control->id);
 
         $this->assertEquals(16, $riesgo->fresh()->valor_residual);
 

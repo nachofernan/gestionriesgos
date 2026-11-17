@@ -16,9 +16,8 @@ use Livewire\Component;
  * propuestas pendientes sobre esos campos debajo. Mismo patrón que FichaRiesgo:
  * fuera de borrador se edita en el bloque y guardar() manda sólo lo que cambió a
  * Actualizacion::registrarCambioCampos(); en borrador se edita con el formulario
- * completo (ControlController::edit). La mitigación sale de los checks (D-040). Si
- * cambia, ofrece llevar el nuevo valor a todos los riesgos asociados ($propagar);
- * sin eso, sólo se recortan los que pasan el nuevo número.
+ * completo (ControlController::edit). La mitigación sale de los checks (D-040) y
+ * vale igual en todos los riesgos asociados (D-051).
  */
 class FichaControl extends Component
 {
@@ -35,9 +34,6 @@ class FichaControl extends Component
 
     /** Motivo del cambio: queda como mensaje de la Actualizacion. */
     public string $mensaje = '';
-
-    /** "Aplicar también a los riesgos asociados": ver Control::propagarMitigacionDefault(). */
-    public bool $propagar = false;
 
     private const CAMPOS = ['nombre', 'descripcion'];
 
@@ -56,7 +52,6 @@ class FichaControl extends Component
 
         $this->form = $control->only(self::CAMPOS) + ['checks' => Control::normalizarChecks($control->checks)];
         $this->mensaje = '';
-        $this->propagar = false;
         $this->resetValidation();
         $this->editando = true;
     }
@@ -64,16 +59,14 @@ class FichaControl extends Component
     public function cancelarEdicion(): void
     {
         $this->editando = false;
-        $this->reset(['form', 'mensaje', 'propagar']);
+        $this->reset(['form', 'mensaje']);
         $this->resetValidation();
     }
 
     /**
      * Valida en el borde, arma los campos que cambiaron (sin los que tienen una
-     * propuesta pendiente) y los registra, pidiendo la propagación de la
-     * mitigación si se tildó.
-     * Tests: la_ficha_del_control_propaga_la_mitigacion_si_se_tilda,
-     * la_ficha_del_control_devuelve_403_a_un_gerente_de_otra_gerencia.
+     * propuesta pendiente) y los registra.
+     * Test: la_ficha_del_control_devuelve_403_a_un_gerente_de_otra_gerencia.
      */
     public function guardar(): void
     {
@@ -111,7 +104,7 @@ class FichaControl extends Component
             return;
         }
 
-        $actualizacion = Actualizacion::registrarCambioCampos($control, Auth::user(), $this->mensaje, $campos, $this->propagar);
+        $actualizacion = Actualizacion::registrarCambioCampos($control, Auth::user(), $this->mensaje, $campos);
 
         $this->dispatch('control-actualizado');
         $this->cancelarEdicion();
@@ -138,24 +131,7 @@ class FichaControl extends Component
         $this->estadoModelo = $control->estado?->nombre ?? 'borrador';
         $propuestas = $this->propuestasDe($control, 'campos');
 
-        // Vista previa de la propagación o el recorte: sólo los riesgos que el usuario
-        // puede ver, el resto se cuenta. Se arma sólo si el número del form difiere del vigente.
-        $afectados = collect();
-        $ocultos = 0;
         $puntaje = Control::puntajeChecks($this->form['checks'] ?? []);
-        if ($this->editando && $puntaje !== (int) $control->mitigacion_default) {
-            $todos = $control->riesgos()->get();
-            $visibles = $control->riesgos()->visiblePara(Auth::user())->pluck('riesgos.id');
-            $afectados = $todos->filter(fn ($r) => $visibles->contains($r->id))
-                ->map(fn ($r) => [
-                    'nombre' => $r->nombre,
-                    'mitigacion' => (int) ($r->pivot->mitigacion ?? $control->mitigacion_default),
-                    // Sin número propio hereda el del control: no se recorta, sigue al nuevo.
-                    'propia' => $r->pivot->mitigacion !== null,
-                ])
-                ->values();
-            $ocultos = $todos->count() - $afectados->count();
-        }
 
         return view('livewire.auditoria.control.show.ficha-control', [
             'control' => $control,
@@ -163,9 +139,7 @@ class FichaControl extends Component
             'modo' => $this->modoCambio(),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),
-            'afectados' => $afectados,
             'puntaje' => $puntaje,
-            'ocultos' => $ocultos,
         ]);
     }
 }

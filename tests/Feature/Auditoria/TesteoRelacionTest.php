@@ -59,8 +59,8 @@ class TesteoRelacionTest extends TestCase
         $valores = ['impacto' => 8, 'probabilidad' => 8, 'area_id' => $this->gerencia->id];
         $this->riesgo = Riesgo::factory()->aprobado()->create($valores);
         $this->otroRiesgo = Riesgo::factory()->validado()->create($valores);
-        $this->riesgo->controles()->attach($this->control->id, ['mitigacion' => 6]);
-        $this->otroRiesgo->controles()->attach($this->control->id, ['mitigacion' => 6]);
+        $this->riesgo->controles()->attach($this->control->id);
+        $this->otroRiesgo->controles()->attach($this->control->id);
     }
 
     private function efectividadEn(Riesgo $riesgo): int
@@ -74,7 +74,7 @@ class TesteoRelacionTest extends TestCase
             ->findOrFail($riesgo->id)->valor_residual;
     }
 
-    private function testear(User $usuario, Riesgo $riesgo, int $efectividad = 50, ?string $fecha = null)
+    private function testear(User $usuario, Riesgo $riesgo, int $efectividad = 80, ?string $fecha = null)
     {
         return Livewire::actingAs($usuario)
             ->test(RiesgosControl::class, ['control' => $this->control])
@@ -92,17 +92,19 @@ class TesteoRelacionTest extends TestCase
             ->assertHasNoErrors()
             ->assertDispatched('control-actualizado');
 
-        $this->assertSame(50, $this->efectividadEn($this->riesgo));
-        $this->assertSame(13, $this->residual($this->riesgo)); // 16 - 3
+        $this->assertSame(80, $this->efectividadEn($this->riesgo));
+        $this->assertSame(13, $this->residual($this->riesgo)); // 16 - 3 (6 × 60% = 3,6 → 3)
 
         $testeo = Testeo::sole();
-        $this->assertSame([100, 50], [$testeo->efectividad_antes, $testeo->efectividad_despues]);
+        $this->assertSame([100, 80], [$testeo->efectividad_antes, $testeo->efectividad_despues]);
         $this->assertSame(now()->subDays(3)->toDateString(), $testeo->fecha->toDateString());
         $this->assertSame($this->auditor->id, $testeo->user_id);
 
         // Nace aprobado: el historial del riesgo lo cuenta y no queda nada pendiente.
         $entrada = $this->riesgo->actualizaciones()->where('data->origen', 'testeo')->sole();
         $this->assertEquals(Estado::aprobado()->id, $entrada->estado_id);
+        $this->assertSame(6, $entrada->data['diff']['relaciones']['controles']['cambia'][0]['mitigacion_antes']);
+        $this->assertSame(3, $entrada->data['diff']['relaciones']['controles']['cambia'][0]['mitigacion_despues']);
         $this->assertSame($this->auditor->id, $entrada->aprobado_por_id);
         $this->assertCount(0, $this->riesgo->actualizaciones()->propuestasPendientes()->get());
     }
@@ -169,7 +171,7 @@ class TesteoRelacionTest extends TestCase
     public function el_auditor_no_testea_una_relacion_con_un_riesgo_en_borrador(): void
     {
         $borrador = Riesgo::factory()->create(['area_id' => $this->gerencia->id]);
-        $borrador->controles()->attach($this->control->id, ['mitigacion' => 6]);
+        $borrador->controles()->attach($this->control->id);
 
         $this->assertFalse($this->auditor->can('testear', [$this->control, $borrador]));
         $this->assertTrue($this->auditor->can('testear', [$this->control, $this->otroRiesgo]));

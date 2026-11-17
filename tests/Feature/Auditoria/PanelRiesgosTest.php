@@ -120,8 +120,8 @@ class PanelRiesgosTest extends TestCase
     public function los_kpis_del_resumen_muestran_la_criticidad_inherente_y_la_residual(): void
     {
         $riesgo = $this->crearRiesgo('aprobado', $this->gerAdmin, 7, 7); // 14 = crítico
-        $control = Control::factory()->create(['estado_id' => Estado::aprobado()->id]);
-        $riesgo->controles()->attach($control, ['mitigacion' => 5]); // residual 9 = bajo
+        $control = Control::factory()->create(['estado_id' => Estado::aprobado()->id, 'mitigacion_default' => 5]);
+        $riesgo->controles()->attach($control); // residual 9 = bajo
 
         Livewire::actingAs($this->canela)
             ->test(PanelRiesgos::class)

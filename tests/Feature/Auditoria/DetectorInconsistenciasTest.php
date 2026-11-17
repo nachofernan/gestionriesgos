@@ -236,9 +236,6 @@ class DetectorInconsistenciasTest extends TestCase
             'mitigacion_en_cero' => 'advertencia',
             'sin_riesgos' => 'advertencia',
         ], $this->hallazgos($enCero));
-
-        $completo->riesgos()->attach(Riesgo::factory()->create(['area_id' => $this->area->id])->id, ['mitigacion' => 0]);
-        $this->assertSame(['asociacion_en_cero' => 'advertencia'], $this->hallazgos($completo));
     }
 
     #[Test]

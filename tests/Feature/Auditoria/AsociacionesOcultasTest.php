@@ -67,7 +67,7 @@ class AsociacionesOcultasTest extends TestCase
     {
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id]);
         $borrado = Control::factory()->create(['estado_id' => Estado::borrado()->id]);
-        $riesgo->controles()->attach($borrado->id, ['mitigacion' => 5]);
+        $riesgo->controles()->attach($borrado->id);
 
         Livewire::actingAs($this->grassi)
             ->test(GestionControles::class, ['riesgo' => $riesgo])
@@ -81,7 +81,7 @@ class AsociacionesOcultasTest extends TestCase
         $riesgo = Riesgo::factory()->create(['area_id' => $this->sectC->id]);
         $borrado = Control::factory()->create(['estado_id' => Estado::borrado()->id]);
         $vigente = Control::factory()->create(['estado_id' => Estado::aprobado()->id]);
-        $riesgo->controles()->attach($borrado->id, ['mitigacion' => 5]);
+        $riesgo->controles()->attach($borrado->id);
 
         Livewire::actingAs($this->grassi)
             ->test(GestionControles::class, ['riesgo' => $riesgo])

@@ -99,13 +99,7 @@ class ControlController extends Controller
             + $this->opcionesAreaResponsable($control->area_id, $control->user_id));
     }
 
-    /**
-     * Edición de un control en borrador. El número sale de los checks. Si cambia,
-     * con `propagar_mitigacion` tildado lo lleva a todos los riesgos asociados; si
-     * no, recorta los que pasan el nuevo tope (Control::trasCambiarDefault()).
-     * Tests: editar_un_borrador_sin_propagar_recorta_y_con_propagar_pisa,
-     * bajar_el_numero_del_control_recorta_las_relaciones_que_lo_pasan.
-     */
+    /** Edición de un control en borrador. El número sale de los checks (hook de Control). */
     public function update(Request $request, Control $control)
     {
         $this->authorize('update', $control);
@@ -120,15 +114,11 @@ class ControlController extends Controller
             'descripcion' => 'nullable|string',
         ] + $this->reglasChecks() + $this->reglasAreaResponsable($request, $control->area_id, $control->user_id), self::MENSAJES_AREA_RESPONSABLE);
         $data['checks'] = Control::normalizarChecks($data['checks'] ?? []);
-        $propagar = $request->boolean('propagar_mitigacion');
 
         $data['interno'] = $request->boolean('interno');
         $campos = [...array_keys($data), 'mitigacion_default'];
         $original = $control->only($campos);
-        DB::transaction(function () use ($control, $data, $original, $propagar) {
-            $control->update($data);
-            $control->trasCambiarDefault((int) $original['mitigacion_default'], Auth::user(), $propagar);
-        });
+        $control->update($data);
 
         $diff = [];
         foreach ($campos as $campo) {
@@ -145,11 +135,7 @@ class ControlController extends Controller
                 'user_id' => Auth::id(),
                 'mensaje' => 'Borrador modificado',
                 'estado_id' => Estado::borrador()->id,
-                'data' => array_filter([
-                    'tipo' => 'edicion',
-                    'diff' => ['campos' => $diff],
-                    'propagar_mitigacion' => $propagar && isset($diff['mitigacion_default']) ?: null,
-                ]),
+                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
             ]);
         }
 

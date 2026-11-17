@@ -321,14 +321,9 @@ class Actualizacion extends Model implements HasMedia
      * Guarda el diff (antes → después) que pintan el historial y las tarjetas de
      * propuesta. Sale de GestionActualizaciones::guardar() para que también lo use
      * FichaRiesgo. Quien llama ya validó los campos y autorizó 'update'.
-     * $propagarMitigacion (sólo Control, cambiando mitigacion_default) marca la
-     * propuesta con 'propagar_mitigacion': cuando se aplique, el nuevo default se
-     * lleva a todos los riesgos asociados. Sin la marca, sólo se recortan las
-     * relaciones que pasan el nuevo tope (Control::trasCambiarDefault()).
-     * Tests: un_empleado_edita_la_ficha_y_queda_propuesta_solo_con_los_campos_que_cambiaron,
-     * como_propuesta_no_propaga_hasta_que_se_aplica.
+     * Test: un_empleado_edita_la_ficha_y_queda_propuesta_solo_con_los_campos_que_cambiaron.
      */
-    public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos, bool $propagarMitigacion = false): self
+    public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos): self
     {
         $estadoEntidad = $entidad->estado?->nombre;
         $estadoId = static::estadoInicialParaCambio($usuario, $estadoEntidad);
@@ -361,10 +356,6 @@ class Actualizacion extends Model implements HasMedia
         if (! empty($diff)) {
             $data['diff'] = ['campos' => $diff];
         }
-        if ($propagarMitigacion && $entidad instanceof Control && isset($diff['mitigacion_default'])) {
-            $data['propagar_mitigacion'] = true;
-        }
-
         $aplicar = static::seAplicaAlRegistrar($estadoId, $estadoEntidad);
         if ($aplicar) {
             $data['activated_by'] = $usuario->name;
@@ -379,11 +370,7 @@ class Actualizacion extends Model implements HasMedia
             ]);
 
             if ($aplicar) {
-                $antes = $entidad->mitigacion_default;
                 $entidad->update($campos);
-                if ($entidad instanceof Control) {
-                    $entidad->trasCambiarDefault((int) $antes, $usuario, $data['propagar_mitigacion'] ?? false);
-                }
             }
 
             return $actualizacion;
@@ -436,62 +423,6 @@ class Actualizacion extends Model implements HasMedia
                 if (! empty($campos)) {
                     $entidad->update($campos);
                 }
-            }
-
-            return $actualizacion;
-        });
-    }
-
-    /**
-     * Registra el cambio del pivot de un solo elemento de una relación (hoy, los
-     * checks de una relación control-riesgo desde el panel del control, D-040).
-     * Misma regla de estado inicial y de aplicación que registrarCambioCampos().
-     * Es la misma operación 'actualizar' que arman las propuestas por elemento
-     * (PropuestasEnBloque), así se valida y se aplica igual. En una entidad en
-     * borrador se aplica directo, como la edición del borrador. $diff es el
-     * elemento de 'cambia' (id, nombre, mitigacion_antes/despues) para el
-     * historial. Quien llama ya autorizó 'proponer' sobre $entidad.
-     * Tests: un_gerente_cambia_los_checks_de_una_relacion_desde_el_control,
-     * un_empleado_propone_los_checks_desde_el_control_y_se_aplican_al_validar.
-     */
-    public static function registrarCambioPivot(Model $entidad, User $usuario, string $mensaje, string $relacion, int $id, array $pivot, array $diff): self
-    {
-        $estadoEntidad = $entidad->estado?->nombre;
-        $data = [
-            'relaciones' => [$relacion => ['actualizar' => [$id => $pivot]]],
-            'diff' => ['relaciones' => [$relacion => ['cambia' => [$diff]]]],
-        ];
-
-        if ($estadoEntidad === 'borrador') {
-            return DB::transaction(function () use ($entidad, $usuario, $mensaje, $relacion, $id, $pivot, $data) {
-                $entidad->$relacion()->updateExistingPivot($id, $pivot);
-
-                return $entidad->actualizaciones()->create([
-                    'user_id' => $usuario->id,
-                    'mensaje' => $mensaje,
-                    'estado_id' => Estado::borrador()->id,
-                    'data' => ['tipo' => 'edicion', 'diff' => $data['diff']],
-                ]);
-            });
-        }
-
-        $estadoId = static::estadoInicialParaCambio($usuario, $estadoEntidad);
-        $aplicar = static::seAplicaAlRegistrar($estadoId, $estadoEntidad);
-        $data = ['tipo' => 'cambio'] + $data;
-        if ($aplicar) {
-            $data['activated_by'] = $usuario->name;
-        }
-
-        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $relacion, $id, $pivot, $estadoId, $data, $aplicar) {
-            $actualizacion = $entidad->actualizaciones()->create([
-                'user_id' => $usuario->id,
-                'mensaje' => $mensaje,
-                'estado_id' => $estadoId,
-                'data' => $data,
-            ]);
-
-            if ($aplicar) {
-                $entidad->$relacion()->updateExistingPivot($id, $pivot);
             }
 
             return $actualizacion;
@@ -792,11 +723,8 @@ class Actualizacion extends Model implements HasMedia
      * actualiza los campos de `data['campos']` (o el objeto completo si viene en formato
      * legacy sin las claves `campos`/`relaciones`) y sincroniza las relaciones many-to-many
      * indicadas en `data['relaciones']` (sync/attach/detach). No hace nada si `data` está
-     * vacío o si el tipo de actualización no es 'cambio'. Si la propuesta es de un
-     * Control y cambia su número, propaga o recorta sus relaciones
-     * (Control::trasCambiarDefault()) a nombre de $usuario (quien la hace efectiva).
-     * Tests: como_propuesta_no_propaga_hasta_que_se_aplica,
-     * aprobar_el_control_aplica_la_propagacion_de_sus_actualizaciones_pendientes.
+     * vacío o si el tipo de actualización no es 'cambio'. $usuario es quien la hace
+     * efectiva (lo usa la eliminación).
      */
     public function aplicarCambios(?User $usuario = null): void
     {
@@ -817,14 +745,10 @@ class Actualizacion extends Model implements HasMedia
         }
 
         $model = $this->actualizable;
-        $mitigacionAntes = $model->mitigacion_default;
 
         if (isset($data['campos']) || isset($data['relaciones'])) {
             if (! empty($data['campos'])) {
                 $model->update($data['campos']);
-            }
-            if ($model instanceof Control) {
-                $model->trasCambiarDefault((int) $mitigacionAntes, $usuario ?? $this->user, $data['propagar_mitigacion'] ?? false);
             }
         } else {
             // Legacy format
@@ -850,20 +774,15 @@ class Actualizacion extends Model implements HasMedia
     /**
      * Operaciones puntuales sobre un solo elemento de la relación, las que generan
      * las propuestas por elemento de riesgo/show (ver PropuestasEnBloque): 'agregar'
-     * [id => pivot] asocia sin duplicar si ya estaba, y 'actualizar' [id => pivot]
-     * cambia sólo el pivot (la mitigación). A diferencia de 'sync', no pisan al resto
-     * del bloque, así dos propuestas sobre elementos distintos no se contradicen.
-     * También la llama RiesgoController::aplicarCambiosActualizacion().
-     * Tests: validar_una_propuesta_aplica_solo_su_elemento_y_rechazar_otra_no_toca_nada,
-     * un_cambio_de_mitigacion_propuesto_solo_toca_el_pivot_de_ese_control.
+     * [id => pivot] asocia sin duplicar si ya estaba. A diferencia de 'sync', no pisa
+     * al resto del bloque, así dos propuestas sobre elementos distintos no se
+     * contradicen. También la llama RiesgoController::aplicarCambiosActualizacion().
+     * Test: validar_una_propuesta_aplica_solo_su_elemento_y_rechazar_otra_no_toca_nada.
      */
     public static function aplicarOperacionesPorElemento(Model $model, string $relacion, array $ops): void
     {
         if (isset($ops['agregar'])) {
             $model->$relacion()->syncWithoutDetaching($ops['agregar']);
-        }
-        foreach ($ops['actualizar'] ?? [] as $id => $pivot) {
-            $model->$relacion()->updateExistingPivot($id, $pivot);
         }
     }
 }

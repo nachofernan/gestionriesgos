@@ -33,16 +33,6 @@
 
             <div>
                 @include('auditoria.partials.checks-mitigacion', ['seleccionados' => old('checks', $control->checks ?? [])])
-                @if($control->riesgos()->exists())
-                    <label class="mt-3 flex items-start gap-2 text-sm text-gray-700">
-                        <input type="checkbox" name="propagar_mitigacion" value="1" @checked(old('propagar_mitigacion'))
-                            class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                        <span>
-                            Si cambia, aplicar también a los <strong>{{ $control->riesgos()->count() }} riesgos asociados</strong>
-                            <span class="block text-xs text-gray-500">Pisa la mitigación que tenga este control en cada uno de ellos. Sin tildar, sólo se bajan las que pasen el nuevo número.</span>
-                        </span>
-                    </label>
-                @endif
             </div>
 
             @include('auditoria.partials.select-area-responsable', [

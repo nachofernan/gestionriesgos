@@ -74,7 +74,7 @@ class Testeo extends Model implements HasMedia
         $pivot = $control->riesgos()->whereKey($riesgo->id)->firstOrFail()->pivot;
         $antes = (int) $pivot->efectividad;
 
-        return DB::transaction(function () use ($control, $riesgo, $auditor, $efectividad, $fecha, $comentario, $pivot, $antes) {
+        return DB::transaction(function () use ($control, $riesgo, $auditor, $efectividad, $fecha, $comentario, $antes) {
             $testeo = self::create([
                 'control_id' => $control->id,
                 'riesgo_id' => $riesgo->id,
@@ -88,7 +88,7 @@ class Testeo extends Model implements HasMedia
             if ($efectividad !== $antes) {
                 $control->riesgos()->updateExistingPivot($riesgo->id, ['efectividad' => $efectividad]);
 
-                $numero = (int) ($pivot->mitigacion ?? $control->mitigacion_default);
+                $valor = (int) $control->mitigacion_default;
                 $riesgo->actualizaciones()->create([
                     'user_id' => $auditor->id,
                     'mensaje' => "Testeo de «{$control->nombre}»: evidencia de cumplimiento {$antes}% → {$efectividad}%",
@@ -103,8 +103,8 @@ class Testeo extends Model implements HasMedia
                         'diff' => ['relaciones' => ['controles' => ['cambia' => [[
                             'id' => $control->id,
                             'nombre' => $control->nombre,
-                            'mitigacion_antes' => Control::aplicarEfectividad($numero, $antes),
-                            'mitigacion_despues' => Control::aplicarEfectividad($numero, $efectividad),
+                            'mitigacion_antes' => Control::aplicarEvidencia($valor, $antes),
+                            'mitigacion_despues' => Control::aplicarEvidencia($valor, $efectividad),
                         ]]]]],
                     ],
                 ]);

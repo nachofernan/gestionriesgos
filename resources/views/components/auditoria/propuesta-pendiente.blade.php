@@ -119,9 +119,6 @@
                 </a>
             @endforeach
         @endif
-        @if(!empty($data['propagar_mitigacion']))
-            <p class="mt-1.5 inline-block text-[10px] font-bold text-indigo-700 bg-indigo-50 rounded-full px-2 py-0.5">Se aplica también a los riesgos asociados</p>
-        @endif
         @if($propuesta->mensaje)
             <p class="mt-1.5 text-xs text-gray-500 italic">“{{ $propuesta->mensaje }}”</p>
         @endif

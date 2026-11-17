@@ -136,12 +136,12 @@ class ReportesTest extends TestCase
     {
         $mitigado = $this->riesgo($this->gerAdmin, 7, 7); // 14 = crítico
         $mitigado->controles()->attach(
-            Control::factory()->create(['estado_id' => Estado::aprobado()->id]), ['mitigacion' => 5]
+            Control::factory()->create(['estado_id' => Estado::aprobado()->id, 'mitigacion_default' => 5])
         ); // residual 9 = bajo
 
         $enBorrador = $this->riesgo($this->gerAdmin, 7, 7);
         $enBorrador->controles()->attach(
-            Control::factory()->create(['estado_id' => Estado::borrador()->id]), ['mitigacion' => 5]
+            Control::factory()->create(['estado_id' => Estado::borrador()->id, 'mitigacion_default' => 5])
         ); // no mitiga: sigue crítico
 
         $fila = (new ReportePorGerencia($this->comite, new FiltrosReporte))->datos()['totales'];

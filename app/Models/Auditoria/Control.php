@@ -10,14 +10,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * Control de mitigación aplicable a uno o más Riesgo. `mitigacion_default` sale
- * de los checks del control y es el tope de cada relación. La relación
- * (ControlRiesgo) lleva su propio número y su efectividad (D-040). Ciclo de vida
+ * de los checks del control y es lo que mitiga en cada riesgo, regulado por la
+ * evidencia de cumplimiento de cada relación (ControlRiesgo, D-051). Ciclo de vida
  * de estado borrador → validado → aprobado/borrado.
  */
 class Control extends Model implements HasMedia
@@ -37,6 +36,13 @@ class Control extends Model implements HasMedia
     ];
 
     public const PUNTOS_POR_CHECK = 2;
+
+    /**
+     * Tramos de la evidencia de cumplimiento (D-051): desde qué evidencia, qué
+     * porcentaje del valor del control aplica. Ordenados de mayor a menor; por
+     * debajo de 60 no mitiga nada.
+     */
+    public const TRAMOS_EVIDENCIA = [99 => 100, 91 => 80, 80 => 60, 70 => 40, 60 => 20];
 
     protected $table = 'controles';
 
@@ -130,7 +136,7 @@ class Control extends Model implements HasMedia
     {
         return $this->belongsToMany(Riesgo::class, 'control_riesgo')
             ->using(ControlRiesgo::class)
-            ->withPivot('mitigacion', 'checks', 'efectividad')
+            ->withPivot('efectividad')
             ->withTimestamps();
     }
 
@@ -159,37 +165,41 @@ class Control extends Model implements HasMedia
     }
 
     /**
-     * Regla única del redondeo de la efectividad: hacia abajo, así que sólo al
-     * 100% se mitiga el valor entero (D-037). La consume
-     * ControlRiesgo::mitigacionEfectiva() y la preview de GestionControles, que
-     * trabaja sobre arrays. Test: una_relacion_al_99_no_mitiga_el_valor_entero.
+     * Regla única de la evidencia de cumplimiento (D-051): la evidencia de una
+     * relación no regula el valor en forma lineal sino por tramos (ver TRAMOS_EVIDENCIA),
+     * y la proporción se redondea hacia abajo (D-037), así que sólo con 99 o 100
+     * se mitiga el valor entero. La consume ControlRiesgo::mitigacionEfectiva(),
+     * la preview de GestionControles y el testeo.
+     * Tests: una_evidencia_menor_a_60_no_mitiga_nada,
+     * cada_tramo_de_evidencia_mitiga_su_porcentaje_hacia_abajo,
+     * una_evidencia_de_98_no_mitiga_el_valor_entero.
      */
-    public static function aplicarEfectividad(int $nominal, int $efectividad): int
+    public static function aplicarEvidencia(int $valor, int $evidencia): int
     {
-        return intdiv($nominal * $efectividad, 100);
+        return intdiv($valor * self::porcentajeDeEvidencia($evidencia), 100);
+    }
+
+    /** Qué porcentaje del valor aplica una evidencia: el del primer tramo que la alcanza. */
+    public static function porcentajeDeEvidencia(int $evidencia): int
+    {
+        foreach (self::TRAMOS_EVIDENCIA as $desde => $porcentaje) {
+            if ($evidencia >= $desde) {
+                return $porcentaje;
+            }
+        }
+
+        return 0;
     }
 
     /**
      * Puntaje de un conjunto de checks (D-040): cada clave válida de CHECKS suma
      * PUNTOS_POR_CHECK. Las claves desconocidas o repetidas no suman. Da el
-     * mitigacion_default del control y, con tope, el número de cada relación.
-     * Test: el_puntaje_suma_dos_por_cada_check_valido.
+     * mitigacion_default del control.
+     * Test: el_numero_del_control_sale_de_sus_checks.
      */
     public static function puntajeChecks(?array $checks): int
     {
         return count(self::normalizarChecks($checks)) * self::PUNTOS_POR_CHECK;
-    }
-
-    /**
-     * Número de una relación cargada con checks (D-040): su puntaje, sin pasar el
-     * número del control ($tope). Se pueden tildar todos, pero el control no
-     * mitiga en un riesgo más de lo que vale. Lo aplica ControlRiesgo al guardar y
-     * lo usa la preview de GestionControles.
-     * Test: el_numero_de_la_relacion_no_pasa_el_tope_aunque_se_tilde_todo.
-     */
-    public static function numeroRelacion(?array $checks, int $tope): int
-    {
-        return min(self::puntajeChecks($checks), $tope);
     }
 
     /** Sólo las claves válidas, sin repetir y en el orden de CHECKS: así dos selecciones iguales comparan iguales. */
@@ -204,97 +214,5 @@ class Control extends Model implements HasMedia
         $etiquetas = array_map(fn ($clave) => self::CHECKS[$clave], self::normalizarChecks($checks));
 
         return $etiquetas ? implode(' · ', $etiquetas) : 'Ninguno';
-    }
-
-    /**
-     * Qué pasa con las relaciones cuando cambia el número del control. Con
-     * $propagar ("aplicar también a los riesgos asociados") todas toman el número
-     * y los checks del control. Si no, sólo se recortan las que pasan el nuevo
-     * tope (D-040). $antes es el número previo. La llaman ControlController::update()
-     * y Actualizacion::registrarCambioCampos()/aplicarCambios(), después de guardar.
-     * Tests: bajar_el_numero_del_control_recorta_las_relaciones_que_lo_pasan,
-     * subir_el_numero_del_control_no_toca_las_relaciones.
-     */
-    public function trasCambiarDefault(int $antes, User $usuario, bool $propagar): void
-    {
-        if ((int) $this->mitigacion_default === $antes) {
-            return;
-        }
-
-        $propagar ? $this->propagarMitigacionDefault($antes, $usuario) : $this->recortarRelacionesAlTope($usuario);
-    }
-
-    /**
-     * Baja al tope las relaciones cuyo número propio pasa el número del control.
-     * Las que no tienen número propio ya heredan el nuevo valor. Cada riesgo
-     * afectado recibe una Actualizacion aplicada, como en la propagación.
-     */
-    private function recortarRelacionesAlTope(User $usuario): void
-    {
-        $tope = (int) $this->mitigacion_default;
-
-        DB::transaction(function () use ($tope, $usuario) {
-            foreach ($this->riesgos()->get() as $riesgo) {
-                $anterior = $riesgo->pivot->mitigacion;
-                if ($anterior === null || $anterior <= $tope) {
-                    continue;
-                }
-
-                $this->riesgos()->updateExistingPivot($riesgo->id, ['mitigacion' => $tope]);
-                $this->registrarCambioEnRiesgo($riesgo, $anterior, $tope, $usuario, 'recorte al nuevo tope del control', 'tope_control');
-            }
-        });
-    }
-
-    /**
-     * Lleva la mitigación por defecto (ya guardada) a todas las asociaciones con
-     * riesgos: la opción "aplicar también a los riesgos asociados" al cambiar el
-     * default. Pisa todas, incluidos riesgos de otras gerencias, sin pasar por
-     * su validación (ver DECISIONES). Cada riesgo cuyo valor cambia
-     * recibe una Actualizacion ya aplicada con el mismo diff que una propuesta de
-     * mitigación, para que su historial cuente el cambio. $antes es el default
-     * previo, que vale para las asociaciones con pivot en null. La llaman
-     * Actualizacion::registrarCambioCampos()/aplicarCambios() y ControlController::update().
-     * Tests: cambiar_el_numero_tildado_pisa_todas_las_asociaciones_y_baja_el_residual,
-     * la_propagacion_deja_una_actualizacion_aplicada_en_cada_riesgo_afectado.
-     */
-    public function propagarMitigacionDefault(int $antes, User $usuario): void
-    {
-        $nuevo = (int) $this->mitigacion_default;
-
-        DB::transaction(function () use ($antes, $nuevo, $usuario) {
-            foreach ($this->riesgos()->get() as $riesgo) {
-                $anterior = (int) ($riesgo->pivot->mitigacion ?? $antes);
-                if ($anterior === $nuevo) {
-                    continue;
-                }
-
-                $this->riesgos()->updateExistingPivot($riesgo->id, ['mitigacion' => $nuevo, 'checks' => $this->checks]);
-                $this->registrarCambioEnRiesgo($riesgo, $anterior, $nuevo, $usuario, 'cambio del default del control', 'default_control');
-            }
-        });
-    }
-
-    /** Deja en el historial del riesgo, ya aplicado, el cambio de número de su relación con este control. */
-    private function registrarCambioEnRiesgo(Riesgo $riesgo, int $anterior, int $nuevo, User $usuario, string $motivo, string $origen): void
-    {
-        $riesgo->actualizaciones()->create([
-            'user_id' => $usuario->id,
-            'mensaje' => "Mitigación de «{$this->nombre}»: {$anterior} → {$nuevo} ({$motivo})",
-            'estado_id' => Estado::aprobado()->id,
-            'aprobado_por_id' => $usuario->id,
-            'aprobado_en' => now(),
-            'data' => [
-                'tipo' => 'cambio',
-                'origen' => $origen,
-                'activated_by' => $usuario->name,
-                'diff' => ['relaciones' => ['controles' => ['cambia' => [[
-                    'id' => $this->id,
-                    'nombre' => $this->nombre,
-                    'mitigacion_antes' => $anterior,
-                    'mitigacion_despues' => $nuevo,
-                ]]]]],
-            ],
-        ]);
     }
 }
