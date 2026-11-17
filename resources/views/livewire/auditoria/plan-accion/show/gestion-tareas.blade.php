@@ -214,4 +214,5 @@
             </div>
         </div>
     @endif
+    @include('auditoria.partials.elegir-rol-modal')
 </div>

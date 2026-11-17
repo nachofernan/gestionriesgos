@@ -285,10 +285,18 @@ class Actualizacion extends Model implements HasMedia
      * arranca en borrador. La usan GestionActualizaciones::guardar() (cambios de
      * campo genéricos) y RiesgoController::recalcularStore() (wizard de
      * recálculo de impacto/probabilidad), para no duplicar la regla.
+     * Con rol de gerente y de comité (D-052), sobre algo aprobado de su propio
+     * subárbol ($areaId) elige: $comoComite lo establece, si no es una propuesta
+     * de gerente. Fuera de su subárbol sólo puede actuar como comité. Un
+     * $comoComite de quien no tiene el rol se ignora.
+     * Tests: con_doble_rol_propone_sobre_lo_aprobado_de_su_area,
+     * con_doble_rol_establece_como_comite_y_queda_con_los_datos_del_comite,
+     * un_gerente_que_manda_como_comite_sigue_proponiendo.
      */
-    public static function estadoInicialParaCambio(User $usuario, ?string $estadoEntidad): int
+    public static function estadoInicialParaCambio(User $usuario, ?string $estadoEntidad, ?int $areaId = null, bool $comoComite = false): int
     {
-        if ($estadoEntidad === 'aprobado' && $usuario->esComite()) {
+        if ($estadoEntidad === 'aprobado' && $usuario->esComite()
+            && ($comoComite || ! $usuario->actuaComoGerenteEn($areaId))) {
             return Estado::aprobado()->id;
         }
 
@@ -297,6 +305,28 @@ class Actualizacion extends Model implements HasMedia
         }
 
         return Estado::borrador()->id;
+    }
+
+    /**
+     * Área contra la que se decide el rol con que actúa quien edita: la propia de
+     * la entidad o, si no tiene, la de su responsable (mismo criterio que el
+     * areaEfectiva() de las Policies).
+     */
+    public static function areaDe(Model $entidad): ?int
+    {
+        return $entidad->area_id ?? $entidad->user?->area_id;
+    }
+
+    /**
+     * Columnas del comité (N° y fecha, D-039) para un cambio que se establece como
+     * comité (D-052): sólo si de verdad nace aprobado. $comoComite null es una
+     * propuesta común.
+     */
+    public static function columnasComiteSiAplica(int $estadoId, ?array $comoComite): array
+    {
+        return $comoComite !== null && $estadoId === Estado::aprobado()->id
+            ? static::columnasComite($comoComite)
+            : [];
     }
 
     /**
@@ -325,10 +355,11 @@ class Actualizacion extends Model implements HasMedia
      * FichaRiesgo. Quien llama ya validó los campos y autorizó 'update'.
      * Test: un_empleado_edita_la_ficha_y_queda_propuesta_solo_con_los_campos_que_cambiaron.
      */
-    public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos): self
+    public static function registrarCambioCampos(Model $entidad, User $usuario, string $mensaje, array $campos, ?array $comoComite = null): self
     {
         $estadoEntidad = $entidad->estado?->nombre;
-        $estadoId = static::estadoInicialParaCambio($usuario, $estadoEntidad);
+        $estadoId = static::estadoInicialParaCambio($usuario, $estadoEntidad, static::areaDe($entidad), $comoComite !== null);
+        $columnasComite = static::columnasComiteSiAplica($estadoId, $comoComite);
 
         $diff = [];
         foreach ($campos as $campo => $nuevo) {
@@ -358,13 +389,13 @@ class Actualizacion extends Model implements HasMedia
             $data['activated_by'] = $usuario->name;
         }
 
-        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $campos, $estadoId, $data, $aplicar) {
+        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $campos, $estadoId, $data, $aplicar, $columnasComite) {
             $actualizacion = $entidad->actualizaciones()->create([
                 'user_id' => $usuario->id,
                 'mensaje' => $mensaje,
                 'estado_id' => $estadoId,
                 'data' => $data,
-            ]);
+            ] + $columnasComite);
 
             if ($aplicar) {
                 $entidad->update($campos);
@@ -387,9 +418,10 @@ class Actualizacion extends Model implements HasMedia
      * un_gerente_cambia_las_sedes_de_un_riesgo_validado_en_el_acto,
      * un_empleado_propone_dimensiones_con_fundamento_y_se_aplican_juntos_al_validar.
      */
-    public static function registrarCambioSync(Model $entidad, User $usuario, string $mensaje, string $relacion, array $ids, array $diff, array $campos = []): self
+    public static function registrarCambioSync(Model $entidad, User $usuario, string $mensaje, string $relacion, array $ids, array $diff, array $campos = [], ?array $comoComite = null): self
     {
-        $estadoId = static::estadoInicialParaCambio($usuario, $entidad->estado?->nombre);
+        $estadoId = static::estadoInicialParaCambio($usuario, $entidad->estado?->nombre, static::areaDe($entidad), $comoComite !== null);
+        $columnasComite = static::columnasComiteSiAplica($estadoId, $comoComite);
         $aplicar = static::seAplicaAlRegistrar($estadoId, $entidad->estado?->nombre);
 
         $data = [
@@ -407,13 +439,13 @@ class Actualizacion extends Model implements HasMedia
             $data['activated_by'] = $usuario->name;
         }
 
-        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $relacion, $ids, $campos, $estadoId, $data, $aplicar) {
+        return DB::transaction(function () use ($entidad, $usuario, $mensaje, $relacion, $ids, $campos, $estadoId, $data, $aplicar, $columnasComite) {
             $actualizacion = $entidad->actualizaciones()->create([
                 'user_id' => $usuario->id,
                 'mensaje' => $mensaje,
                 'estado_id' => $estadoId,
                 'data' => $data,
-            ]);
+            ] + $columnasComite);
 
             if ($aplicar) {
                 $entidad->$relacion()->sync($ids);
@@ -437,9 +469,10 @@ class Actualizacion extends Model implements HasMedia
      * Tests: un_gerente_propone_eliminar_y_el_riesgo_queda_borrado_cuando_aprueba_el_comite,
      * el_comite_elimina_en_el_acto.
      */
-    public static function registrarEliminacion(Model $entidad, User $usuario, string $observaciones, ?int $juntoConRiesgoId = null): self
+    public static function registrarEliminacion(Model $entidad, User $usuario, string $observaciones, ?int $juntoConRiesgoId = null, ?array $comoComite = null): self
     {
-        $estadoId = static::estadoInicialParaCambio($usuario, $entidad->estado?->nombre);
+        $estadoId = static::estadoInicialParaCambio($usuario, $entidad->estado?->nombre, static::areaDe($entidad), $comoComite !== null);
+        $columnasComite = static::columnasComiteSiAplica($estadoId, $comoComite);
 
         $diff = ['campos' => ['estado' => ['antes' => $entidad->estado?->nombre, 'despues' => 'borrado']]];
         if ($entidad instanceof PlanAccion && ($tareas = $entidad->tareasQueCaen())->isNotEmpty()) {
@@ -457,13 +490,13 @@ class Actualizacion extends Model implements HasMedia
             $data['activated_by'] = $usuario->name;
         }
 
-        return DB::transaction(function () use ($entidad, $usuario, $observaciones, $estadoId, $data, $aplicar) {
+        return DB::transaction(function () use ($entidad, $usuario, $observaciones, $estadoId, $data, $aplicar, $columnasComite) {
             $actualizacion = $entidad->actualizaciones()->create([
                 'user_id' => $usuario->id,
                 'mensaje' => $observaciones,
                 'estado_id' => $estadoId,
                 'data' => $data,
-            ]);
+            ] + $columnasComite);
 
             if ($aplicar) {
                 $actualizacion->aplicarEliminacion($usuario);

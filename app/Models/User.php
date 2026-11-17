@@ -100,7 +100,15 @@ class User extends Authenticatable
      * Si $user actúa como gerente sobre algo del área dada: tiene el rol y el
      * área cae en su jerarquía. Separa lo que hace como gerente de lo que hace
      * como comité (que no recalcula ni valora, D-046) cuando tiene los dos roles.
+     * eligeRolEn() es el caso en que los dos roles dan resultados distintos y hay
+     * que preguntar: algo aprobado de su subárbol (lo usan EligeRol y
+     * RiesgoController::show() para la eliminación).
      */
+    public function eligeRolEn(?string $estadoEntidad, mixed $areaId): bool
+    {
+        return $estadoEntidad === 'aprobado' && $this->esComite() && $this->actuaComoGerenteEn($areaId);
+    }
+
     public function actuaComoGerenteEn(mixed $areaId): bool
     {
         // hasRole y no esGerente(): un comité sin área no es superusuario-gerente acá.

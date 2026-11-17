@@ -4,13 +4,15 @@
     los arma RiesgoController::show() con Riesgo::dependientesEliminables(); los que no
     se pueden elegir aparecen deshabilitados con su motivo. El servidor vuelve a
     validar contra la misma lista en proponerEliminacion().
-    Variables: $riesgo, $dependientes (['controles' => [...], 'planes' => [...]]).
+    Variables: $riesgo, $dependientes (['controles' => [...], 'planes' => [...]]),
+    $eligeRol (gerente y comité sobre su área, D-052: propone o la establece como comité).
 --}}
 @php
-    $conErrores = $errors->hasAny(['observaciones', 'adjunto', 'controles', 'planes']);
+    $conErrores = $errors->hasAny(['observaciones', 'adjunto', 'controles', 'planes', 'comite.numero', 'comite.fecha']);
+    $eligeRol = $eligeRol ?? false;
     $marcados = fn (string $tipo) => array_map('intval', (array) old($tipo, []));
 @endphp
-<div x-data="{ menu: false, abierto: @js($conErrores) }" x-on:keydown.escape.window="abierto = false">
+<div x-data="{ menu: false, abierto: @js($conErrores), como: @js(old('como', 'propuesta')) }" x-on:keydown.escape.window="abierto = false">
     <div class="relative" x-on:click.outside="menu = false">
         <button type="button" x-on:click="menu = !menu" title="Más acciones"
             class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors">
@@ -85,11 +87,28 @@
                         </fieldset>
                     @endif
                 @endforeach
+
+                @if($eligeRol)
+                    <fieldset class="space-y-2">
+                        <legend class="block text-xs font-bold text-gray-700 mb-1">Cómo la registrás</legend>
+                        <label class="flex items-start gap-2 text-sm text-gray-700">
+                            <input type="radio" name="como" value="propuesta" x-model="como" class="mt-0.5">
+                            <span>Enviar como propuesta <span class="block text-xs text-gray-500">Queda validada por vos como gerente, pendiente del comité.</span></span>
+                        </label>
+                        <label class="flex items-start gap-2 text-sm text-gray-700">
+                            <input type="radio" name="como" value="comite" x-model="como" class="mt-0.5">
+                            <span>Establecer como comité <span class="block text-xs text-gray-500">Se elimina en el acto como aprobación del comité.</span></span>
+                        </label>
+                        <div x-show="como === 'comite'" x-cloak class="pt-1">
+                            @include('auditoria.partials.campos-comite', ['livewire' => false])
+                        </div>
+                    </fieldset>
+                @endif
             </div>
 
             <div class="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
                 <button type="button" x-on:click="abierto = false" class="px-3 py-2 text-xs font-semibold text-gray-600 hover:text-gray-900">Cancelar</button>
-                <button type="submit" class="px-4 py-2 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700">Enviar propuesta</button>
+                <button type="submit" class="px-4 py-2 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700" x-text="como === 'comite' ? 'Eliminar como comité' : 'Enviar propuesta'">Enviar propuesta</button>
             </div>
         </form>
     </div>

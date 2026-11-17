@@ -68,7 +68,7 @@
                     class="px-4 py-2 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition-colors">
                 Cancelar
             </button>
-            <button wire:click="guardar"
+            <button wire:click="{{ $this->requiereElegirRol() ? 'abrirElegirRol' : 'guardar' }}"
                     class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
                 Guardar
             </button>
@@ -76,3 +76,4 @@
     </div>
 </div>
 @endif
+@include('auditoria.partials.elegir-rol-modal')

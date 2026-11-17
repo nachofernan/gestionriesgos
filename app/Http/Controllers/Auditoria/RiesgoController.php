@@ -192,8 +192,10 @@ class RiesgoController extends Controller
 
         // Modal de eliminación (D-047): sólo si el usuario puede proponerla.
         $eliminacion = Auth::user()->can('delete', $riesgo) ? $riesgo->dependientesEliminables(Auth::user()) : null;
+        // Con rol de gerente y de comité elige si la propone o la establece (D-052).
+        $eligeRolEliminacion = $eliminacion !== null && Auth::user()->eligeRolEn($riesgo->estado?->nombre, $riesgo->area_id);
 
-        return view('auditoria.riesgo.show', compact('riesgo', 'comite', 'eliminacion'));
+        return view('auditoria.riesgo.show', compact('riesgo', 'comite', 'eliminacion', 'eligeRolEliminacion'));
     }
 
     public function edit(Riesgo $riesgo)
@@ -365,7 +367,7 @@ class RiesgoController extends Controller
                     'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff], 'respuestas' => $respuestas],
                 ]);
             } else {
-                $estadoId = Actualizacion::estadoInicialParaCambio(Auth::user(), $riesgo->estado?->nombre);
+                $estadoId = Actualizacion::estadoInicialParaCambio(Auth::user(), $riesgo->estado?->nombre, $riesgo->area_id);
 
                 $aplicar = $estadoId === Estado::validado()->id
                     && $riesgo->estado?->nombre === 'validado';
@@ -423,6 +425,12 @@ class RiesgoController extends Controller
         ]);
 
         $user = Auth::user();
+        // Con doble rol (D-052), 'como' = 'comite' la establece en el acto con los
+        // datos del comité; de quien no tiene el rol se ignora.
+        $comoComite = null;
+        if ($request->input('como') === 'comite' && $user->esComite()) {
+            $comoComite = $request->validate(Actualizacion::reglasComite(), Actualizacion::mensajesComite())['comite'] ?? [];
+        }
         $dependientes = $riesgo->dependientesEliminables($user);
         $elegidos = [];
         foreach (['controles' => Control::class, 'planes' => PlanAccion::class] as $tipo => $clase) {
@@ -434,10 +442,10 @@ class RiesgoController extends Controller
             $elegidos[$tipo] = $clase::whereIn('id', $ids)->get();
         }
 
-        $propuestas = DB::transaction(function () use ($riesgo, $user, $data, $elegidos) {
-            $propuestas = [Actualizacion::registrarEliminacion($riesgo, $user, $data['observaciones'])];
+        $propuestas = DB::transaction(function () use ($riesgo, $user, $data, $elegidos, $comoComite) {
+            $propuestas = [Actualizacion::registrarEliminacion($riesgo, $user, $data['observaciones'], null, $comoComite)];
             foreach ([...$elegidos['controles'], ...$elegidos['planes']] as $elemento) {
-                $propuestas[] = Actualizacion::registrarEliminacion($elemento, $user, $data['observaciones'], $riesgo->id);
+                $propuestas[] = Actualizacion::registrarEliminacion($elemento, $user, $data['observaciones'], $riesgo->id, $comoComite);
             }
 
             return $propuestas;

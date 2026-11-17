@@ -87,6 +87,7 @@
                     @php
                         $autor = $nota->user;
                         $rol = match (true) {
+                            (bool) $autor?->esComite() && $autor->hasRole('gerente') => 'Gerente y comité',
                             (bool) $autor?->esComite() => 'Comité',
                             (bool) $autor?->esGerente() => 'Gerente',
                             (bool) $autor?->esAuditor() => 'Auditor',

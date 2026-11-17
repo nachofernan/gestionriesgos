@@ -173,15 +173,16 @@ class FichaRiesgo extends Component
 
         $registradas = collect();
         if (! empty($campos)) {
-            $registradas->push(Actualizacion::registrarCambioCampos($riesgo, Auth::user(), $this->mensaje, $campos));
+            $registradas->push(Actualizacion::registrarCambioCampos($riesgo, Auth::user(), $this->mensaje, $campos, $this->comiteElegido()));
         }
         if (! empty($diffSedes)) {
-            $registradas->push(Actualizacion::registrarCambioSync($riesgo, Auth::user(), $this->mensaje, 'sedes', $sedeIds, $diffSedes));
+            $registradas->push(Actualizacion::registrarCambioSync($riesgo, Auth::user(), $this->mensaje, 'sedes', $sedeIds, $diffSedes, [], $this->comiteElegido()));
         }
         if (! empty($diffDimensiones) || $cambiaFundamento) {
             $registradas->push(Actualizacion::registrarCambioSync(
                 $riesgo, Auth::user(), $this->mensaje, 'dimensiones', $dimensionIds, $diffDimensiones,
                 $cambiaFundamento ? ['fundamento_dimension' => $fundamentoDimension] : [],
+                $this->comiteElegido(),
             ));
         }
 
@@ -212,16 +213,11 @@ class FichaRiesgo extends Component
             ->unique()->values()->all();
     }
 
-    /** Misma regla que Actualizacion::registrarCambioCampos(), para el texto y el botón. */
-    private function estadoParaActualizacion(): int
-    {
-        return Actualizacion::estadoInicialParaCambio(Auth::user(), $this->estadoModelo);
-    }
-
     public function render()
     {
         $riesgo = Riesgo::with(['tipoRiesgo', 'area', 'user', 'estado', 'sedes', 'dimensiones'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
+        $this->areaModelo = Actualizacion::areaDe($riesgo);
         $propuestasCampos = $this->propuestasDe($riesgo, 'campos');
         $propuestasSedes = $this->propuestasDe($riesgo, 'sedes');
         $propuestasDimensiones = $this->propuestasDe($riesgo, 'dimensiones');

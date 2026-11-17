@@ -4,6 +4,7 @@ namespace App\Livewire\Auditoria\Riesgo\Show;
 
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\BuscaEnModal;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
@@ -218,7 +219,7 @@ class GestionControles extends Component
                     'mensaje' => 'Controles de mitigación actualizados',
                     'estado_id' => $estadoId,
                     'data' => $data,
-                ]);
+                ] + $this->columnasComiteElegido());
                 $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Controles actualizados.');
@@ -279,28 +280,11 @@ class GestionControles extends Component
         return max(0, $this->valorTotal - $mitigacion - $this->mitigacionPlanesBase);
     }
 
-    /**
-     * Regla de negocio: el comité editando un riesgo ya aprobado genera la
-     * actualización directamente en aprobado; gerente o comité en cualquier otro
-     * caso saltean el borrador y van a validado; el resto arranca en borrador.
-     */
-    private function estadoParaActualizacion(): int
-    {
-        $user = Auth::user();
-        if ($this->estadoModelo === 'aprobado' && $user->esComite()) {
-            return Estado::aprobado()->id;
-        }
-        if ($user->esGerente() || $user->esComite()) {
-            return Estado::validado()->id;
-        }
-
-        return Estado::borrador()->id;
-    }
-
     private function cargar(): void
     {
         $riesgo = Riesgo::with(['controles.estado', 'controles.area', 'planesAccion.estado', 'planesAccion.tareas.estado', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
+        $this->areaModelo = Actualizacion::areaDe($riesgo);
         $this->valorTotal = $riesgo->valor_total;
         $this->esBorrador = $this->estadoModelo === 'borrador';
 

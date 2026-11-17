@@ -99,7 +99,7 @@ class FichaPlan extends Component
             return;
         }
 
-        $actualizacion = Actualizacion::registrarCambioCampos($plan, Auth::user(), $this->mensaje, $campos);
+        $actualizacion = Actualizacion::registrarCambioCampos($plan, Auth::user(), $this->mensaje, $campos, $this->comiteElegido());
 
         $this->dispatch('plan-actualizado');
         $this->cancelarEdicion();
@@ -123,16 +123,11 @@ class FichaPlan extends Component
             ->unique()->values()->all();
     }
 
-    /** Misma regla que Actualizacion::registrarCambioCampos(), para el texto y el botón. */
-    private function estadoParaActualizacion(): int
-    {
-        return Actualizacion::estadoInicialParaCambio(Auth::user(), $this->estadoModelo);
-    }
-
     public function render()
     {
         $plan = PlanAccion::with(['estado'])->findOrFail($this->planId);
         $this->estadoModelo = $plan->estado?->nombre ?? 'borrador';
+        $this->areaModelo = Actualizacion::areaDe($plan);
         $propuestas = $this->propuestasDe($plan, 'campos');
 
         return view('livewire.auditoria.plan-accion.show.ficha-plan', [

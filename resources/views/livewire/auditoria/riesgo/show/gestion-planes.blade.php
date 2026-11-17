@@ -158,4 +158,5 @@
             @endforelse
         </x-auditoria.modal-buscar>
     @endif
+    @include('auditoria.partials.elegir-rol-modal')
 </div>

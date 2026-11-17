@@ -7,6 +7,7 @@ use App\Enums\Auditoria\MetodoEvaluacion;
 use App\Enums\Auditoria\Responsabilidad;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Enums\Auditoria\Temporalidad;
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\EligeRol;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
@@ -32,7 +33,7 @@ use Livewire\WithFileUploads;
  */
 class GestionActualizaciones extends Component
 {
-    use WithFileUploads;
+    use EligeRol, WithFileUploads;
 
     public string $modelType;
 
@@ -93,6 +94,7 @@ class GestionActualizaciones extends Component
         $this->variante = $variante;
         $modelo = $this->resolverModelo();
         $this->estadoModelo = $modelo->estado?->nombre ?? '';
+        $this->areaModelo = Actualizacion::areaDe($modelo);
         $this->puedeActualizar = Auth::user()->can('proponer', $modelo);
     }
 
@@ -221,7 +223,7 @@ class GestionActualizaciones extends Component
         if (empty($campos)) {
             $actualizacion = Actualizacion::registrarNota($model, Auth::user(), $this->mensaje);
         } else {
-            $actualizacion = Actualizacion::registrarCambioCampos($model, Auth::user(), $this->mensaje, $campos);
+            $actualizacion = Actualizacion::registrarCambioCampos($model, Auth::user(), $this->mensaje, $campos, $this->comiteElegido());
             // Se avisa haya aplicado o no: si quedó como propuesta pendiente, en
             // riesgo/show la Ficha la muestra debajo de lo vigente.
             $this->dispatch("{$this->modelType}-actualizado");

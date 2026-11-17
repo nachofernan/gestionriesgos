@@ -103,7 +103,7 @@ class FichaTarea extends Component
             return;
         }
 
-        $actualizacion = Actualizacion::registrarCambioCampos($tarea, Auth::user(), $this->mensaje, $campos);
+        $actualizacion = Actualizacion::registrarCambioCampos($tarea, Auth::user(), $this->mensaje, $campos, $this->comiteElegido());
 
         $this->dispatch('tarea-actualizado');
         $this->cancelarEdicion();
@@ -129,16 +129,11 @@ class FichaTarea extends Component
             ->unique()->values()->all();
     }
 
-    /** Misma regla que Actualizacion::registrarCambioCampos(), para el texto y el botón. */
-    private function estadoParaActualizacion(): int
-    {
-        return Actualizacion::estadoInicialParaCambio(Auth::user(), $this->estadoModelo);
-    }
-
     public function render()
     {
         $tarea = Tarea::with(['estado'])->findOrFail($this->tareaId);
         $this->estadoModelo = $tarea->estado?->nombre ?? 'borrador';
+        $this->areaModelo = Actualizacion::areaDe($tarea);
         $propuestas = $this->propuestasDe($tarea, 'campos');
 
         return view('livewire.auditoria.tarea.show.ficha-tarea', [

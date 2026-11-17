@@ -101,7 +101,7 @@ class FichaObjetivo extends Component
             return;
         }
 
-        $actualizacion = Actualizacion::registrarCambioCampos($objetivo, Auth::user(), $this->mensaje, $campos);
+        $actualizacion = Actualizacion::registrarCambioCampos($objetivo, Auth::user(), $this->mensaje, $campos, $this->comiteElegido());
 
         $this->dispatch('objetivo-actualizado');
         $this->cancelarEdicion();
@@ -126,16 +126,11 @@ class FichaObjetivo extends Component
             ->unique()->values()->all();
     }
 
-    /** Misma regla que Actualizacion::registrarCambioCampos(), para el texto y el botón. */
-    private function estadoParaActualizacion(): int
-    {
-        return Actualizacion::estadoInicialParaCambio(Auth::user(), $this->estadoModelo);
-    }
-
     public function render()
     {
         $objetivo = Objetivo::with(['estado'])->findOrFail($this->objetivoId);
         $this->estadoModelo = $objetivo->estado?->nombre ?? 'borrador';
+        $this->areaModelo = Actualizacion::areaDe($objetivo);
         $propuestas = $this->propuestasDe($objetivo, 'campos');
 
         return view('livewire.auditoria.objetivo.show.ficha-objetivo', [

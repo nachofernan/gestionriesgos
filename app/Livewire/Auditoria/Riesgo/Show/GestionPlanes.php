@@ -5,6 +5,7 @@ namespace App\Livewire\Auditoria\Riesgo\Show;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\BuscaEnModal;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
@@ -247,7 +248,7 @@ class GestionPlanes extends Component
                     'mensaje' => 'Planes de acción asociados actualizados',
                     'estado_id' => $estadoId,
                     'data' => $data,
-                ]);
+                ] + $this->columnasComiteElegido());
                 $this->dispatch('riesgo-actualizado');
                 $this->cancelarEdicion();
                 session()->flash('ok', 'Planes de acción actualizados.');
@@ -306,28 +307,11 @@ class GestionPlanes extends Component
         return max(0, $this->valorTotal - $this->mitigacionControlesBase - $mitigacionPlanes);
     }
 
-    /**
-     * Regla de negocio: el comité editando un riesgo ya aprobado genera la
-     * actualización directamente en aprobado; gerente o comité en cualquier otro
-     * caso saltean el borrador y van a validado; el resto arranca en borrador.
-     */
-    private function estadoParaActualizacion(): int
-    {
-        $user = Auth::user();
-        if ($this->estadoModelo === 'aprobado' && $user->esComite()) {
-            return Estado::aprobado()->id;
-        }
-        if ($user->esGerente() || $user->esComite()) {
-            return Estado::validado()->id;
-        }
-
-        return Estado::borrador()->id;
-    }
-
     private function cargar(): void
     {
         $riesgo = Riesgo::with(['planesAccion.estado', 'planesAccion.area', 'planesAccion.tareas.estado', 'controles.estado', 'estado'])->findOrFail($this->riesgoId);
         $this->estadoModelo = $riesgo->estado?->nombre ?? 'borrador';
+        $this->areaModelo = Actualizacion::areaDe($riesgo);
         $this->valorTotal = $riesgo->valor_total;
         $this->esBorrador = $this->estadoModelo === 'borrador';
         $this->exigePlan = $riesgo->respuesta === RespuestaRiesgo::Mitigar;

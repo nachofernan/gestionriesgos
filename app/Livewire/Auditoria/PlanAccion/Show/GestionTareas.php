@@ -3,6 +3,7 @@
 namespace App\Livewire\Auditoria\PlanAccion\Show;
 
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\PlanAccion;
@@ -352,7 +353,7 @@ class GestionTareas extends Component
                     'diff' => ['relaciones' => ['tareas' => $diffRel]],
                     'activated_by' => Auth::user()->name,
                 ],
-            ]);
+            ] + $this->columnasComiteElegido());
             session()->flash('ok', 'Tareas actualizadas.');
         } else {
             $this->proponerPorElemento($plan, 'tareas', $diffRel, $estadoId, 'tarea');
@@ -389,28 +390,11 @@ class GestionTareas extends Component
         return PlanAccion::findOrFail($this->planId);
     }
 
-    /**
-     * Regla de negocio: el comité editando un plan ya aprobado genera la
-     * actualización directamente en aprobado; gerente o comité en cualquier otro
-     * caso saltean el borrador y van a validado; el resto arranca en borrador.
-     */
-    private function estadoParaActualizacion(): int
-    {
-        $user = Auth::user();
-        if ($this->estadoModelo === 'aprobado' && $user->esComite()) {
-            return Estado::aprobado()->id;
-        }
-        if ($user->esGerente() || $user->esComite()) {
-            return Estado::validado()->id;
-        }
-
-        return Estado::borrador()->id;
-    }
-
     private function cargar(): void
     {
         $plan = PlanAccion::with(['tareas.estado', 'tareas.area', 'tareas.user', 'estado'])->findOrFail($this->planId);
         $this->estadoModelo = $plan->estado?->nombre ?? 'borrador';
+        $this->areaModelo = Actualizacion::areaDe($plan);
         $this->esBorrador = $this->estadoModelo === 'borrador';
 
         // Las tareas "borrado" quedan fuera de la lista visible pero se recuerdan

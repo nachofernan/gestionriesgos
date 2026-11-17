@@ -14,10 +14,12 @@ use Illuminate\Support\Facades\DB;
  * Controles, Planes) y de las otras pantallas de detalle (Fichas, Tareas del
  * plan) para mostrar debajo de lo vigente las propuestas de cambio
  * todavía sin aplicar, y para decirle al usuario qué va a pasar cuando guarde.
- * Requiere que el componente tenga `$estadoModelo` y `estadoParaActualizacion()`.
+ * Requiere que el componente tenga `$estadoModelo` y cargue `$areaModelo` (EligeRol).
  */
 trait PropuestasEnBloque
 {
+    use EligeRol;
+
     /**
      * Qué pasa cuando este usuario guarda un cambio en el bloque: 'directo' (se
      * aplica en el acto) o 'propuesta' (queda pendiente de validación). Es la

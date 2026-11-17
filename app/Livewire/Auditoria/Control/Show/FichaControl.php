@@ -94,7 +94,7 @@ class FichaControl extends Component
             return;
         }
 
-        $actualizacion = Actualizacion::registrarCambioCampos($control, Auth::user(), $this->mensaje, $campos);
+        $actualizacion = Actualizacion::registrarCambioCampos($control, Auth::user(), $this->mensaje, $campos, $this->comiteElegido());
 
         $this->dispatch('control-actualizado');
         $this->cancelarEdicion();
@@ -109,16 +109,11 @@ class FichaControl extends Component
             ->unique()->values()->all();
     }
 
-    /** Misma regla que Actualizacion::registrarCambioCampos(), para el texto y el botón. */
-    private function estadoParaActualizacion(): int
-    {
-        return Actualizacion::estadoInicialParaCambio(Auth::user(), $this->estadoModelo);
-    }
-
     public function render()
     {
         $control = Control::with(['area', 'user', 'estado'])->findOrFail($this->controlId);
         $this->estadoModelo = $control->estado?->nombre ?? 'borrador';
+        $this->areaModelo = Actualizacion::areaDe($control);
         $propuestas = $this->propuestasDe($control, 'campos');
 
         return view('livewire.auditoria.control.show.ficha-control', [

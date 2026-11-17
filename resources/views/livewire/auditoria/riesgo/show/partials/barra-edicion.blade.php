@@ -34,11 +34,11 @@
             class="disabled:opacity-40 px-3 py-2 text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors">
             Cancelar
         </button>
-        <button type="button" wire:click="guardar" @disabled(!$hayCambios) wire:loading.attr="disabled" wire:target="guardar"
+        <button type="button" wire:click="{{ $this->requiereElegirRol() ? 'abrirElegirRol' : 'guardar' }}" @disabled(!$hayCambios) wire:loading.attr="disabled" wire:target="guardar"
             class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed
                    {{ $esPropuesta ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700' }}">
             <x-auditoria.spinner class="h-3.5 w-3.5" wire:loading wire:target="guardar" />
-            {{ $esPropuesta ? 'Enviar propuesta' : 'Guardar' }}
+            {{ $this->requiereElegirRol() ? 'Guardar…' : ($esPropuesta ? 'Enviar propuesta' : 'Guardar') }}
         </button>
     </div>
 </div>
