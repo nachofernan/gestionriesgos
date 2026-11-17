@@ -69,7 +69,7 @@ class RevisionInicialPolicy
     {
         return config('auditoria.revision_inicial.activa')
             && $user->area_id
-            && ! $user->esComite()
+            && ! $user->esSoloComite()
             && ! $user->esAuditor()
             && RevisionInicial::gerenciasDe($elemento)->contains('id', $gerencia->id)
             && Gate::forUser($user)->allows('view', $elemento);

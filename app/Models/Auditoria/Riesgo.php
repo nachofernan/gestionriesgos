@@ -161,7 +161,7 @@ class Riesgo extends Model implements HasMedia
      */
     public function motivoBloqueoRecalculo(User $user): ?string
     {
-        if ($user->esComite()) {
+        if ($user->esComite() && ! $user->actuaComoGerenteEn($this->area_id)) {
             return 'El comité no puede recalcular impacto y probabilidad.';
         }
 

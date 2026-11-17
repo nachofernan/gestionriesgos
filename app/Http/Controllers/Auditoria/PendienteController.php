@@ -56,7 +56,9 @@ class PendienteController extends Controller
 
     private function datosPendientes($user): array
     {
-        // null = sin restricción de área (comité, o cualquier usuario sin área propia)
+        // null = sin restricción de área (cualquier usuario sin área propia). Lo
+        // que aprueba el comité no se acota a su área: con doble rol (D-052) valida
+        // en su subárbol y aprueba en todas.
         $areaIds = $user->area_id ? $user->area->obtenerIdsSubarbol() : null;
 
         $paraValidar = [];
@@ -67,7 +69,7 @@ class PendienteController extends Controller
                 $paraValidar[$tipo] = $this->buscar($cfg['modelo'], 'borrador', $areaIds);
             }
             if ($user->esComite()) {
-                $paraAprobar[$tipo] = $this->buscar($cfg['modelo'], 'validado', $areaIds);
+                $paraAprobar[$tipo] = $this->buscar($cfg['modelo'], 'validado', null);
             }
         }
 
@@ -78,7 +80,7 @@ class PendienteController extends Controller
             : collect();
 
         $actualizacionesParaAprobar = $user->esComite()
-            ? $this->buscarActualizaciones('validado', $morphClases, $areaIds)
+            ? $this->buscarActualizaciones('validado', $morphClases, null)
             : collect();
 
         return [

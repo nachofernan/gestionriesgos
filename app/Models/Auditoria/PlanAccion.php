@@ -215,7 +215,7 @@ class PlanAccion extends Model implements HasMedia
      */
     public function motivoBloqueoValoracion(User $user, string $campo): ?string
     {
-        if ($user->esComite()) {
+        if ($user->esComite() && ! $user->actuaComoGerenteEn($this->area_id ?? $this->user?->area_id)) {
             return 'El comité no valora planes: aprueba la valoración que le proponen.';
         }
 

@@ -7,7 +7,7 @@ use App\Models\User;
 
 /**
  * Autorización de PlanAccion por jerarquía de área: gerente gestiona su área y
- * sub-áreas, comité opera en cualquier área (area_id = null).
+ * sub-áreas, comité opera en cualquier área (User::puedeOperarEnArea, D-052).
  */
 class PlanAccionPolicy
 {
@@ -27,7 +27,7 @@ class PlanAccionPolicy
         if (! $user->area_id) {
             return true;
         }
-        if ($user->esComite()) {
+        if ($user->esSoloComite()) {
             return false;
         }
 
@@ -41,7 +41,7 @@ class PlanAccionPolicy
 
     public function update(User $user, PlanAccion $planAccion): bool
     {
-        return $user->puedeGestionarArea($this->areaEfectiva($planAccion));
+        return $user->puedeOperarEnArea($this->areaEfectiva($planAccion));
     }
 
     /** Originar una propuesta o nota; ver RiesgoPolicy::proponer(). */
@@ -63,7 +63,7 @@ class PlanAccionPolicy
 
     public function delete(User $user, PlanAccion $planAccion): bool
     {
-        return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($planAccion));
+        return ! $user->esAuditor() && $user->puedeOperarEnArea($this->areaEfectiva($planAccion));
     }
 
     /**
@@ -82,7 +82,7 @@ class PlanAccionPolicy
     public function aprobar(User $user, PlanAccion $planAccion): bool
     {
         return $user->esComite()
-            && $user->puedeGestionarArea($this->areaEfectiva($planAccion))
+            && $user->puedeOperarEnArea($this->areaEfectiva($planAccion))
             && $planAccion->estado?->nombre === 'validado';
     }
 
@@ -93,7 +93,7 @@ class PlanAccionPolicy
     public function rechazar(User $user, PlanAccion $planAccion): bool
     {
         if ($user->esComite() && $planAccion->estado?->nombre === 'validado') {
-            return $user->puedeGestionarArea($this->areaEfectiva($planAccion));
+            return $user->puedeOperarEnArea($this->areaEfectiva($planAccion));
         }
 
         return $user->esGerente()

@@ -7,7 +7,7 @@ use App\Models\User;
 
 /**
  * Autorización de Objetivo por jerarquía de área: gerente gestiona su área y
- * sub-áreas, comité opera en cualquier área (area_id = null).
+ * sub-áreas, comité opera en cualquier área (User::puedeOperarEnArea, D-052).
  */
 class ObjetivoPolicy
 {
@@ -27,7 +27,7 @@ class ObjetivoPolicy
         if (! $user->area_id) {
             return true;
         }
-        if ($user->esComite()) {
+        if ($user->esSoloComite()) {
             return false;
         }
 
@@ -41,7 +41,7 @@ class ObjetivoPolicy
 
     public function update(User $user, Objetivo $objetivo): bool
     {
-        return $user->puedeGestionarArea($this->areaEfectiva($objetivo));
+        return $user->puedeOperarEnArea($this->areaEfectiva($objetivo));
     }
 
     /** Originar una propuesta o nota; ver RiesgoPolicy::proponer(). */
@@ -53,7 +53,7 @@ class ObjetivoPolicy
 
     public function delete(User $user, Objetivo $objetivo): bool
     {
-        return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($objetivo));
+        return ! $user->esAuditor() && $user->puedeOperarEnArea($this->areaEfectiva($objetivo));
     }
 
     /**
@@ -72,7 +72,7 @@ class ObjetivoPolicy
     public function aprobar(User $user, Objetivo $objetivo): bool
     {
         return $user->esComite()
-            && $user->puedeGestionarArea($this->areaEfectiva($objetivo))
+            && $user->puedeOperarEnArea($this->areaEfectiva($objetivo))
             && $objetivo->estado?->nombre === 'validado';
     }
 
@@ -83,7 +83,7 @@ class ObjetivoPolicy
     public function rechazar(User $user, Objetivo $objetivo): bool
     {
         if ($user->esComite() && $objetivo->estado?->nombre === 'validado') {
-            return $user->puedeGestionarArea($this->areaEfectiva($objetivo));
+            return $user->puedeOperarEnArea($this->areaEfectiva($objetivo));
         }
 
         return $user->esGerente()

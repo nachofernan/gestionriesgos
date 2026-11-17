@@ -239,7 +239,7 @@ class Control extends Model implements HasMedia
     public function motivoBloqueoValoracion(User $user): ?string
     {
         return match (true) {
-            $user->esComite() => 'El comité no valora controles: aprueba la valoración que le proponen.',
+            $user->esComite() && ! $user->actuaComoGerenteEn($this->area_id ?? $this->user?->area_id) => 'El comité no valora controles: aprueba la valoración que le proponen.',
             $user->esAuditor() => 'El auditor reevalúa el control una vez aprobado.',
             $this->valoracionPendiente() => 'Ya hay una propuesta pendiente sobre el cuestionario.',
             default => null,

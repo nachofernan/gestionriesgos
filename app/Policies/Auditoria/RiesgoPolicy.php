@@ -8,7 +8,7 @@ use App\Models\User;
 
 /**
  * Autorización de Riesgo por jerarquía de área: gerente gestiona su área y
- * sub-áreas, comité opera en cualquier área (area_id = null). El riesgo
+ * sub-áreas, comité opera en cualquier área (User::puedeOperarEnArea, D-052). El riesgo
  * pertenece sólo a su area_id, como el resto de las entidades.
  * Tests: RiesgoAccesoPorAreaTest, VisibilidadTest.
  */
@@ -30,7 +30,7 @@ class RiesgoPolicy
         if (! $user->area_id) {
             return true;
         }
-        if ($user->esComite()) {
+        if ($user->esSoloComite()) {
             return false;
         }
 
@@ -44,7 +44,7 @@ class RiesgoPolicy
 
     public function update(User $user, Riesgo $riesgo): bool
     {
-        return $user->puedeGestionarArea($riesgo->area_id);
+        return $user->puedeOperarEnArea($riesgo->area_id);
     }
 
     /**
@@ -68,7 +68,7 @@ class RiesgoPolicy
     public function delete(User $user, Riesgo $riesgo): bool
     {
         return ! $user->esAuditor()
-            && $user->puedeGestionarArea($riesgo->area_id)
+            && $user->puedeOperarEnArea($riesgo->area_id)
             && $riesgo->motivoBloqueoEliminacion() === null
             && Actualizacion::eliminacionPendienteDe($riesgo) === null;
     }
@@ -89,7 +89,7 @@ class RiesgoPolicy
     public function aprobar(User $user, Riesgo $riesgo): bool
     {
         return $user->esComite()
-            && $user->puedeGestionarArea($riesgo->area_id)
+            && $user->puedeOperarEnArea($riesgo->area_id)
             && $riesgo->estado?->nombre === 'validado';
     }
 
@@ -101,7 +101,7 @@ class RiesgoPolicy
     public function rechazar(User $user, Riesgo $riesgo): bool
     {
         if ($user->esComite() && $riesgo->estado?->nombre === 'validado') {
-            return $user->puedeGestionarArea($riesgo->area_id);
+            return $user->puedeOperarEnArea($riesgo->area_id);
         }
 
         return $user->esGerente()

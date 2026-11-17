@@ -8,7 +8,7 @@ use App\Models\User;
 
 /**
  * Autorización de Control por jerarquía de área: gerente gestiona su área y
- * sub-áreas, comité opera en cualquier área (area_id = null).
+ * sub-áreas, comité opera en cualquier área (User::puedeOperarEnArea, D-052).
  */
 class ControlPolicy
 {
@@ -28,7 +28,7 @@ class ControlPolicy
         if (! $user->area_id) {
             return true;
         }
-        if ($user->esComite()) {
+        if ($user->esSoloComite()) {
             return false;
         }
 
@@ -42,7 +42,7 @@ class ControlPolicy
 
     public function update(User $user, Control $control): bool
     {
-        return $user->puedeGestionarArea($this->areaEfectiva($control));
+        return $user->puedeOperarEnArea($this->areaEfectiva($control));
     }
 
     /** Originar una propuesta o nota; ver RiesgoPolicy::proponer(). */
@@ -83,7 +83,7 @@ class ControlPolicy
 
     public function delete(User $user, Control $control): bool
     {
-        return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($control));
+        return ! $user->esAuditor() && $user->puedeOperarEnArea($this->areaEfectiva($control));
     }
 
     /**
@@ -102,7 +102,7 @@ class ControlPolicy
     public function aprobar(User $user, Control $control): bool
     {
         return $user->esComite()
-            && $user->puedeGestionarArea($this->areaEfectiva($control))
+            && $user->puedeOperarEnArea($this->areaEfectiva($control))
             && $control->estado?->nombre === 'validado';
     }
 
@@ -110,7 +110,7 @@ class ControlPolicy
     public function rechazar(User $user, Control $control): bool
     {
         if ($user->esComite() && $control->estado?->nombre === 'validado') {
-            return $user->puedeGestionarArea($this->areaEfectiva($control));
+            return $user->puedeOperarEnArea($this->areaEfectiva($control));
         }
 
         return $user->esGerente()

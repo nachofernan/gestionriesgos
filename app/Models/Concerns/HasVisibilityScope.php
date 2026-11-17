@@ -17,23 +17,23 @@ trait HasVisibilityScope
      */
     public function scopeVisiblePara(Builder $query, User $user): Builder
     {
-        if (!$user->area_id) return $query;
+        if (! $user->area_id) {
+            return $query;
+        }
 
         $publicoIds = array_filter([Estado::aprobado()?->id, Estado::validado()?->id]);
 
-        if ($user->esComite()) {
+        if ($user->esSoloComite()) {
             return $query->whereIn('estado_id', $publicoIds);
         }
 
         $propiaIds = $user->area->obtenerIdsSubarbol();
 
-        return $query->where(fn($q) =>
-            $q->whereIn('estado_id', $publicoIds)
-              ->orWhereIn('area_id', $propiaIds)
-              ->orWhere(fn($q2) =>
-                  $q2->whereNull('area_id')
-                     ->whereHas('user', fn($uq) => $uq->whereIn('area_id', $propiaIds))
-              )
+        return $query->where(fn ($q) => $q->whereIn('estado_id', $publicoIds)
+            ->orWhereIn('area_id', $propiaIds)
+            ->orWhere(fn ($q2) => $q2->whereNull('area_id')
+                ->whereHas('user', fn ($uq) => $uq->whereIn('area_id', $propiaIds))
+            )
         );
     }
 }

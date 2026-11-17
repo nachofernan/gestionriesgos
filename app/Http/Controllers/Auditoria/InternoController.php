@@ -30,7 +30,7 @@ class InternoController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        abort_if($user->esComite(), 403);
+        abort_if($user->esSoloComite(), 403);
 
         $areaIds = $user->idsAreasGestionables();
         $internos = fn (string $modelo) => $modelo::query()

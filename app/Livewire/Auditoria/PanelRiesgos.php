@@ -221,32 +221,40 @@ class PanelRiesgos extends Component
             return ['mostrar' => false];
         }
 
-        $areaIds = $user->area_id ? $user->area->obtenerIdsSubarbol() : null;
-        $estado = $user->esComite() ? 'validado' : 'borrador';
         $modelos = [Riesgo::class, Control::class, Objetivo::class, PlanAccion::class, Tarea::class];
-
-        $entidades = 0;
-        foreach ($modelos as $modelo) {
-            // Los borradores internos no son pendientes (D-044), ver PendienteController::buscar().
-            $query = $modelo::whereHas('estado', fn ($q) => $q->where('nombre', $estado))->where('interno', false);
-            if ($areaIds !== null) {
-                $query->whereIn('area_id', $areaIds);
-            }
-            $entidades += $query->count();
-        }
-
-        $actualizaciones = Actualizacion::whereHas('estado', fn ($q) => $q->where('nombre', $estado))
-            ->whereHasMorph('actualizable', $modelos, function ($q) use ($areaIds) {
+        $contar = function (string $estado, ?array $areaIds) use ($modelos): int {
+            $entidades = 0;
+            foreach ($modelos as $modelo) {
+                // Los borradores internos no son pendientes (D-044), ver PendienteController::buscar().
+                $query = $modelo::whereHas('estado', fn ($q) => $q->where('nombre', $estado))->where('interno', false);
                 if ($areaIds !== null) {
-                    $q->whereIn('area_id', $areaIds);
+                    $query->whereIn('area_id', $areaIds);
                 }
-            })
-            ->count();
+                $entidades += $query->count();
+            }
+
+            return $entidades + Actualizacion::whereHas('estado', fn ($q) => $q->where('nombre', $estado))
+                ->whereHasMorph('actualizable', $modelos, function ($q) use ($areaIds) {
+                    if ($areaIds !== null) {
+                        $q->whereIn('area_id', $areaIds);
+                    }
+                })
+                ->count();
+        };
+
+        // Con doble rol (D-052) suma lo que valida como gerente y lo que aprueba como comité.
+        $areaIds = $user->area_id ? $user->area->obtenerIdsSubarbol() : null;
+        $total = ($user->esGerente() ? $contar('borrador', $areaIds) : 0)
+            + ($user->esComite() ? $contar('validado', null) : 0);
 
         return [
             'mostrar' => true,
-            'accion' => $user->esComite() ? 'aprobar' : 'validar',
-            'total' => $entidades + $actualizaciones,
+            'accion' => match (true) {
+                $user->esComite() && $user->esGerente() => 'validar o aprobar',
+                $user->esComite() => 'aprobar',
+                default => 'validar',
+            },
+            'total' => $total,
         ];
     }
 
