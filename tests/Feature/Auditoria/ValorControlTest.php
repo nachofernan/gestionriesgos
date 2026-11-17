@@ -17,6 +17,8 @@ use App\Services\Auditoria\ValidacionMasivaService;
 use Database\Factories\Auditoria\ControlFactory;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -27,7 +29,8 @@ use Tests\TestCase;
  * es del control y vale igual en cada riesgo que mitiga. Lo contesta el área por
  * el circuito de siempre (directo en borrador, propuesta fuera de borrador), es
  * obligatorio para validar y aprobar, y los controles de antes conservan su
- * número hasta que alguien lo conteste.
+ * número hasta que alguien lo conteste. Sobre un control aprobado, el auditor
+ * lo reevalúa en el acto, con comentario y adjuntos.
  */
 class ValorControlTest extends TestCase
 {
@@ -422,5 +425,131 @@ class ValorControlTest extends TestCase
             ->assertForbidden();
 
         $this->assertSame('Control de stock', $control->fresh()->nombre);
+    }
+
+    // -------------------------------------------------------
+    // Reevaluación del auditor
+    // -------------------------------------------------------
+
+    private function auditor(): User
+    {
+        return User::factory()->create(['rol' => 'auditor', 'area_id' => $this->otraGerencia->id]);
+    }
+
+    private function reevaluar(User $user, Control $control, array $cuestionario, string $comentario = 'Se revisó una muestra de 30 operaciones.', array $archivos = [])
+    {
+        return Livewire::actingAs($user)
+            ->test(ValorControl::class, ['control' => $control])
+            ->call('abrirReevaluacion')
+            ->set('cuestionario', $cuestionario)
+            ->set('comentario', $comentario)
+            ->set('archivos', $archivos)
+            ->call('guardar');
+    }
+
+    #[Test]
+    public function el_auditor_reevalua_un_control_aprobado_de_otra_area_en_el_acto(): void
+    {
+        Storage::fake('public');
+        $auditor = $this->auditor();
+        $control = $this->control('aprobado', 4);
+        $riesgo = $this->riesgoCon($control);
+        $this->assertSame(8, $this->residual($riesgo));
+
+        $this->reevaluar($auditor, $control, $this->cuestionarioCompleto(), archivos: [UploadedFile::fake()->create('informe.pdf', 100, 'application/pdf')])
+            ->assertHasNoErrors()
+            ->assertDispatched('control-actualizado');
+
+        $this->assertSame(10, $control->fresh()->mitigacion_default);
+        $this->assertSame(2, $this->residual($riesgo)); // sin gerente ni comité
+        $this->assertCount(0, $control->actualizaciones()->propuestasPendientes()->get());
+
+        $entrada = $control->actualizaciones()->where('data->origen', 'reevaluacion_auditor')->sole();
+        $this->assertSame(Estado::aprobado()->id, $entrada->estado_id);
+        $this->assertSame($auditor->id, $entrada->aprobado_por_id);
+        $this->assertSame('Se revisó una muestra de 30 operaciones.', $entrada->mensaje);
+        $this->assertSame('informe.pdf', $entrada->getFirstMedia('adjuntos')?->file_name);
+        $this->assertFalse($entrada->esAprobacion()); // no admite carga de comité
+        $this->assertSame('Puntaje 10/10 · suficiente', $entrada->diffLegible()['campos'][0]['despues']);
+    }
+
+    #[Test]
+    public function la_reevaluacion_del_auditor_exige_comentario(): void
+    {
+        $control = $this->control('aprobado', 4);
+
+        $this->reevaluar($this->auditor(), $control, $this->cuestionarioCompleto(), comentario: '')
+            ->assertHasErrors('comentario');
+
+        $this->assertSame(4, $control->fresh()->mitigacion_default);
+    }
+
+    #[Test]
+    public function la_reevaluacion_del_auditor_no_pisa_una_propuesta_pendiente(): void
+    {
+        $control = $this->control('aprobado', 4);
+        $this->contestar($this->empleado, $control, $this->cuestionarioCompleto(['respuestas' => ['detecta' => 0]]));
+
+        Livewire::actingAs($this->auditor())
+            ->test(ValorControl::class, ['control' => $control])
+            ->set('modo', 'auditor')
+            ->set('abierto', true)
+            ->set('cuestionario', $this->cuestionarioCompleto())
+            ->set('comentario', 'Reevaluación')
+            ->call('guardar')
+            ->assertHasErrors('cuestionario');
+
+        $this->assertSame(4, $control->fresh()->mitigacion_default);
+    }
+
+    #[Test]
+    public function el_auditor_no_reevalua_un_control_en_borrador_o_validado(): void
+    {
+        $auditor = $this->auditor();
+
+        foreach (['borrador', 'validado'] as $estado) {
+            $control = $this->control($estado, 4);
+            $this->assertFalse($auditor->can('reevaluar', $control));
+
+            Livewire::actingAs($auditor)
+                ->test(ValorControl::class, ['control' => $control])
+                ->call('abrirReevaluacion')
+                ->assertForbidden();
+
+            $this->assertSame(4, $control->fresh()->mitigacion_default);
+        }
+
+        // Tampoco propone por el circuito del área.
+        Livewire::actingAs($auditor)
+            ->test(ValorControl::class, ['control' => $this->control('validado', 4)])
+            ->call('abrir')
+            ->assertSet('abierto', false);
+    }
+
+    #[Test]
+    public function quien_no_es_auditor_no_reevalua(): void
+    {
+        $control = $this->control('aprobado', 4);
+
+        foreach ([$this->gerente, $this->comite, $this->empleado] as $usuario) {
+            $this->assertFalse($usuario->can('reevaluar', $control));
+
+            Livewire::actingAs($usuario)
+                ->test(ValorControl::class, ['control' => $control])
+                ->call('abrirReevaluacion')
+                ->assertForbidden();
+
+            Livewire::actingAs($usuario)
+                ->test(ValorControl::class, ['control' => $control])
+                ->set('modo', 'auditor')
+                ->set('abierto', true)
+                ->set('cuestionario', $this->cuestionarioCompleto())
+                ->set('comentario', 'Intento')
+                ->call('guardar')
+                ->assertForbidden();
+        }
+
+        $this->assertSame(4, $control->fresh()->mitigacion_default);
+        $this->assertCount(0, $control->actualizaciones);
     }
 }

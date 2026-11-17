@@ -67,8 +67,15 @@
                        {{ $evaluacion === null ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' }}">
                 {{ $evaluacion === null ? 'Contestar cuestionario' : ($control->estado?->nombre === 'borrador' ? 'Editar respuestas' : 'Proponer cambio de respuestas') }}
             </button>
-        @elseif(is_string($motivo) && ! $pendiente)
+        @elseif(is_string($motivo) && ! $pendiente && ! $puedeReevaluar)
             <p class="text-[11px] text-gray-400">{{ $motivo }}</p>
+        @endif
+        @if($puedeReevaluar && ! $pendiente)
+            <button type="button" wire:click="abrirReevaluacion"
+                class="w-full rounded-xl px-3 py-2 text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                Reevaluar (auditoría)
+            </button>
+            <p class="text-[11px] text-gray-400">Se aplica en el acto, con tu comentario y los archivos que adjuntes.</p>
         @endif
     </div>
 
@@ -78,10 +85,14 @@
             <div class="w-full max-w-2xl rounded-2xl bg-white shadow-xl" x-on:keydown.escape.window="$wire.cerrar()">
                 <div class="px-5 pt-5 pb-3 border-b border-gray-100 flex items-start justify-between gap-3">
                     <div>
-                        <h3 class="text-base font-extrabold text-gray-900">Cuestionario del control</h3>
+                        <h3 class="text-base font-extrabold text-gray-900">{{ $modo === 'auditor' ? 'Reevaluación del control' : 'Cuestionario del control' }}</h3>
                         <p class="mt-1 text-xs text-gray-500">
                             El puntaje es el valor que el control mitiga en cada riesgo.
-                            @if($control->estado?->nombre !== 'borrador') Queda como propuesta hasta que se apruebe. @endif
+                            @if($modo === 'auditor')
+                                Se aplica en el acto, sin pasar por el gerente ni el comité.
+                            @elseif($control->estado?->nombre !== 'borrador')
+                                Queda como propuesta hasta que se apruebe.
+                            @endif
                         </p>
                     </div>
                     <span class="shrink-0 text-sm font-black tabular-nums text-indigo-700 bg-indigo-50 rounded-lg px-2.5 py-1">{{ $enCurso }} / 10</span>
@@ -147,6 +158,28 @@
                         @endforeach
                     </div>
 
+                    @if($modo === 'auditor')
+                        <div class="mt-4 space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Comentario</label>
+                                <textarea wire:model="comentario" rows="3" placeholder="Por qué cambia la valoración: qué se revisó y qué se encontró."
+                                    class="w-full border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                                @error('comentario') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Archivos (opcional)</label>
+                                <input type="file" wire:model="archivos" multiple class="block w-full text-xs text-gray-600">
+                                @foreach($archivos as $i => $archivo)
+                                    <p class="mt-1 flex items-center gap-2 text-xs text-gray-700" wire:key="arch-{{ $i }}">
+                                        {{ $archivo->getClientOriginalName() }}
+                                        <button type="button" wire:click="quitarArchivo({{ $i }})" class="font-semibold text-gray-400 hover:text-red-600">Quitar</button>
+                                    </p>
+                                @endforeach
+                                @error('archivos.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+                    @endif
+
                     @error('cuestionario') <p class="mt-2 text-xs font-medium text-red-600">{{ $message }}</p> @enderror
                     @if($errors->has('cuestionario.respuestas.*'))
                         <p class="mt-2 text-xs font-medium text-red-600">Respondé todas las preguntas.</p>
@@ -156,7 +189,7 @@
                 <div class="flex items-center justify-end gap-2 px-5 pb-5">
                     <button type="button" wire:click="cerrar" class="rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100">Cancelar</button>
                     <button type="button" wire:click="guardar" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">
-                        {{ $control->estado?->nombre === 'borrador' ? 'Guardar' : 'Proponer' }}
+                        {{ $modo === 'auditor' ? 'Aplicar reevaluación' : ($control->estado?->nombre === 'borrador' ? 'Guardar' : 'Proponer') }}
                     </button>
                 </div>
             </div>

@@ -68,6 +68,19 @@ class ControlPolicy
             && in_array($riesgo->estado?->nombre, ['validado', 'aprobado'], true);
     }
 
+    /**
+     * Cambiar en el acto el cuestionario de un control aprobado (D-051): sólo el
+     * auditor, de cualquier área, como el testeo. No pasa por el gerente ni por
+     * el comité; el área sigue pudiendo proponer por el circuito de siempre.
+     * Tests: el_auditor_reevalua_un_control_aprobado_de_otra_area_en_el_acto,
+     * el_auditor_no_reevalua_un_control_en_borrador_o_validado,
+     * quien_no_es_auditor_no_reevalua.
+     */
+    public function reevaluar(User $user, Control $control): bool
+    {
+        return $user->esAuditor() && $control->estado?->nombre === 'aprobado';
+    }
+
     public function delete(User $user, Control $control): bool
     {
         return ! $user->esAuditor() && $user->puedeGestionarArea($this->areaEfectiva($control));

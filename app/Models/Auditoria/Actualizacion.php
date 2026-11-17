@@ -184,9 +184,10 @@ class Actualizacion extends Model implements HasMedia
         if ($this->estado?->nombre !== 'aprobado' || $this->comite_de_id !== null || ($this->data['tipo'] ?? null) === 'comite') {
             return false;
         }
-        // La propagación del default de un control a sus riesgos es consecuencia de
-        // otra aprobación, no una decisión propia.
-        if (($this->data['origen'] ?? null) === 'default_control') {
+        // La propagación del default de un control a sus riesgos (D-040, ya no
+        // existe) era consecuencia de otra aprobación, y la reevaluación del
+        // auditor (D-051) no es una aprobación del comité: ninguna admite comité.
+        if (in_array($this->data['origen'] ?? null, ['default_control', 'reevaluacion_auditor'], true)) {
             return false;
         }
 

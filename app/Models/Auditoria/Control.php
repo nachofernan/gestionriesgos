@@ -288,4 +288,42 @@ class Control extends Model implements HasMedia
             ]);
         });
     }
+
+    /**
+     * Reevaluación del auditor (D-051): cambia el cuestionario de un control
+     * aprobado en el acto, sin gerente ni comité, como el testeo. Deja en el
+     * historial del control una entrada aprobada a su nombre con el comentario
+     * como mensaje (los adjuntos los agrega quien llama, en la colección
+     * 'adjuntos' de la Actualizacion). Si hay una propuesta del área pendiente
+     * sobre el cuestionario, no se pisa: hay que resolverla primero. Devuelve
+     * null si las respuestas no cambian. Quien llama ya autorizó
+     * ControlPolicy::reevaluar() y validó con EvaluacionControl::reglas().
+     * Tests: el_auditor_reevalua_un_control_aprobado_de_otra_area_en_el_acto,
+     * la_reevaluacion_del_auditor_no_pisa_una_propuesta_pendiente.
+     */
+    public function reevaluar(User $auditor, array $evaluacion, string $comentario): ?Actualizacion
+    {
+        if ($evaluacion == $this->evaluacion) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($auditor, $evaluacion, $comentario) {
+            $antes = $this->evaluacion;
+            $this->update(['evaluacion' => $evaluacion]);
+
+            return $this->actualizaciones()->create([
+                'user_id' => $auditor->id,
+                'mensaje' => $comentario,
+                'estado_id' => Estado::aprobado()->id,
+                'aprobado_por_id' => $auditor->id,
+                'aprobado_en' => now(),
+                'data' => [
+                    'tipo' => 'cambio',
+                    'origen' => 'reevaluacion_auditor',
+                    'activated_by' => $auditor->name,
+                    'diff' => ['campos' => ['evaluacion' => ['antes' => $antes, 'despues' => $evaluacion]]],
+                ],
+            ]);
+        });
+    }
 }
