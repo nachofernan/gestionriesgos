@@ -40,6 +40,7 @@ Para cada elemento, el sistema muestra sus inconsistencias con tres colores:
 | Riesgo | No tiene ningún objetivo asociado. |
 | Riesgo | La respuesta es *Reducir / Mitigar* y no tiene plan de acción. |
 | Riesgo | La respuesta es *Aceptar* o *Compartir* y no tiene fundamento. |
+| Riesgo | No tiene evaluación vigente: hay que **recalcular** impacto y probabilidad con el cuestionario de su tipo. Toda la carga inicial entra así. |
 | Objetivo | Es PEIS y no tiene ítems PEIS. |
 | Tarea | No pertenece a ningún plan de acción. |
 
@@ -50,16 +51,18 @@ Para cada elemento, el sistema muestra sus inconsistencias con tres colores:
 | Cualquiera | No tiene responsable. |
 | Riesgo | El impacto o la probabilidad están en 0. |
 | Riesgo | No tiene controles asociados. |
-| Control | La mitigación por defecto está en 0. |
-| Control | Mitiga 0 en alguno de sus riesgos. |
+| Control | Falta contestar el cuestionario del control. Mientras tanto conserva su número anterior, pero no se puede validar ni aprobar. |
+| Control | El control mitiga 0. |
 | Control | No mitiga ningún riesgo. |
 | Objetivo | No tiene riesgos asociados. |
 | Plan de acción | No tiene riesgos asociados. |
 | Plan de acción | No tiene tareas. |
+| Plan de acción | No tiene el valor estimado: no descuenta del residual de sus riesgos. |
 | Tarea | No tiene fecha. |
 | Tarea | Está vencida y su avance es menor al 100%. |
 
-*Este catálogo es la propuesta inicial. Si hace falta, se ajusta.*
+*Este catálogo está en revisión: falta definir qué pasa a ser obligatorio (por ejemplo, si el
+cuestionario del control o el valor del plan deben bloquear la firma).*
 
 ---
 
@@ -105,6 +108,21 @@ lugar de **Firmar**:
   - el comentario;
   - qué advertencias se aceptaron;
   - qué arreglos estaban pendientes de aprobación.
+
+---
+
+## En la ficha de cada elemento
+
+No hace falta ir a la pantalla de revisión para trabajar. La ficha de cada riesgo, control,
+objetivo, plan y tarea muestra, debajo del encabezado, la card **Para la revisión inicial**:
+
+- Lista lo que le falta, con la misma información que la pantalla.
+- Cada hallazgo trae su acción: **Recalcular** para un riesgo sin evaluación, o un link al bloque
+  donde se arregla. Ese bloque aparece marcado en rojo (error) o ámbar (advertencia).
+- Desde la misma card se **Marca revisado** o se **Firma**, o se **Valida y firma** si hay cambios
+  del equipo sin validar. Valen las mismas reglas de esta guía.
+- La ve todo el que ve el elemento, también el Comité y los auditores, en solo lectura.
+- Una vez firmado, la card queda reducida a "Revisión inicial firmada por… el…".
 
 ---
 
