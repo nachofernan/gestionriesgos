@@ -41,25 +41,6 @@
                     <label class="{{ $label }}">Descripción</label>
                     <textarea wire:model="form.descripcion" rows="3" class="{{ $input }}" @disabled($bloq('descripcion'))></textarea>
                 </div>
-                <div class="col-span-6">
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="{{ $label }} mb-0">Mitigación del control</label>
-                        <span class="text-xs font-black tabular-nums text-indigo-700 bg-indigo-50 rounded-lg px-2 py-0.5">{{ $puntaje }} / {{ count(\App\Models\Auditoria\Control::CHECKS) * \App\Models\Auditoria\Control::PUNTOS_POR_CHECK }}</span>
-                    </div>
-                    <div class="grid sm:grid-cols-2 gap-1.5">
-                        @foreach(\App\Models\Auditoria\Control::CHECKS as $clave => $texto)
-                            <label class="flex items-center gap-2 rounded-lg border border-gray-100 px-2.5 py-1.5 text-xs text-gray-700 {{ $bloq('checks') ? 'opacity-50' : 'cursor-pointer hover:bg-gray-50' }}">
-                                <input type="checkbox" value="{{ $clave }}" wire:model.live="form.checks" @disabled($bloq('checks'))
-                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                <span class="flex-1">{{ $texto }}</span>
-                                <span class="text-[10px] font-bold text-gray-400">+{{ \App\Models\Auditoria\Control::PUNTOS_POR_CHECK }}</span>
-                            </label>
-                        @endforeach
-                    </div>
-                    @error('form.checks') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                    @error('form.checks.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                </div>
-
                 @if(!empty($bloqueados))
                     <p class="col-span-6 text-[11px] text-amber-700">Los campos grisados ya tienen una propuesta pendiente: se pueden volver a tocar cuando se resuelva.</p>
                 @endif

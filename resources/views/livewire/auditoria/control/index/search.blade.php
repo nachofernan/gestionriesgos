@@ -116,6 +116,7 @@
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
                                     {{ $control->mitigacion_default }}
                                 </span>
+                                <x-auditoria.clasificacion-control :control="$control" size="xs" class="mt-1" />
                             </td>
                             <td class="px-6 py-4 text-xs text-gray-600">
                                 @forelse($control->riesgos as $riesgo)

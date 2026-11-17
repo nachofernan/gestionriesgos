@@ -54,7 +54,7 @@ class ComiteAprobacionTest extends TestCase
 
     private function propuestaValidadaSobreControlAprobado(): Actualizacion
     {
-        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::aprobado()->id]);
+        $control = Control::factory()->valorado()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::aprobado()->id]);
 
         return $control->actualizaciones()->create([
             'user_id' => $this->gerente->id,
@@ -121,8 +121,8 @@ class ComiteAprobacionTest extends TestCase
     #[Test]
     public function aprobar_por_la_ruta_guarda_el_comite_si_viene(): void
     {
-        $conComite = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
-        $sinComite = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
+        $conComite = Control::factory()->valorado()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
+        $sinComite = Control::factory()->valorado()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
 
         $this->actingAs($this->comite)
             ->post(route('auditoria.controles.aprobar', $conComite), ['comite' => ['numero' => '7', 'fecha' => '2026-09-01']])
@@ -177,7 +177,7 @@ class ComiteAprobacionTest extends TestCase
 
     private function controlAprobadoPorRuta(array $datos = []): Control
     {
-        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
+        $control = Control::factory()->valorado()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
         $this->actingAs($this->comite)->post(route('auditoria.controles.aprobar', $control), $datos);
 
         return $control->fresh();
@@ -210,7 +210,7 @@ class ComiteAprobacionTest extends TestCase
     public function el_comite_se_carga_desde_la_ficha_de_un_elemento_sin_registro_de_aprobacion(): void
     {
         // Como lo sembrado: aprobado sin "Aprobado por…" en el historial.
-        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::aprobado()->id]);
+        $control = Control::factory()->valorado()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::aprobado()->id]);
         $this->assertNull(Actualizacion::comiteVigenteDe($control));
 
         $this->cargarComite($control, null, ['numero' => '1', 'fecha' => '2026-10-01'])
@@ -314,7 +314,7 @@ class ComiteAprobacionTest extends TestCase
         $this->cargarComite($control, $this->aprobacionDe($otro)->id, ['numero' => '1'])->assertForbidden();
 
         // Un elemento que no está aprobado: 403.
-        $validado = Control::factory()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
+        $validado = Control::factory()->valorado()->create(['area_id' => $this->gerencia->id, 'estado_id' => Estado::validado()->id]);
         $this->assertFalse($this->comite->can('registrarComite', [Actualizacion::class, $validado]));
         $this->cargarComite($validado, null, ['numero' => '1'])->assertForbidden();
 

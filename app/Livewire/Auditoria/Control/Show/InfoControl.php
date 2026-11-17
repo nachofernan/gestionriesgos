@@ -7,8 +7,8 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Tarjeta lateral de control/show: la mitigación por defecto como protagonista,
- * en cuántos riesgos descuenta y quién lo gestiona. Se refresca con
+ * Tarjeta lateral de control/show: estado, en cuántos riesgos descuenta y quién
+ * lo gestiona. El valor del control está en ValorControl (D-051). Se refresca con
  * 'control-actualizado' (FichaControl o GestionActualizaciones aplicaron un
  * cambio), mismo mecanismo que InfoRiesgo.
  */

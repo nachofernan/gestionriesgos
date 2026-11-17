@@ -7,17 +7,16 @@ use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Ficha de control/show: nombre, descripción y mitigación por defecto, con las
+ * Ficha de control/show: nombre y descripción, con las
  * propuestas pendientes sobre esos campos debajo. Mismo patrón que FichaRiesgo:
  * fuera de borrador se edita en el bloque y guardar() manda sólo lo que cambió a
  * Actualizacion::registrarCambioCampos(); en borrador se edita con el formulario
- * completo (ControlController::edit). La mitigación sale de los checks (D-040) y
- * vale igual en todos los riesgos asociados (D-051).
+ * completo (ControlController::edit). El valor del control sale de su
+ * cuestionario, que se contesta en ValorControl (D-051).
  */
 class FichaControl extends Component
 {
@@ -29,7 +28,7 @@ class FichaControl extends Component
 
     public bool $editando = false;
 
-    /** @var array{nombre:string, descripcion:?string, checks:array<int, string>} */
+    /** @var array{nombre:string, descripcion:?string} */
     public array $form = [];
 
     /** Motivo del cambio: queda como mensaje de la Actualizacion. */
@@ -50,7 +49,7 @@ class FichaControl extends Component
         $control = Control::findOrFail($this->controlId);
         $this->authorize('proponer', $control);
 
-        $this->form = $control->only(self::CAMPOS) + ['checks' => Control::normalizarChecks($control->checks)];
+        $this->form = $control->only(self::CAMPOS);
         $this->mensaje = '';
         $this->resetValidation();
         $this->editando = true;
@@ -77,8 +76,6 @@ class FichaControl extends Component
             'mensaje' => 'required|string|min:3',
             'form.nombre' => 'required|string|max:255',
             'form.descripcion' => 'nullable|string',
-            'form.checks' => 'array',
-            'form.checks.*' => ['string', Rule::in(array_keys(Control::CHECKS))],
         ], ['mensaje.required' => 'Contá brevemente por qué se cambia.']);
 
         $bloqueados = $this->camposConPropuesta($this->propuestasDe($control, 'campos'));
@@ -89,13 +86,6 @@ class FichaControl extends Component
                 continue;
             }
             $campos[$campo] = $nuevo === '' ? null : $nuevo;
-        }
-
-        // El número va junto con los checks para que el historial muestre los dos.
-        $checks = Control::normalizarChecks($this->form['checks'] ?? []);
-        if (! in_array('checks', $bloqueados, true) && $checks !== Control::normalizarChecks($control->checks)) {
-            $campos['checks'] = $checks;
-            $campos['mitigacion_default'] = Control::puntajeChecks($checks);
         }
 
         if (empty($campos)) {
@@ -131,15 +121,12 @@ class FichaControl extends Component
         $this->estadoModelo = $control->estado?->nombre ?? 'borrador';
         $propuestas = $this->propuestasDe($control, 'campos');
 
-        $puntaje = Control::puntajeChecks($this->form['checks'] ?? []);
-
         return view('livewire.auditoria.control.show.ficha-control', [
             'control' => $control,
             'puedeActualizar' => Auth::user()->can('proponer', $control),
             'modo' => $this->modoCambio(),
             'propuestas' => $propuestas,
             'bloqueados' => $this->camposConPropuesta($propuestas),
-            'puntaje' => $puntaje,
         ]);
     }
 }

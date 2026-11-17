@@ -52,7 +52,7 @@ class RevisionInicialFichaTest extends TestCase
         $this->coordinador = User::factory()->create(['rol' => 'empleado', 'area_id' => $coordinacion->id]);
 
         // Control sin inconsistencias: se firma a secas.
-        $this->control = Control::factory()->create([
+        $this->control = Control::factory()->valorado()->create([
             'area_id' => $coordinacion->id,
             'user_id' => $this->coordinador->id,
             'estado_id' => Estado::aprobado()->id,
@@ -139,7 +139,7 @@ class RevisionInicialFichaTest extends TestCase
         $atributos = ['area_id' => $this->sistemas->id, 'user_id' => $this->gerente->id];
         $fichas = [
             'auditoria.riesgos.show' => $this->riesgoDeLaCarga(),
-            'auditoria.controles.show' => Control::factory()->create($atributos),
+            'auditoria.controles.show' => Control::factory()->valorado()->create($atributos),
             'auditoria.objetivos.show' => Objetivo::create(['nombre' => 'Objetivo', ...$atributos]),
             'auditoria.planes.show' => PlanAccion::factory()->create($atributos),
             'auditoria.tareas.show' => Tarea::factory()->create($atributos),

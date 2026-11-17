@@ -4,38 +4,28 @@ namespace App\Models\Auditoria;
 
 use App\Models\Concerns\HasVisibilityScope;
 use App\Models\User;
+use App\Services\Auditoria\EvaluacionControl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * Control de mitigación aplicable a uno o más Riesgo. `mitigacion_default` sale
- * de los checks del control y es lo que mitiga en cada riesgo, regulado por la
- * evidencia de cumplimiento de cada relación (ControlRiesgo, D-051). Ciclo de vida
- * de estado borrador → validado → aprobado/borrado.
+ * del cuestionario del control (`evaluacion`, EvaluacionControl) y es lo que
+ * mitiga en cada riesgo, regulado por la evidencia de cumplimiento de cada
+ * relación (ControlRiesgo, D-051). Un control de antes del cuestionario conserva
+ * su número hasta que alguien lo conteste. Ciclo de vida de estado borrador →
+ * validado → aprobado/borrado.
  */
 class Control extends Model implements HasMedia
 {
     use HasFactory, HasVisibilityScope, InteractsWithMedia, SoftDeletes;
-
-    /**
-     * Puntos que validan cuánto mitiga un control (D-040). Son provisorios:
-     * hasta que lleguen los definitivos, se cambian acá.
-     */
-    public const CHECKS = [
-        'documentado' => 'Documentado en un procedimiento',
-        'responsable_asignado' => 'Responsable asignado',
-        'frecuencia_definida' => 'Frecuencia definida',
-        'deja_evidencia' => 'Deja evidencia de su ejecución',
-        'automatizado_o_segregado' => 'Automatizado o con segregación de funciones',
-    ];
-
-    public const PUNTOS_POR_CHECK = 2;
 
     /**
      * Tramos de la evidencia de cumplimiento (D-051): desde qué evidencia, qué
@@ -50,7 +40,7 @@ class Control extends Model implements HasMedia
         'nombre',
         'descripcion',
         'mitigacion_default',
-        'checks',
+        'evaluacion',
         'estado_id',
         'interno',
         'user_id',
@@ -58,7 +48,7 @@ class Control extends Model implements HasMedia
     ];
 
     protected $casts = [
-        'checks' => 'array',
+        'evaluacion' => 'array',
         'interno' => 'boolean',
     ];
 
@@ -74,12 +64,13 @@ class Control extends Model implements HasMedia
             }
         });
 
-        // El número del control sale de sus checks (D-040), por cualquier camino
-        // que los guarde: alta, edición del borrador o propuesta aplicada.
+        // El número del control sale de su cuestionario (D-051), por cualquier
+        // camino que lo guarde: borrador, propuesta aplicada o reevaluación del
+        // auditor. Sin cuestionario se conserva el número que traía.
+        // Test: un_control_expresion_de_deseo_muestra_puntaje_y_mitiga_cero.
         static::saving(function ($control) {
-            if ($control->isDirty('checks')) {
-                $control->checks = self::normalizarChecks($control->checks);
-                $control->mitigacion_default = self::puntajeChecks($control->checks);
+            if ($control->isDirty('evaluacion') && $control->evaluacion !== null) {
+                $control->mitigacion_default = EvaluacionControl::mitigacion($control->evaluacion);
             }
         });
     }
@@ -192,27 +183,109 @@ class Control extends Model implements HasMedia
     }
 
     /**
-     * Puntaje de un conjunto de checks (D-040): cada clave válida de CHECKS suma
-     * PUNTOS_POR_CHECK. Las claves desconocidas o repetidas no suman. Da el
-     * mitigacion_default del control.
-     * Test: el_numero_del_control_sale_de_sus_checks.
+     * Puntaje del cuestionario (de 1 a 10), o el número que traía el control si
+     * todavía no lo contestaron. Puede no coincidir con mitigacion_default: un
+     * control que es expresión de deseo suma, pero mitiga 0.
      */
-    public static function puntajeChecks(?array $checks): int
+    public function getPuntajeAttribute(): int
     {
-        return count(self::normalizarChecks($checks)) * self::PUNTOS_POR_CHECK;
+        return $this->evaluacion === null
+            ? (int) $this->mitigacion_default
+            : EvaluacionControl::puntaje($this->evaluacion);
     }
 
-    /** Sólo las claves válidas, sin repetir y en el orden de CHECKS: así dos selecciones iguales comparan iguales. */
-    public static function normalizarChecks(?array $checks): array
+    /**
+     * Clasificación cualitativa del control (D-051): deficiente, moderado o
+     * suficiente según su puntaje (EvaluacionControl::clasificacion()). Uno que
+     * es expresión de deseo es deficiente. Sin cuestionario se clasifica por el
+     * número que traía.
+     * Test: la_clasificacion_del_control_sigue_sus_umbrales.
+     *
+     * @return array{etiqueta:string, color:string}
+     */
+    public function clasificacion(): array
     {
-        return array_values(array_intersect(array_keys(self::CHECKS), $checks ?? []));
+        return EvaluacionControl::clasificacion(
+            $this->puntaje,
+            $this->evaluacion === null || EvaluacionControl::operativo($this->evaluacion),
+        );
     }
 
-    /** Los checks como texto, para el historial (el diff se muestra tal cual). */
-    public static function checksLegibles(?array $checks): string
+    /**
+     * Motivos por los que el control no se valida ni se aprueba (vacío si se
+     * puede): sin el cuestionario contestado no hay valor que respalde lo que
+     * mitiga. Lo consultan ControlController::validar()/aprobar() y
+     * ValidacionMasivaService (también en la cascada de un riesgo).
+     * Tests: un_control_sin_cuestionario_no_se_valida,
+     * la_validacion_masiva_no_valida_un_control_sin_cuestionario.
+     *
+     * @return list<string>
+     */
+    public function motivosBloqueoValidacion(): array
     {
-        $etiquetas = array_map(fn ($clave) => self::CHECKS[$clave], self::normalizarChecks($checks));
+        return $this->evaluacion === null
+            ? ['Falta contestar el cuestionario del control (card «Valor del control»).']
+            : [];
+    }
 
-        return $etiquetas ? implode(' · ', $etiquetas) : 'Ninguno';
+    /**
+     * Motivo por el que $user no puede contestar ahora el cuestionario por el
+     * circuito del área (null si puede). El comité no valora: aprueba lo que le
+     * proponen. El auditor no propone: reevalúa en el acto un control aprobado
+     * (ControlPolicy::reevaluar). Una propuesta pendiente sobre el cuestionario
+     * frena otra. Quien llama ya autorizó 'proponer'.
+     * Tests: el_comite_no_valora_controles, una_propuesta_pendiente_frena_otra_valoracion.
+     */
+    public function motivoBloqueoValoracion(User $user): ?string
+    {
+        return match (true) {
+            $user->esComite() => 'El comité no valora controles: aprueba la valoración que le proponen.',
+            $user->esAuditor() => 'El auditor reevalúa el control una vez aprobado.',
+            $this->valoracionPendiente() => 'Ya hay una propuesta pendiente sobre el cuestionario.',
+            default => null,
+        };
+    }
+
+    /** Si hay una propuesta pendiente que cambia el cuestionario. */
+    public function valoracionPendiente(): bool
+    {
+        return $this->actualizaciones()->propuestasPendientes('campos')->get()
+            ->contains(fn (Actualizacion $a) => array_key_exists('evaluacion', $a->data['campos'] ?? []));
+    }
+
+    /**
+     * Registra el cuestionario $evaluacion (ya validado con
+     * EvaluacionControl::reglas()) por el circuito del área. En borrador se
+     * aplica en el acto y deja rastro en el historial; fuera de borrador es un
+     * cambio de campo como cualquier otro (Actualizacion::registrarCambioCampos()):
+     * sobre un control aprobado queda como propuesta y no mueve el residual hasta
+     * que la aprueba el comité. Devuelve null si no cambió nada. Quien llama ya
+     * autorizó y consultó motivoBloqueoValoracion().
+     * Tests: en_borrador_el_cuestionario_se_aplica_directo,
+     * sobre_un_control_aprobado_el_area_propone_y_no_mueve_el_residual_hasta_aprobar.
+     */
+    public function registrarValoracion(User $user, array $evaluacion): ?Actualizacion
+    {
+        if ($evaluacion == $this->evaluacion) {
+            return null;
+        }
+
+        $mensaje = 'Cuestionario del control';
+
+        if ($this->estado?->nombre !== 'borrador') {
+            return Actualizacion::registrarCambioCampos($this, $user, $mensaje, ['evaluacion' => $evaluacion]);
+        }
+
+        return DB::transaction(function () use ($user, $evaluacion, $mensaje) {
+            $antes = $this->evaluacion;
+            $this->update(['evaluacion' => $evaluacion]);
+
+            return $this->actualizaciones()->create([
+                'user_id' => $user->id,
+                'mensaje' => $mensaje,
+                'estado_id' => Estado::borrador()->id,
+                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => ['evaluacion' => ['antes' => $antes, 'despues' => $evaluacion]]]],
+            ]);
+        });
     }
 }

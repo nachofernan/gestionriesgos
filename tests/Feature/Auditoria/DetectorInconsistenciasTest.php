@@ -225,17 +225,22 @@ class DetectorInconsistenciasTest extends TestCase
     }
 
     #[Test]
-    public function un_control_con_mitigacion_en_cero_o_sin_riesgos_es_advertencia(): void
+    public function un_control_sin_cuestionario_en_cero_o_sin_riesgos_es_advertencia(): void
     {
-        $completo = Control::factory()->create(['area_id' => $this->area->id, 'mitigacion_default' => 3]);
+        $completo = Control::factory()->valorado(3)->create(['area_id' => $this->area->id]);
         $completo->riesgos()->attach(Riesgo::factory()->create(['area_id' => $this->area->id])->id);
         $this->assertSame([], $this->hallazgos($completo));
 
-        $enCero = Control::factory()->create(['area_id' => $this->area->id, 'mitigacion_default' => 0]);
+        $enCero = Control::factory()->valorado(8, operativo: false)->create(['area_id' => $this->area->id]);
         $this->assertSame([
             'mitigacion_en_cero' => 'advertencia',
             'sin_riesgos' => 'advertencia',
         ], $this->hallazgos($enCero));
+
+        // Uno de antes del cuestionario conserva su número, pero falta contestarlo.
+        $viejo = Control::factory()->create(['area_id' => $this->area->id, 'mitigacion_default' => 4]);
+        $viejo->riesgos()->attach(Riesgo::factory()->create(['area_id' => $this->area->id])->id);
+        $this->assertSame(['sin_cuestionario' => 'advertencia'], $this->hallazgos($viejo));
     }
 
     #[Test]

@@ -78,7 +78,7 @@ class BorradorInternoTest extends TestCase
             $this->assertTrue($this->gerente->can('validar', $entidad), $ruta);
         }
 
-        $control = Control::factory()->create(['area_id' => $this->gerencia->id, 'interno' => true]);
+        $control = Control::factory()->valorado()->create(['area_id' => $this->gerencia->id, 'interno' => true]);
         $control->update(['interno' => false]);
 
         $this->actingAs($this->gerente)->post(route('auditoria.controles.validar', $control));

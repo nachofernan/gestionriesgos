@@ -67,7 +67,7 @@ class ValidacionMasivaService
                     continue;
                 }
                 // Un plan sin estimación de su valor no se valida ni se aprueba (D-050).
-                if ($modelo instanceof PlanAccion && ($motivos = $modelo->motivosBloqueoValidacion())) {
+                if ($motivos = $this->motivosBloqueo($modelo)) {
                     $fallidos[] = ['nombre' => $modelo->nombre, 'razon' => implode(' ', $motivos)];
                     $bloqueanteFallo = true;
 
@@ -95,6 +95,12 @@ class ValidacionMasivaService
 
                     continue;
                 }
+                // Un control sin cuestionario se queda donde está (D-051); el resto sigue.
+                if ($motivos = $this->motivosBloqueo($modelo)) {
+                    $fallidos[] = ['nombre' => $modelo->nombre, 'razon' => implode(' ', $motivos)];
+
+                    continue;
+                }
                 $this->procesarTransicion($modelo, $accion, $usuario, $comite);
                 $exitosos[] = $modelo->nombre;
             }
@@ -112,7 +118,7 @@ class ValidacionMasivaService
                     return ['error' => implode(' ', $motivos)];
                 }
             }
-            if ($entidad instanceof PlanAccion && ($motivos = $entidad->motivosBloqueoValidacion())) {
+            if ($motivos = $this->motivosBloqueo($entidad)) {
                 DB::rollBack();
 
                 return ['error' => implode(' ', $motivos)];
@@ -304,5 +310,21 @@ class ValidacionMasivaService
         };
 
         return $class::findOrFail($id);
+    }
+
+    /**
+     * Lo que le falta a un plan o un control para validarse o aprobarse: la
+     * estimación del plan (D-050) o el cuestionario del control (D-051). Vacío
+     * para el resto, y también si no le falta nada.
+     * Tests: la_validacion_masiva_no_valida_un_plan_sin_estimacion,
+     * la_validacion_masiva_no_valida_un_control_sin_cuestionario.
+     *
+     * @return list<string>
+     */
+    private function motivosBloqueo(Model $modelo): array
+    {
+        return $modelo instanceof PlanAccion || $modelo instanceof Control
+            ? $modelo->motivosBloqueoValidacion()
+            : [];
     }
 }

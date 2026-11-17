@@ -66,7 +66,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
     #[Test]
     public function control_aprobado_deja_el_valor_de_la_actualizacion_mas_reciente(): void
     {
-        $control = Control::factory()->create([
+        $control = Control::factory()->valorado()->create([
             'estado_id' => Estado::validado()->id,
             'mitigacion_default' => 9,
             'user_id' => $this->gerente->id,
@@ -98,7 +98,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
     #[Test]
     public function control_aprobado_deja_el_valor_de_la_actualizacion_mas_reciente_aunque_el_created_at_empate(): void
     {
-        $control = Control::factory()->create([
+        $control = Control::factory()->valorado()->create([
             'estado_id' => Estado::validado()->id,
             'mitigacion_default' => 10,
             'user_id' => $this->gerente->id,
@@ -136,7 +136,7 @@ class AprobarAplicaUltimaActualizacionTest extends TestCase
     #[Test]
     public function control_aprobado_desde_el_modal_de_cascada_deja_el_valor_de_la_actualizacion_mas_reciente(): void
     {
-        $control = Control::factory()->create([
+        $control = Control::factory()->valorado()->create([
             'estado_id' => Estado::validado()->id,
             'mitigacion_default' => 9,
             'user_id' => $this->gerente->id,

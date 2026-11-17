@@ -35,7 +35,8 @@ class PendientesFicha extends Component
             'valor_en_cero' => ['valor', 'Ver valor'],
         ],
         'control' => [
-            'mitigacion_en_cero' => ['mitigacion', 'Ver mitigación'],
+            'mitigacion_en_cero' => ['valor', 'Ver valor'],
+            'sin_cuestionario' => ['valor', 'Ver valor'],
             'sin_riesgos' => ['riesgos', 'Ver riesgos'],
         ],
         'objetivo' => [

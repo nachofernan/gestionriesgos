@@ -57,7 +57,7 @@ class RevisionInicialPantallaTest extends TestCase
         $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => $raiz->id]);
         $this->empleadoFinanzas = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->finanzas->id]);
 
-        $this->control = Control::factory()->create([
+        $this->control = Control::factory()->valorado()->create([
             'nombre' => 'Backup diario de servidores',
             'area_id' => $coordinacion->id,
             'user_id' => $this->coordinador->id,

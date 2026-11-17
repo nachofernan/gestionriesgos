@@ -205,7 +205,9 @@ class PendienteController extends Controller
                 ['etiqueta' => 'Planes de acción', 'valor' => $item->planesAccion->count()],
             ],
             'control' => [
-                ['etiqueta' => 'Mitigación por defecto', 'valor' => $item->mitigacion_default],
+                ['etiqueta' => 'Valor del control', 'valor' => $item->evaluacion === null
+                    ? $item->mitigacion_default.' · sin cuestionario'
+                    : $item->puntaje.' · '.$item->clasificacion()['etiqueta'].($item->mitigacion_default < $item->puntaje ? ' (mitiga 0)' : ''), 'color' => $color($item->clasificacion())],
             ],
             'objetivo' => [
                 ['etiqueta' => 'PEIS', 'valor' => $item->peis ? 'Sí' : 'No'],

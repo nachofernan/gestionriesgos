@@ -12,7 +12,6 @@ use App\Models\Auditoria\Testeo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -52,9 +51,8 @@ class ControlController extends Controller
         $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-        ] + $this->reglasChecks() + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
+        ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
 
-        $data['checks'] ??= [];
         $data['user_id'] = $data['user_id'] ?? Auth::id();
         $data['interno'] = $request->boolean('interno');
         $control = Control::create($data);
@@ -65,8 +63,6 @@ class ControlController extends Controller
             'data' => ['tipo' => 'creacion', 'campos' => [
                 'nombre' => $control->nombre,
                 'descripcion' => $control->descripcion,
-                'mitigacion_default' => $control->mitigacion_default,
-                'checks' => Control::checksLegibles($control->checks),
             ]],
         ]);
 
@@ -99,7 +95,7 @@ class ControlController extends Controller
             + $this->opcionesAreaResponsable($control->area_id, $control->user_id));
     }
 
-    /** Edición de un control en borrador. El número sale de los checks (hook de Control). */
+    /** Edición de un control en borrador. El cuestionario se contesta aparte, en ValorControl. */
     public function update(Request $request, Control $control)
     {
         $this->authorize('update', $control);
@@ -112,20 +108,16 @@ class ControlController extends Controller
         $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-        ] + $this->reglasChecks() + $this->reglasAreaResponsable($request, $control->area_id, $control->user_id), self::MENSAJES_AREA_RESPONSABLE);
-        $data['checks'] = Control::normalizarChecks($data['checks'] ?? []);
+        ] + $this->reglasAreaResponsable($request, $control->area_id, $control->user_id), self::MENSAJES_AREA_RESPONSABLE);
 
         $data['interno'] = $request->boolean('interno');
-        $campos = [...array_keys($data), 'mitigacion_default'];
+        $campos = array_keys($data);
         $original = $control->only($campos);
         $control->update($data);
 
         $diff = [];
         foreach ($campos as $campo) {
             [$antes, $nuevo] = [$original[$campo], $control->$campo];
-            if ($campo === 'checks') {
-                [$antes, $nuevo] = [Control::checksLegibles($antes), Control::checksLegibles($nuevo)];
-            }
             if ($antes != $nuevo) {
                 $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
             }
@@ -152,15 +144,6 @@ class ControlController extends Controller
         return response()->download($media->getPath(), $media->file_name);
     }
 
-    /** Los checks que validan el número del control (D-040): sólo claves de Control::CHECKS. */
-    private function reglasChecks(): array
-    {
-        return [
-            'checks' => 'nullable|array',
-            'checks.*' => ['string', Rule::in(array_keys(Control::CHECKS))],
-        ];
-    }
-
     public function destroy(Control $control)
     {
         $this->authorize('delete', $control);
@@ -173,10 +156,16 @@ class ControlController extends Controller
     /**
      * Valida el control y arrastra a "validado" todas sus actualizaciones que
      * seguían en borrador, para que queden listas para aprobar() junto al control.
+     * Sin el cuestionario contestado no se valida (Control::motivosBloqueoValidacion(), D-051).
+     * Test: un_control_sin_cuestionario_no_se_valida.
      */
     public function validar(Control $control)
     {
         $this->authorize('validar', $control);
+
+        if ($motivos = $control->motivosBloqueoValidacion()) {
+            return back()->with('error', implode(' ', $motivos));
+        }
 
         $control->update(['estado_id' => Estado::validado()->id]);
 
@@ -197,13 +186,16 @@ class ControlController extends Controller
     /**
      * Aprueba el control y aplica los cambios de todas sus actualizaciones ya
      * validadas (creación y ediciones acumuladas) en una sola transacción, vía
-     * Actualizacion::aplicarCambios() (que también propaga la mitigación default
-     * si la propuesta lo pidió).
-     * Test: aprobar_el_control_aplica_la_propagacion_de_sus_actualizaciones_pendientes.
+     * Actualizacion::aplicarCambios(). Sin cuestionario no se aprueba (D-051).
+     * Test: un_control_sin_cuestionario_no_se_valida.
      */
     public function aprobar(Request $request, Control $control)
     {
         $this->authorize('aprobar', $control);
+
+        if ($motivos = $control->motivosBloqueoValidacion()) {
+            return back()->with('error', implode(' ', $motivos));
+        }
         $comite = $request->validate(Actualizacion::reglasComite())['comite'] ?? null;
 
         DB::transaction(function () use ($control, $comite) {

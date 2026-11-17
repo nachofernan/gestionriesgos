@@ -26,6 +26,7 @@
                     <div class="bg-blue-50 rounded-xl px-4 py-2 text-center">
                         <div class="text-xl font-extrabold text-blue-700">{{ $control->mitigacion_default }}</div>
                         <div class="text-[9px] text-blue-500 uppercase font-bold tracking-wider mt-0.5">Valor</div>
+                        <x-auditoria.clasificacion-control :control="$control" size="xs" class="mt-1" />
                     </div>
                 </div>
                 <button wire:click="cerrar" class="text-gray-400 hover:text-gray-600 transition-colors ml-1">

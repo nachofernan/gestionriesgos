@@ -2,13 +2,19 @@
 
 namespace Tests\Feature\Auditoria;
 
+use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Enums\Auditoria\TipoArea;
 use App\Livewire\Auditoria\Control\Show\FichaControl;
+use App\Livewire\Auditoria\Control\Show\ValorControl;
 use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
+use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\Riesgo;
 use App\Models\User;
+use App\Services\Auditoria\EvaluacionControl;
+use App\Services\Auditoria\ValidacionMasivaService;
+use Database\Factories\Auditoria\ControlFactory;
 use Database\Seeders\EstadoRiesgoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -16,11 +22,12 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * El valor de un control es suyo y vale igual en cada riesgo que mitiga (D-051):
- * la relación no tiene número propio, así que cambiar el valor del control mueve
- * el residual de todos sus riesgos a la vez, incluidos los de otras gerencias, y
- * sin dejar entradas en el historial de cada riesgo. Si el cambio queda como
- * propuesta, nada se mueve hasta que se aplica.
+ * El valor de un control sale de su cuestionario (D-051): 7 preguntas que
+ * suman de 1 a 10, y si el control es una expresión de deseo mitiga 0. El valor
+ * es del control y vale igual en cada riesgo que mitiga. Lo contesta el área por
+ * el circuito de siempre (directo en borrador, propuesta fuera de borrador), es
+ * obligatorio para validar y aprobar, y los controles de antes conservan su
+ * número hasta que alguien lo conteste.
  */
 class ValorControlTest extends TestCase
 {
@@ -36,12 +43,6 @@ class ValorControlTest extends TestCase
 
     private User $comite;
 
-    private Riesgo $riesgo;
-
-    private Riesgo $riesgoAjeno;
-
-    private Control $control;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -52,26 +53,27 @@ class ValorControlTest extends TestCase
         $this->gerente = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->gerencia->id]);
         $this->empleado = User::factory()->create(['rol' => 'empleado', 'area_id' => $this->gerencia->id]);
         $this->comite = User::factory()->create(['rol' => 'comite', 'area_id' => null]);
-
-        // Total 12 en los dos.
-        $valores = ['impacto' => 6, 'probabilidad' => 6];
-        $this->riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->gerencia->id] + $valores);
-        $this->riesgoAjeno = Riesgo::factory()->aprobado()->create(['area_id' => $this->otraGerencia->id] + $valores);
-
-        $this->control = Control::factory()->create([
-            'nombre' => 'Control de stock',
-            'area_id' => $this->gerencia->id,
-            'estado_id' => Estado::aprobado()->id,
-            'checks' => $this->checks(3), // 6
-        ]);
-        $this->riesgo->controles()->attach($this->control->id);
-        $this->riesgoAjeno->controles()->attach($this->control->id);
     }
 
-    /** Los primeros $n checks: valen $n × 2. */
-    private function checks(int $n): array
+    private function control(string $estado, ?int $puntaje = null, ?int $numeroViejo = null): Control
     {
-        return array_slice(array_keys(Control::CHECKS), 0, $n);
+        $factory = $puntaje === null ? Control::factory() : Control::factory()->valorado($puntaje);
+
+        return $factory->create(array_filter([
+            'nombre' => 'Control de stock',
+            'area_id' => $this->gerencia->id,
+            'estado_id' => Estado::where('nombre', $estado)->value('id'),
+            'mitigacion_default' => $numeroViejo,
+        ], fn ($v) => $v !== null));
+    }
+
+    /** Riesgo aprobado de total 12 con el control asociado (evidencia 100%). */
+    private function riesgoCon(Control $control, ?Area $area = null): Riesgo
+    {
+        $riesgo = Riesgo::factory()->aprobado()->create(['impacto' => 6, 'probabilidad' => 6, 'area_id' => ($area ?? $this->gerencia)->id]);
+        $riesgo->controles()->attach($control->id);
+
+        return $riesgo;
     }
 
     private function residual(Riesgo $riesgo): int
@@ -80,117 +82,345 @@ class ValorControlTest extends TestCase
             ->findOrFail($riesgo->id)->valor_residual;
     }
 
-    #[Test]
-    public function el_numero_del_control_sale_de_sus_checks(): void
+    /** El formulario del componente con todas las respuestas en «sí» y sus detalles: puntaje 10. */
+    private function cuestionarioCompleto(array $cambios = []): array
     {
-        $this->assertSame(6, $this->control->fresh()->mitigacion_default);
+        return array_replace_recursive([
+            'respuestas' => ['operativo' => 1, 'documentado' => 1, 'sistema' => 1, 'responsable' => 1, 'frecuencia' => 1, 'evidencia' => 1, 'detecta' => 1],
+            'procedimiento' => 'PR-COM-04 Compras',
+            'sistemas' => ['SAP'],
+            'sistema_otro' => '',
+            'frecuencia' => 'mensual',
+        ], $cambios);
+    }
 
-        $this->control->update(['checks' => ['deja_evidencia', 'inventado', 'deja_evidencia']]);
+    private function contestar(User $user, Control $control, array $cuestionario)
+    {
+        return Livewire::actingAs($user)
+            ->test(ValorControl::class, ['control' => $control])
+            ->call('abrir')
+            ->set('cuestionario', $cuestionario)
+            ->call('guardar');
+    }
 
-        $this->assertSame(['deja_evidencia'], $this->control->fresh()->checks);
-        $this->assertSame(2, $this->control->fresh()->mitigacion_default);
+    // -------------------------------------------------------
+    // Cálculo
+    // -------------------------------------------------------
+
+    #[Test]
+    public function el_puntaje_suma_lo_que_vale_cada_respuesta(): void
+    {
+        $todoSi = ['respuestas' => array_fill_keys(['operativo', 'documentado', 'sistema', 'responsable', 'frecuencia', 'evidencia', 'detecta'], 1)];
+        $todoNo = ['respuestas' => array_fill_keys(array_keys($todoSi['respuestas']), 0)];
+
+        $this->assertSame(10, EvaluacionControl::puntaje($todoSi));
+        $this->assertSame(1, EvaluacionControl::puntaje($todoNo)); // manual vale 1
+        $this->assertSame(0, EvaluacionControl::mitigacion($todoNo));
+
+        foreach (range(2, 10) as $puntaje) {
+            $this->assertSame($puntaje, EvaluacionControl::puntaje(ControlFactory::evaluacion($puntaje)), "puntaje {$puntaje}");
+        }
     }
 
     #[Test]
-    public function cambiar_el_valor_del_control_lo_cambia_en_todos_sus_riesgos(): void
+    public function el_numero_del_control_sale_del_cuestionario_y_vale_en_cada_riesgo(): void
     {
-        $this->assertSame(6, $this->residual($this->riesgo));
-        $this->assertSame(6, $this->residual($this->riesgoAjeno));
+        $control = $this->control('aprobado', 7);
+        $riesgo = $this->riesgoCon($control);
+        $ajeno = $this->riesgoCon($control, $this->otraGerencia);
+
+        $this->assertSame(7, $control->fresh()->mitigacion_default);
+        $this->assertSame(5, $this->residual($riesgo));
+        $this->assertSame(5, $this->residual($ajeno));
+    }
+
+    #[Test]
+    public function un_control_expresion_de_deseo_muestra_puntaje_y_mitiga_cero(): void
+    {
+        $control = Control::factory()->valorado(9, operativo: false)->create([
+            'area_id' => $this->gerencia->id,
+            'estado_id' => Estado::aprobado()->id,
+        ]);
+        $riesgo = $this->riesgoCon($control);
+
+        $control = $control->fresh();
+        $this->assertSame(9, $control->puntaje);
+        $this->assertSame(0, $control->mitigacion_default);
+        $this->assertSame('deficiente', $control->clasificacion()['etiqueta']);
+        $this->assertSame(12, $this->residual($riesgo));
+    }
+
+    #[Test]
+    public function la_clasificacion_del_control_sigue_sus_umbrales(): void
+    {
+        $esperado = [1 => 'deficiente', 3 => 'deficiente', 4 => 'moderado', 6 => 'moderado', 7 => 'suficiente', 10 => 'suficiente'];
+        foreach ($esperado as $puntaje => $etiqueta) {
+            $this->assertSame($etiqueta, EvaluacionControl::clasificacion($puntaje)['etiqueta'], "puntaje {$puntaje}");
+        }
+        $this->assertSame('rojo', EvaluacionControl::clasificacion(3)['color']);
+        $this->assertSame('amarillo', EvaluacionControl::clasificacion(5)['color']);
+        $this->assertSame('verde', EvaluacionControl::clasificacion(8)['color']);
+        $this->assertSame('deficiente', EvaluacionControl::clasificacion(10, operativo: false)['etiqueta']);
+
+        $this->assertSame('suficiente', $this->control('aprobado', 8)->clasificacion()['etiqueta']);
+        // Sin cuestionario se clasifica por el número que traía.
+        $this->assertSame('moderado', $this->control('aprobado', numeroViejo: 5)->clasificacion()['etiqueta']);
+    }
+
+    #[Test]
+    public function un_control_viejo_sin_cuestionario_conserva_su_numero(): void
+    {
+        $control = $this->control('aprobado', numeroViejo: 5);
+        $riesgo = $this->riesgoCon($control);
+
+        $this->assertNull($control->fresh()->evaluacion);
+        $this->assertSame(5, $control->fresh()->puntaje);
+        $this->assertSame(7, $this->residual($riesgo)); // 12 - 5
+
+        // Otro cambio del control no le toca el número.
+        $control->update(['nombre' => 'Control de stock revisado']);
+        $this->assertSame(5, $control->fresh()->mitigacion_default);
+    }
+
+    // -------------------------------------------------------
+    // Cuestionario y circuito
+    // -------------------------------------------------------
+
+    #[Test]
+    public function el_cuestionario_exige_las_respuestas_y_el_detalle_de_cada_si(): void
+    {
+        $control = $this->control('borrador');
+
+        $sinRespuesta = $this->cuestionarioCompleto();
+        unset($sinRespuesta['respuestas']['detecta']);
+        $this->contestar($this->gerente, $control, $sinRespuesta)
+            ->assertHasErrors('cuestionario.respuestas.detecta');
+
+        $sinDetalles = ['procedimiento' => '', 'sistemas' => [], 'sistema_otro' => '', 'frecuencia' => ''] + $this->cuestionarioCompleto();
+        $this->contestar($this->gerente, $control, $sinDetalles)
+            ->assertHasErrors(['cuestionario.procedimiento', 'cuestionario.sistemas', 'cuestionario.frecuencia']);
+
+        $this->contestar($this->gerente, $control, ['sistemas' => ['Un sistema inventado']] + $this->cuestionarioCompleto())
+            ->assertHasErrors('cuestionario.sistemas.0');
+
+        $this->assertNull($control->fresh()->evaluacion);
+
+        // «Otro» con texto alcanza sin marcar ninguno de la lista.
+        $this->contestar($this->gerente, $control, ['sistemas' => [], 'sistema_otro' => 'Tango'] + $this->cuestionarioCompleto())
+            ->assertHasNoErrors();
+        $this->assertSame('Tango', $control->fresh()->evaluacion['sistema_otro']);
+    }
+
+    #[Test]
+    public function en_borrador_el_cuestionario_se_aplica_directo(): void
+    {
+        $control = $this->control('borrador');
+
+        // Los detalles de un «no» se descartan.
+        $this->contestar($this->gerente, $control, $this->cuestionarioCompleto([
+            'respuestas' => ['documentado' => 0, 'sistema' => 0],
+        ]))->assertHasNoErrors()->assertDispatched('control-actualizado');
+
+        $control = $control->fresh();
+        $this->assertSame(6, $control->mitigacion_default); // 1 + 0 + 1 + 1 + 1 + 1 + 1
+        $this->assertNull($control->evaluacion['procedimiento']);
+        $this->assertSame([], $control->evaluacion['sistemas']);
+        $this->assertSame('mensual', $control->evaluacion['frecuencia']);
+
+        $edicion = $control->actualizaciones()->sole();
+        $this->assertSame('edicion', $edicion->data['tipo']);
+        $this->assertSame('Puntaje 6/10 · moderado', $edicion->diffLegible()['campos'][0]['despues']);
+    }
+
+    #[Test]
+    public function sobre_un_control_aprobado_el_area_propone_y_no_mueve_el_residual_hasta_aprobar(): void
+    {
+        $control = $this->control('aprobado', numeroViejo: 2);
+        $riesgo = $this->riesgoCon($control);
+        $ajeno = $this->riesgoCon($control, $this->otraGerencia);
+        $this->assertSame(10, $this->residual($riesgo));
+
+        $this->contestar($this->empleado, $control, $this->cuestionarioCompleto())->assertHasNoErrors();
+
+        $propuesta = $control->actualizaciones()->propuestasPendientes('campos')->sole();
+        $this->assertSame(Estado::borrador()->id, $propuesta->estado_id);
+        $this->assertSame(2, $control->fresh()->mitigacion_default);
+        $this->assertSame(10, $this->residual($riesgo));
+
+        $propuesta->marcarValidada($this->gerente);
+        $this->assertSame(10, $this->residual($riesgo)); // validada todavía no se aplica
+
+        $propuesta->fresh()->marcarAprobada($this->comite);
+
+        $this->assertSame(10, $control->fresh()->mitigacion_default);
+        $this->assertSame(2, $this->residual($riesgo));
+        $this->assertSame(2, $this->residual($ajeno)); // vale igual en el riesgo de otra gerencia
+    }
+
+    #[Test]
+    public function una_propuesta_pendiente_frena_otra_valoracion(): void
+    {
+        $control = $this->control('aprobado', 4);
+        $this->contestar($this->empleado, $control, $this->cuestionarioCompleto());
+
+        Livewire::actingAs($this->gerente)
+            ->test(ValorControl::class, ['control' => $control])
+            ->call('abrir')
+            ->assertSet('abierto', false);
+
+        Livewire::actingAs($this->gerente)
+            ->test(ValorControl::class, ['control' => $control])
+            ->set('abierto', true)
+            ->set('cuestionario', $this->cuestionarioCompleto())
+            ->call('guardar')
+            ->assertHasErrors('cuestionario');
+
+        $this->assertCount(1, $control->actualizaciones()->propuestasPendientes('campos')->get());
+    }
+
+    #[Test]
+    public function el_comite_no_valora_controles(): void
+    {
+        $control = $this->control('aprobado', 4);
 
         Livewire::actingAs($this->comite)
-            ->test(FichaControl::class, ['control' => $this->control])
-            ->call('activarEdicion')
-            ->set('form.checks', $this->checks(2))
-            ->assertViewHas('puntaje', 4)
-            ->set('mensaje', 'Se revisó el control')
+            ->test(ValorControl::class, ['control' => $control])
+            ->set('abierto', true)
+            ->set('cuestionario', $this->cuestionarioCompleto())
             ->call('guardar')
-            ->assertHasNoErrors()
-            ->assertDispatched('control-actualizado');
+            ->assertHasErrors('cuestionario');
 
-        $this->assertSame(4, $this->control->fresh()->mitigacion_default);
-        $this->assertSame(8, $this->residual($this->riesgo));
-        $this->assertSame(8, $this->residual($this->riesgoAjeno));
-        // El cambio queda en el historial del control, no en el de cada riesgo.
-        $this->assertSame(0, $this->riesgo->actualizaciones()->count());
+        $this->assertSame(4, $control->fresh()->mitigacion_default);
+        $this->assertCount(0, $control->actualizaciones);
     }
 
     #[Test]
-    public function como_propuesta_el_valor_no_cambia_hasta_que_se_aplica(): void
+    public function quien_no_gestiona_el_control_recibe_403(): void
     {
-        Livewire::actingAs($this->empleado)
-            ->test(FichaControl::class, ['control' => $this->control])
-            ->call('activarEdicion')
-            ->set('form.checks', $this->checks(1))
-            ->set('mensaje', 'Propongo bajarlo')
+        $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->otraGerencia->id]);
+        $control = $this->control('borrador');
+
+        Livewire::actingAs($ajeno)
+            ->test(ValorControl::class, ['control' => $control])
+            ->call('abrir')
+            ->assertForbidden();
+
+        Livewire::actingAs($ajeno)
+            ->test(ValorControl::class, ['control' => $control])
+            ->set('abierto', true)
+            ->set('cuestionario', $this->cuestionarioCompleto())
             ->call('guardar')
-            ->assertHasNoErrors();
+            ->assertForbidden();
 
-        $propuesta = $this->control->actualizaciones()->propuestasPendientes('campos')->sole();
-        $this->assertSame(6, $this->control->fresh()->mitigacion_default);
-        $this->assertSame(6, $this->residual($this->riesgo));
+        $this->assertNull($control->fresh()->evaluacion);
+    }
 
-        $propuesta->aplicarCambios($this->gerente);
+    // -------------------------------------------------------
+    // Requisito para validar
+    // -------------------------------------------------------
 
-        $this->assertSame(2, $this->control->fresh()->mitigacion_default);
-        $this->assertSame(10, $this->residual($this->riesgo));
+    #[Test]
+    public function un_control_sin_cuestionario_no_se_valida(): void
+    {
+        $control = $this->control('borrador');
+
+        $this->actingAs($this->gerente)
+            ->post(route('auditoria.controles.validar', $control))
+            ->assertSessionHas('error');
+        $this->assertSame('borrador', $control->fresh()->estado->nombre);
+
+        $validado = $this->control('validado', numeroViejo: 4);
+        $this->actingAs($this->comite)
+            ->post(route('auditoria.controles.aprobar', $validado))
+            ->assertSessionHas('error');
+        $this->assertSame('validado', $validado->fresh()->estado->nombre);
+
+        $control->update(['evaluacion' => ControlFactory::evaluacion(5)]);
+        $this->actingAs($this->gerente)->post(route('auditoria.controles.validar', $control));
+        $this->assertSame('validado', $control->fresh()->estado->nombre);
     }
 
     #[Test]
-    public function el_alta_calcula_el_numero_desde_los_checks(): void
+    public function la_validacion_masiva_no_valida_un_control_sin_cuestionario(): void
+    {
+        $control = $this->control('borrador');
+
+        $resultado = app(ValidacionMasivaService::class)->ejecutar($control, 'validar', [], [], $this->gerente);
+
+        $this->assertArrayHasKey('error', $resultado);
+        $this->assertSame('borrador', $control->fresh()->estado->nombre);
+    }
+
+    #[Test]
+    public function en_la_cascada_de_un_riesgo_el_control_sin_cuestionario_queda_en_borrador(): void
+    {
+        $control = $this->control('borrador');
+        $valorado = $this->control('borrador', 6);
+        $riesgo = Riesgo::factory()->create(['area_id' => $this->gerencia->id, 'respuesta' => RespuestaRiesgo::Evitar]);
+        $riesgo->controles()->attach([$control->id, $valorado->id]);
+        $riesgo->objetivos()->attach(Objetivo::create([
+            'nombre' => 'Objetivo de soporte',
+            'estado_id' => Estado::aprobado()->id,
+            'user_id' => $this->gerente->id,
+            'area_id' => $this->gerencia->id,
+        ])->id);
+
+        $resultado = app(ValidacionMasivaService::class)->ejecutar(
+            $riesgo, 'validar', [], [['tipo' => 'control', 'id' => $control->id], ['tipo' => 'control', 'id' => $valorado->id]], $this->gerente
+        );
+
+        $this->assertTrue($resultado['ok'] ?? false, json_encode($resultado));
+        $this->assertSame('borrador', $control->fresh()->estado->nombre);
+        $this->assertSame('validado', $valorado->fresh()->estado->nombre);
+        $this->assertSame([$control->nombre], array_column($resultado['fallidos'], 'nombre'));
+    }
+
+    // -------------------------------------------------------
+    // Ficha y alta
+    // -------------------------------------------------------
+
+    #[Test]
+    public function el_alta_no_pide_cuestionario(): void
     {
         $this->actingAs($this->gerente)->post(route('auditoria.controles.store'), [
             'nombre' => 'Control nuevo',
-            'checks' => ['documentado', 'deja_evidencia'],
             'area_id' => $this->gerencia->id,
         ])->assertRedirect();
 
-        $control = Control::where('nombre', 'Control nuevo')->sole();
-        $this->assertSame(4, $control->mitigacion_default);
-        $this->assertSame(['documentado', 'deja_evidencia'], $control->checks);
-    }
-
-    #[Test]
-    public function el_alta_rechaza_un_check_que_no_existe(): void
-    {
-        $this->actingAs($this->gerente)->post(route('auditoria.controles.store'), [
-            'nombre' => 'Control nuevo',
-            'checks' => ['inventado'],
-            'area_id' => $this->gerencia->id,
-        ])->assertSessionHasErrors('checks.0');
-
-        $this->assertFalse(Control::where('nombre', 'Control nuevo')->exists());
+        $this->assertNull(Control::where('nombre', 'Control nuevo')->sole()->evaluacion);
     }
 
     #[Test]
     public function editar_un_borrador_ajeno_devuelve_403_y_no_toca_nada(): void
     {
-        $this->control->update(['estado_id' => Estado::borrador()->id]);
+        $control = $this->control('borrador', 6);
         $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->otraGerencia->id]);
 
         $this->actingAs($ajeno)
-            ->put(route('auditoria.controles.update', $this->control), ['nombre' => 'X', 'checks' => $this->checks(1)])
+            ->put(route('auditoria.controles.update', $control), ['nombre' => 'X'])
             ->assertForbidden();
 
-        $this->assertSame(6, $this->control->fresh()->mitigacion_default);
+        $this->assertSame('Control de stock', $control->fresh()->nombre);
     }
 
     #[Test]
     public function la_ficha_del_control_devuelve_403_a_un_gerente_de_otra_gerencia(): void
     {
+        $control = $this->control('aprobado', 6);
         $ajeno = User::factory()->create(['rol' => 'gerente', 'area_id' => $this->otraGerencia->id]);
 
         Livewire::actingAs($ajeno)
-            ->test(FichaControl::class, ['control' => $this->control])
+            ->test(FichaControl::class, ['control' => $control])
             ->call('activarEdicion')
             ->assertForbidden();
 
         Livewire::actingAs($ajeno)
-            ->test(FichaControl::class, ['control' => $this->control])
-            ->set('form', ['nombre' => 'X', 'descripcion' => null, 'checks' => $this->checks(1)])
+            ->test(FichaControl::class, ['control' => $control])
+            ->set('form', ['nombre' => 'X', 'descripcion' => null])
             ->set('mensaje', 'Intento ajeno')
             ->call('guardar')
             ->assertForbidden();
 
-        $this->assertSame(6, $this->control->fresh()->mitigacion_default);
+        $this->assertSame('Control de stock', $control->fresh()->nombre);
     }
 }

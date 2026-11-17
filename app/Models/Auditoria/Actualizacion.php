@@ -7,6 +7,7 @@ use App\Enums\Auditoria\Responsabilidad;
 use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Enums\Auditoria\Temporalidad;
 use App\Models\User;
+use App\Services\Auditoria\EvaluacionControl;
 use App\Services\Auditoria\EvaluacionPlan;
 use App\Services\Auditoria\EvaluacionRiesgo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -342,11 +343,6 @@ class Actualizacion extends Model implements HasMedia
             if ($antes instanceof \DateTimeInterface) {
                 $antes = $antes->format('Y-m-d');
             }
-            if ($campo === 'checks') {
-                // El diff se muestra tal cual: los checks van como texto (D-040).
-                $antes = Control::checksLegibles($antes);
-                $nuevo = Control::checksLegibles($nuevo);
-            }
             if ($antes != $nuevo) {
                 $diff[$campo] = ['antes' => $antes, 'despues' => $nuevo];
             }
@@ -584,14 +580,15 @@ class Actualizacion extends Model implements HasMedia
             'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance', 'interno' => 'Interno',
             'estado' => 'Estado', 'evaluacion_estimada' => 'Valor estimado', 'evaluacion_final' => 'Valor final',
         ];
-        $formatear = function ($campo, $valor) use ($tiposRiesgo) {
+        $esControl = $this->actualizable_type === Control::class;
+        $formatear = function ($campo, $valor) use ($tiposRiesgo, $esControl) {
             if ($valor === null || $valor === '') {
                 return '—';
             }
 
             return (string) match ($campo) {
                 'tipo_riesgo_id' => $tiposRiesgo[$valor] ?? '#'.$valor,
-                'evaluacion' => EvaluacionRiesgo::resumen($valor),
+                'evaluacion' => $esControl ? EvaluacionControl::resumen($valor) : EvaluacionRiesgo::resumen($valor),
                 'evaluacion_estimada', 'evaluacion_final' => EvaluacionPlan::resumen($valor),
                 'temporalidad' => Temporalidad::tryFrom($valor)?->label() ?? $valor,
                 'condicion' => Condicion::tryFrom($valor)?->label() ?? $valor,

@@ -33,7 +33,7 @@
                     placeholder="Descripción del control y cómo mitiga el riesgo...">{{ old('descripcion') }}</textarea>
             </div>
 
-            @include('auditoria.partials.checks-mitigacion', ['seleccionados' => old('checks', [])])
+            <p class="text-xs text-gray-500">El valor del control sale de su cuestionario, que se contesta desde la ficha una vez creado.</p>
 
             @include('auditoria.partials.select-area-responsable', [
                 'areaSeleccionada' => old('area_id', auth()->user()->area_id),

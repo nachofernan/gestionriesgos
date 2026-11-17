@@ -245,8 +245,12 @@ class DetectorInconsistencias
     {
         $hallazgos = [];
 
+        // D-051: sin cuestionario conserva su número viejo, pero no se puede validar.
+        if ($control->evaluacion === null) {
+            $hallazgos[] = $this->advertencia('sin_cuestionario', 'Falta contestar el cuestionario del control.');
+        }
         if ((int) $control->mitigacion_default === 0) {
-            $hallazgos[] = $this->advertencia('mitigacion_en_cero', 'La mitigación por defecto está en 0.');
+            $hallazgos[] = $this->advertencia('mitigacion_en_cero', 'El control mitiga 0.');
         }
         if ($control->riesgos_count === 0) {
             $hallazgos[] = $this->advertencia('sin_riesgos', 'No mitiga ningún riesgo.');

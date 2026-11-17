@@ -31,9 +31,7 @@
                     class="w-full border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('descripcion', $control->descripcion) }}</textarea>
             </div>
 
-            <div>
-                @include('auditoria.partials.checks-mitigacion', ['seleccionados' => old('checks', $control->checks ?? [])])
-            </div>
+            <p class="text-xs text-gray-500">El cuestionario que da el valor del control se contesta desde la ficha (card «Valor del control»).</p>
 
             @include('auditoria.partials.select-area-responsable', [
                 'areaSeleccionada' => old('area_id', $control->area_id),

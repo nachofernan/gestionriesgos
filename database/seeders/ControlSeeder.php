@@ -6,6 +6,7 @@ use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Riesgo;
 use App\Models\User;
+use Database\Factories\Auditoria\ControlFactory;
 use Illuminate\Database\Seeder;
 
 class ControlSeeder extends Seeder
@@ -65,8 +66,8 @@ class ControlSeeder extends Seeder
                 $control = Control::create([
                     'nombre' => $datos['nombre'],
                     'descripcion' => $datos['descripcion'],
-                    // D-040: el número sale de los checks (hook de Control).
-                    'checks' => $this->checksAlAzar(),
+                    // D-051: el número sale del cuestionario (hook de Control).
+                    'evaluacion' => ControlFactory::evaluacion(rand(2, 10), rand(0, 9) > 0),
                     'user_id' => $user->id,
                     'area_id' => $user->area_id,
                     'estado_id' => $estadoIds[$pool[array_rand($pool)]],
@@ -77,11 +78,5 @@ class ControlSeeder extends Seeder
                 $controlCounter++;
             }
         }
-    }
-
-    /** Entre 1 y 5 checks al azar. */
-    private function checksAlAzar(): array
-    {
-        return (array) array_rand(array_flip(array_keys(Control::CHECKS)), rand(1, count(Control::CHECKS)));
     }
 }
