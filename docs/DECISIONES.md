@@ -1784,3 +1784,68 @@ Tests: `ValorControlTest` (nuevo), `EfectividadRelacionTest` (reescrito con los 
 adaptaron los que cargaban el número en la relación.
 
 Fuente: sesión 2026-11-17, con el usuario presente.
+
+---
+
+## D-052 — Un usuario puede tener el rol de gerente y el de comité, y elige con cuál guarda (2026-11-17)
+
+**Decisión.** Los roles pasan de la columna `users.rol` a spatie/laravel-permission (`gerente`,
+`comite`, `empleado`, `auditor`) para que un usuario tenga más de uno. El caso que lo motiva es
+Mercapidez: es gerenta y además encargada del comité. Su área no cambia, y Munafo sigue como comité.
+Spatie sólo contesta qué roles tiene cada usuario: la autorización sigue en las Policies (axioma 1),
+sin permisos finos. Los roles se asignan por migración de datos y seeder, sin pantalla.
+
+**Con los dos roles:**
+- **Ve la unión** de lo que ve cada rol: lo público y los borradores de su subárbol, nunca los
+  borradores ajenos (`User::esSoloComite()` es el único que corta a "sólo lo público").
+- **Como gerente**, valida y rechaza borradores, y crea, sólo en su subárbol. El rol de comité no
+  agranda eso.
+- **Como comité**, aprueba y rechaza lo validado de cualquier área, y edita o elimina en cualquier área
+  (`User::puedeOperarEnArea()`). Antes el alcance del comité salía de que su área era la raíz del
+  árbol; con su área propia eso no alcanzaba.
+- **Recalcula y valora** (cuestionarios de controles y planes) sólo como gerente, en su área: el
+  comité no recalcula ni valora (D-046) y eso no cambia.
+- **Pendientes y el Panel** suman las dos bandejas: lo que valida en su subárbol y lo que aprueba en
+  todas.
+- **Puede aprobar como comité lo que ella misma propuso o validó.** Queda registrado como aprobación del
+  comité.
+
+**Elegir con qué rol se guarda.** Sólo se pregunta cuando los dos roles dan resultados distintos: al
+guardar un cambio sobre algo **aprobado de su propio subárbol** (`User::eligeRolEn()`). En borrador o
+validado los dos dan "validado", y fuera de su subárbol sólo puede actuar como comité, así que ahí no se
+pregunta. El modal (`auditoria.partials.elegir-rol-modal`, trait `EligeRol`) ofrece dos caminos:
+- **Enviar como propuesta**: nace validada, como la de cualquier gerente.
+- **Establecer como comité**: nace aprobada, se aplica en el acto y guarda el N° y la fecha del comité
+  (opcionales, como en D-039) en la misma `Actualizacion`.
+
+Vale en las fichas de los cinco elementos, los bloques de relaciones, la actualización genérica y la
+eliminación del riesgo (radio en el modal). El servidor ignora el pedido de establecer como comité de
+quien no tiene el rol.
+
+**Descartado.**
+- **Un usuario aparte para el comité.** No se quieren usuarios creados sólo para eso.
+- **Un selector de rol para toda la sesión.** Cambiaría también lo que ve, y obliga a acordarse de
+  volver al otro modo.
+- **Preguntar en toda edición.** En la mayoría de los casos las dos opciones terminan igual.
+- **Un valor de rol combinado (`gerente_comite`).** Es una combinación fija que no escala a otra mezcla.
+- **Bloquear que apruebe lo propio.** Se prefirió que lo gestione en la misma pantalla, con registro.
+
+**Efecto en cascada anotado.**
+- **Migraciones.** Las tablas de spatie y `2026_11_17_110000_roles_de_usuario_a_spatie`, que pasa cada
+  rol a spatie y borra `users.rol`.
+- **`User`.** `esGerente()`, `esComite()` y los demás usan `hasRole()`. Se agregan `esSoloComite()`,
+  `puedeOperarEnArea()`, `actuaComoGerenteEn()` y `eligeRolEn()`.
+- **Policies.**
+  - Las cinco de entidades usan `puedeOperarEnArea()` en `update`, `delete`, `aprobar` y el rechazo de
+    lo validado, y cortan sólo al comité puro en `view`.
+  - `RevisionInicialPolicy` deja habilitado al gerente con doble rol.
+- **`Actualizacion`.** `estadoInicialParaCambio()` recibe el área y `$comoComite`, y `registrar*()`
+  reciben los datos del comité. Las cuatro copias de la regla en los bloques se reemplazaron por la del
+  trait.
+- **Otros archivos tocados.** `HasVisibilityScope`, `PendienteController`, `PanelRiesgos`,
+  `InternoController`, y los `motivoBloqueo*` de `Riesgo`, `Control` y `PlanAccion`.
+- **Tests.** Los tests usan los states de la factory (`->gerente()`, `->comite()`). Los nuevos están en
+  `DobleRolGerenteComiteTest`.
+- **Docs.** Cambia el axioma 1 de CLAUDE.md: el comité es un rol, no "`area_id = null`".
+
+Fuente: sesión 2026-11-17, con el usuario presente.

@@ -85,13 +85,14 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 
 ## Roles y autorización
 
-El rol vive en `users.rol` y el área en `users.area_id`. Las Policies están en `app/Policies/Auditoria/`.
+Los roles viven en spatie/laravel-permission (`HasRoles`, D-052) y el área en `users.area_id`. Un usuario puede tener más de un rol. Las Policies están en `app/Policies/Auditoria/`; spatie sólo dice qué roles tiene (`esGerente()`, `esComite()`, etc.).
 
 | Rol | Ve | Propone / edita | Valida · aprueba | Crea · elimina |
 |---|---|---|---|---|
 | `empleado` | Lo validado o aprobado de todos, más todo lo de su subárbol | Sobre lo de su subárbol. Fuera de borrador, su propuesta nace en borrador | — | En su subárbol |
 | `gerente` | Igual que el empleado | Igual. Fuera de borrador aplica directo | Valida lo de su subárbol | En su subárbol |
 | `comite` | Sólo lo validado o aprobado | Aplica directo sobre lo aprobado | Aprueba, y rechaza lo validado | Ver D-006 |
+| `gerente` + `comite` (D-052) | Lo validado o aprobado de todos, más los borradores de su subárbol | Como comité en cualquier área. Sobre lo aprobado de su subárbol elige: propuesta (nace validada) o establecer como comité (aplica directo, con N° y fecha). Recalcula y valora sólo como gerente, en su área | Valida lo de su subárbol; aprueba y rechaza lo validado de todos | En su subárbol |
 | `auditor` | Igual que el empleado | **Sobre cualquier elemento validado o aprobado.** Su propuesta siempre nace en borrador. Aplica en el acto el testeo de evidencia (D-040) y la reevaluación del cuestionario de un control aprobado (`ControlPolicy::reevaluar`, D-051) | — | — |
 
 **`update` y `proponer` (D-020).**

@@ -85,6 +85,14 @@ class MapeoCargaInicial
     ];
 
     /**
+     * Roles que se suman al que sale del árbol (D-052): Mercapidez es gerenta y
+     * además la encargada del comité.
+     */
+    public const ROLES_ADICIONALES = [
+        'Mercapidez' => ['comite'],
+    ];
+
+    /**
      * Correcciones de datos detectadas en el Excel (ver docs/reconstruccion.md):
      * "ALE" es un error de tipeo por "GAL" (Langus es responsable de ambas en el
      * dataset, GAL es la que existe en UsuariosAreas.csv).

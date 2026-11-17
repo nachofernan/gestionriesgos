@@ -58,6 +58,10 @@ class AreaCargaInicialSeeder extends Seeder
         foreach (MapeoCargaInicial::AUDITORES as $apellido => $codigoArea) {
             $this->crearUsuario($apellido, $codigoArea, 'auditor');
         }
+
+        foreach (MapeoCargaInicial::ROLES_ADICIONALES as $apellido => $roles) {
+            User::findOrFail(MapeoCargaInicial::$userIdPorApellido[$apellido])->assignRole($roles);
+        }
     }
 
     /**

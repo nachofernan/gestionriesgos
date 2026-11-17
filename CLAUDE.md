@@ -105,7 +105,9 @@ Son las reglas que no se negocian sin una conversación explícita. Todo lo dem�
 
 1. **La autorización por jerarquía de área es sagrada.** Los permisos se basan en la jerarquía de
    áreas (`area_padre_id` auto-referencial): un gerente gestiona su área y todas las sub-áreas; el
-   comité (`area_id = null`) opera sobre lo público de cualquier área. **Siempre** se llama a
+   comité (un rol, no un área) opera sobre lo público de cualquier área. Los roles viven en spatie y
+   un usuario puede tener el de gerente y el de comité a la vez (D-052): lo que hace como comité no
+   agranda lo que hace como gerente. **Siempre** se llama a
    `$this->authorize()` / `$request->user()->can()` antes de mutar datos — también en componentes
    Livewire, porque el controlador HTTP no protege el componente. La visibilidad (qué ve cada rol
    según estado) vive en las Policies y en los scopes (`scopeVisiblePara`), no dispersa en las
