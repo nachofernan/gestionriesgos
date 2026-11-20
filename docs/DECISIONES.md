@@ -2022,3 +2022,25 @@ validado no la edita.
 Tests en `ActividadRelacionadaTest`.
 
 Fuente: sesión 2026-11-20, con el usuario presente.
+
+## D-058 — En la revisión inicial un elemento se puede borrar en vez de arreglarlo (2026-11-20)
+
+**Decisión (regla, sin implementar todavía).** Durante la revisión inicial, un elemento que ya no
+corresponde tenerlo en el sistema —se terminó de realizar, otro lo tapa, ya no existe— se puede pasar a
+`borrado` en vez de arreglar sus inconsistencias. Un elemento borrado sale de la revisión (`Index` y
+`PendientesFicha` ya excluyen `borrado`), así que no se firma ni arrastra lo que le faltaba. Ejemplo: un
+riesgo sin objetivos se borra y deja de bloquear la firma.
+
+**Queda abierto** (se decide al rehacer Pendientes y la estructura de la revisión inicial):
+- Quién lo borra y por qué circuito. Lo aprobado hoy no se borra directo: es una propuesta que aprueba
+  el comité (D-047). Falta definir si la revisión inicial es una excepción, por ejemplo que el
+  responsable primario lo borre en el acto.
+- El motivo. Todo rechazo lleva motivo (D-031), y acá debería pasar lo mismo.
+- Los vínculos del elemento borrado. Un objetivo puede quedar sin riesgos (D-055) o un riesgo sin su
+  único plan. Hay que ver si el borrado se propaga o si deja nuevas inconsistencias en los otros.
+- Si alcanza para las 5 entidades o solo para riesgos, por ahora (D-047 todavía no cubre al resto).
+
+**Motivo.** Pedido del usuario: sostener inconsistencias de algo que ya no va a seguir en el sistema
+es trabajo perdido para los que firman.
+
+Fuente: sesión 2026-11-20, con el usuario presente.

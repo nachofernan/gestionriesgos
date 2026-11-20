@@ -22,6 +22,7 @@ Identificados en el análisis de avances como expansión posible, sin fecha comp
 - [ ] **Valorar los planes existentes** ([D-050](DECISIONES.md#d-050)). Los planes de antes de la valoración por cuestionario no tienen estimación y mitigan 0: hay que cargarla desde la card "Valor del plan". El detector de la revisión inicial los marca como advertencia (`sin_valor`); falta decidir si pasa a error para que no se firmen sin valorar.
 - [ ] **Controles por eje** (idea, [D-050](DECISIONES.md#d-050)): los planes ya mitigan impacto y probabilidad por separado y los controles siguen restando del total. Llevarlos al mismo esquema exige rediseñar su cuestionario (D-051).
 - [ ] **Eliminación por propuesta en el resto de las entidades** ([D-047](DECISIONES.md#d-047)). El riesgo ya se elimina por propuesta, pero el "Eliminar" de control, objetivo, plan y tarea desde su propia ficha sigue siendo un soft delete directo, fuera del ciclo. Falta llevarlos al mismo circuito, y decidir si los objetivos de una sola asociación también se ofrecen al eliminar el riesgo.
+- [ ] **Borrar desde la revisión inicial** ([D-058](DECISIONES.md#d-058)). Un elemento que ya no corresponde se pasa a `borrado` y deja de bloquear la firma. Se implementa junto con la actualización de Pendientes y de la estructura de la revisión inicial. Antes hay que cerrar los puntos abiertos de la decisión: quién borra, el motivo y qué pasa con los vínculos.
 - [ ] **El comité no debería poder crear elementos** — hoy crea y al redirigir al show del borrador recién creado se come un 403. El `create()` de las 5 policies usa `puedeGestionarArea()` y el comité cuelga del área raíz, así que da `true`, pero `view()` le corta el borrador. Se resuelve junto con los permisos particulares en la migración del módulo al sistema real (decisión del 2026-07-17), no antes.
 
 ## En curso / recién cerrado
@@ -67,4 +68,4 @@ Estos ítems surgieron en el camino pero no tienen alcance ni prioridad definida
 
 ---
 
-*Última revisión: 2026-11-17.*
+*Última revisión: 2026-11-20.*
