@@ -3,6 +3,7 @@
 namespace App\Livewire\Auditoria\Riesgo\Show;
 
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\BuscaEnModal;
+use App\Livewire\Auditoria\Riesgo\Show\Concerns\CambiaObjetivosDelRiesgo;
 use App\Livewire\Auditoria\Riesgo\Show\Concerns\PropuestasEnBloque;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Estado;
@@ -26,6 +27,7 @@ use Livewire\Component;
 class GestionObjetivos extends Component
 {
     use BuscaEnModal;
+    use CambiaObjetivosDelRiesgo;
     use PropuestasEnBloque;
 
     public int $riesgoId;
@@ -192,60 +194,22 @@ class GestionObjetivos extends Component
         }
 
         $diffRel = $this->construirDiff($riesgo);
+        $resultado = $this->registrarCambioObjetivos($riesgo, $ids, $diffRel);
 
-        if ($this->esBorrador) {
-            $riesgo->objetivos()->sync($ids);
-
-            // Dejar rastro del cambio en el historial también en borrador, pero sólo
-            // si la selección realmente cambió (mismo diff que pinta la vista de
-            // actualizaciones vía data['diff']['relaciones']).
+        if ($resultado === 'borrador') {
             if (! empty($diffRel)) {
-                $riesgo->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => 'Objetivos asociados',
-                    'estado_id' => Estado::borrador()->id,
-                    'data' => ['tipo' => 'edicion', 'diff' => ['relaciones' => ['objetivos' => $diffRel]]],
-                ]);
                 $this->dispatch('riesgo-actualizado');
             }
-
             $this->editando = false;
             $this->error = '';
             session()->flash('ok', 'Objetivos actualizados.');
-        } else {
-            $modo = $this->modoCambio();
-            $estadoId = $this->estadoParaActualizacion();
 
-            $data = ['tipo' => 'cambio', 'relaciones' => ['objetivos' => ['sync' => $ids]]];
-            if (! empty($diffRel)) {
-                $data['diff'] = ['relaciones' => ['objetivos' => $diffRel]];
-            }
-
-            $aplicarAhora = $modo === 'directo';
-
-            if ($aplicarAhora) {
-                // El cambio se aplica en el acto: se marca activated_by para que el
-                // historial lo rotule "Cambios aplicados" y no "Cambios propuestos".
-                $data['activated_by'] = Auth::user()->name;
-                $riesgo->objetivos()->sync($ids);
-                $riesgo->actualizaciones()->create([
-                    'user_id' => Auth::id(),
-                    'mensaje' => 'Objetivos asociados actualizados',
-                    'estado_id' => $estadoId,
-                    'data' => $data,
-                ] + $this->columnasComiteElegido());
-                $this->dispatch('riesgo-actualizado');
-                $this->cancelarEdicion();
-                session()->flash('ok', 'Objetivos actualizados.');
-            } else {
-                // Fuera del modo directo, cada alta/baja/cambio es su propia propuesta.
-                $this->proponerPorElemento($riesgo, 'objetivos', $diffRel, $estadoId, 'objetivo');
-
-                $this->dispatch('riesgo-actualizado');
-                $this->cancelarEdicion();
-                session()->flash('ok', 'Propuesta registrada. Pendiente de validación.');
-            }
+            return;
         }
+
+        $this->dispatch('riesgo-actualizado');
+        $this->cancelarEdicion();
+        session()->flash('ok', $resultado === 'directo' ? 'Objetivos actualizados.' : 'Propuesta registrada. Pendiente de validación.');
     }
 
     /**

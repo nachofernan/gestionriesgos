@@ -76,29 +76,8 @@
         <div class="lg:col-span-8 space-y-5 order-2 lg:order-1">
             @livewire('auditoria.objetivo.show.ficha-objetivo', ['objetivo' => $objetivo])
 
-            {{-- Sólo lectura: la asociación se gestiona desde cada riesgo, así que no hace falta Livewire. --}}
-            <x-auditoria.bloque-riesgo ancla="riesgos" titulo="Riesgos asociados" :contador="$objetivo->riesgos->count()"
-                subtitulo="La asociación se gestiona desde cada riesgo.">
-                @forelse ($objetivo->riesgos as $riesgo)
-                    <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50/60 cursor-pointer hover:border-indigo-200 hover:bg-white transition-colors"
-                         onclick="Livewire.dispatch('ver-riesgo', {id: {{ $riesgo->id }}})">
-                        <x-auditoria.estado-punto :estado="$riesgo->estado" soloPunto />
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-800 truncate">
-                                {{ $riesgo->nombre }}
-                            </p>
-                            <p class="text-[11px] text-gray-500 truncate">
-                                {{ collect([$riesgo->tipoRiesgo?->nombre, $riesgo->area?->nombre])->filter()->join(' · ') ?: '—' }}
-                            </p>
-                        </div>
-                        <span class="shrink-0 w-20 text-right text-xs tabular-nums text-gray-500" title="Valor total → residual">
-                            {{ $riesgo->valor_total }} → <strong class="text-gray-900">{{ $riesgo->valor_residual }}</strong>
-                        </span>
-                    </div>
-                @empty
-                    <p class="text-sm text-gray-400 italic py-2">Este objetivo no está asociado a ningún riesgo todavía.</p>
-                @endforelse
-            </x-auditoria.bloque-riesgo>
+            {{-- Alta y baja de riesgos desde el objetivo: cada cambio es del riesgo (D-055). --}}
+            @livewire('auditoria.objetivo.show.riesgos-objetivo', ['objetivo' => $objetivo])
 
             <x-auditoria.bloque-riesgo ancla="planes" titulo="Planes de acción vinculados" :contador="$planes->count()"
                 subtitulo="Los planes de los riesgos asociados.">

@@ -261,6 +261,7 @@ Patrón común para manejar relaciones many-to-many con edición inline:
 app/Livewire/Auditoria/
 ├── Riesgo/Show/
 │   ├── Concerns/PropuestasEnBloque.php — modo de cambio, propuestas pendientes y propuesta por elemento
+│   ├── Concerns/CambiaObjetivosDelRiesgo.php — registra un cambio en los objetivos de un riesgo (lo usan GestionObjetivos y RiesgosObjetivo, D-055)
 │   ├── ResumenPropuestas.php   — banner con las propuestas pendientes del riesgo
 │   ├── FichaRiesgo.php         — datos propios del riesgo, editables en el bloque
 │   ├── InfoRiesgo.php          — tarjeta Valor: total, desglose de mitigación, residual
@@ -274,6 +275,7 @@ app/Livewire/Auditoria/
 │   └── InfoControl.php         — tarjeta Datos del lateral
 ├── Objetivo/Show/
 │   ├── FichaObjetivo.php       — datos del objetivo, editables en el bloque
+│   ├── RiesgosObjetivo.php     — riesgos asociados, con alta y baja de a una; cada cambio es del riesgo (D-055)
 │   └── InfoObjetivo.php        — tarjeta Fecha objetivo del lateral (clasificación, PEIS a los que contribuye o contribuyentes)
 ├── Tarea/Show/
 │   ├── FichaTarea.php          — datos de la tarea (incluido el avance), editables en el bloque

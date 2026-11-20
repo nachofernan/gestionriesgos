@@ -1929,3 +1929,39 @@ PEIS queda en un riesgo que no lo admite. Los caminos que aplican propuestas no 
 Tests en `ObjetivoPeisTest`. Reemplaza la parte de catálogo de D-010.
 
 Fuente: sesión 2026-11-20, con el usuario presente.
+
+---
+
+## D-055 — Un objetivo sin riesgos no se firma, y los riesgos también se asocian desde el objetivo (2026-11-20)
+
+**Decisión.**
+- **Firma.** En la revisión inicial, un objetivo sin riesgos asociados pasa de advertencia a
+  **error**, así que bloquea la firma. Si tiene una propuesta validada que le agrega un riesgo, queda
+  "en curso" como cualquier otro hallazgo. **Un PEIS sin riesgos no tiene hallazgo:** sus riesgos le
+  llegan de forma indirecta por los objetivos que le contribuyen.
+- **Asociar desde el objetivo.** La pantalla del objetivo tiene un bloque editable "Riesgos asociados"
+  (`RiesgosObjetivo`).
+  - **El cambio es del riesgo, no del objetivo.** Se pide `proponer` sobre cada riesgo y se sigue el
+    mismo camino que el bloque Objetivos del riesgo. La lógica compartida vive en el trait
+    `CambiaObjetivosDelRiesgo`.
+  - **Riesgo en borrador:** se asocia directo.
+  - **Riesgo validado o aprobado:** se aplica en el acto o queda una propuesta en el historial del
+    riesgo, con la elección de rol de D-052 y D-053.
+  - **Las acciones son de a una**, sin selección + guardar, porque cada riesgo tiene su propio estado
+    y su propio modo de cambio.
+  - **El buscador** muestra sólo los riesgos sobre los que el usuario puede proponer y que no tienen
+    ya una propuesta pendiente con este objetivo.
+  - **Quitar se bloquea** si es el único objetivo vigente del riesgo.
+  - **Un PEIS** sólo agrega riesgos de Corrupción (D-054).
+
+**Motivo.** Pedido del usuario. Firmar un objetivo que no responde a ningún riesgo no tiene sentido,
+y en la carga inicial la mayoría de los objetivos no tiene riesgos. Asociarlos desde el objetivo
+acelera la revisión.
+
+**Descartado.** Tratar el alta como un cambio del objetivo, con la propuesta en su historial y
+alcanzando con `proponer` sobre el objetivo. Permitía asociar riesgos de otra gerencia sin que
+intervenga el dueño del riesgo.
+
+Tests en `RiesgosObjetivoTest` y `DetectorInconsistenciasTest`.
+
+Fuente: sesión 2026-11-20, con el usuario presente.

@@ -627,8 +627,18 @@ los riesgos de este objetivo) con sus tareas, y las Notas y documentos y la Acti
 
 ### 8.4. Cómo se asocia un objetivo a un riesgo
 
-Desde el **Riesgo**, en su bloque "Objetivos" (ver 6.7). Recordá el mínimo de 1 objetivo por
-riesgo. Los objetivos PEIS sólo aparecen en el buscador de un riesgo de **Corrupción**, y cuentan
+Desde el **Riesgo**, en su bloque "Objetivos" (ver 6.7), o desde el **Objetivo**, en su bloque
+"Riesgos asociados":
+- **Asociar riesgo** abre un buscador con los riesgos que gestionás.
+- La **×** de cada fila quita el riesgo.
+
+Desde el objetivo, cada alta o baja es un cambio **del riesgo**:
+- si el riesgo está en borrador, se aplica en el momento;
+- si no, se aplica o queda como propuesta en el historial del riesgo, igual que si lo hicieras desde
+  el riesgo;
+- mientras haya una propuesta pendiente, ese riesgo no se puede volver a tocar desde acá.
+
+Recordá el mínimo de 1 objetivo por riesgo: no se puede quitar el único objetivo de un riesgo. Los objetivos PEIS sólo aparecen en el buscador de un riesgo de **Corrupción**, y cuentan
 para ese mínimo como cualquier otro. Un riesgo con un PEIS asociado no puede pasar a otro tipo: primero
 hay que quitar el PEIS.
 
