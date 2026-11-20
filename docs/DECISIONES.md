@@ -2040,12 +2040,18 @@ Aplica a **todos los elementos** de la revisión: riesgos, controles, objetivos,
 tareas. Por eso depende de llevar la eliminación por propuesta (D-047, hoy solo en riesgos) al resto de
 las entidades (ítem del ROADMAP).
 
-**Queda abierto** (se decide al rehacer Pendientes y la estructura de la revisión inicial):
-- Qué pasa si el comité rechaza el borrado. Puede quedar firmada igual o volver a la revisión con sus
-  inconsistencias.
-- Los vínculos. Proponer borrar un elemento puede dejar a otro inconsistente, por ejemplo un objetivo
-  sin riesgos (D-055) o un riesgo «mitigar» sin su único plan. Falta ver si eso pesa en la firma del
-  otro desde que se propone o recién cuando se aprueba el borrado.
+**Si el comité rechaza.** Vale para cualquier propuesta en la que se apoyó una firma, no solo para el
+borrado. Si el comité rechaza la propuesta, la firma deja de valer y el elemento vuelve a la revisión
+con sus inconsistencias. Lo mismo pasa con otras propuestas: un riesgo que se asocia a un objetivo
+como propuesta, se firma, y el comité la rechaza, le vuelve a aparecer al usuario como inconsistencia.
+
+**Los vínculos.** Lo que se propone borrar sigue contando para los demás hasta que el comité lo
+aprueba. Si al aprobarse deja a otro elemento inconsistente (un objetivo sin riesgos, D-055), aparece
+una inconsistencia nueva en ese otro elemento. No se anticipa al proponer.
+
+**Alcance.** La revisión inicial no tiene que dejar todo perfecto. Su objetivo es una limpieza fuerte
+del estado actual, en el que casi todo está inconsistente. Es esperable que la pantalla de
+inconsistencias se vuelva a abrir cada tanto para reacomodar lo que vaya quedando.
 
 **Motivo.** Pedido del usuario: la firma es la decisión sobre qué hacer con el elemento. Sostener las
 inconsistencias de algo que se va a borrar es trabajo perdido.
