@@ -281,7 +281,7 @@ app/Livewire/Auditoria/
 │   ├── FichaTarea.php          — datos de la tarea (incluido el avance), editables en el bloque
 │   └── InfoTarea.php           — tarjeta Avance del lateral (plazo, asignada a)
 ├── Actualizaciones/
-│   ├── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (todas las pantallas de detalle)
+│   ├── GestionActualizaciones.php — historial; variante 'completa' o 'timeline' (todas las pantallas de detalle; la timeline suma lo de la contraparte y los testeos vía Services/Auditoria/ActividadRelacionada, D-056)
 │   └── Conversacion.php        — notas y documentos de cualquier entidad del ciclo
 └── PlanAccion/Show/
     ├── FichaPlan.php           — datos del plan, editables en el bloque
@@ -372,7 +372,7 @@ resources/views/
     │   ├── conversacion.blade.php
     │   ├── gestion-actualizaciones.blade.php           # variante 'completa'
     │   ├── gestion-actualizaciones-timeline.blade.php  # variante 'timeline'
-    │   └── partials/{modal-nueva, actividad-modal}.blade.php
+    │   └── partials/{modal-nueva, actividad-modal, actividad-testeo}.blade.php
     ├── control/
     │   ├── index/search.blade.php
     │   └── show/{ficha-control, riesgos-control, info-control}.blade.php

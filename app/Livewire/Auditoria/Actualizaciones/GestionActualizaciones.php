@@ -16,6 +16,7 @@ use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use App\Models\Auditoria\TipoRiesgo;
+use App\Services\Auditoria\ActividadRelacionada;
 use App\Services\Auditoria\EvaluacionRiesgo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -63,8 +64,8 @@ class GestionActualizaciones extends Component
     /** Variante 'timeline': parte tocada por la que se filtra el modal (campos/areas/objetivos/…) o '' para todas. */
     public string $parteActividad = '';
 
-    /** Variante 'timeline': entrada resaltada al abrir el modal desde el lateral. */
-    public ?int $focoActividad = null;
+    /** Variante 'timeline': entrada resaltada al abrir el modal desde el lateral ('act-{id}' o 'tst-{id}' de un testeo). */
+    public ?string $focoActividad = null;
 
     public string $mensaje = '';
 
@@ -110,13 +111,15 @@ class GestionActualizaciones extends Component
         $this->modalAbierto = false;
     }
 
-    public function abrirActividad(?int $id = null): void
+    public function abrirActividad(?string $clave = null): void
     {
         $this->reset(['filtroActividad', 'parteActividad']);
-        $this->focoActividad = $id;
+        // La clave termina dentro de un js(): sólo pasa con la forma que arma la vista.
+        $clave = $clave !== null && preg_match('/^(act|tst)-\d+$/', $clave) ? $clave : null;
+        $this->focoActividad = $clave;
         $this->actividadAbierta = true;
-        if ($id) {
-            $this->js("setTimeout(() => document.getElementById('act-det-{$id}')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50)");
+        if ($clave) {
+            $this->js("setTimeout(() => document.getElementById('act-det-{$clave}')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50)");
         }
     }
 
@@ -457,12 +460,35 @@ class GestionActualizaciones extends Component
 
     public function render()
     {
-        $actualizaciones = $this->resolverModelo()
+        $entidad = $this->resolverModelo();
+        $with = ['user.area', 'estado', 'media', 'validadoPor', 'aprobadoPor', 'rechazadoPor', 'registrosComite'];
+        $actualizaciones = $entidad
             ->actualizaciones()
-            ->with(['user.area', 'estado', 'media', 'validadoPor', 'aprobadoPor', 'rechazadoPor', 'registrosComite'])
+            ->with($with)
             ->latest('created_at')
             ->latest('id')
             ->get();
+
+        // La línea de tiempo suma lo registrado desde la contraparte (D-056): de solo
+        // lectura, con el elemento de origen a mano para el link.
+        $derivadas = collect();
+        $testeos = collect();
+        if ($this->variante === 'timeline') {
+            $derivadas = ActividadRelacionada::entradas($entidad, Auth::user(), $with)
+                ->each(fn (Actualizacion $a) => $a->setAttribute('origen_externo', [
+                    'tipo' => $a->actualizable instanceof PlanAccion ? 'plan' : 'riesgo',
+                    'nombre' => $a->actualizable->nombre,
+                    'url' => ActividadRelacionada::urlDe($a->actualizable),
+                ]));
+            $testeos = ActividadRelacionada::testeos(
+                $entidad,
+                Auth::user(),
+                $actualizaciones->pluck('data.testeo_id')->filter()->all(),
+            );
+            $actualizaciones = $actualizaciones->concat($derivadas)
+                ->sortBy([['created_at', 'desc'], ['id', 'desc']])
+                ->values();
+        }
 
         // La línea de tiempo es el historial de cambios: las notas sueltas viven en
         // la Conversación del riesgo (ActualizacionesConversacion), no acá. El modal de
@@ -480,11 +506,14 @@ class GestionActualizaciones extends Component
             'actualizaciones' => $actualizaciones,
             'todas' => $todas,
             // Para autorizar la carga del comité de cada aprobación (D-039).
-            'entidad' => $this->resolverModelo(),
-            // La línea de tiempo marca las propuestas todavía sin aplicar (misma regla que los bloques).
+            'entidad' => $entidad,
+            // La línea de tiempo marca las propuestas todavía sin aplicar (misma regla que los
+            // bloques), también las registradas en la contraparte.
             'pendientesIds' => $this->variante === 'timeline'
-                ? $this->resolverModelo()->actualizaciones()->propuestasPendientes()->pluck('id')
+                ? $entidad->actualizaciones()->propuestasPendientes()->pluck('id')
+                    ->merge($derivadas->isEmpty() ? [] : Actualizacion::whereKey($derivadas->modelKeys())->propuestasPendientes()->pluck('id'))
                 : collect(),
+            'testeos' => $testeos,
             'camposEditables' => $this->camposEditables(),
             'camposFecha' => $this->camposFecha(),
             'camposNumericos' => $this->camposNumericos(),

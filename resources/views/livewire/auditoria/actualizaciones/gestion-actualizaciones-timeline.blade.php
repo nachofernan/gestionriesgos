@@ -11,7 +11,7 @@
         'mayor_criticidad' => 'Mayor criticidad','mitigacion_default' => 'Mitigación por defecto', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
         'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance', 'interno' => 'Interno',
     ];
-    $nombresPartes = ['campos' => 'Datos', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes', 'tareas' => 'Tareas', 'sedes' => 'Sedes', 'dimensiones' => 'Dimensiones'];
+    $nombresPartes = ['campos' => 'Datos', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes', 'tareas' => 'Tareas', 'sedes' => 'Sedes', 'dimensiones' => 'Dimensiones', 'riesgos' => 'Riesgos', 'testeos' => 'Testeos'];
     $anclas = ['campos' => 'ficha', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes', 'tareas' => 'tareas', 'sedes' => 'ficha', 'dimensiones' => 'ficha'];
 
     // Clasifica una entrada: qué es, cómo terminó y qué partes tocó. Lo usan el lateral y el modal.
@@ -30,7 +30,12 @@
         $pendiente = $pendientesIds->contains($a->id);
         $esNota = $a->estado_id === null && empty($data);
         $diff = $data['diff'] ?? [];
-        $partes = array_merge(!empty($diff['campos']) ? ['campos'] : [], array_keys($diff['relaciones'] ?? []));
+        // Registrada en la contraparte (D-056): acá es una entrada de solo lectura y la
+        // parte que tocó es la relación con ese elemento (en el objetivo, «Riesgos»).
+        $externo = $a->origen_externo;
+        $partes = $externo
+            ? [$externo['tipo'] === 'plan' ? 'planesAccion' : 'riesgos']
+            : array_merge(!empty($diff['campos']) ? ['campos'] : [], array_keys($diff['relaciones'] ?? []));
         $chipTarea = isset($data['tarea_creada']) ? ($chipsTarea[$estadosTareasCreadas[$data['tarea_creada']] ?? ''] ?? null) : null;
 
         [$grupo, $punto, $resultado, $clase] = match (true) {
@@ -50,11 +55,37 @@
             default => ['aplicada', 'bg-emerald-500', 'Aplicada', 'text-emerald-700 bg-emerald-100'],
         };
 
-        return compact('data', 'tipo', 'estado', 'pendiente', 'esNota', 'diff', 'partes', 'grupo', 'punto', 'resultado', 'clase', 'chipTarea');
+        $clave = 'act-'.$a->id;
+        $cuando = $a->created_at;
+        $mensaje = $a->mensaje;
+        $autor = $a->user;
+        $testeo = null;
+
+        return compact('data', 'tipo', 'estado', 'pendiente', 'esNota', 'diff', 'partes', 'grupo', 'punto', 'resultado', 'clase', 'chipTarea', 'externo', 'clave', 'cuando', 'mensaje', 'autor', 'testeo');
     };
 
-    $clasificadas = $actualizaciones->map(fn ($a) => ['a' => $a] + $clasificar($a));
+    // Un testeo de evidencia (D-040) no es una Actualizacion: se pinta con su propia tarjeta.
+    $clasificarTesteo = function ($t) use ($modelType) {
+        $contraparte = $modelType === 'control' ? $t->riesgo : $t->control;
+        $porcentaje = $t->efectividad_antes === $t->efectividad_despues
+            ? "confirma {$t->efectividad_despues}%"
+            : "{$t->efectividad_antes}% → {$t->efectividad_despues}%";
+
+        return [
+            'a' => null, 'testeo' => $t, 'data' => [], 'tipo' => 'testeo', 'estado' => null, 'pendiente' => false,
+            'esNota' => false, 'diff' => [], 'partes' => ['testeos'], 'grupo' => 'testeo', 'punto' => 'bg-teal-500',
+            'resultado' => 'Testeo', 'clase' => 'text-teal-700 bg-teal-100', 'chipTarea' => null, 'externo' => null,
+            'clave' => 'tst-'.$t->id, 'cuando' => $t->created_at, 'autor' => $t->user,
+            'mensaje' => ($modelType === 'control' ? 'Testeo en «' : 'Testeo de «').($contraparte?->nombre ?? '—')."»: {$porcentaje}",
+        ];
+    };
+
+    $clasificadas = $actualizaciones->map(fn ($a) => ['a' => $a] + $clasificar($a))
+        ->concat($testeos->map($clasificarTesteo))
+        ->sortByDesc(fn ($x) => $x['cuando']?->getTimestamp())
+        ->values();
     $conteo = $clasificadas->countBy('grupo');
+    $total = $clasificadas->count();
     $visibles = 4;
 @endphp
 {{-- Sin Alpine: un x-data dejaría sin enganchar los wire:click de adentro (ver actualizaciones/conversacion.blade.php). --}}
@@ -63,45 +94,45 @@
     <header class="px-4 pt-4 pb-2 flex items-center justify-between">
         <button type="button" wire:click="abrirActividad" class="group flex items-center gap-2">
             <h2 class="text-[13px] font-extrabold text-gray-900 tracking-tight group-hover:text-indigo-700">Actividad</h2>
-            <span class="text-[11px] font-bold text-gray-500 bg-gray-100 rounded-full px-2 py-0.5 tabular-nums">{{ $actualizaciones->count() }}</span>
+            <span class="text-[11px] font-bold text-gray-500 bg-gray-100 rounded-full px-2 py-0.5 tabular-nums">{{ $total }}</span>
         </button>
-        @if($actualizaciones->isNotEmpty())
+        @if($total)
             <button type="button" wire:click="abrirActividad" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800">
                 Ver todo →
             </button>
         @endif
     </header>
 
-    @if($actualizaciones->isNotEmpty())
+    @if($total)
         {{-- Tira de conteos: de un vistazo, cómo está el historial. --}}
         <button type="button" wire:click="abrirActividad" class="mx-4 mb-2 flex w-[calc(100%-2rem)] h-1.5 rounded-full overflow-hidden bg-gray-100" title="Ver detalle">
-            @foreach(['aplicada' => 'bg-emerald-500', 'estado' => 'bg-blue-500', 'alta' => 'bg-gray-500', 'pendiente' => 'bg-amber-400', 'rechazada' => 'bg-red-400'] as $g => $color)
+            @foreach(['aplicada' => 'bg-emerald-500', 'estado' => 'bg-blue-500', 'alta' => 'bg-gray-500', 'testeo' => 'bg-teal-500', 'pendiente' => 'bg-amber-400', 'rechazada' => 'bg-red-400'] as $g => $color)
                 @if($conteo->get($g))
-                    <span class="{{ $color }}" style="width: {{ $conteo->get($g) / $actualizaciones->count() * 100 }}%"></span>
+                    <span class="{{ $color }}" style="width: {{ $conteo->get($g) / $total * 100 }}%"></span>
                 @endif
             @endforeach
         </button>
         <p class="px-4 mb-3 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] font-semibold text-gray-500">
             @if($conteo->get('pendiente'))<span class="text-amber-700">{{ $conteo->get('pendiente') }} pendiente{{ $conteo->get('pendiente') > 1 ? 's' : '' }}</span>@endif
             @if($conteo->get('aplicada'))<span>{{ $conteo->get('aplicada') }} aplicada{{ $conteo->get('aplicada') > 1 ? 's' : '' }}</span>@endif
+            @if($conteo->get('testeo'))<span class="text-teal-700">{{ $conteo->get('testeo') }} testeo{{ $conteo->get('testeo') > 1 ? 's' : '' }}</span>@endif
             @if($conteo->get('rechazada'))<span>{{ $conteo->get('rechazada') }} rechazada{{ $conteo->get('rechazada') > 1 ? 's' : '' }}/retirada{{ $conteo->get('rechazada') > 1 ? 's' : '' }}</span>@endif
         </p>
     @endif
 
     <ol class="px-2 pb-2">
         @forelse ($clasificadas->take($visibles) as $x)
-            @php $actualizacion = $x['a']; @endphp
-            <li wire:key="act-{{ $actualizacion->id }}">
-                <button type="button" wire:click="abrirActividad({{ $actualizacion->id }})"
+            <li wire:key="{{ $x['clave'] }}">
+                <button type="button" wire:click="abrirActividad('{{ $x['clave'] }}')"
                     class="w-full text-left flex items-start gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                     <span class="mt-1.5 shrink-0 w-2 h-2 rounded-full {{ $x['punto'] }}"></span>
                     <span class="min-w-0 flex-1">
-                        <span class="block text-xs font-semibold text-gray-800 truncate">{{ $actualizacion->mensaje }}</span>
+                        <span class="block text-xs font-semibold text-gray-800 truncate">{{ $x['mensaje'] }}</span>
                         <span class="block text-[10px] text-gray-400 truncate">
-                            {{ $actualizacion->user?->name ?? '—' }} · {{ $actualizacion->created_at?->diffForHumans() }}
+                            @if($x['externo'])en «{{ $x['externo']['nombre'] }}» · @endif{{ $x['autor']?->name ?? '—' }} · {{ $x['cuando']?->diffForHumans() }}
                         </span>
                     </span>
-                    @if($x['pendiente'] || $x['grupo'] === 'rechazada' || in_array($x['tipo'], ['estado_tarea', 'comite']))
+                    @if($x['pendiente'] || in_array($x['grupo'], ['rechazada', 'testeo']) || in_array($x['tipo'], ['estado_tarea', 'comite']))
                         <span class="mt-0.5 shrink-0 text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 {{ $x['clase'] }}">{{ $x['resultado'] }}</span>
                     @elseif($x['chipTarea'])
                         <span class="mt-0.5 shrink-0 text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 {{ $x['chipTarea'][1] }}">{{ $x['chipTarea'][0] }}</span>
@@ -113,10 +144,10 @@
         @endforelse
     </ol>
 
-    @if($actualizaciones->count() > $visibles)
+    @if($total > $visibles)
         <button type="button" wire:click="abrirActividad"
             class="w-full border-t border-gray-100 py-2 text-[11px] font-bold text-gray-500 hover:text-indigo-700 hover:bg-gray-50">
-            +{{ $actualizaciones->count() - $visibles }} más
+            +{{ $total - $visibles }} más
         </button>
     @endif
 

@@ -1965,3 +1965,41 @@ intervenga el dueño del riesgo.
 Tests en `RiesgosObjetivoTest` y `DetectorInconsistenciasTest`.
 
 Fuente: sesión 2026-11-20, con el usuario presente.
+
+---
+
+## D-056 — La actividad muestra lo registrado desde la contraparte y los testeos (2026-11-20)
+
+**Decisión.** La actividad (variante `timeline` de `GestionActualizaciones`) de un elemento cuenta su
+evolución completa, no sólo lo registrado en su propio historial.
+
+- **Relaciones.** Un cambio de relación se sigue registrando en un solo lado: la asociación
+  riesgo–objetivo, riesgo–control y riesgo–plan en el riesgo (también cuando se hace desde el
+  objetivo, D-055), y la de plan–tarea en el plan. La contraparte la muestra **derivándola al leer**:
+  trae las Actualizaciones del otro elemento cuyo diff de relaciones la menciona
+  (`ActividadRelacionada::entradas()`). En la contraparte son de **solo lectura**: sin validar,
+  rechazar, aprobar, retirar ni cargar comité, con un link «Registrado en el riesgo «X»». Una
+  propuesta pendiente se ve pendiente y una rechazada, rechazada, porque es la misma entrada.
+- **Visibilidad.** Se oculta lo registrado en un elemento que quien mira no puede ver
+  (`can('view')`). Lo aprobado es visible para todos; el caso real es un riesgo en borrador de otra
+  gerencia que usa un objetivo aprobado, que no aparece hasta que se apruebe.
+- **No se duplica.** La eliminación de un plan no se deriva a sus tareas (ya tienen «Eliminada junto
+  con el plan»).
+- **Testeos (D-040).** Todos, también los que confirman el %, aparecen en la actividad del control y
+  del riesgo de la relación, con comentario, % y adjuntos, leídos de la tabla `testeos`
+  (`ActividadRelacionada::testeos()`). En el riesgo, el que movió el % se cuenta una vez, por su
+  Actualizacion; en el control, por el testeo.
+- **Reevaluación del auditor (D-051).** Sigue sólo en la actividad del control.
+
+**Motivo.** Pedido del usuario: si se asocia el riesgo A al objetivo B, el historial de B quedaba
+vacío. Cada elemento tiene que tener su propia evolución.
+
+**Descartado.** Espejar al escribir: crear una entrada en la contraparte en cada uno de los ~10
+lugares que registran relaciones. Obligaba a mantener dos copias del ciclo de una propuesta, y lo ya
+registrado no aparecía sin migrar.
+
+**Pendiente.** La contribución a un PEIS (`objetivo_peis`) hoy no deja rastro en ningún historial.
+
+Tests en `ActividadRelacionadaTest`.
+
+Fuente: sesión 2026-11-20, con el usuario presente.

@@ -18,7 +18,12 @@
     $etiqueta = fn ($campo) => $etiquetasCampos[$campo] ?? ucfirst(str_replace('_', ' ', $campo));
     $camposLargos = ['descripcion', 'fundamento'];
 
-    $todasClasificadas = $todas->map(fn ($a) => ['a' => $a] + $clasificar($a));
+    // Propias, registradas en la contraparte (D-056) y testeos, en un solo orden.
+    $todasClasificadas = $todas->map(fn ($a) => ['a' => $a] + $clasificar($a))
+        ->concat($testeos->map($clasificarTesteo))
+        ->sortByDesc(fn ($x) => $x['cuando']?->getTimestamp())
+        ->values();
+    $adjuntosDe = fn ($x) => ($x['testeo'] ?? $x['a'])->getMedia('adjuntos');
 
     $filtros = [
         'todo' => ['Todo', fn ($x) => true],
@@ -26,22 +31,25 @@
         'pendientes' => ['Pendientes', fn ($x) => $x['pendiente']],
         'rechazadas' => ['Rechazadas / retiradas', fn ($x) => $x['grupo'] === 'rechazada'],
         'notas' => ['Notas', fn ($x) => $x['esNota']],
-        'adjuntos' => ['Con adjuntos', fn ($x) => $x['a']->getMedia('adjuntos')->isNotEmpty()],
+        'adjuntos' => ['Con adjuntos', fn ($x) => $adjuntosDe($x)->isNotEmpty()],
     ];
+    if ($testeos->isNotEmpty()) {
+        $filtros['testeos'] = ['Testeos', fn ($x) => $x['grupo'] === 'testeo'];
+    }
     $lista = $todasClasificadas
         ->filter($filtros[$filtroActividad][1] ?? fn () => true)
         ->filter(fn ($x) => $parteActividad === '' || in_array($parteActividad, $x['partes']));
-    $porDia = $lista->groupBy(fn ($x) => $x['a']->created_at?->toDateString());
+    $porDia = $lista->groupBy(fn ($x) => $x['cuando']?->toDateString());
 
     $cambios = $todasClasificadas->reject(fn ($x) => $x['esNota']);
     $conteoTotal = $cambios->countBy('grupo');
     $partesTocadas = $cambios->flatMap(fn ($x) => $x['partes'])->countBy();
-    $participantes = $todas->groupBy('user_id')
-        ->map(fn ($grupo) => ['user' => $grupo->first()->user, 'cantidad' => $grupo->count(), 'ultima' => $grupo->max('created_at')])
+    $participantes = $todasClasificadas->groupBy(fn ($x) => $x['autor']?->id)
+        ->map(fn ($grupo) => ['user' => $grupo->first()['autor'], 'cantidad' => $grupo->count(), 'ultima' => $grupo->max('cuando')])
         ->sortByDesc('cantidad');
-    $totalAdjuntos = $todas->sum(fn ($a) => $a->getMedia('adjuntos')->count());
-    $primera = $todas->min('created_at');
-    $ultima = $todas->max('created_at');
+    $totalAdjuntos = $todasClasificadas->sum(fn ($x) => $adjuntosDe($x)->count());
+    $primera = $todasClasificadas->min('cuando');
+    $ultima = $todasClasificadas->max('cuando');
 @endphp
 
 <div class="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-6" wire:keydown.escape.window="cerrarActividad">
@@ -61,7 +69,7 @@
             <div>
                 <h2 class="text-lg font-black tracking-tight text-gray-900">Actividad {{ $modelType === 'tarea' ? 'de la tarea' : 'del '.$modelType }}</h2>
                 <p class="text-xs text-gray-500 mt-0.5">
-                    {{ $cambios->count() }} movimientos · {{ $todas->count() - $cambios->count() }} notas
+                    {{ $cambios->count() }} movimientos · {{ $todasClasificadas->count() - $cambios->count() }} notas
                     @if($primera) · del {{ $primera->format('d/m/Y') }} al {{ $ultima->format('d/m/Y') }} @endif
                 </p>
             </div>
@@ -159,11 +167,16 @@
 
                         <ol class="relative space-y-3 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-gray-200">
                             @foreach($entradas as $x)
+                                @if($x['testeo'])
+                                    @include('livewire.auditoria.actualizaciones.partials.actividad-testeo', ['t' => $x['testeo']])
+                                    @continue
+                                @endif
                                 @php
                                     $a = $x['a'];
                                     $data = $x['data'];
                                     $diff = $x['diff'];
-                                    $enFoco = $focoActividad === $a->id;
+                                    $externo = $x['externo'];
+                                    $enFoco = $focoActividad === $x['clave'];
                                     $adjuntos = $a->getMedia('adjuntos');
                                     $autor = $a->user;
 
@@ -178,7 +191,7 @@
                                         if ($x['estado'] === 'borrado' && !$a->rechazado_por_id) $pasos->push(['bg-gray-400', 'Retirada', null, $a->updated_at]);
                                     }
                                 @endphp
-                                <li id="act-det-{{ $a->id }}" wire:key="act-det-{{ $a->id }}" class="relative pl-7 scroll-mt-10">
+                                <li id="act-det-{{ $x['clave'] }}" wire:key="act-det-{{ $x['clave'] }}" class="relative pl-7 scroll-mt-10">
                                     <span class="absolute left-0 top-4 w-[15px] h-[15px] rounded-full ring-4 ring-gray-50 {{ $x['punto'] }}"></span>
 
                                     <article @class(['bg-white rounded-xl border shadow-sm transition-shadow',
@@ -207,6 +220,14 @@
                                             </div>
                                         </div>
 
+                                        {{-- Registrada en la contraparte (D-056): acá sólo se lee; se resuelve allá. --}}
+                                        @if($externo)
+                                            <a href="{{ $externo['url'] }}"
+                                               class="mx-4 mb-2 flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
+                                                Registrado en {{ $externo['tipo'] === 'plan' ? 'el plan' : 'el riesgo' }} «{{ $externo['nombre'] }}» →
+                                            </a>
+                                        @endif
+
                                         {{-- Comité que dictaminó la aprobación (D-039); se carga o corrige con una entrada nueva. --}}
                                         @if($a->esAprobacion())
                                             @php $comiteAprobacion = $a->comiteVigente(); @endphp
@@ -218,9 +239,11 @@
                                                 @else
                                                     <span class="text-gray-400">Sin comité</span>
                                                 @endif
-                                                @can('registrarComite', [\App\Models\Auditoria\Actualizacion::class, $entidad, $a])
-                                                    <x-auditoria.boton-cargar-comite :aprobacionId="$a->id" :comite="$comiteAprobacion" />
-                                                @endcan
+                                                @if(! $externo)
+                                                    @can('registrarComite', [\App\Models\Auditoria\Actualizacion::class, $entidad, $a])
+                                                        <x-auditoria.boton-cargar-comite :aprobacionId="$a->id" :comite="$comiteAprobacion" />
+                                                    @endcan
+                                                @endif
                                             </div>
                                         @endif
 
@@ -234,7 +257,7 @@
                                         @if($x['partes'])
                                             <div class="px-4 pb-2 flex flex-wrap gap-1">
                                                 @foreach($x['partes'] as $parte)
-                                                    @if($x['pendiente'] && isset($anclas[$parte]))
+                                                    @if($x['pendiente'] && ! $externo && isset($anclas[$parte]))
                                                         <a href="#{{ $anclas[$parte] }}" wire:click="cerrarActividad"
                                                            class="text-[10px] font-semibold rounded-md px-1.5 py-0.5 bg-amber-50 text-amber-800 hover:bg-amber-100">
                                                             {{ $nombresPartes[$parte] ?? $parte }} · resolver en su bloque →
@@ -360,7 +383,7 @@
                                             @endif
 
                                             {{-- Acciones sobre propuestas pendientes --}}
-                                            @if($x['pendiente'])
+                                            @if($x['pendiente'] && ! $externo)
                                                 <div class="flex flex-wrap gap-1.5 pt-1 border-t border-gray-100">
                                                     @if($estadoModelo !== 'borrador')
                                                         @can('validar', $a)
