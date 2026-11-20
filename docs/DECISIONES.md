@@ -2023,24 +2023,31 @@ Tests en `ActividadRelacionadaTest`.
 
 Fuente: sesión 2026-11-20, con el usuario presente.
 
-## D-058 — En la revisión inicial un elemento se puede borrar en vez de arreglarlo (2026-11-20)
+## D-058 — En la revisión inicial se firma resolviendo o proponiendo el borrado (2026-11-20)
 
-**Decisión (regla, sin implementar todavía).** Durante la revisión inicial, un elemento que ya no
-corresponde tenerlo en el sistema —se terminó de realizar, otro lo tapa, ya no existe— se puede pasar a
-`borrado` en vez de arreglar sus inconsistencias. Un elemento borrado sale de la revisión (`Index` y
-`PendientesFicha` ya excluyen `borrado`), así que no se firma ni arrastra lo que le faltaba. Ejemplo: un
-riesgo sin objetivos se borra y deja de bloquear la firma.
+**Decisión (regla, sin implementar todavía).** En la revisión inicial, el responsable primario firma
+para decir cómo se trata cada elemento. Hay dos salidas válidas:
+
+1. **Resolver** las inconsistencias, que es el circuito de hoy.
+2. **Proponer el borrado**, con motivo obligatorio (como todo rechazo, D-031). Sirve para un elemento
+   que ya no corresponde tenerlo: se terminó de realizar, otro lo tapa, ya no existe. Con la propuesta
+   de borrado cargada, sus inconsistencias dejan de bloquear la firma, y el elemento se firma igual.
+
+La firma no espera al comité. La propuesta sigue el circuito de eliminación de D-047: pasa a `borrado`
+recién cuando la aprueba el comité, y eso es aparte de la revisión inicial.
+
+Aplica a **todos los elementos** de la revisión: riesgos, controles, objetivos, planes de acción y
+tareas. Por eso depende de llevar la eliminación por propuesta (D-047, hoy solo en riesgos) al resto de
+las entidades (ítem del ROADMAP).
 
 **Queda abierto** (se decide al rehacer Pendientes y la estructura de la revisión inicial):
-- Quién lo borra y por qué circuito. Lo aprobado hoy no se borra directo: es una propuesta que aprueba
-  el comité (D-047). Falta definir si la revisión inicial es una excepción, por ejemplo que el
-  responsable primario lo borre en el acto.
-- El motivo. Todo rechazo lleva motivo (D-031), y acá debería pasar lo mismo.
-- Los vínculos del elemento borrado. Un objetivo puede quedar sin riesgos (D-055) o un riesgo sin su
-  único plan. Hay que ver si el borrado se propaga o si deja nuevas inconsistencias en los otros.
-- Si alcanza para las 5 entidades o solo para riesgos, por ahora (D-047 todavía no cubre al resto).
+- Qué pasa si el comité rechaza el borrado. Puede quedar firmada igual o volver a la revisión con sus
+  inconsistencias.
+- Los vínculos. Proponer borrar un elemento puede dejar a otro inconsistente, por ejemplo un objetivo
+  sin riesgos (D-055) o un riesgo «mitigar» sin su único plan. Falta ver si eso pesa en la firma del
+  otro desde que se propone o recién cuando se aprueba el borrado.
 
-**Motivo.** Pedido del usuario: sostener inconsistencias de algo que ya no va a seguir en el sistema
-es trabajo perdido para los que firman.
+**Motivo.** Pedido del usuario: la firma es la decisión sobre qué hacer con el elemento. Sostener las
+inconsistencias de algo que se va a borrar es trabajo perdido.
 
 Fuente: sesión 2026-11-20, con el usuario presente.
