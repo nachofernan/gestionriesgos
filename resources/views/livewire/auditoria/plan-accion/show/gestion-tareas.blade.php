@@ -189,7 +189,7 @@
                     </div>
                     @if($deOtraLinea)
                         <p class="text-xs text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
-                            Es de un área que no gestionás: la tarea nace en <strong>borrador</strong> y la valida el gerente de esa área.
+                            Es de un área que no gestionás: la tarea nace en <strong>borrador</strong> y la valida el responsable primario de esa área.
                             Vos la vas a seguir viendo desde este plan.
                         </p>
                     @endif

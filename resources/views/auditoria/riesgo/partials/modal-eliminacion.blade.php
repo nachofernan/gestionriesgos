@@ -38,7 +38,7 @@
 
             <div class="flex items-start justify-between gap-3 px-6 py-4 border-b border-gray-100">
                 <div class="min-w-0">
-                    <p class="text-xs font-bold text-red-600 uppercase tracking-widest mb-0.5">{{ $comiteEliminacion ? 'Eliminar como comité' : 'Proponer eliminación' }}</p>
+                    <p class="text-xs font-bold text-red-600 uppercase tracking-widest mb-0.5">{{ $comiteEliminacion ? 'Eliminar como coordinador(a) del comité' : 'Proponer eliminación' }}</p>
                     <h3 class="text-base font-extrabold text-gray-900 leading-tight">{{ $riesgo->nombre }}</h3>
                     <p class="mt-1 text-xs text-gray-500">{{ $comiteEliminacion ? 'Se elimina en el acto como aprobación del comité.' : 'El riesgo sigue vigente hasta que el comité apruebe la eliminación.' }}</p>
                 </div>
@@ -104,11 +104,11 @@
                         <legend class="block text-xs font-bold text-gray-700 mb-1">Cómo la registrás</legend>
                         <label class="flex items-start gap-2 text-sm text-gray-700">
                             <input type="radio" name="como" value="propuesta" x-model="como" class="mt-0.5">
-                            <span>Enviar como propuesta <span class="block text-xs text-gray-500">Queda validada por vos como gerente, pendiente del comité.</span></span>
+                            <span>Enviar como propuesta <span class="block text-xs text-gray-500">Queda validada por vos como responsable primario, pendiente del comité.</span></span>
                         </label>
                         <label class="flex items-start gap-2 text-sm text-gray-700">
                             <input type="radio" name="como" value="comite" x-model="como" class="mt-0.5">
-                            <span>Establecer como comité <span class="block text-xs text-gray-500">Se elimina en el acto como aprobación del comité.</span></span>
+                            <span>Establecer como coordinador(a) del comité <span class="block text-xs text-gray-500">Se elimina en el acto como aprobación del comité.</span></span>
                         </label>
                         <div x-show="como === 'comite'" x-cloak class="pt-1">
                             @include('auditoria.partials.campos-comite', ['livewire' => false])
@@ -119,7 +119,7 @@
 
             <div class="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
                 <button type="button" x-on:click="abierto = false" class="px-3 py-2 text-xs font-semibold text-gray-600 hover:text-gray-900">Cancelar</button>
-                <button type="submit" class="px-4 py-2 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700" x-text="como === 'comite' ? 'Eliminar como comité' : 'Enviar propuesta'">Enviar propuesta</button>
+                <button type="submit" class="px-4 py-2 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700" x-text="como === 'comite' ? 'Eliminar como coordinador(a) del comité' : 'Enviar propuesta'">Enviar propuesta</button>
             </div>
         </form>
     </div>

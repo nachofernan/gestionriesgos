@@ -250,7 +250,7 @@ class GestionTareas extends Component
         $this->dispatch('plan-actualizado');
         session()->flash('ok', $estado->nombre === 'validado'
             ? 'Tarea creada y agregada al plan.'
-            : 'Tarea creada en borrador y agregada al plan. La valida el gerente de su área.');
+            : 'Tarea creada en borrador y agregada al plan. La valida el responsable primario de su área.');
     }
 
     public function agregar(int $tareaId): void

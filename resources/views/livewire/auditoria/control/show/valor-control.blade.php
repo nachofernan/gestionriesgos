@@ -89,7 +89,7 @@
                         <p class="mt-1 text-xs text-gray-500">
                             El puntaje es el valor que el control mitiga en cada riesgo.
                             @if($modo === 'auditor')
-                                Se aplica en el acto, sin pasar por el gerente ni el comité.
+                                Se aplica en el acto, sin pasar por el responsable primario ni el comité.
                             @elseif($control->estado?->nombre !== 'borrador')
                                 Queda como propuesta hasta que se apruebe.
                             @endif

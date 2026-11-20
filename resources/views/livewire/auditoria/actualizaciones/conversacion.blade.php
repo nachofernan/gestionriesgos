@@ -87,9 +87,9 @@
                     @php
                         $autor = $nota->user;
                         $rol = match (true) {
-                            (bool) $autor?->esComite() && $autor->hasRole('gerente') => 'Gerente y comité',
+                            (bool) $autor?->esComite() && $autor->hasRole('gerente') => 'Responsable primario y comité',
                             (bool) $autor?->esComite() => 'Comité',
-                            (bool) $autor?->esGerente() => 'Gerente',
+                            (bool) $autor?->esGerente() => 'Responsable primario',
                             (bool) $autor?->esAuditor() => 'Auditor',
                             default => null,
                         };

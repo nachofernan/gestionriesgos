@@ -17,7 +17,7 @@
 
     $esperaComite = $propuesta->estado?->nombre === 'validado';
     $situacion = $esperaComite ? 'espera al comité' : 'espera validación';
-    $situacionTitulo = $esperaComite ? 'Validada por '.($propuesta->validadoPor?->name ?? 'la gerencia') : 'Pendiente de validación de un gerente';
+    $situacionTitulo = $esperaComite ? 'Validada por '.($propuesta->validadoPor?->name ?? 'la gerencia') : 'Pendiente de validación de un responsable primario';
 
     $evento = ['objetivos' => 'ver-objetivo', 'controles' => 'ver-control', 'planesAccion' => 'ver-plan', 'tareas' => 'ver-tarea'][$parte] ?? null;
 

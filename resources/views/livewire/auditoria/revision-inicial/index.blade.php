@@ -22,7 +22,7 @@
             Lo que vino del Excel y del Redmine, elemento por elemento. Los <span class="font-semibold text-red-700">errores</span>
             hay que arreglarlos en la pantalla del elemento antes de firmar (alcanza con que el arreglo esté
             <span class="font-semibold text-sky-700">validado</span>, aunque espere al comité); las <span class="font-semibold text-amber-700">advertencias</span>
-            se pueden firmar con un comentario. Revisa el responsable o el coordinador; firma el gerente.
+            se pueden firmar con un comentario. Revisa el responsable o el coordinador; firma el responsable primario.
         </p>
     </div>
 
