@@ -14,8 +14,10 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
- * Objetivo estratégico o PEIS (Plan Estratégico de Integridad Sostenible) asociado a uno o más Riesgo
- * (many-to-many). Ciclo de vida de estado borrador → validado → aprobado/borrado.
+ * Objetivo asociado a uno o más Riesgo (many-to-many). Ciclo de vida de estado borrador → validado →
+ * aprobado/borrado. Un objetivo `es_peis` (Plan Estratégico de Integridad Sostenible) es un objetivo
+ * padre: otros le contribuyen (contribuyentes()) y sólo se asocia a riesgos de tipo que lo admite,
+ * hoy Corrupción (D-054). `es_peis` se fija al crear y no cambia.
  */
 class Objetivo extends Model implements HasMedia
 {
@@ -28,7 +30,7 @@ class Objetivo extends Model implements HasMedia
         'descripcion',
         'fecha_objetivo',
         'estrategico',
-        'peis',
+        'es_peis',
         'estado_id',
         'interno',
         'user_id',
@@ -38,7 +40,7 @@ class Objetivo extends Model implements HasMedia
     protected $casts = [
         'fecha_objetivo' => 'date',
         'estrategico' => 'boolean',
-        'peis' => 'boolean',
+        'es_peis' => 'boolean',
         'interno' => 'boolean',
     ];
 
@@ -87,9 +89,17 @@ class Objetivo extends Model implements HasMedia
             ->withTimestamps();
     }
 
-    public function peisItems(): BelongsToMany
+    /** Los objetivos PEIS a los que este objetivo contribuye. */
+    public function peis(): BelongsToMany
     {
-        return $this->belongsToMany(PeisItem::class, 'objetivo_peis_item')
+        return $this->belongsToMany(Objetivo::class, 'objetivo_peis', 'objetivo_id', 'peis_id')
+            ->withTimestamps();
+    }
+
+    /** Si este objetivo es PEIS: los objetivos que le contribuyen. */
+    public function contribuyentes(): BelongsToMany
+    {
+        return $this->belongsToMany(Objetivo::class, 'objetivo_peis', 'peis_id', 'objetivo_id')
             ->withTimestamps();
     }
 

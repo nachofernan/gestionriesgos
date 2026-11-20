@@ -110,7 +110,7 @@
                                     @if($objetivo->estrategico)
                                         <span class="text-[9px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded uppercase">Estratégico</span>
                                     @endif
-                                    @if($objetivo->peis)
+                                    @if($objetivo->es_peis)
                                         <span class="text-[9px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase">PEIS</span>
                                     @endif
                                 </div>

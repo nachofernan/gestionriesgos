@@ -16,7 +16,7 @@
                     @if($objetivo->estrategico)
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">Estratégico</span>
                     @endif
-                    @if($objetivo->peis)
+                    @if($objetivo->es_peis)
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">PEIS</span>
                     @endif
                     @if($objetivo->area)

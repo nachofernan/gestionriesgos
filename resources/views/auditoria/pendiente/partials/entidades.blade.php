@@ -19,7 +19,7 @@
                             x-on:click="$dispatch('abrir-detalle-pendiente', @js($detalle))"
                             class="text-sm font-semibold text-gray-800 hover:text-indigo-600 truncate block text-left">
                         {{ $item->nombre }}
-                        @if($tipo === 'objetivo' && $item->peis)
+                        @if($tipo === 'objetivo' && $item->es_peis)
                             <span class="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 align-middle">PEIS</span>
                         @endif
                     </button>

@@ -40,7 +40,6 @@ class PendientesFicha extends Component
             'sin_riesgos' => ['riesgos', 'Ver riesgos'],
         ],
         'objetivo' => [
-            'peis_sin_items' => ['ficha', 'Ver ficha'],
             'sin_riesgos' => ['riesgos', 'Ver riesgos'],
         ],
         'plan' => [

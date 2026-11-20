@@ -29,7 +29,7 @@ class CargaInicialSeeder extends Seeder
             TipoRiesgoCargaInicialSeeder::class,
             AreaCargaInicialSeeder::class,
             RiesgoCargaInicialSeeder::class,
-            PeisItemCargaInicialSeeder::class,
+            PeisCargaInicialSeeder::class,
             ObjetivoCargaInicialSeeder::class,
             ControlCargaInicialSeeder::class,
             PlanAccionCargaInicialSeeder::class,

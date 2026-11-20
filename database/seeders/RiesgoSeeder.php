@@ -18,7 +18,8 @@ class RiesgoSeeder extends Seeder
     {
         $tipos = TipoRiesgo::pluck('id')->toArray();
         $users = User::where('id', '>', 1)->whereNotNull('area_id')->where('rol', '!=', 'auditor')->get();
-        $objetivoIds = Objetivo::pluck('id')->toArray();
+        // Los PEIS sólo van en riesgos de Corrupción (D-054): acá se reparten los comunes.
+        $objetivoIds = Objetivo::where('es_peis', false)->pluck('id')->toArray();
         $respuestas = RespuestaRiesgo::cases();
         $sedeIds = Sede::pluck('id')->all();
         $dimensionIdPorNombre = Dimension::pluck('id', 'nombre');

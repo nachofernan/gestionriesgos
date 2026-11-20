@@ -39,7 +39,7 @@ class DetectorInconsistencias
         return match ($clase) {
             Riesgo::class => Riesgo::query()->with('tipoRiesgo')->withCount(['objetivos', 'planesAccion', 'controles']),
             Control::class => Control::query()->withCount('riesgos'),
-            Objetivo::class => Objetivo::query()->withCount(['riesgos', 'peisItems']),
+            Objetivo::class => Objetivo::query()->withCount('riesgos'),
             PlanAccion::class => PlanAccion::query()->withCount(['riesgos', 'tareas']),
             Tarea::class => Tarea::query()->withCount('planesAccion'),
         };
@@ -56,7 +56,7 @@ class DetectorInconsistencias
             'controles' => [Control::class, 'riesgos'],
         ],
         Control::class => ['riesgos' => [Riesgo::class, 'controles']],
-        Objetivo::class => ['riesgos' => [Riesgo::class, 'objetivos'], 'peisItems' => null],
+        Objetivo::class => ['riesgos' => [Riesgo::class, 'objetivos']],
         PlanAccion::class => ['riesgos' => [Riesgo::class, 'planesAccion'], 'tareas' => [Tarea::class, 'planesAccion']],
         Tarea::class => ['planesAccion' => [PlanAccion::class, 'tareas']],
     ];
@@ -263,9 +263,6 @@ class DetectorInconsistencias
     {
         $hallazgos = [];
 
-        if ($objetivo->peis && $objetivo->peis_items_count === 0) {
-            $hallazgos[] = $this->error('peis_sin_items', 'Es PEIS pero no tiene ítems.');
-        }
         if ($objetivo->riesgos_count === 0) {
             $hallazgos[] = $this->advertencia('sin_riesgos', 'No tiene riesgos asociados.');
         }

@@ -9,6 +9,7 @@ use App\Enums\Auditoria\RespuestaRiesgo;
 use App\Enums\Auditoria\Temporalidad;
 use App\Models\Concerns\HasVisibilityScope;
 use App\Models\User;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -519,6 +520,40 @@ class Riesgo extends Model implements HasMedia
     {
         $mismoMetodo = TipoRiesgo::where('metodo_evaluacion', $this->metodoEvaluacion()->value)->pluck('id')->all();
 
-        return ['exists:tipos_riesgo,id', Rule::in($mismoMetodo)];
+        return [
+            'exists:tipos_riesgo,id',
+            Rule::in($mismoMetodo),
+            // Con objetivos PEIS asociados, el tipo nuevo también tiene que admitirlos (D-054).
+            function (string $atributo, mixed $valor, Closure $fallar) {
+                if ($this->tienePeis() && ! TipoRiesgo::whereKey($valor)->value('admite_peis')) {
+                    $fallar(self::MENSAJE_TIPO_CON_PEIS);
+                }
+            },
+        ];
+    }
+
+    public const MENSAJE_TIPO_CON_PEIS = 'El riesgo tiene objetivos PEIS asociados y el tipo elegido no los admite: primero hay que quitarlos.';
+
+    public const MENSAJE_PEIS_NO_ADMITIDO = 'Los objetivos PEIS sólo se asocian a riesgos de Corrupción.';
+
+    /**
+     * Si el riesgo puede tener objetivos PEIS: lo define su tipo (`admite_peis`, hoy
+     * sólo Corrupción; D-054). Lo consultan GestionObjetivos (modal, agregar() y
+     * guardar()) y reglaTipoRiesgo().
+     * Tests: un_riesgo_de_corrupcion_asocia_un_objetivo_peis,
+     * un_riesgo_que_no_es_de_corrupcion_no_puede_asociar_un_peis.
+     */
+    public function admitePeis(): bool
+    {
+        return (bool) $this->tipoRiesgo?->admite_peis;
+    }
+
+    /** Si tiene asociado algún objetivo PEIS no rechazado (los rechazados quedan en limbo). */
+    public function tienePeis(): bool
+    {
+        return $this->objetivos()
+            ->where('objetivos.es_peis', true)
+            ->whereNot('objetivos.estado_id', Estado::borrado()->id)
+            ->exists();
     }
 }

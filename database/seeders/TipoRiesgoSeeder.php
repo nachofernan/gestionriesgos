@@ -43,6 +43,7 @@ class TipoRiesgoSeeder extends Seeder
                 'nombre' => 'Corrupción',
                 'descripcion' => 'Es el riesgo de uso de los bienes públicos para beneficio privado, de una conducta deshonesta o fraudulenta de quienes ostentan poder, que suelen implicar sobornos y/o el abuso de poder encomendado para obtener beneficios',
                 'restringe_respuesta' => true,
+                'admite_peis' => true,
             ],
         ];
 

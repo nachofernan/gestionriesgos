@@ -22,7 +22,6 @@ class DatabaseSeeder extends Seeder
             AreaSeeder::class,
             SedeSeeder::class,
             DimensionSeeder::class,
-            PeisItemSeeder::class,
             ObjetivoSeeder::class,
             RiesgoSeeder::class,
             ControlSeeder::class,

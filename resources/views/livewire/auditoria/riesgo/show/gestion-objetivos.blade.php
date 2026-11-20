@@ -34,7 +34,7 @@
                 @if(!empty($obj['estrategico']))
                     <span class="hidden sm:inline text-[10px] font-bold text-indigo-700 bg-indigo-50 rounded-md px-1.5 py-0.5">Estratégico</span>
                 @endif
-                @if(!empty($obj['peis']))
+                @if(!empty($obj['es_peis']))
                     <span class="hidden sm:inline text-[10px] font-bold text-violet-700 bg-violet-50 rounded-md px-1.5 py-0.5">PEIS</span>
                 @endif
                 @if($nuevo)
@@ -90,7 +90,7 @@
                     <div class="flex items-center justify-between gap-2">
                         <span class="font-semibold text-sm text-gray-800 truncate">{{ $obj->nombre }}</span>
                         <div class="flex items-center gap-1.5 shrink-0">
-                            @if($obj->peis)
+                            @if($obj->es_peis)
                                 <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">PEIS</span>
                             @endif
                             <x-auditoria.estado-badge :estado="$obj->estado" size="xs" />

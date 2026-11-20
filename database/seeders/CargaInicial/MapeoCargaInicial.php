@@ -124,8 +124,8 @@ class MapeoCargaInicial
     /** @var array<int, int> id de Tareas.csv → id real */
     public static array $tareaIdPorCsvId = [];
 
-    /** @var array<int, int> id de PeisItems.csv → id real */
-    public static array $peisItemIdPorCsvId = [];
+    /** @var array<int, int> id de PeisItems.csv → id del objetivo PEIS creado */
+    public static array $peisIdPorCsvId = [];
 
     /** @var array<string, int> nombre de estado → id */
     public static array $estadoIdPorNombre = [];

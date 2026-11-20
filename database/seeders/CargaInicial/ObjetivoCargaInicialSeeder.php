@@ -9,7 +9,9 @@ use Illuminate\Database\Seeder;
  * Crea los 78 objetivos de Objetivos.csv y los pivots objetivo_riesgo (solo 24
  * de las 78 filas de ObjetivoRiesgo.csv traen un riesgo_id real, el resto se
  * omite: el objetivo no tiene riesgo asociado todavía en este dataset) y
- * objetivo_peis_item (72 filas, directo).
+ * objetivo_peis desde ObjetivoPeisItem.csv (72 filas, directo; los objetivos PEIS
+ * los crea antes PeisCargaInicialSeeder). La columna `peis` de Objetivos.csv ya no
+ * se lee: contribuir a un PEIS es tener el vínculo, no una marca (D-054).
  */
 class ObjetivoCargaInicialSeeder extends Seeder
 {
@@ -23,14 +25,13 @@ class ObjetivoCargaInicialSeeder extends Seeder
         $estadoAprobadoId = MapeoCargaInicial::estado('aprobado');
 
         foreach ($this->filasCsv('Objetivos.csv') as $fila) {
-            [$csvId, $nombre, $descripcion, $fechaTxt, $estrategicoTxt, $peisTxt, $areaTxt, $userTxt] = $fila;
+            [$csvId, $nombre, $descripcion, $fechaTxt, $estrategicoTxt, , $areaTxt, $userTxt] = $fila;
 
             $objetivo = Objetivo::create([
                 'nombre' => $nombre,
                 'descripcion' => $descripcion !== '' ? $descripcion : null,
                 'fecha_objetivo' => $fechaTxt !== '' ? $this->parsearFechaDdMmYyyy($fechaTxt) : null,
                 'estrategico' => strtoupper($estrategicoTxt) === 'SI',
-                'peis' => strtoupper($peisTxt) === 'SI',
                 'estado_id' => $estadoAprobadoId,
                 'user_id' => MapeoCargaInicial::usuario($userTxt),
                 'area_id' => MapeoCargaInicial::area($areaTxt),
@@ -40,7 +41,7 @@ class ObjetivoCargaInicialSeeder extends Seeder
         }
 
         $this->sembrarObjetivoRiesgo();
-        $this->sembrarObjetivoPeisItem();
+        $this->sembrarObjetivoPeis();
     }
 
     private function sembrarObjetivoRiesgo(): void
@@ -60,18 +61,18 @@ class ObjetivoCargaInicialSeeder extends Seeder
         }
     }
 
-    private function sembrarObjetivoPeisItem(): void
+    private function sembrarObjetivoPeis(): void
     {
         foreach ($this->filasCsv('ObjetivoPeisItem.csv') as $fila) {
-            [$objetivoCsvId, $peisItemCsvId] = $fila;
+            [$objetivoCsvId, $peisCsvId] = $fila;
 
             $objetivoId = $this->objetivoIdPorCsvId[(int) $objetivoCsvId] ?? null;
-            $peisItemId = MapeoCargaInicial::$peisItemIdPorCsvId[(int) $peisItemCsvId] ?? null;
-            if (! $objetivoId || ! $peisItemId) {
+            $peisId = MapeoCargaInicial::$peisIdPorCsvId[(int) $peisCsvId] ?? null;
+            if (! $objetivoId || ! $peisId) {
                 continue;
             }
 
-            Objetivo::find($objetivoId)->peisItems()->syncWithoutDetaching([$peisItemId]);
+            Objetivo::find($objetivoId)->peis()->syncWithoutDetaching([$peisId]);
         }
     }
 }

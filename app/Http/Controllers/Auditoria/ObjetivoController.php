@@ -8,10 +8,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
-use App\Models\Auditoria\PeisItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /**
  * CRUD de Objetivo más su ciclo de vida de estados: borrador → validado → aprobado,
@@ -39,9 +39,9 @@ class ObjetivoController extends Controller
     {
         $this->authorize('create', Objetivo::class);
 
-        $peisItems = PeisItem::orderBy('id')->get();
+        $peisDisponibles = $this->peisDisponibles();
 
-        return view('auditoria.objetivo.create', compact('peisItems') + $this->opcionesAreaResponsable());
+        return view('auditoria.objetivo.create', compact('peisDisponibles') + $this->opcionesAreaResponsable());
     }
 
     public function store(Request $request)
@@ -53,20 +53,19 @@ class ObjetivoController extends Controller
             'descripcion' => 'nullable|string',
             'fecha_objetivo' => 'nullable|date',
             'estrategico' => 'boolean',
-            'peis' => 'boolean',
-            'peis_items' => 'required_if:peis,1|array|min:1',
-            'peis_items.*' => 'exists:peis_items,id',
-        ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE);
+            'es_peis' => 'boolean',
+            ...self::reglasContribucion(),
+        ] + $this->reglasAreaResponsable($request), self::MENSAJES_AREA_RESPONSABLE + self::MENSAJES_CONTRIBUCION);
         $data['estrategico'] = $request->boolean('estrategico');
-        $data['peis'] = $request->boolean('peis');
+        $data['es_peis'] = $request->boolean('es_peis');
 
         $data['user_id'] = $data['user_id'] ?? Auth::id();
-        $peisItemIds = $data['peis'] ? $data['peis_items'] : [];
-        unset($data['peis_items']);
+        $peisIds = $this->peisElegidos($request, $data['es_peis']);
+        unset($data['contribuye_peis'], $data['peis_ids']);
 
         $data['interno'] = $request->boolean('interno');
         $objetivo = Objetivo::create($data);
-        $objetivo->peisItems()->sync($peisItemIds);
+        $objetivo->peis()->sync($peisIds);
 
         $objetivo->actualizaciones()->create([
             'user_id' => Auth::id(),
@@ -77,7 +76,7 @@ class ObjetivoController extends Controller
                 'descripcion' => $objetivo->descripcion,
                 'fecha_objetivo' => $objetivo->fecha_objetivo?->format('Y-m-d'),
                 'estrategico' => $objetivo->estrategico,
-                'peis' => $objetivo->peis,
+                'es_peis' => $objetivo->es_peis,
             ]],
         ]);
 
@@ -103,7 +102,7 @@ class ObjetivoController extends Controller
             'riesgos.planesAccion' => fn ($q) => $q->visiblePara($user)->whereNot('estado_id', Estado::borrado()->id),
             'riesgos.planesAccion.estado', 'riesgos.planesAccion.area',
             'riesgos.planesAccion.tareas.estado', 'riesgos.planesAccion.tareas.area', 'riesgos.planesAccion.tareas.user',
-            'user', 'area', 'peisItems',
+            'user', 'area',
         ]);
         $objetivo->setRelation('riesgos', Estado::ordenarColeccion($objetivo->riesgos));
 
@@ -122,10 +121,10 @@ class ObjetivoController extends Controller
                 ->with('error', 'El objetivo ya fue validado. Los cambios deben realizarse a través del sistema de actualizaciones.');
         }
 
-        $objetivo->load('peisItems');
-        $peisItems = PeisItem::orderBy('id')->get();
+        $objetivo->load('peis');
+        $peisDisponibles = $this->peisDisponibles();
 
-        return view('auditoria.objetivo.edit', compact('objetivo', 'peisItems')
+        return view('auditoria.objetivo.edit', compact('objetivo', 'peisDisponibles')
             + $this->opcionesAreaResponsable($objetivo->area_id, $objetivo->user_id));
     }
 
@@ -143,20 +142,18 @@ class ObjetivoController extends Controller
             'descripcion' => 'nullable|string',
             'fecha_objetivo' => 'nullable|date',
             'estrategico' => 'boolean',
-            'peis' => 'boolean',
-            'peis_items' => 'required_if:peis,1|array|min:1',
-            'peis_items.*' => 'exists:peis_items,id',
-        ] + $this->reglasAreaResponsable($request, $objetivo->area_id, $objetivo->user_id), self::MENSAJES_AREA_RESPONSABLE);
+            ...self::reglasContribucion(),
+        ] + $this->reglasAreaResponsable($request, $objetivo->area_id, $objetivo->user_id), self::MENSAJES_AREA_RESPONSABLE + self::MENSAJES_CONTRIBUCION);
         $data['estrategico'] = $request->boolean('estrategico');
-        $data['peis'] = $request->boolean('peis');
 
-        $peisItemIds = $data['peis'] ? $data['peis_items'] : [];
-        unset($data['peis_items']);
+        // es_peis se fija al crear (D-054): no viaja en la edición.
+        $peisIds = $this->peisElegidos($request, $objetivo->es_peis);
+        unset($data['contribuye_peis'], $data['peis_ids']);
 
         $data['interno'] = $request->boolean('interno');
         $original = $objetivo->only(array_keys($data));
         $objetivo->update($data);
-        $objetivo->peisItems()->sync($peisItemIds);
+        $objetivo->peis()->sync($peisIds);
 
         $diff = [];
         foreach ($data as $campo => $nuevo) {
@@ -308,5 +305,44 @@ class ObjetivoController extends Controller
                 }
             }
         }
+    }
+
+    private const MENSAJES_CONTRIBUCION = [
+        'peis_ids.required_if' => 'Seleccioná al menos un objetivo PEIS al que contribuye.',
+        'peis_ids.*.exists' => 'Uno de los objetivos elegidos no es un PEIS vigente.',
+    ];
+
+    /**
+     * "Contribuye al PEIS" es un toggle de la UI: si está tildado, exige al menos un
+     * objetivo PEIS no rechazado (D-054). Lo usan store() y update().
+     */
+    private static function reglasContribucion(): array
+    {
+        return [
+            'contribuye_peis' => 'boolean',
+            'peis_ids' => 'required_if:contribuye_peis,1|array|min:1',
+            'peis_ids.*' => Rule::exists('objetivos', 'id')
+                ->where('es_peis', true)
+                ->whereNull('deleted_at')
+                ->whereNot('estado_id', Estado::borrado()->id),
+        ];
+    }
+
+    /** Ids de los PEIS a los que contribuye el objetivo; un PEIS no contribuye a otro PEIS. */
+    private function peisElegidos(Request $request, bool $esPeis): array
+    {
+        return ! $esPeis && $request->boolean('contribuye_peis')
+            ? array_map('intval', $request->input('peis_ids', []))
+            : [];
+    }
+
+    /** Los objetivos PEIS que el usuario puede elegir como destino de su contribución. */
+    private function peisDisponibles()
+    {
+        return Objetivo::where('es_peis', true)
+            ->visiblePara(Auth::user())
+            ->whereNot('estado_id', Estado::borrado()->id)
+            ->orderBy('nombre')
+            ->get();
     }
 }

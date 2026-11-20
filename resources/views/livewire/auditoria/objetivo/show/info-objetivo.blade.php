@@ -37,10 +37,12 @@
                 @if($objetivo->estrategico)
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">Estratégico</span>
                 @endif
-                @if($objetivo->peis)
+                @if($objetivo->es_peis)
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">PEIS</span>
+                @elseif($objetivo->peis->isNotEmpty())
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 ring-1 ring-amber-200">Contribuye al PEIS</span>
                 @endif
-                @if(!$objetivo->estrategico && !$objetivo->peis)
+                @if(!$objetivo->estrategico && !$objetivo->es_peis && $objetivo->peis->isEmpty())
                     <span class="text-gray-400">—</span>
                 @endif
             </dd>
@@ -59,16 +61,26 @@
         </div>
     </dl>
 
-    @if($objetivo->peis && $objetivo->peisItems->isNotEmpty())
+    @php
+        [$tituloPeis, $listaPeis] = $objetivo->es_peis
+            ? ['Le contribuyen', $objetivo->contribuyentes]
+            : ['Contribuye al PEIS en', $objetivo->peis];
+    @endphp
+    @if($listaPeis->isNotEmpty())
         <div class="mx-4 mb-4 rounded-xl bg-amber-50/70 px-3 py-2.5">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-1.5">Contribuye al PEIS en</p>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-1.5">{{ $tituloPeis }}</p>
             <ul class="space-y-1.5">
-                @foreach($objetivo->peisItems as $item)
+                @foreach($listaPeis as $relacionado)
                     <li class="flex items-start gap-2 text-xs leading-5 text-gray-700">
                         <svg class="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
-                        <span>{{ $item->descripcion }}</span>
+                        <a href="{{ route('auditoria.objetivos.show', $relacionado) }}" class="hover:text-amber-800 hover:underline">
+                            {{ $relacionado->nombre }}
+                            @if($objetivo->es_peis && $relacionado->area)
+                                <span class="text-gray-400">· {{ $relacionado->area->nombre }}</span>
+                            @endif
+                        </a>
                     </li>
                 @endforeach
             </ul>

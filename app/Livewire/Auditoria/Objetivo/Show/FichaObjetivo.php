@@ -16,7 +16,7 @@ use Livewire\Component;
  * FichaControl: fuera de borrador se edita en el bloque y guardar() manda sólo lo
  * que cambió a Actualizacion::registrarCambioCampos(); en borrador se edita con
  * el formulario completo (ObjetivoController::edit), que es donde también se
- * cambian la clasificación estratégico/PEIS y sus ítems.
+ * cambian la clasificación estratégica y los PEIS a los que contribuye (D-054).
  */
 class FichaObjetivo extends Component
 {

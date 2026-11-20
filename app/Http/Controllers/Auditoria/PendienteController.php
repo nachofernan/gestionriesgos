@@ -212,7 +212,7 @@ class PendienteController extends Controller
                     : $item->puntaje.' · '.$item->clasificacion()['etiqueta'].($item->mitigacion_default < $item->puntaje ? ' (mitiga 0)' : ''), 'color' => $color($item->clasificacion())],
             ],
             'objetivo' => [
-                ['etiqueta' => 'PEIS', 'valor' => $item->peis ? 'Sí' : 'No'],
+                ['etiqueta' => 'PEIS', 'valor' => $item->es_peis ? 'Sí' : 'No'],
                 ['etiqueta' => 'Fecha objetivo', 'valor' => $item->fecha_objetivo?->format('d/m/Y') ?? '—'],
             ],
             'plan' => [

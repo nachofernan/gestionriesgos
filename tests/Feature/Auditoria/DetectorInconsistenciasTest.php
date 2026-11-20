@@ -8,7 +8,6 @@ use App\Models\Auditoria\Area;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
-use App\Models\Auditoria\PeisItem;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
@@ -244,13 +243,12 @@ class DetectorInconsistenciasTest extends TestCase
     }
 
     #[Test]
-    public function un_objetivo_peis_sin_items_es_error_y_sin_riesgos_es_advertencia(): void
+    public function un_objetivo_sin_riesgos_es_advertencia(): void
     {
-        $objetivo = $this->objetivo(['peis' => true]);
+        $objetivo = $this->objetivo();
 
-        $this->assertSame(['peis_sin_items' => 'error', 'sin_riesgos' => 'advertencia'], $this->hallazgos($objetivo));
+        $this->assertSame(['sin_riesgos' => 'advertencia'], $this->hallazgos($objetivo));
 
-        $objetivo->peisItems()->attach(PeisItem::create(['nombre' => 'Ítem'])->id);
         $objetivo->riesgos()->attach(Riesgo::factory()->create(['area_id' => $this->area->id])->id);
         $this->assertSame([], $this->hallazgos($objetivo));
     }

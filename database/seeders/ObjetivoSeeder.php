@@ -27,9 +27,10 @@ class ObjetivoSeeder extends Seeder
         // disponibles, con algo de variedad para no verlos todos idénticos.
         $estadosObjetivo = ['borrador', 'validado', 'aprobado', 'aprobado', 'aprobado'];
 
+        $creados = [];
         foreach ($objetivos as $i => $data) {
             $user = $users->random();
-            Objetivo::create([
+            $creados[] = Objetivo::create([
                 'nombre' => $data['nombre'],
                 'descripcion' => $data['descripcion'],
                 'fecha_objetivo' => now()->addMonths(rand(3, 18))->toDateString(),
@@ -38,6 +39,23 @@ class ObjetivoSeeder extends Seeder
                 'estado_id' => $estadoIds[$estadosObjetivo[$i]],
             ]);
         }
+
+        // Dos objetivos PEIS aprobados (D-054): el dataset de desarrollo no tiene el
+        // área Fortalecimiento Institucional, así que van a la de un usuario cualquiera.
+        $duenio = $users->first();
+        $peis = collect([
+            'OE 01: Recertificar exitosamente el SGAC',
+            'OE 04: Capacitar para mantener cultura de integridad',
+        ])->map(fn ($nombre) => Objetivo::create([
+            'nombre' => $nombre,
+            'descripcion' => 'Plan Estratégico de Integridad Sostenible.',
+            'es_peis' => true,
+            'user_id' => $duenio->id,
+            'area_id' => $duenio->area_id,
+            'estado_id' => $estadoIds['aprobado'],
+        ]));
+
+        $creados[2]->peis()->sync($peis->pluck('id'));
 
         // El attach a riesgos se hace desde RiesgoSeeder (corre después de este seeder),
         // así se garantiza que todo riesgo validado/aprobado tenga al menos un objetivo.

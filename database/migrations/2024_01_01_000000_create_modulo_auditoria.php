@@ -99,7 +99,7 @@ return new class extends Migration
             $table->text('descripcion')->nullable();
             $table->date('fecha_objetivo')->nullable();
             $table->boolean('estrategico')->default(false);
-            $table->boolean('peis')->default(false);
+            $table->boolean('es_peis')->default(false);
             $table->foreignId('user_id')->nullable()->constrained('users');
             $table->unsignedBigInteger('area_id')->nullable();
             $table->timestamps();
@@ -118,25 +118,14 @@ return new class extends Migration
         });
 
         // -------------------------------------------------------
-        // ÍTEMS PEIS (catálogo fijo: PEIS 1..5)
+        // PIVOT: objetivo_peis (un objetivo contribuye a uno o más objetivos PEIS)
         // -------------------------------------------------------
-        Schema::create('peis_items', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre');
-            $table->text('descripcion')->nullable();
-            $table->timestamps();
-            $table->softDeletes();
-        });
-
-        // -------------------------------------------------------
-        // PIVOT: objetivo_peis_item
-        // -------------------------------------------------------
-        Schema::create('objetivo_peis_item', function (Blueprint $table) {
+        Schema::create('objetivo_peis', function (Blueprint $table) {
             $table->foreignId('objetivo_id')->constrained('objetivos')->cascadeOnDelete();
-            $table->foreignId('peis_item_id')->constrained('peis_items')->cascadeOnDelete();
+            $table->foreignId('peis_id')->constrained('objetivos')->cascadeOnDelete();
             $table->timestamps();
 
-            $table->primary(['objetivo_id', 'peis_item_id']);
+            $table->primary(['objetivo_id', 'peis_id']);
         });
 
         // -------------------------------------------------------
@@ -216,8 +205,7 @@ return new class extends Migration
         Schema::dropIfExists('plan_accion_riesgo');
         Schema::dropIfExists('tareas');
         Schema::dropIfExists('planes_accion');
-        Schema::dropIfExists('objetivo_peis_item');
-        Schema::dropIfExists('peis_items');
+        Schema::dropIfExists('objetivo_peis');
         Schema::dropIfExists('objetivo_riesgo');
         Schema::dropIfExists('objetivos');
         Schema::dropIfExists('control_riesgo');

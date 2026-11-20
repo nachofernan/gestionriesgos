@@ -18,7 +18,8 @@ use Livewire\Component;
  * asociado — quitar() y guardar() lo validan. Si el riesgo está en borrador,
  * sincroniza directo; si no, la asociación queda como una Actualizacion
  * (propuesta de cambio) que se aplica de inmediato sólo si el estado resultante
- * lo amerita (ver estadoParaActualizacion()). Dispatcha 'riesgo-actualizado' al
+ * lo amerita (ver estadoParaActualizacion()). Los objetivos PEIS sólo entran si el
+ * tipo del riesgo los admite (Riesgo::admitePeis(), D-054). Dispatcha 'riesgo-actualizado' al
  * persistir un cambio real, para que InfoRiesgo y GestionActualizaciones (bloques
  * hermanos en la misma pantalla) se refresquen solos.
  */
@@ -117,6 +118,12 @@ class GestionObjetivos extends Component
             return;
         }
 
+        if ($objetivo->es_peis && ! Riesgo::with('tipoRiesgo')->findOrFail($this->riesgoId)->admitePeis()) {
+            $this->error = Riesgo::MENSAJE_PEIS_NO_ADMITIDO;
+
+            return;
+        }
+
         $this->seleccionados[] = [
             'id' => $objetivo->id,
             'nombre' => $objetivo->nombre,
@@ -126,7 +133,7 @@ class GestionObjetivos extends Component
             'area' => $objetivo->area?->nombre,
             'fecha_objetivo' => $objetivo->fecha_objetivo?->format('d/m/Y'),
             'estrategico' => (bool) $objetivo->estrategico,
-            'peis' => (bool) $objetivo->peis,
+            'es_peis' => (bool) $objetivo->es_peis,
             'puede_ver' => Auth::user()->can('view', $objetivo),
             'url' => route('auditoria.objetivos.show', $objetivo->id),
         ];
@@ -157,7 +164,10 @@ class GestionObjetivos extends Component
      * Si el riesgo está en borrador, sincroniza objetivos de inmediato. Si no,
      * arma el diff (agrega/quita) y lo guarda como Actualizacion; según el estado
      * que le toque (estadoParaActualizacion()) la aplica en el momento o la deja
-     * pendiente de validación.
+     * pendiente de validación. Un PEIS en un riesgo que no lo admite corta acá
+     * aunque haya llegado a $seleccionados (es una propiedad pública).
+     * Tests: un_riesgo_que_no_es_de_corrupcion_no_puede_asociar_un_peis,
+     * un_riesgo_de_corrupcion_asocia_un_objetivo_peis.
      */
     public function guardar(): void
     {
@@ -167,13 +177,19 @@ class GestionObjetivos extends Component
             return;
         }
 
-        $riesgo = Riesgo::with('objetivos.estado')->findOrFail($this->riesgoId);
+        $riesgo = Riesgo::with(['objetivos.estado', 'tipoRiesgo'])->findOrFail($this->riesgoId);
         $this->authorize('proponer', $riesgo);
         // Los ocultos (borrado / no visibles) se re-agregan al sync para no detacharlos.
         $ids = array_values(array_unique(array_merge(
             collect($this->seleccionados)->pluck('id')->toArray(),
             $this->ocultosIds
         )));
+
+        if (! $riesgo->admitePeis() && Objetivo::whereIn('id', $ids)->where('es_peis', true)->exists()) {
+            $this->error = Riesgo::MENSAJE_PEIS_NO_ADMITIDO;
+
+            return;
+        }
 
         $diffRel = $this->construirDiff($riesgo);
 
@@ -284,7 +300,7 @@ class GestionObjetivos extends Component
                 'area' => $o->area?->nombre,
                 'fecha_objetivo' => $o->fecha_objetivo?->format('d/m/Y'),
                 'estrategico' => (bool) $o->estrategico,
-                'peis' => (bool) $o->peis,
+                'es_peis' => (bool) $o->es_peis,
                 'puede_ver' => true,
                 'url' => route('auditoria.objetivos.show', $o->id),
             ])->values()->toArray();
@@ -292,7 +308,7 @@ class GestionObjetivos extends Component
 
     public function render()
     {
-        $riesgoVista = Riesgo::with(['objetivos.estado'])->findOrFail($this->riesgoId);
+        $riesgoVista = Riesgo::with(['objetivos.estado', 'tipoRiesgo'])->findOrFail($this->riesgoId);
         $propuestas = $this->propuestasDe($riesgoVista, 'objetivos');
         $bloqueados = $this->idsConPropuesta($propuestas, 'objetivos');
         $yaIds = collect($this->seleccionados)->pluck('id')->merge($bloqueados);
@@ -302,6 +318,7 @@ class GestionObjetivos extends Component
                 ->with(['estado', 'area'])
                 ->visiblePara(Auth::user())
                 ->whereNot('estado_id', Estado::borrado()->id)
+                ->when(! $riesgoVista->admitePeis(), fn ($q) => $q->where('objetivos.es_peis', false))
                 ->tap(fn ($q) => $this->aplicarFiltrosModal($q, 'objetivos'))
                 ->when($this->busqueda, fn ($q) => $q->where('objetivos.nombre', 'like', '%'.$this->busqueda.'%'))
                 ->whereNotIn('objetivos.id', $yaIds)
