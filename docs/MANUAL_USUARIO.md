@@ -16,7 +16,7 @@ cada opción, en el orden en que normalmente los vas a encontrar.
 5. [Panel de Riesgos y reportes](#5-panel-de-riesgos-y-reportes)
 6. [Riesgos](#6-riesgos)
 7. [Controles](#7-controles)
-8. [Objetivos y catálogo PEIS](#8-objetivos-y-catálogo-peis)
+8. [Objetivos y PEIS](#8-objetivos-y-peis)
 9. [Planes de Acción](#9-planes-de-acción)
 10. [Tareas](#10-tareas)
 11. [Notas, documentos, actividad y propuestas de cambio](#11-notas-documentos-actividad-y-propuestas-de-cambio)
@@ -582,7 +582,7 @@ sus asociaciones a riesgos. Esos riesgos pierden esa mitigación y conservan las
 
 ---
 
-## 8. Objetivos y catálogo PEIS
+## 8. Objetivos y PEIS
 
 ### 8.1. Listado de Objetivos
 
@@ -598,36 +598,39 @@ Campos:
 - **Descripción** (opcional).
 - **Fecha Objetivo**, con un checkbox **No aplica** si el objetivo no tiene plazo.
 - **Estratégico** (checkbox).
-- **PEIS** (checkbox).
+- **Es un objetivo PEIS** (sólo al crear, ver más abajo).
+- **Contribuye al PEIS** (no aparece si el objetivo es PEIS).
 - **Área** (obligatoria): tu área o una sub-área. El comité puede elegir cualquiera.
 - **Responsable** (opcional, se autocompleta con tu usuario).
 - **Interno** (ver sección 12).
 
-**Si marcás PEIS**, aparecen los 5 ítems del catálogo:
+**Objetivos PEIS.** Son los objetivos del Plan Estratégico de Integridad Sostenible y los gestiona
+Fortalecimiento Institucional. Son objetivos como cualquier otro, con su ciclo de borrador, validado
+y aprobado, pero tienen dos diferencias:
+- otros objetivos le **contribuyen**;
+- **sólo se pueden asociar a riesgos de Corrupción**.
 
-| Ítem | Descripción |
-|---|---|
-| **PEIS 1** | Fortalecer la cultura de integridad y transparencia en todos los niveles de la organización. |
-| **PEIS 2** | Prevenir, detectar y gestionar conflictos de interés en la toma de decisiones. |
-| **PEIS 3** | Asegurar canales de denuncia accesibles, confidenciales y libres de represalias. |
-| **PEIS 4** | Promover la debida diligencia en la relación con terceros, proveedores y socios de negocio. |
-| **PEIS 5** | Garantizar el cumplimiento normativo y la mejora continua del sistema de integridad. |
+Que un objetivo sea PEIS se decide al crearlo y no se cambia después.
 
-Es un catálogo fijo: los ítems solo se seleccionan. **Si marcás PEIS y no elegís ningún ítem, el
-sistema no te deja guardar.** Si después desmarcás PEIS, los ítems se desasocian.
+**Si marcás "Contribuye al PEIS"**, aparece la lista de objetivos PEIS. **Tenés que elegir al menos
+uno**: si no, el sistema no te deja guardar. Si después desmarcás la opción, se quitan los vínculos.
 
 **Editar** solo en borrador. Después, los cambios se proponen desde la **Ficha del objetivo**.
 
 ### 8.3. Detalle de un objetivo
 
-Muestra la ficha (estado, fecha objetivo o "No aplica", área, quién lo creó, ítems PEIS), los
+Muestra la ficha (estado, fecha objetivo o "No aplica", área y quién lo creó). Si es un objetivo
+común, también muestra los PEIS a los que contribuye; si es un PEIS, quiénes le contribuyen. Además
+muestra los
 **Riesgos asociados** con su total y residual, los **Planes de acción vinculados** (los planes de
 los riesgos de este objetivo) con sus tareas, y las Notas y documentos y la Actividad.
 
 ### 8.4. Cómo se asocia un objetivo a un riesgo
 
 Desde el **Riesgo**, en su bloque "Objetivos" (ver 6.7). Recordá el mínimo de 1 objetivo por
-riesgo.
+riesgo. Los objetivos PEIS sólo aparecen en el buscador de un riesgo de **Corrupción**, y cuentan
+para ese mínimo como cualquier otro. Un riesgo con un PEIS asociado no puede pasar a otro tipo: primero
+hay que quitar el PEIS.
 
 ### 8.5. Eliminar un objetivo
 
@@ -950,7 +953,9 @@ en la **Guía de la revisión inicial** (`GUIA-REVISION-INICIAL.md`).
 - **Reevaluación**: el cuestionario de un control aprobado que contesta el auditor y se aplica en
   el acto.
 - **Objetivo**: un objetivo estratégico al que se vincula un riesgo (mínimo uno por riesgo).
-  Puede ser PEIS, y entonces exige al menos un ítem del catálogo fijo de 5.
+  Puede contribuir a uno o más objetivos PEIS.
+- **Objetivo PEIS**: un objetivo del Plan Estratégico de Integridad Sostenible, de Fortalecimiento
+  Institucional. Otros objetivos le contribuyen y sólo se asocia a riesgos de Corrupción.
 - **Plan de Acción**: agrupa tareas y mitiga riesgos. Su valor estimado o final dice cuánto
   reduce el impacto y la probabilidad, y mitiga en proporción a su avance.
 - **Plan finalizado**: un plan con la evaluación final aplicada y todas sus tareas al 100%.

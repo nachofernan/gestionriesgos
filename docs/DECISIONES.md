@@ -1880,3 +1880,52 @@ Tests en `DobleRolGerenteComiteTest`:
 - `el_comite_elimina_con_numero_y_fecha`.
 
 Fuente: sesión 2026-11-17, con el usuario presente.
+
+---
+
+## D-054 — El PEIS es un objetivo padre y sólo se asocia a riesgos de Corrupción (2026-11-20)
+
+**Decisión.** El PEIS (Plan Estratégico de Integridad Sostenible) deja de ser un catálogo suelto
+(`PeisItem`, D-010) y pasa a ser un **objetivo de tipo PEIS** (`objetivos.es_peis`).
+
+- **Es un objetivo normal.** Pertenece al área Fortalecimiento Institucional y tiene el ciclo de
+  estados, las Policies, el historial y los adjuntos de cualquier objetivo. Las otras gerencias lo ven
+  cuando está aprobado.
+- **Otros objetivos le contribuyen.** El pivot `objetivo_peis` (`objetivo_id`, `peis_id`) reemplaza a
+  `objetivo_peis_item`. Las relaciones son `Objetivo::peis()` y `Objetivo::contribuyentes()`.
+  "Contribuye al PEIS" ya no es una columna: es tener el vínculo. En el formulario queda un toggle
+  que exige elegir al menos un PEIS.
+- **Sólo entra en riesgos cuyo tipo lo admite.** El flag `tipos_riesgo.admite_peis` está en true sólo
+  para Corrupción, con el mismo criterio de flag que `restringe_respuesta`. Lo consulta
+  `Riesgo::admitePeis()`. `GestionObjetivos` saca los PEIS del modal y los rechaza en `agregar()` y
+  `guardar()`.
+- **Cuenta como cualquier objetivo** para "al menos un objetivo validado o aprobado" al validar el
+  riesgo.
+- **Un riesgo con un PEIS vigente no cambia a un tipo que no lo admite.** La regla vive en
+  `reglaTipoRiesgo()`, así la toman la edición del borrador, la ficha y las actualizaciones.
+- **`es_peis` se fija al crear y no cambia.** Así no queda un PEIS con contribuyentes que deja de
+  serlo, ni un objetivo ya asociado a riesgos de otro tipo que pasa a ser PEIS.
+- **Un PEIS no contribuye a otro PEIS.**
+
+**Motivo.** Pedido del usuario: un PEIS es un objetivo padre al que contribuyen otros objetivos, y
+los riesgos de Corrupción también pueden tenerlo como objetivo propio.
+
+**Descartado.**
+- Dejar `PeisItem` como catálogo y sumarle un pivot hacia `riesgos`. El PEIS se quedaba sin estado y
+  sin dueño.
+- Que sólo el comité pueda crear un PEIS. Hubiera sido una regla nueva en `ObjetivoPolicy`, y por
+  ahora basta con que sea un objetivo del área FC.
+
+**Datos.** Se editó la migración original y se rehízo la carga inicial (`auditoria:carga-inicial
+--force`). `PeisCargaInicialSeeder` crea cada fila de `PeisItems.csv` como un PEIS aprobado de FC: el
+OE pasa a ser el nombre y el Eje la descripción. Los objetivos con PEIS=SI en `Objetivos.csv` sin
+vínculo en `ObjetivoPeisItem.csv` pierden la marca. Cae el hallazgo `peis_sin_items` de la revisión
+inicial.
+
+**Hueco conocido.** Hay un caso que no se controla. Una propuesta pendiente agrega un PEIS a un
+riesgo de Corrupción, y antes de que se apruebe el riesgo cambia de tipo. Al aprobar la propuesta, el
+PEIS queda en un riesgo que no lo admite. Los caminos que aplican propuestas no revalidan este caso.
+
+Tests en `ObjetivoPeisTest`. Reemplaza la parte de catálogo de D-010.
+
+Fuente: sesión 2026-11-20, con el usuario presente.

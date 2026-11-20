@@ -47,8 +47,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 | `Control` | `controles` | Medidas de mitigación. Se valora con un cuestionario de 7 preguntas (D-051): `evaluacion` (json, `{respuestas: {id: 0|1}, procedimiento, sistemas[], sistema_otro, frecuencia}`, preguntas y listas en `config/control_preguntas.php`, cálculo en `EvaluacionControl`). `mitigacion_default` es lo que mitiga en cada riesgo: un hook `saving` lo deriva del cuestionario (el puntaje, 1-10, o 0 si es una expresión de deseo). Sin cuestionario conserva el número que traía. `puntaje` (accessor) y `clasificacion()` (< 4 deficiente, 4–6 moderado, 7+ suficiente). Sin cuestionario no se valida ni se aprueba (`motivosBloqueoValidacion()`). `registrarValoracion()` es el circuito del área; `reevaluar()`, el del auditor sobre lo aprobado, en el acto. `mitiga()` es la regla única de si descuenta del residual: sólo si está aprobado (D-034). `aplicarEvidencia()` es la regla única de los tramos de evidencia (`TRAMOS_EVIDENCIA`, hacia abajo, D-037). |
 | `ControlRiesgo` | `control_riesgo` | Pivot de la relación control-riesgo (D-051): sólo `efectividad` (0-100, "Evidencia de cumplimiento", nace en 100). La relación no tiene número propio. `mitigacionEfectiva($valorControl)` es lo que descuenta la relación: el valor del control por el tramo de su evidencia. |
 | `Testeo` | `testeos` | Testeo de la evidencia de cumplimiento de una relación (D-040): fecha, % antes/después, comentario, adjuntos. Append-only. Lo carga sólo el auditor y se aplica en el acto (`Testeo::registrar()`). |
-| `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `peis` (boolean): si es true, requiere al menos un `PeisItem` asociado (ver validación en `ObjetivoController`). |
-| `PeisItem` | `peis_items` | Catálogo fijo del Plan Estratégico de Integridad Sostenible (PEIS 1..5, sembrado por `PeisItemSeeder`). |
+| `Objetivo` | `objetivos` | Objetivos estratégicos. `fecha_objetivo` nullable, casteada a `date`. `es_peis` (boolean, fijo desde la creación): objetivo padre del Plan Estratégico de Integridad Sostenible. Otros objetivos le contribuyen (`peis()` / `contribuyentes()`) y sólo se asocia a riesgos cuyo tipo tiene `admite_peis` (Corrupción; D-054). |
 | `PlanAccion` | `planes_accion` | Agrupa riesgos y tareas. Se valora con un cuestionario (D-050): `evaluacion_estimada` y `evaluacion_final` (json, `{probabilidad: {id: 0|1}, impacto: {id: 0|1}}`, preguntas en `config/plan_preguntas.php`, cálculo en `EvaluacionPlan`). `reduccion_nominal` es la final si existe, si no la estimada (2 puntos por sí, hasta 10 por eje); `reduccion_efectiva` la aplica según el avance, eje por eje. `finalizado`: evaluación final y avance 100. Sin estimación no se valida ni se aprueba (`motivosBloqueoValidacion()`). Sin columna de fecha propia: `vencimiento` (accessor) es la fecha más próxima entre sus tareas pendientes (`porcentaje_avance` < 100, no "borrado"); `esta_vencido` (accessor) es `true` si esa fecha ya pasó. |
 | `Tarea` | `tareas` | Unidad de trabajo. `fecha` casteada a `date`, `porcentaje_avance` (0-100). |
 | `Actualizacion` | `actualizaciones` | Historial de actualizaciones polimórfico. Tiene `mensaje`, `data` (JSON) y `user_id`. Las aprobaciones llevan `comite_numero`/`comite_fecha` opcionales; una entrada `tipo = comite` con `comite_de_id` los carga o corrige después (D-039). |
@@ -69,7 +68,7 @@ Todos los modelos principales soportan **SoftDeletes** y adjuntos via **Spatie M
 |---|---|---|
 | `control_riesgo` | Control ↔ Riesgo | `efectividad` (evidencia de cumplimiento, 0-100) |
 | `objetivo_riesgo` | Objetivo ↔ Riesgo | — |
-| `objetivo_peis_item` | Objetivo ↔ PeisItem | — |
+| `objetivo_peis` | Objetivo contribuyente ↔ Objetivo PEIS (`objetivo_id`, `peis_id`) | — |
 | `plan_accion_riesgo` | PlanAccion ↔ Riesgo | — (la `mitigacion` manual se eliminó en D-050) |
 | `plan_accion_tarea` | PlanAccion ↔ Tarea | — |
 
@@ -275,7 +274,7 @@ app/Livewire/Auditoria/
 │   └── InfoControl.php         — tarjeta Datos del lateral
 ├── Objetivo/Show/
 │   ├── FichaObjetivo.php       — datos del objetivo, editables en el bloque
-│   └── InfoObjetivo.php        — tarjeta Fecha objetivo del lateral (clasificación y PEIS)
+│   └── InfoObjetivo.php        — tarjeta Fecha objetivo del lateral (clasificación, PEIS a los que contribuye o contribuyentes)
 ├── Tarea/Show/
 │   ├── FichaTarea.php          — datos de la tarea (incluido el avance), editables en el bloque
 │   └── InfoTarea.php           — tarjeta Avance del lateral (plazo, asignada a)
@@ -403,7 +402,6 @@ Orden de ejecución (respeta dependencias de FK):
 1. `EstadoRiesgoSeeder` — estados: borrador, validado, activo, mitigado, eliminado
 2. `TipoRiesgoSeeder` — categorías de riesgo
 3. `AreaSeeder` — estructura organizacional
-4. `PeisItemSeeder` — catálogo PEIS 1..5
 5. `RiesgoSeeder`
 6. `ControlSeeder`
 7. `ObjetivoSeeder`

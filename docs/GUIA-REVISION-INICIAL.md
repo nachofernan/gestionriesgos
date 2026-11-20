@@ -41,7 +41,6 @@ Para cada elemento, el sistema muestra sus inconsistencias con tres colores:
 | Riesgo | La respuesta es *Reducir / Mitigar* y no tiene plan de acción. |
 | Riesgo | La respuesta es *Aceptar* o *Compartir* y no tiene fundamento. |
 | Riesgo | No tiene evaluación vigente: hay que **recalcular** impacto y probabilidad con el cuestionario de su tipo. Toda la carga inicial entra así. |
-| Objetivo | Es PEIS y no tiene ítems PEIS. |
 | Tarea | No pertenece a ningún plan de acción. |
 
 ### Advertencias (se firman con comentario)
