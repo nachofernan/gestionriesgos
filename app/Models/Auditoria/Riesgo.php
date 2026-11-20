@@ -196,11 +196,9 @@ class Riesgo extends Model implements HasMedia
     {
         $borrado = Estado::borrado()->id;
         $describir = function (Model $elemento) use ($user): array {
-            $motivo = match (true) {
-                ! $user->can('delete', $elemento) => 'No lo gestionás.',
-                default => $elemento->motivoBloqueoEliminacion($this->id)
-                    ?? (Actualizacion::eliminacionPendienteDe($elemento) ? 'Ya tiene una eliminación propuesta.' : null),
-            };
+            $motivo = $elemento->motivoBloqueoEliminacion($this->id)
+                ?? (Actualizacion::eliminacionPendienteDe($elemento) ? 'Ya tiene una eliminación propuesta.' : null)
+                ?? (! $user->can('proponerEliminacion', $elemento) ? 'No lo gestionás.' : null);
 
             return ['id' => $elemento->id, 'nombre' => $elemento->nombre, 'seleccionable' => $motivo === null, 'motivo' => $motivo];
         };

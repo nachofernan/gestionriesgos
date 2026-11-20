@@ -17,6 +17,8 @@ use Livewire\Component;
  * (Recalcular, o un ancla al bloque donde se arregla), un <style> que marca en
  * rojo o ámbar esos bloques, y los botones de "Marcar revisado" y "Firmar"
  * ("Validar y firmar" si hay cambios en borrador) para quien la Policy deja.
+ * Con algo abierto, también "Proponer eliminación", la otra salida de la firma
+ * (D-058): abre el modal de la ficha con el evento de ventana `abrir-eliminacion`.
  * Firmado, se reduce a una línea. La ve todo el que ve el elemento.
  * Se refresca con el evento "{tipo}-actualizado" que emiten los bloques, y lo
  * emite al validar cambios para que los bloques se refresquen.
@@ -199,6 +201,9 @@ class PendientesFicha extends Component
                 && $elemento->motivoBloqueoRecalculo($user) === null,
             'puedeRevisar' => $gerencia && ! $revision?->revisado_en && $user->can('revisar', [RevisionInicial::class, $elemento, $gerencia]),
             'puedeFirmar' => $puedeFirmar,
+            // Sólo si queda algo abierto: con la eliminación ya propuesta, todo está en curso.
+            'puedeProponerEliminacion' => $hallazgos->contains(fn ($h) => $h['severidad'] !== DetectorInconsistencias::EN_CURSO)
+                && $user->can($elemento instanceof Riesgo ? 'delete' : 'proponerEliminacion', $elemento),
             'cambiosAValidar' => $puedeFirmar ? RevisionInicial::cambiosAValidar($elemento, $user)->count() : 0,
             'elemento' => $elemento,
         ]);

@@ -83,6 +83,17 @@ class Objetivo extends Model implements HasMedia
         return $this->morphMany(RevisionInicial::class, 'revisable');
     }
 
+    /**
+     * Motivo por el que el objetivo no se puede eliminar (null si se puede, D-047,
+     * D-058): sólo se elimina por propuesta lo aprobado. Borrador y validado se
+     * sacan con el rechazo con motivo (D-031). Se revisa al proponer (Policy
+     * proponerEliminacion()) y al aplicar (Actualizacion::aplicarEliminacion()).
+     */
+    public function motivoBloqueoEliminacion(?int $juntoConRiesgoId = null): ?string
+    {
+        return $this->estado?->nombre === 'aprobado' ? null : 'No está aprobado.';
+    }
+
     public function riesgos(): BelongsToMany
     {
         return $this->belongsToMany(Riesgo::class, 'objetivo_riesgo')

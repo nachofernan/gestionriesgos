@@ -2,6 +2,7 @@
 
 namespace App\Policies\Auditoria;
 
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Objetivo;
 use App\Models\User;
 
@@ -51,9 +52,29 @@ class ObjetivoPolicy
             || $user->puedeProponerComoAuditor($objetivo->estado?->nombre);
     }
 
+    /**
+     * Borrado directo (soft delete) de lo que todavía no está aprobado. Lo aprobado
+     * no se borra directo: se propone (proponerEliminacion(), D-047, D-058).
+     */
     public function delete(User $user, Objetivo $objetivo): bool
     {
-        return ! $user->esAuditor() && $user->puedeOperarEnArea($this->areaEfectiva($objetivo));
+        return ! $user->esAuditor()
+            && $user->puedeOperarEnArea($this->areaEfectiva($objetivo))
+            && $objetivo->estado?->nombre !== 'aprobado';
+    }
+
+    /**
+     * Proponer la eliminación de lo aprobado (D-047, D-058): quien gestiona el área,
+     * salvo el auditor, si no tiene ya una eliminación pendiente. La aplica el
+     * comité al aprobarla; si la propone el comité, se aplica en el acto.
+     * Tests: EliminacionPorPropuestaTest.
+     */
+    public function proponerEliminacion(User $user, Objetivo $objetivo): bool
+    {
+        return ! $user->esAuditor()
+            && $user->puedeOperarEnArea($this->areaEfectiva($objetivo))
+            && $objetivo->motivoBloqueoEliminacion() === null
+            && Actualizacion::eliminacionPendienteDe($objetivo) === null;
     }
 
     /**

@@ -103,16 +103,23 @@ class Control extends Model implements HasMedia
 
     /**
      * Motivo por el que el control no se puede eliminar (null si se puede, D-047):
-     * tiene que estar aprobado y no mitigar ningún riesgo vigente salvo
-     * $juntoConRiesgoId, el riesgo con el que se propuso eliminarlo. Se consulta al
-     * ofrecerlo (Riesgo::dependientesEliminables()) y otra vez al aplicar, porque
-     * en el medio pudo asociarse a otro riesgo.
-     * Test: un_control_asociado_despues_a_otro_riesgo_no_se_elimina_al_aprobar.
+     * tiene que estar aprobado. Si se propuso junto con un riesgo
+     * ($juntoConRiesgoId), además no tiene que mitigar ningún otro riesgo vigente.
+     * Se consulta al ofrecerlo (Riesgo::dependientesEliminables()) y otra vez al
+     * aplicar, porque en el medio pudo asociarse a otro riesgo. Propuesto solo
+     * (D-058) se elimina aunque mitigue otros: esos riesgos pierden el control
+     * cuando lo aprueba el comité.
+     * Tests: un_control_asociado_despues_a_otro_riesgo_no_se_elimina_al_aprobar,
+     * un_control_compartido_se_elimina_por_propuesta_propia.
      */
     public function motivoBloqueoEliminacion(?int $juntoConRiesgoId = null): ?string
     {
         if ($this->estado?->nombre !== 'aprobado') {
             return 'No está aprobado.';
+        }
+
+        if ($juntoConRiesgoId === null) {
+            return null;
         }
 
         $otros = $this->riesgos()

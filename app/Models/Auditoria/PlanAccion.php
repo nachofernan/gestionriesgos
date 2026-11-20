@@ -376,14 +376,21 @@ class PlanAccion extends Model implements HasMedia
 
     /**
      * Motivo por el que el plan no se puede eliminar (null si se puede, D-047): tiene
-     * que estar aprobado y no estar asociado a ningún riesgo vigente salvo
-     * $juntoConRiesgoId, el riesgo con el que se propuso eliminarlo. Se consulta al
-     * ofrecerlo (Riesgo::dependientesEliminables()) y otra vez al aplicar.
+     * que estar aprobado. Si se propuso junto con un riesgo ($juntoConRiesgoId),
+     * además no tiene que estar asociado a ningún otro riesgo vigente. Se consulta
+     * al ofrecerlo (Riesgo::dependientesEliminables()) y otra vez al aplicar.
+     * Propuesto solo (D-058) se elimina aunque otro riesgo dependa de él: la
+     * inconsistencia aparece en ese riesgo cuando lo aprueba el comité.
+     * Test: un_plan_que_es_el_unico_de_un_riesgo_se_elimina_por_propuesta_propia.
      */
     public function motivoBloqueoEliminacion(?int $juntoConRiesgoId = null): ?string
     {
         if ($this->estado?->nombre !== 'aprobado') {
             return 'No está aprobado.';
+        }
+
+        if ($juntoConRiesgoId === null) {
+            return null;
         }
 
         $otros = $this->riesgos()

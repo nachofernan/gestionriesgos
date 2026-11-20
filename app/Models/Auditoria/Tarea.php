@@ -79,6 +79,17 @@ class Tarea extends Model implements HasMedia
         return $this->morphMany(RevisionInicial::class, 'revisable');
     }
 
+    /**
+     * Motivo por el que la tarea no se puede eliminar (null si se puede, D-047,
+     * D-058): sólo se elimina por propuesta lo aprobado. Borrador y validado se
+     * sacan con el rechazo con motivo (D-031). Se revisa al proponer (Policy
+     * proponerEliminacion()) y al aplicar (Actualizacion::aplicarEliminacion()).
+     */
+    public function motivoBloqueoEliminacion(?int $juntoConRiesgoId = null): ?string
+    {
+        return $this->estado?->nombre === 'aprobado' ? null : 'No está aprobado.';
+    }
+
     public function planesAccion(): BelongsToMany
     {
         return $this->belongsToMany(PlanAccion::class, 'plan_accion_tarea')

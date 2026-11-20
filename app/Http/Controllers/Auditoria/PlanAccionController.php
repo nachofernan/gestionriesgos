@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
+use App\Http\Controllers\Auditoria\Concerns\ProponeEliminacion;
 use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
@@ -19,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  */
 class PlanAccionController extends Controller
 {
-    use OpcionesAreaResponsable, RechazaElemento;
+    use OpcionesAreaResponsable, ProponeEliminacion, RechazaElemento;
 
     public function index()
     {
@@ -82,7 +83,10 @@ class PlanAccionController extends Controller
         // Comité de la aprobación vigente (D-039), para el encabezado.
         $comite = Actualizacion::comiteVigenteDe($planAccion);
 
-        return view('auditoria.planaccion.show', compact('planAccion', 'comite'));
+        // Modal de eliminación por propuesta de lo aprobado (D-047, D-058).
+        $eliminacion = $this->datosEliminacion($planAccion);
+
+        return view('auditoria.planaccion.show', compact('planAccion', 'comite', 'eliminacion'));
     }
 
     public function edit(PlanAccion $planAccion)
@@ -139,6 +143,19 @@ class PlanAccionController extends Controller
         return redirect()->route('auditoria.planes.show', $planAccion)->with('ok', 'Plan actualizado.');
     }
 
+    /**
+     * Propuesta de eliminación de lo aprobado (D-047, D-058), con motivo
+     * obligatorio. La aplica el comité al aprobarla.
+     * Tests: EliminacionPorPropuestaTest.
+     */
+    public function proponerEliminacion(Request $request, PlanAccion $planAccion)
+    {
+        $this->authorize('proponerEliminacion', $planAccion);
+
+        return $this->registrarPropuestaEliminacion($request, $planAccion, 'planes', 'Plan de acción eliminado.');
+    }
+
+    /** Borrado directo de lo que todavía no está aprobado (ver la Policy). */
     public function destroy(PlanAccion $planAccion)
     {
         $this->authorize('delete', $planAccion);

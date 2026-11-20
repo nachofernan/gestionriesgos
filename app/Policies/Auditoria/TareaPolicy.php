@@ -2,6 +2,7 @@
 
 namespace App\Policies\Auditoria;
 
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Tarea;
 use App\Models\User;
 
@@ -77,9 +78,29 @@ class TareaPolicy
             ->contains(fn ($plan) => $user->can('update', $plan));
     }
 
+    /**
+     * Borrado directo (soft delete) de lo que todavía no está aprobado. Lo aprobado
+     * no se borra directo: se propone (proponerEliminacion(), D-047, D-058).
+     */
     public function delete(User $user, Tarea $tarea): bool
     {
-        return ! $user->esAuditor() && $user->puedeOperarEnArea($this->areaEfectiva($tarea));
+        return ! $user->esAuditor()
+            && $user->puedeOperarEnArea($this->areaEfectiva($tarea))
+            && $tarea->estado?->nombre !== 'aprobado';
+    }
+
+    /**
+     * Proponer la eliminación de lo aprobado (D-047, D-058): quien gestiona el área,
+     * salvo el auditor, si no tiene ya una eliminación pendiente. La aplica el
+     * comité al aprobarla; si la propone el comité, se aplica en el acto.
+     * Tests: EliminacionPorPropuestaTest.
+     */
+    public function proponerEliminacion(User $user, Tarea $tarea): bool
+    {
+        return ! $user->esAuditor()
+            && $user->puedeOperarEnArea($this->areaEfectiva($tarea))
+            && $tarea->motivoBloqueoEliminacion() === null
+            && Actualizacion::eliminacionPendienteDe($tarea) === null;
     }
 
     /**

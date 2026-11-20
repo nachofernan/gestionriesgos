@@ -193,7 +193,9 @@ class RevisionInicialFichaTest extends TestCase
         $riesgo = $this->riesgoDeLaCarga();
 
         $this->card($this->gerente, 'riesgo', $riesgo->id)
-            ->assertSee('Arreglá los errores para poder firmar.')
+            // Riesgo aprobado: la otra salida es proponer el borrado (D-058).
+            ->assertSee('Arreglá los errores o proponé eliminarlo para poder firmar.')
+            ->assertSee('Proponer eliminación')
             ->call('firmar')
             ->assertHasErrors('revision');
 

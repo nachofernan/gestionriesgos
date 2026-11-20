@@ -38,6 +38,10 @@
         <div class="flex items-center gap-2 flex-wrap lg:justify-end">
             @include('auditoria.partials.estado-acciones', ['item' => $tarea, 'routePrefix' => 'tareas'])
 
+            @if($eliminacion)
+                @include('auditoria.partials.modal-eliminacion', ['elemento' => $tarea, 'ruta' => route('auditoria.tareas.eliminacion', $tarea), 'etiqueta' => 'tarea', 'datos' => $eliminacion])
+            @endif
+
             @can('delete', $tarea)
                 <div class="relative" x-data="{ abierto: false }" x-on:click.outside="abierto = false">
                     <button type="button" x-on:click="abierto = !abierto" title="Más acciones"

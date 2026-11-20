@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
+use App\Http\Controllers\Auditoria\Concerns\ProponeEliminacion;
 use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 class TareaController extends Controller
 {
-    use OpcionesAreaResponsable, RechazaElemento;
+    use OpcionesAreaResponsable, ProponeEliminacion, RechazaElemento;
 
     public function index()
     {
@@ -86,7 +87,10 @@ class TareaController extends Controller
         // Comité de la aprobación vigente (D-039), para el encabezado.
         $comite = Actualizacion::comiteVigenteDe($tarea);
 
-        return view('auditoria.tarea.show', compact('tarea', 'comite'));
+        // Modal de eliminación por propuesta de lo aprobado (D-047, D-058).
+        $eliminacion = $this->datosEliminacion($tarea);
+
+        return view('auditoria.tarea.show', compact('tarea', 'comite', 'eliminacion'));
     }
 
     public function edit(Tarea $tarea)
@@ -140,6 +144,19 @@ class TareaController extends Controller
         return redirect()->route('auditoria.tareas.show', $tarea)->with('ok', 'Tarea actualizada.');
     }
 
+    /**
+     * Propuesta de eliminación de lo aprobado (D-047, D-058), con motivo
+     * obligatorio. La aplica el comité al aprobarla.
+     * Tests: EliminacionPorPropuestaTest.
+     */
+    public function proponerEliminacion(Request $request, Tarea $tarea)
+    {
+        $this->authorize('proponerEliminacion', $tarea);
+
+        return $this->registrarPropuestaEliminacion($request, $tarea, 'tareas', 'Tarea eliminada.');
+    }
+
+    /** Borrado directo de lo que todavía no está aprobado (ver la Policy). */
     public function destroy(Tarea $tarea)
     {
         $this->authorize('delete', $tarea);

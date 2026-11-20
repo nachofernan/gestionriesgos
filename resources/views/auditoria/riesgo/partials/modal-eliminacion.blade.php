@@ -14,7 +14,7 @@
     $comiteEliminacion = $comiteEliminacion ?? false;
     $marcados = fn (string $tipo) => array_map('intval', (array) old($tipo, []));
 @endphp
-<div x-data="{ menu: false, abierto: @js($conErrores), como: @js(old('como', $comiteEliminacion ? 'comite' : 'propuesta')) }" x-on:keydown.escape.window="abierto = false">
+<div x-data="{ menu: false, abierto: @js($conErrores), como: @js(old('como', $comiteEliminacion ? 'comite' : 'propuesta')) }" x-on:keydown.escape.window="abierto = false" x-on:abrir-eliminacion.window="abierto = true">
     <div class="relative" x-on:click.outside="menu = false">
         <button type="button" x-on:click="menu = !menu" title="Más acciones"
             class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors">

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
+use App\Http\Controllers\Auditoria\Concerns\ProponeEliminacion;
 use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
@@ -20,7 +21,7 @@ use Illuminate\Validation\Rule;
  */
 class ObjetivoController extends Controller
 {
-    use OpcionesAreaResponsable, RechazaElemento;
+    use OpcionesAreaResponsable, ProponeEliminacion, RechazaElemento;
 
     public function index()
     {
@@ -114,7 +115,10 @@ class ObjetivoController extends Controller
         // Comité de la aprobación vigente (D-039), para el encabezado.
         $comite = Actualizacion::comiteVigenteDe($objetivo);
 
-        return view('auditoria.objetivo.show', compact('objetivo', 'comite'));
+        // Modal de eliminación por propuesta de lo aprobado (D-047, D-058).
+        $eliminacion = $this->datosEliminacion($objetivo);
+
+        return view('auditoria.objetivo.show', compact('objetivo', 'comite', 'eliminacion'));
     }
 
     public function edit(Objetivo $objetivo)
@@ -182,6 +186,19 @@ class ObjetivoController extends Controller
         return redirect()->route('auditoria.objetivos.show', $objetivo)->with('ok', 'Objetivo actualizado.');
     }
 
+    /**
+     * Propuesta de eliminación de lo aprobado (D-047, D-058), con motivo
+     * obligatorio. La aplica el comité al aprobarla.
+     * Tests: EliminacionPorPropuestaTest.
+     */
+    public function proponerEliminacion(Request $request, Objetivo $objetivo)
+    {
+        $this->authorize('proponerEliminacion', $objetivo);
+
+        return $this->registrarPropuestaEliminacion($request, $objetivo, 'objetivos', 'Objetivo eliminado.');
+    }
+
+    /** Borrado directo de lo que todavía no está aprobado (ver la Policy). */
     public function destroy(Objetivo $objetivo)
     {
         $this->authorize('delete', $objetivo);

@@ -2025,7 +2025,7 @@ Fuente: sesión 2026-11-20, con el usuario presente.
 
 ## D-058 — En la revisión inicial se firma resolviendo o proponiendo el borrado (2026-11-20)
 
-**Decisión (regla, sin implementar todavía).** En la revisión inicial, el responsable primario firma
+**Decisión.** En la revisión inicial, el responsable primario firma
 para decir cómo se trata cada elemento. Hay dos salidas válidas:
 
 1. **Resolver** las inconsistencias, que es el circuito de hoy.
@@ -2055,5 +2055,25 @@ inconsistencias se vuelva a abrir cada tanto para reacomodar lo que vaya quedand
 
 **Motivo.** Pedido del usuario: la firma es la decisión sobre qué hacer con el elemento. Sostener las
 inconsistencias de algo que se va a borrar es trabajo perdido.
+
+**Implementación.**
+- `DetectorInconsistencias::detectar()`: con una eliminación pendiente (validada, o en borrador en la
+  vista previa de "Validar y firmar"), todas las inconsistencias salen `en_curso`. La firma las
+  guarda en `arreglos_pendientes`, como cualquier arreglo que espera al comité.
+- `Actualizacion::marcarRechazada()` llama a `RevisionInicial::reabrirTrasRechazo()`. Esa función
+  revisa el elemento de la propuesta y los del otro lado de sus relaciones. Si alguno de sus
+  `arreglos_pendientes` vuelve a ser error o advertencia, borra la firma y deja una nota en la
+  actividad. Es la única excepción a que la firma sea un registro que no se deshace.
+- Control, objetivo, plan y tarea se eliminan por propuesta, como el riesgo. Hay ruta
+  `{entidad}/eliminacion`, Policy `proponerEliminacion()` y un trait `Concerns\ProponeEliminacion`.
+  El modal genérico está en `partials/modal-eliminacion`. Lo aprobado ya no se borra directo:
+  `delete()` queda solo para lo que no está aprobado. Así se cierra el ítem pendiente de D-047.
+- Propuesto solo, un control o un plan se elimina aunque otros riesgos dependan de él. El control
+  compartido se borra igual, y el plan se borra aunque sea el único de un riesgo «mitigar». El
+  chequeo de "otros riesgos" queda solo para la eliminación junto con un riesgo.
+- La card de la ficha suma "Proponer eliminación" cuando hay algo abierto, y abre el modal con el
+  evento de ventana `abrir-eliminacion`.
+
+Tests en `RevisionInicialEliminacionTest` y `EliminacionPorPropuestaTest`.
 
 Fuente: sesión 2026-11-20, con el usuario presente.

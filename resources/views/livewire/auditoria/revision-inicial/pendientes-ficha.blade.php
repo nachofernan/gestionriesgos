@@ -74,7 +74,7 @@
             @enderror
 
             {{-- Revisar y firmar desde la ficha (D-049): mismas reglas que la pantalla de revisión. --}}
-            @if($puedeRevisar || $puedeFirmar)
+            @if($puedeRevisar || $puedeFirmar || $puedeProponerEliminacion)
                 @php
                     $etiquetaFirma = $cambiosAValidar > 0
                         ? "Validar y firmar ({$cambiosAValidar} ".($cambiosAValidar === 1 ? 'cambio' : 'cambios').')'
@@ -113,9 +113,14 @@
                                 <button type="button" wire:click="abrir('revisar')"
                                         class="text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50 rounded-lg px-3 py-1.5">Marcar revisado</button>
                             @endif
+                            {{-- La otra salida de la firma (D-058): proponer el borrado deja todo en curso. --}}
+                            @if($puedeProponerEliminacion)
+                                <button type="button" x-on:click="$dispatch('abrir-eliminacion')"
+                                        class="text-xs font-bold text-red-700 bg-white border border-red-200 hover:bg-red-50 rounded-lg px-3 py-1.5">Proponer eliminación</button>
+                            @endif
                             @if($puedeFirmar)
                                 @if($errores > 0)
-                                    <span class="text-[11px] text-red-700">Arreglá los errores para poder firmar.</span>
+                                    <span class="text-[11px] text-red-700">{{ $puedeProponerEliminacion ? 'Arreglá los errores o proponé eliminarlo para poder firmar.' : 'Arreglá los errores para poder firmar.' }}</span>
                                     <button type="button" disabled
                                             class="text-xs font-bold text-white bg-gray-300 rounded-lg px-3 py-1.5 cursor-not-allowed">{{ $etiquetaFirma }}</button>
                                 @else

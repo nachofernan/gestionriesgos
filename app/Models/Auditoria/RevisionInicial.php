@@ -15,7 +15,9 @@ use Illuminate\Validation\ValidationException;
 /**
  * Firma de la revisión de la carga inicial (D-024) de un elemento ante una
  * gerencia: primero "revisado" (responsable o coordinador), después "firmado"
- * (gerente). Es un registro: no se deshace ni se anula si el elemento cambia.
+ * (gerente). Es un registro: no se deshace si el elemento cambia. La única
+ * excepción es que se rechace una propuesta en la que se apoyó la firma
+ * (reabrirTrasRechazo(), D-058).
  */
 class RevisionInicial extends Model
 {
@@ -165,6 +167,60 @@ class RevisionInicial extends Model
             ->each(fn (Actualizacion $a) => $a->setRelation('actualizable', $elemento))
             ->filter(fn (Actualizacion $a) => Gate::forUser($usuario)->allows('validar', $a))
             ->values();
+    }
+
+    /**
+     * Si se rechaza una propuesta en la que se apoyó una firma (uno de sus
+     * arreglos_pendientes vuelve a ser error o advertencia), la firma deja de
+     * valer y el elemento vuelve a la revisión con sus inconsistencias (D-058).
+     * Revisa el elemento de la propuesta y los del otro lado de las relaciones que
+     * tocaba. Queda una nota en la actividad del elemento con quién lo había
+     * firmado. Lo llama Actualizacion::marcarRechazada().
+     * Tests: si_el_comite_rechaza_la_eliminacion_la_firma_se_anula,
+     * si_el_comite_rechaza_la_asociacion_se_anula_la_firma_del_otro_lado,
+     * un_rechazo_que_no_toca_los_arreglos_no_anula_la_firma.
+     */
+    public static function reabrirTrasRechazo(Actualizacion $rechazada, User $usuario): void
+    {
+        foreach (DetectorInconsistencias::elementosQueToca($rechazada) as [$clase, $id]) {
+            $firmas = static::query()
+                ->where('revisable_type', (new $clase)->getMorphClass())
+                ->where('revisable_id', $id)
+                ->whereNotNull('firmado_en')
+                ->whereNotNull('arreglos_pendientes')
+                ->with('firmadoPor')
+                ->get();
+
+            $elemento = $firmas->isEmpty() ? null : DetectorInconsistencias::consulta($clase)->find($id);
+            if (! $elemento) {
+                continue;
+            }
+
+            $abiertos = collect((new DetectorInconsistencias)->detectar($elemento))
+                ->where('severidad', '!=', DetectorInconsistencias::EN_CURSO)
+                ->pluck('codigo');
+
+            foreach ($firmas as $firma) {
+                if ($abiertos->intersect($firma->arreglos_pendientes)->isEmpty()) {
+                    continue;
+                }
+
+                $elemento->actualizaciones()->create([
+                    'user_id' => $usuario->id,
+                    'mensaje' => 'Se anuló la firma de la revisión inicial ('.($firma->firmadoPor?->name ?? '—')
+                        .', '.$firma->firmado_en->format('d/m/Y').'): se rechazó una propuesta en la que se apoyaba. Vuelve a la revisión.',
+                    'estado_id' => Estado::aprobado()->id,
+                ]);
+
+                $firma->update([
+                    'firmado_por_id' => null,
+                    'firmado_en' => null,
+                    'comentario_firma' => null,
+                    'advertencias_aceptadas' => null,
+                    'arreglos_pendientes' => null,
+                ]);
+            }
+        }
     }
 
     /**

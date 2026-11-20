@@ -527,11 +527,14 @@ class Actualizacion extends Model implements HasMedia
     private function aplicarEliminacion(User $usuario): void
     {
         $entidad = $this->actualizable;
+        $juntoCon = $this->data['junto_con_riesgo_id'] ?? null;
+        // Propuesto solo (D-058), un plan se elimina aunque deje sin plan a un
+        // riesgo: la inconsistencia aparece en ese riesgo, no frena el borrado.
         $motivo = match (true) {
             $entidad instanceof Riesgo => $entidad->motivoBloqueoEliminacion(),
-            $entidad instanceof PlanAccion => $entidad->motivoBloqueoEliminacion($this->data['junto_con_riesgo_id'] ?? null)
+            $entidad instanceof PlanAccion && $juntoCon !== null => $entidad->motivoBloqueoEliminacion($juntoCon)
                 ?? $entidad->motivoBloqueoRechazo('eliminar'),
-            default => $entidad->motivoBloqueoEliminacion($this->data['junto_con_riesgo_id'] ?? null),
+            default => $entidad->motivoBloqueoEliminacion($juntoCon),
         };
         if ($motivo) {
             throw ValidationException::withMessages(['eliminacion' => $motivo]);
@@ -717,17 +720,23 @@ class Actualizacion extends Model implements HasMedia
 
     /**
      * Rechaza la propuesta con su motivo, que es obligatorio (D-031): quien llama ya
-     * lo validó y autorizó con ActualizacionPolicy::rechazar().
-     * Test: rechazar_una_propuesta_exige_motivo_y_lo_guarda.
+     * lo validó y autorizó con ActualizacionPolicy::rechazar(). Si una firma de la
+     * revisión inicial se apoyaba en ella, se anula (D-058).
+     * Tests: rechazar_una_propuesta_exige_motivo_y_lo_guarda,
+     * si_el_comite_rechaza_la_eliminacion_la_firma_se_anula.
      */
     public function marcarRechazada(User $usuario, string $motivo): void
     {
-        $this->update([
-            'estado_id' => Estado::borrado()->id,
-            'rechazado_por_id' => $usuario->id,
-            'rechazado_en' => now(),
-            'motivo_rechazo' => $motivo,
-        ]);
+        DB::transaction(function () use ($usuario, $motivo) {
+            $this->update([
+                'estado_id' => Estado::borrado()->id,
+                'rechazado_por_id' => $usuario->id,
+                'rechazado_en' => now(),
+                'motivo_rechazo' => $motivo,
+            ]);
+
+            RevisionInicial::reabrirTrasRechazo($this, $usuario);
+        });
     }
 
     /**

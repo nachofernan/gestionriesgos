@@ -2,6 +2,7 @@
 
 namespace App\Policies\Auditoria;
 
+use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\PlanAccion;
 use App\Models\User;
 
@@ -61,9 +62,29 @@ class PlanAccionPolicy
         return ! $user->esAuditor() && $this->update($user, $planAccion);
     }
 
+    /**
+     * Borrado directo (soft delete) de lo que todavía no está aprobado. Lo aprobado
+     * no se borra directo: se propone (proponerEliminacion(), D-047, D-058).
+     */
     public function delete(User $user, PlanAccion $planAccion): bool
     {
-        return ! $user->esAuditor() && $user->puedeOperarEnArea($this->areaEfectiva($planAccion));
+        return ! $user->esAuditor()
+            && $user->puedeOperarEnArea($this->areaEfectiva($planAccion))
+            && $planAccion->estado?->nombre !== 'aprobado';
+    }
+
+    /**
+     * Proponer la eliminación de lo aprobado (D-047, D-058): quien gestiona el área,
+     * salvo el auditor, si no tiene ya una eliminación pendiente. La aplica el
+     * comité al aprobarla; si la propone el comité, se aplica en el acto.
+     * Tests: EliminacionPorPropuestaTest.
+     */
+    public function proponerEliminacion(User $user, PlanAccion $planAccion): bool
+    {
+        return ! $user->esAuditor()
+            && $user->puedeOperarEnArea($this->areaEfectiva($planAccion))
+            && $planAccion->motivoBloqueoEliminacion() === null
+            && Actualizacion::eliminacionPendienteDe($planAccion) === null;
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auditoria;
 
 use App\Http\Controllers\Auditoria\Concerns\OpcionesAreaResponsable;
+use App\Http\Controllers\Auditoria\Concerns\ProponeEliminacion;
 use App\Http\Controllers\Auditoria\Concerns\RechazaElemento;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria\Actualizacion;
@@ -22,7 +23,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  */
 class ControlController extends Controller
 {
-    use OpcionesAreaResponsable, RechazaElemento;
+    use OpcionesAreaResponsable, ProponeEliminacion, RechazaElemento;
 
     public function index()
     {
@@ -79,7 +80,10 @@ class ControlController extends Controller
         // Comité de la aprobación vigente (D-039), para el encabezado.
         $comite = Actualizacion::comiteVigenteDe($control);
 
-        return view('auditoria.control.show', compact('control', 'comite'));
+        // Modal de eliminación por propuesta de lo aprobado (D-047, D-058).
+        $eliminacion = $this->datosEliminacion($control);
+
+        return view('auditoria.control.show', compact('control', 'comite', 'eliminacion'));
     }
 
     public function edit(Control $control)
@@ -144,6 +148,19 @@ class ControlController extends Controller
         return response()->download($media->getPath(), $media->file_name);
     }
 
+    /**
+     * Propuesta de eliminación de lo aprobado (D-047, D-058), con motivo
+     * obligatorio. La aplica el comité al aprobarla.
+     * Tests: EliminacionPorPropuestaTest.
+     */
+    public function proponerEliminacion(Request $request, Control $control)
+    {
+        $this->authorize('proponerEliminacion', $control);
+
+        return $this->registrarPropuestaEliminacion($request, $control, 'controles', 'Control eliminado.');
+    }
+
+    /** Borrado directo de lo que todavía no está aprobado (ver la Policy). */
     public function destroy(Control $control)
     {
         $this->authorize('delete', $control);

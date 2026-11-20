@@ -83,6 +83,17 @@ class DetectorInconsistencias
     public function detectar(Model $elemento): array
     {
         $actuales = $this->reglas($elemento);
+
+        // Proponer el borrado también es una forma de resolverlo (D-058): con la
+        // propuesta pendiente, todo queda en curso y se firma.
+        if ($actuales !== [] && $this->tieneEliminacionPropuesta($elemento)) {
+            return array_map(fn ($h) => [
+                ...$h,
+                'severidad' => self::EN_CURSO,
+                'mensaje' => $h['mensaje'].' Tiene una propuesta de eliminación que espera al comité.',
+            ], $actuales);
+        }
+
         $proyectado = $this->proyectar($elemento);
 
         if ($proyectado === null || $actuales === []) {
@@ -96,6 +107,46 @@ class DetectorInconsistencias
             'severidad' => self::EN_CURSO,
             'mensaje' => $h['mensaje'].' Tiene un arreglo validado que espera al comité.',
         ], $actuales);
+    }
+
+    /**
+     * Si el elemento tiene una propuesta de eliminación pendiente (validada, o en
+     * borrador en la vista previa de "Validar y firmar").
+     * Tests: una_propuesta_de_eliminacion_deja_todo_en_curso_y_se_firma,
+     * una_eliminacion_en_borrador_no_cuenta_hasta_validarla.
+     */
+    private function tieneEliminacionPropuesta(Model $elemento): bool
+    {
+        $this->propuestas ??= $this->cargarPropuestas();
+
+        return collect($this->propuestas['propias'][$elemento->getMorphClass().'#'.$elemento->getKey()] ?? [])
+            ->contains(fn ($data) => ! empty($data['eliminacion']));
+    }
+
+    /**
+     * Elementos cuya revisión puede apoyarse en la propuesta $actualizacion: el
+     * suyo y los del otro lado de las relaciones que toca. Lo usa
+     * RevisionInicial::reabrirTrasRechazo().
+     *
+     * @return list<array{0: class-string<Model>, 1: int}>
+     */
+    public static function elementosQueToca(Actualizacion $actualizacion): array
+    {
+        $clase = $actualizacion->actualizable_type;
+        $elementos = [[$clase, (int) $actualizacion->actualizable_id]];
+
+        foreach ($actualizacion->data['relaciones'] ?? [] as $relacion => $ops) {
+            [$claseInversa] = (self::RELACIONES[$clase] ?? [])[$relacion] ?? [null];
+            if (! $claseInversa) {
+                continue;
+            }
+            $ids = [...self::ids($ops['sync'] ?? []), ...self::ids($ops['attach'] ?? []), ...self::ids($ops['agregar'] ?? []), ...self::ids($ops['detach'] ?? [])];
+            foreach (array_unique($ids) as $id) {
+                $elementos[] = [$claseInversa, $id];
+            }
+        }
+
+        return $elementos;
     }
 
     /**

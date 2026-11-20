@@ -64,6 +64,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // -------------------------------------------------------------------
     Route::resource('controles', ControlController::class)
         ->parameters(['controles' => 'control']);
+    Route::post('controles/{control}/eliminacion', [ControlController::class, 'proponerEliminacion'])
+        ->name('controles.eliminacion');
     Route::post('controles/{control}/validar', [ControlController::class, 'validar'])
         ->name('controles.validar');
     Route::post('controles/{control}/aprobar', [ControlController::class, 'aprobar'])
@@ -80,6 +82,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // -------------------------------------------------------------------
     Route::resource('objetivos', ObjetivoController::class)
         ->parameters(['objetivos' => 'objetivo']);
+    Route::post('objetivos/{objetivo}/eliminacion', [ObjetivoController::class, 'proponerEliminacion'])
+        ->name('objetivos.eliminacion');
     Route::post('objetivos/{objetivo}/validar', [ObjetivoController::class, 'validar'])
         ->name('objetivos.validar');
     Route::post('objetivos/{objetivo}/aprobar', [ObjetivoController::class, 'aprobar'])
@@ -94,6 +98,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // -------------------------------------------------------------------
     Route::resource('planes', PlanAccionController::class)
         ->parameters(['planes' => 'planAccion']);
+    Route::post('planes/{planAccion}/eliminacion', [PlanAccionController::class, 'proponerEliminacion'])
+        ->name('planes.eliminacion');
     Route::post('planes/{planAccion}/validar', [PlanAccionController::class, 'validar'])
         ->name('planes.validar');
     Route::post('planes/{planAccion}/aprobar', [PlanAccionController::class, 'aprobar'])
@@ -108,6 +114,8 @@ Route::middleware('auth')->prefix('auditoria')->name('auditoria.')->group(functi
     // -------------------------------------------------------------------
     Route::resource('tareas', TareaController::class)
         ->parameters(['tareas' => 'tarea']);
+    Route::post('tareas/{tarea}/eliminacion', [TareaController::class, 'proponerEliminacion'])
+        ->name('tareas.eliminacion');
     Route::post('tareas/{tarea}/validar', [TareaController::class, 'validar'])
         ->name('tareas.validar');
     Route::post('tareas/{tarea}/aprobar', [TareaController::class, 'aprobar'])
