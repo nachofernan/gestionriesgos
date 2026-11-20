@@ -27,6 +27,20 @@
                     </button>
                 </div>
 
+                {{-- Lo que la cascada no resuelve: se ve al abrir y el botón queda deshabilitado. --}}
+                @if(!empty($impedimentos))
+                    <div class="px-6 py-4 border-b border-red-100 bg-red-50">
+                        <p class="text-xs font-bold text-red-700 uppercase tracking-wide mb-2">
+                            No se puede {{ $accion === 'validar' ? 'validar' : 'aprobar' }} todavía
+                        </p>
+                        <ul class="space-y-1 list-disc ml-5">
+                            @foreach($impedimentos as $impedimento)
+                                <li class="text-sm text-red-700">{{ $impedimento }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 {{-- Bloqueantes (prerequisitos requeridos) --}}
                 @if(!empty($bloqueantes))
                     <div class="px-6 py-4 border-b border-gray-100 bg-amber-50">
@@ -62,8 +76,9 @@
                                                 $key = $item['tipo'] . ':' . $item['id'];
                                                 $seleccionado = $seleccionados[$key] ?? false;
                                                 $indent = ($item['nivel'] ?? 0) > 0;
+                                                $seleccionable = $item['puede_validar'] && empty($item['bloqueo']);
                                             @endphp
-                                            <label wire:key="bloqueante-{{ $key }}" class="flex items-start gap-2.5 cursor-pointer {{ $indent ? 'ml-5' : '' }} {{ !$item['puede_validar'] ? 'opacity-50 cursor-not-allowed' : '' }}">
+                                            <label wire:key="bloqueante-{{ $key }}" class="flex items-start gap-2.5 cursor-pointer {{ $indent ? 'ml-5' : '' }} {{ !$seleccionable ? 'opacity-50 cursor-not-allowed' : '' }}">
                                                 <input type="checkbox"
                                                        {{-- $version fuerza a Livewire a recrear el checkbox en cada
                                                             intento de clic (se acepte o se rechace): cuando el servidor
@@ -73,19 +88,21 @@
                                                             sin una key distinta Livewire no tiene señal para recrear el
                                                             nodo y resincronizarla. --}}
                                                        wire:key="check-{{ $key }}-{{ $version }}"
-                                                       @if($item['puede_validar'])
+                                                       @if($seleccionable)
                                                            wire:click="toggleSeleccion('{{ $key }}')"
                                                        @else
                                                            disabled
                                                        @endif
                                                        @checked($seleccionado)
-                                                       class="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500 {{ !$item['puede_validar'] ? 'cursor-not-allowed' : 'cursor-pointer' }}">
+                                                       class="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500 {{ !$seleccionable ? 'cursor-not-allowed' : 'cursor-pointer' }}">
                                                 <div class="min-w-0">
                                                     <span class="text-sm text-gray-700 font-medium">{{ $item['nombre'] }}</span>
                                                     @if(!empty($item['interno']))
                                                         <span class="ml-1.5 text-[10px] font-bold text-violet-500">Interno: hay que quitarle el flag</span>
                                                     @elseif(!$item['puede_validar'])
                                                         <span class="ml-1.5 text-[10px] font-bold text-red-400">Sin permisos</span>
+                                                    @elseif(!empty($item['bloqueo']))
+                                                        <span class="block text-[11px] font-medium text-red-500">{{ $item['bloqueo'] }}</span>
                                                     @endif
                                                 </div>
                                             </label>
@@ -161,7 +178,7 @@
                             </ol>
                         </div>
                     @endif
-                @else
+                @elseif(empty($impedimentos))
                     {{-- Confirmación simple sin dependencias --}}
                     <div class="px-6 py-5">
                         <p class="text-sm text-gray-600">

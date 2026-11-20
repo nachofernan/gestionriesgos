@@ -18,17 +18,30 @@ use Illuminate\Support\Facades\Gate;
 class ValidacionMasivaService
 {
     /**
-     * Analiza dependencias de una entidad para mostrar en el modal.
+     * Analiza dependencias de una entidad para mostrar en el modal. Además de
+     * bloqueantes y opcionales devuelve los `impedimentos`: lo que la cascada no
+     * puede resolver (un riesgo sin objetivo, un plan sin estimación), para que el
+     * modal lo muestre al abrir y no deje confirmar. No reemplaza el chequeo de
+     * ejecutar(), que sigue siendo la regla. Cada bloqueante trae `bloqueo` con lo
+     * que le falta para procesarse (null si nada).
+     * Tests: un_riesgo_sin_objetivo_muestra_el_impedimento_al_abrir_y_no_deja_confirmar,
+     * un_riesgo_mitigar_sin_plan_muestra_el_impedimento_al_abrir,
+     * un_plan_sin_estimacion_como_bloqueante_no_se_puede_seleccionar,
+     * un_plan_sin_estimacion_como_entidad_principal_muestra_el_impedimento.
      *
-     * @return array{bloqueantes: array, opcionales: array}
+     * @return array{bloqueantes: array, opcionales: array, impedimentos: list<string>}
      */
     public function analizar(Model $entidad, string $accion, User $usuario): array
     {
-        return match (true) {
+        $analisis = match (true) {
             $entidad instanceof Riesgo => $this->analizarRiesgo($entidad, $accion, $usuario),
             $entidad instanceof PlanAccion => $this->analizarPlanAccion($entidad, $accion, $usuario),
-            default => ['bloqueantes' => [], 'opcionales' => []],
+            default => ['bloqueantes' => [], 'opcionales' => [], 'impedimentos' => []],
         };
+
+        $analisis['impedimentos'] = [...$this->motivosBloqueo($entidad), ...$analisis['impedimentos']];
+
+        return $analisis;
     }
 
     /**
@@ -158,7 +171,10 @@ class ValidacionMasivaService
             fn ($o) => in_array($o->estado?->nombre, $nivelRequerido)
         );
 
-        if (! $tieneObjetivoValido && $objetivos->isNotEmpty()) {
+        $impedimentos = [];
+        $verbo = $accion === 'validar' ? 'validar' : 'aprobar';
+
+        if (! $tieneObjetivoValido) {
             foreach ($objetivos as $obj) {
                 $bloqueantes[] = [
                     'tipo' => 'objetivo',
@@ -167,11 +183,18 @@ class ValidacionMasivaService
                     'estado' => $obj->estado?->nombre ?? 'borrador',
                     'puede_validar' => Gate::forUser($usuario)->allows($accion, $obj),
                     'interno' => $obj->interno,
+                    'bloqueo' => null,
                     'nivel' => 0,
                     'parent_tipo' => null,
                     'parent_id' => null,
                 ];
             }
+
+            $impedimentos[] = match (true) {
+                $objetivos->isEmpty() => "El riesgo no tiene objetivos asociados: hay que asociarle uno para poder {$verbo}lo.",
+                ! $this->haySeleccionable($bloqueantes, 'objetivo') => "Ningún objetivo asociado se puede {$verbo} desde acá (ver el motivo de cada uno).",
+                default => null,
+            };
         }
 
         // Si la respuesta es mitigar, el plan de acción es un bloqueante (no
@@ -184,7 +207,7 @@ class ValidacionMasivaService
                 fn ($p) => in_array($p->estado?->nombre, $nivelRequerido)
             );
 
-            if (! $tienePlanValido && $planes->isNotEmpty()) {
+            if (! $tienePlanValido) {
                 foreach ($planes as $plan) {
                     $bloqueantes[] = [
                         'tipo' => 'plan',
@@ -193,13 +216,22 @@ class ValidacionMasivaService
                         'estado' => $plan->estado?->nombre ?? 'borrador',
                         'puede_validar' => Gate::forUser($usuario)->allows($accion, $plan),
                         'interno' => $plan->interno,
+                        'bloqueo' => implode(' ', $this->motivosBloqueo($plan)) ?: null,
                         'nivel' => 0,
                         'parent_tipo' => null,
                         'parent_id' => null,
                     ];
                 }
+
+                $impedimentos[] = match (true) {
+                    $planes->isEmpty() => "Un riesgo con respuesta \"Reducir/Mitigar\" necesita un plan de acción asociado para poder {$verbo}lo.",
+                    ! $this->haySeleccionable($bloqueantes, 'plan') => "Ningún plan de acción asociado se puede {$verbo} desde acá (ver el motivo de cada uno).",
+                    default => null,
+                };
             }
         }
+
+        $impedimentos = array_values(array_filter($impedimentos));
 
         // Un hijo interno es gestión propia del área: no se ofrece (D-044).
         $controles = $riesgo->controles()->with('estado')->get();
@@ -215,7 +247,14 @@ class ValidacionMasivaService
             }
         }
 
-        return compact('bloqueantes', 'opcionales');
+        return compact('bloqueantes', 'opcionales', 'impedimentos');
+    }
+
+    /** Si el grupo $tipo tiene algún bloqueante que el usuario puede procesar (permiso y sin bloqueo). */
+    private function haySeleccionable(array $bloqueantes, string $tipo): bool
+    {
+        return collect($bloqueantes)->where('tipo', $tipo)
+            ->contains(fn ($b) => $b['puede_validar'] && ! $b['bloqueo']);
     }
 
     /**
@@ -245,7 +284,9 @@ class ValidacionMasivaService
             }
         }
 
-        return compact('bloqueantes', 'opcionales');
+        $impedimentos = [];
+
+        return compact('bloqueantes', 'opcionales', 'impedimentos');
     }
 
     // -------------------------------------------------------

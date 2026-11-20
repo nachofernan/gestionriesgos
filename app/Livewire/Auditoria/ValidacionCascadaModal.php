@@ -51,6 +51,9 @@ class ValidacionCascadaModal extends Component
 
     public ?string $error = null;
 
+    /** Lo que la cascada no puede resolver (ValidacionMasivaService::analizar()): se muestra al abrir y bloquea confirmar. */
+    public array $impedimentos = [];
+
     /** Comité que dictaminó la aprobación (D-039), opcional. Sólo se usa al aprobar. */
     public array $comite = ['numero' => '', 'fecha' => ''];
 
@@ -95,10 +98,11 @@ class ValidacionCascadaModal extends Component
         $this->nombre = $entidad->nombre;
         $this->bloqueantes = $analisis['bloqueantes'];
         $this->opcionales = $analisis['opcionales'];
+        $this->impedimentos = $analisis['impedimentos'];
 
-        // Pre-seleccionar todos los items autorizados
+        // Pre-seleccionar todos los items que se pueden procesar
         foreach ($this->bloqueantes as $item) {
-            $this->seleccionados[$item['tipo'].':'.$item['id']] = $item['puede_validar'];
+            $this->seleccionados[$item['tipo'].':'.$item['id']] = $this->seleccionable($item);
         }
         foreach ($this->opcionales as $item) {
             $this->seleccionados[$item['tipo'].':'.$item['id']] = $item['puede_validar'];
@@ -118,6 +122,11 @@ class ValidacionCascadaModal extends Component
         $this->error = null;
         $this->version++;
         $actual = $this->seleccionados[$tipoId] ?? false;
+
+        $bloqueante = collect($this->bloqueantes)->first(fn ($b) => $tipoId === $b['tipo'].':'.$b['id']);
+        if (! $actual && $bloqueante && ! $this->seleccionable($bloqueante)) {
+            return;
+        }
 
         if ($actual) {
             $item = collect($this->bloqueantes)->first(fn ($b) => $tipoId === $b['tipo'].':'.$b['id']);
@@ -156,6 +165,12 @@ class ValidacionCascadaModal extends Component
 
         if ($this->accion === 'aprobar') {
             $this->validate(Actualizacion::reglasComite(), Actualizacion::mensajesComite());
+        }
+
+        if ($this->impedimentos) {
+            $this->error = implode(' ', $this->impedimentos);
+
+            return;
         }
 
         $grupoFaltante = $this->grupoBloqueanteSinSeleccion();
@@ -237,7 +252,7 @@ class ValidacionCascadaModal extends Component
         foreach (collect($this->bloqueantes)->pluck('tipo')->unique() as $grupo) {
             $haySeleccionadoDelGrupo = collect($this->bloqueantes)
                 ->where('tipo', $grupo)
-                ->contains(fn ($b) => ($this->seleccionados[$b['tipo'].':'.$b['id']] ?? false) && $b['puede_validar']);
+                ->contains(fn ($b) => ($this->seleccionados[$b['tipo'].':'.$b['id']] ?? false) && $this->seleccionable($b));
 
             if (! $haySeleccionadoDelGrupo) {
                 return $grupo;
@@ -252,10 +267,19 @@ class ValidacionCascadaModal extends Component
      * reemplaza el chequeo real de confirmar() (que sigue corriendo aunque
      * este método fallara o se bypasseara), es una señal anticipada para que
      * el usuario no llegue a clickear algo que el servidor va a rechazar.
+     * Con impedimentos (un riesgo sin objetivo, un plan sin estimación) tampoco.
+     * Tests: un_riesgo_sin_objetivo_muestra_el_impedimento_al_abrir_y_no_deja_confirmar,
+     * confirmar_con_impedimentos_no_cambia_el_estado.
      */
     public function puedeConfirmar(): bool
     {
-        return $this->grupoBloqueanteSinSeleccion() === null;
+        return empty($this->impedimentos) && $this->grupoBloqueanteSinSeleccion() === null;
+    }
+
+    /** Un bloqueante se puede marcar si el usuario tiene permiso y no le falta nada (p. ej. la estimación de un plan). */
+    private function seleccionable(array $item): bool
+    {
+        return $item['puede_validar'] && empty($item['bloqueo']);
     }
 
     /** Lista ordenada para mostrar en el resumen de ejecución */
