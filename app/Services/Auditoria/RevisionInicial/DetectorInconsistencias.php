@@ -263,8 +263,10 @@ class DetectorInconsistencias
     {
         $hallazgos = [];
 
-        if ($objetivo->riesgos_count === 0) {
-            $hallazgos[] = $this->advertencia('sin_riesgos', 'No tiene riesgos asociados.');
+        // Sin riesgos no se firma (D-055), salvo un PEIS: sus riesgos le llegan por
+        // los objetivos que le contribuyen.
+        if ($objetivo->riesgos_count === 0 && ! $objetivo->es_peis) {
+            $hallazgos[] = $this->error('sin_riesgos', 'No tiene riesgos asociados.');
         }
 
         return $hallazgos;

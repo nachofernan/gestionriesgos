@@ -41,6 +41,7 @@ Para cada elemento, el sistema muestra sus inconsistencias con tres colores:
 | Riesgo | La respuesta es *Reducir / Mitigar* y no tiene plan de acción. |
 | Riesgo | La respuesta es *Aceptar* o *Compartir* y no tiene fundamento. |
 | Riesgo | No tiene evaluación vigente: hay que **recalcular** impacto y probabilidad con el cuestionario de su tipo. Toda la carga inicial entra así. |
+| Objetivo | No tiene riesgos asociados. Los objetivos **PEIS** no lo necesitan: sus riesgos le llegan por los objetivos que le contribuyen. Los riesgos se pueden asociar desde la pantalla del objetivo. |
 | Tarea | No pertenece a ningún plan de acción. |
 
 ### Advertencias (se firman con comentario)
@@ -53,7 +54,6 @@ Para cada elemento, el sistema muestra sus inconsistencias con tres colores:
 | Control | Falta contestar el cuestionario del control. Mientras tanto conserva su número anterior, pero no se puede validar ni aprobar. |
 | Control | El control mitiga 0. |
 | Control | No mitiga ningún riesgo. |
-| Objetivo | No tiene riesgos asociados. |
 | Plan de acción | No tiene riesgos asociados. |
 | Plan de acción | No tiene tareas. |
 | Plan de acción | No tiene el valor estimado: no descuenta del residual de sus riesgos. |

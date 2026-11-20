@@ -243,14 +243,20 @@ class DetectorInconsistenciasTest extends TestCase
     }
 
     #[Test]
-    public function un_objetivo_sin_riesgos_es_advertencia(): void
+    public function un_objetivo_sin_riesgos_es_error(): void
     {
         $objetivo = $this->objetivo();
 
-        $this->assertSame(['sin_riesgos' => 'advertencia'], $this->hallazgos($objetivo));
+        $this->assertSame(['sin_riesgos' => 'error'], $this->hallazgos($objetivo));
 
         $objetivo->riesgos()->attach(Riesgo::factory()->create(['area_id' => $this->area->id])->id);
         $this->assertSame([], $this->hallazgos($objetivo));
+    }
+
+    #[Test]
+    public function un_objetivo_peis_sin_riesgos_no_tiene_hallazgos(): void
+    {
+        $this->assertSame([], $this->hallazgos($this->objetivo(['es_peis' => true])));
     }
 
     #[Test]
