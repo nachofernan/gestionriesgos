@@ -11,7 +11,7 @@
         'mayor_criticidad' => 'Mayor criticidad','mitigacion_default' => 'Mitigación por defecto', 'efectividad' => 'Efectividad', 'fecha_objetivo' => 'Fecha objetivo',
         'fecha' => 'Fecha límite', 'porcentaje_avance' => 'Avance', 'interno' => 'Interno',
     ];
-    $nombresPartes = ['campos' => 'Datos', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes', 'tareas' => 'Tareas', 'sedes' => 'Sedes', 'dimensiones' => 'Dimensiones', 'riesgos' => 'Riesgos', 'testeos' => 'Testeos'];
+    $nombresPartes = ['campos' => 'Datos', 'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes', 'tareas' => 'Tareas', 'sedes' => 'Sedes', 'dimensiones' => 'Dimensiones', 'riesgos' => 'Riesgos', 'testeos' => 'Testeos', 'peis' => 'PEIS', 'contribuyentes' => 'Contribuyentes'];
     $anclas = ['campos' => 'ficha', 'objetivos' => 'objetivos', 'controles' => 'controles', 'planesAccion' => 'planes', 'tareas' => 'tareas', 'sedes' => 'ficha', 'dimensiones' => 'ficha'];
 
     // Clasifica una entrada: qué es, cómo terminó y qué partes tocó. Lo usan el lateral y el modal.
@@ -34,7 +34,7 @@
         // parte que tocó es la relación con ese elemento (en el objetivo, «Riesgos»).
         $externo = $a->origen_externo;
         $partes = $externo
-            ? [$externo['tipo'] === 'plan' ? 'planesAccion' : 'riesgos']
+            ? [['plan' => 'planesAccion', 'objetivo' => 'contribuyentes'][$externo['tipo']] ?? 'riesgos']
             : array_merge(!empty($diff['campos']) ? ['campos'] : [], array_keys($diff['relaciones'] ?? []));
         $chipTarea = isset($data['tarea_creada']) ? ($chipsTarea[$estadosTareasCreadas[$data['tarea_creada']] ?? ''] ?? null) : null;
 

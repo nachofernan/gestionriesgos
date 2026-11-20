@@ -235,6 +235,80 @@ class ActividadRelacionadaTest extends TestCase
         $this->assertNotContains($entrada->id, $this->actividad('riesgo', $riesgo->id)->viewData('actualizaciones')->pluck('id')->all());
     }
 
+    private function peis(string $nombre): Objetivo
+    {
+        return Objetivo::create([
+            'nombre' => $nombre,
+            'es_peis' => true,
+            'estado_id' => Estado::aprobado()->id,
+            'area_id' => $this->gerencia->id,
+            'user_id' => $this->gerente->id,
+        ]);
+    }
+
+    #[Test]
+    public function crear_un_objetivo_que_contribuye_a_un_peis_aparece_en_la_actividad_del_peis(): void
+    {
+        $peis = $this->peis('Transparencia');
+
+        $this->actingAs($this->gerente)->post(route('auditoria.objetivos.store'), [
+            'nombre' => 'Publicar compras',
+            'area_id' => $this->gerencia->id,
+            'contribuye_peis' => '1',
+            'peis_ids' => [$peis->id],
+        ])->assertSessionHasNoErrors();
+
+        $objetivo = Objetivo::where('nombre', 'Publicar compras')->sole();
+        $alta = $objetivo->actualizaciones()->sole();
+        $this->assertSame([['id' => $peis->id, 'nombre' => 'Transparencia']], $alta->data['diff']['relaciones']['peis']['agrega']);
+
+        $enPeis = $this->actividad('objetivo', $peis->id)->viewData('actualizaciones');
+        $this->assertSame([$alta->id], $enPeis->pluck('id')->all());
+        $this->assertSame('objetivo', $enPeis->first()->origen_externo['tipo']);
+    }
+
+    #[Test]
+    public function dejar_de_contribuir_a_un_peis_queda_en_el_historial_de_los_dos(): void
+    {
+        $transparencia = $this->peis('Transparencia');
+        $integridad = $this->peis('Integridad');
+        $objetivo = Objetivo::create([
+            'nombre' => 'Publicar compras',
+            'estado_id' => Estado::borrador()->id,
+            'area_id' => $this->gerencia->id,
+            'user_id' => $this->gerente->id,
+        ]);
+        $objetivo->peis()->attach($transparencia->id);
+
+        $this->actingAs($this->gerente)->put(route('auditoria.objetivos.update', $objetivo), [
+            'nombre' => 'Publicar compras',
+            'area_id' => $this->gerencia->id,
+            'user_id' => $this->gerente->id,
+            'contribuye_peis' => '1',
+            'peis_ids' => [$integridad->id],
+        ])->assertSessionHasNoErrors();
+
+        $edicion = $objetivo->actualizaciones()->sole();
+        $this->assertSame([
+            'agrega' => [['id' => $integridad->id, 'nombre' => 'Integridad']],
+            'quita' => [['id' => $transparencia->id, 'nombre' => 'Transparencia']],
+        ], $edicion->data['diff']['relaciones']['peis']);
+        $this->assertArrayNotHasKey('campos', $edicion->data['diff']);
+
+        $this->assertSame([$edicion->id], $this->actividad('objetivo', $transparencia->id)->viewData('actualizaciones')->pluck('id')->all());
+        $this->assertSame([$edicion->id], $this->actividad('objetivo', $integridad->id)->viewData('actualizaciones')->pluck('id')->all());
+
+        // Guardar sin cambiar nada no deja entrada.
+        $this->actingAs($this->gerente)->put(route('auditoria.objetivos.update', $objetivo), [
+            'nombre' => 'Publicar compras',
+            'area_id' => $this->gerencia->id,
+            'user_id' => $this->gerente->id,
+            'contribuye_peis' => '1',
+            'peis_ids' => [$integridad->id],
+        ]);
+        $this->assertSame(1, $objetivo->actualizaciones()->count());
+    }
+
     /** @return array{0: Control, 1: Riesgo} */
     private function relacionTesteable(): array
     {

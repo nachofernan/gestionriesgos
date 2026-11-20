@@ -648,7 +648,7 @@ class Actualizacion extends Model implements HasMedia
 
         $partes = [
             'objetivos' => 'Objetivos', 'controles' => 'Controles', 'planesAccion' => 'Planes de acción',
-            'tareas' => 'Tareas', 'sedes' => 'Sedes', 'dimensiones' => 'Dimensiones',
+            'tareas' => 'Tareas', 'sedes' => 'Sedes', 'dimensiones' => 'Dimensiones', 'peis' => 'PEIS',
         ];
         $relaciones = [];
         foreach ($diff['relaciones'] ?? [] as $parte => $ops) {

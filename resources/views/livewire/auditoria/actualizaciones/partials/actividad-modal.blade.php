@@ -224,7 +224,7 @@
                                         @if($externo)
                                             <a href="{{ $externo['url'] }}"
                                                class="mx-4 mb-2 flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
-                                                Registrado en {{ $externo['tipo'] === 'plan' ? 'el plan' : 'el riesgo' }} «{{ $externo['nombre'] }}» →
+                                                Registrado en el {{ $externo['tipo'] }} «{{ $externo['nombre'] }}» →
                                             </a>
                                         @endif
 

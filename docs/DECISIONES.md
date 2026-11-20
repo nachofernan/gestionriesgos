@@ -2003,3 +2003,22 @@ registrado no aparecía sin migrar.
 Tests en `ActividadRelacionadaTest`.
 
 Fuente: sesión 2026-11-20, con el usuario presente.
+
+---
+
+## D-057 — La contribución a un PEIS queda en el historial (2026-11-20)
+
+**Decisión.** Completa el pendiente de D-056. Asociar o quitar los PEIS a los que contribuye un
+objetivo (`objetivo_peis`, D-054) se registra en el historial del objetivo que contribuye, como
+`diff.relaciones.peis` (`agrega` / `quita`, con id y nombre). No se agrega una entrada aparte: va en la
+que ya existía, el alta («Objetivo creado») o la edición del borrador («Borrador modificado»). La
+derivación de D-056 lo muestra en la actividad del PEIS, como «Contribuyentes», con link al objetivo.
+
+Hoy la contribución sólo cambia en el alta y en la edición del borrador (`ObjetivoController`); lo
+validado no la edita.
+
+**Motivo.** Pedido del usuario: todas las relaciones tienen que dejar rastro en los dos elementos.
+
+Tests en `ActividadRelacionadaTest`.
+
+Fuente: sesión 2026-11-20, con el usuario presente.

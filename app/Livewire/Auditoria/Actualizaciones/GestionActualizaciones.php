@@ -476,7 +476,7 @@ class GestionActualizaciones extends Component
         if ($this->variante === 'timeline') {
             $derivadas = ActividadRelacionada::entradas($entidad, Auth::user(), $with)
                 ->each(fn (Actualizacion $a) => $a->setAttribute('origen_externo', [
-                    'tipo' => $a->actualizable instanceof PlanAccion ? 'plan' : 'riesgo',
+                    'tipo' => ActividadRelacionada::tipoDe($a->actualizable),
                     'nombre' => $a->actualizable->nombre,
                     'url' => ActividadRelacionada::urlDe($a->actualizable),
                 ]));
@@ -511,7 +511,7 @@ class GestionActualizaciones extends Component
             // bloques), también las registradas en la contraparte.
             'pendientesIds' => $this->variante === 'timeline'
                 ? $entidad->actualizaciones()->propuestasPendientes()->pluck('id')
-                    ->merge($derivadas->isEmpty() ? [] : Actualizacion::whereKey($derivadas->modelKeys())->propuestasPendientes()->pluck('id'))
+                    ->merge($derivadas->isEmpty() ? [] : Actualizacion::whereKey($derivadas->pluck('id'))->propuestasPendientes()->pluck('id'))
                 : collect(),
             'testeos' => $testeos,
             'camposEditables' => $this->camposEditables(),

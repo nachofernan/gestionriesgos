@@ -67,17 +67,22 @@ class ObjetivoController extends Controller
         $objetivo = Objetivo::create($data);
         $objetivo->peis()->sync($peisIds);
 
+        $data = ['tipo' => 'creacion', 'campos' => [
+            'nombre' => $objetivo->nombre,
+            'descripcion' => $objetivo->descripcion,
+            'fecha_objetivo' => $objetivo->fecha_objetivo?->format('Y-m-d'),
+            'estrategico' => $objetivo->estrategico,
+            'es_peis' => $objetivo->es_peis,
+        ]];
+        // La contribución queda en el historial del objetivo y, derivada, en el del PEIS (D-056).
+        if ($diffPeis = $this->diffPeis([], $peisIds)) {
+            $data['diff'] = ['relaciones' => ['peis' => $diffPeis]];
+        }
         $objetivo->actualizaciones()->create([
             'user_id' => Auth::id(),
             'mensaje' => 'Objetivo creado',
             'estado_id' => Estado::borrador()->id,
-            'data' => ['tipo' => 'creacion', 'campos' => [
-                'nombre' => $objetivo->nombre,
-                'descripcion' => $objetivo->descripcion,
-                'fecha_objetivo' => $objetivo->fecha_objetivo?->format('Y-m-d'),
-                'estrategico' => $objetivo->estrategico,
-                'es_peis' => $objetivo->es_peis,
-            ]],
+            'data' => $data,
         ]);
 
         return redirect()->route('auditoria.objetivos.show', $objetivo)->with('ok', 'Objetivo creado.');
@@ -152,21 +157,25 @@ class ObjetivoController extends Controller
 
         $data['interno'] = $request->boolean('interno');
         $original = $objetivo->only(array_keys($data));
+        $peisAntes = $objetivo->peis()->pluck('objetivos.id')->all();
         $objetivo->update($data);
         $objetivo->peis()->sync($peisIds);
 
         $diff = [];
         foreach ($data as $campo => $nuevo) {
             if (array_key_exists($campo, $original) && $original[$campo] != $nuevo) {
-                $diff[$campo] = ['antes' => $original[$campo], 'despues' => $nuevo];
+                $diff['campos'][$campo] = ['antes' => $original[$campo], 'despues' => $nuevo];
             }
+        }
+        if ($diffPeis = $this->diffPeis($peisAntes, $peisIds)) {
+            $diff['relaciones'] = ['peis' => $diffPeis];
         }
         if (! empty($diff)) {
             $objetivo->actualizaciones()->create([
                 'user_id' => Auth::id(),
                 'mensaje' => 'Borrador modificado',
                 'estado_id' => Estado::borrador()->id,
-                'data' => ['tipo' => 'edicion', 'diff' => ['campos' => $diff]],
+                'data' => ['tipo' => 'edicion', 'diff' => $diff],
             ]);
         }
 
@@ -334,6 +343,25 @@ class ObjetivoController extends Controller
         return ! $esPeis && $request->boolean('contribuye_peis')
             ? array_map('intval', $request->input('peis_ids', []))
             : [];
+    }
+
+    /**
+     * Diff de la contribución a PEIS (['agrega' => [[id, nombre]], 'quita' => …]) para el
+     * historial del objetivo, con la misma forma que el resto de las relaciones: así
+     * ActividadRelacionada lo muestra también en la actividad del PEIS (D-056). Vacío si
+     * no cambió.
+     * Tests: crear_un_objetivo_que_contribuye_a_un_peis_aparece_en_la_actividad_del_peis,
+     * dejar_de_contribuir_a_un_peis_queda_en_el_historial_de_los_dos.
+     */
+    private function diffPeis(array $antes, array $despues): array
+    {
+        $nombres = Objetivo::withTrashed()->whereKey(array_merge($antes, $despues))->pluck('nombre', 'id');
+        $items = fn (array $ids) => array_values(array_map(fn ($id) => ['id' => $id, 'nombre' => $nombres[$id] ?? '—'], $ids));
+
+        return array_filter([
+            'agrega' => $items(array_diff($despues, $antes)),
+            'quita' => $items(array_diff($antes, $despues)),
+        ]);
     }
 
     /** Los objetivos PEIS que el usuario puede elegir como destino de su contribución. */

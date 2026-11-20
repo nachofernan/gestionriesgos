@@ -26,12 +26,16 @@ use Illuminate\Support\Collection;
  */
 class ActividadRelacionada
 {
-    /** [clase de la entidad => [clase donde se registra la relación, parte del diff]]. */
+    /**
+     * [clase de la entidad => [[clase donde se registra la relación, parte del diff]]].
+     * Un objetivo recibe de dos lados: sus riesgos y, si es PEIS, los objetivos que le
+     * contribuyen (la contribución se registra en el que contribuye).
+     */
     private const ORIGENES = [
-        Objetivo::class => [Riesgo::class, 'objetivos'],
-        Control::class => [Riesgo::class, 'controles'],
-        PlanAccion::class => [Riesgo::class, 'planesAccion'],
-        Tarea::class => [PlanAccion::class, 'tareas'],
+        Objetivo::class => [[Riesgo::class, 'objetivos'], [Objetivo::class, 'peis']],
+        Control::class => [[Riesgo::class, 'controles']],
+        PlanAccion::class => [[Riesgo::class, 'planesAccion']],
+        Tarea::class => [[PlanAccion::class, 'tareas']],
     ];
 
     /**
@@ -45,11 +49,13 @@ class ActividadRelacionada
      */
     public static function entradas(Model $entidad, User $user, array $with = []): Collection
     {
-        [$claseOrigen, $parte] = self::ORIGENES[$entidad::class] ?? [null, null];
-        if (! $claseOrigen) {
-            return collect();
-        }
+        return collect(self::ORIGENES[$entidad::class] ?? [])
+            ->flatMap(fn ($origen) => self::entradasDesde($entidad, $user, $with, ...$origen))
+            ->values();
+    }
 
+    private static function entradasDesde(Model $entidad, User $user, array $with, string $claseOrigen, string $parte): Collection
+    {
         return Actualizacion::query()
             ->where('actualizable_type', (new $claseOrigen)->getMorphClass())
             ->whereJsonContainsKey("data->diff->relaciones->{$parte}")
@@ -107,6 +113,17 @@ class ActividadRelacionada
         return match (true) {
             $origen instanceof Riesgo => route('auditoria.riesgos.show', $origen->id),
             $origen instanceof PlanAccion => route('auditoria.planes.show', $origen->id),
+            $origen instanceof Objetivo => route('auditoria.objetivos.show', $origen->id),
+        };
+    }
+
+    /** Cómo se nombra en pantalla el elemento donde se registró: 'riesgo' | 'plan' | 'objetivo'. */
+    public static function tipoDe(Model $origen): string
+    {
+        return match (true) {
+            $origen instanceof PlanAccion => 'plan',
+            $origen instanceof Objetivo => 'objetivo',
+            default => 'riesgo',
         };
     }
 }
