@@ -24,7 +24,8 @@
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div class="min-w-0">
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5"
-                       x-text="item.modo === 'propuesta' ? 'Propuesta de cambio · ' + item.tipo_label : item.tipo_label"></p>
+                       :class="item.naturaleza === 'baja' ? 'text-rose-600' : ''"
+                       x-text="({ baja: 'Propuesta de baja · ', cambio: 'Propuesta de cambio · ' }[item.naturaleza] ?? 'Alta · ') + item.tipo_label"></p>
                     <h3 class="text-base font-extrabold text-gray-900 leading-tight">
                         <span x-text="item.nombre"></span>
                     </h3>
@@ -102,7 +103,16 @@
                 </div>
             </template>
 
-            {{-- Cuerpo: propuesta de cambio --}}
+            {{-- Una baja avisa qué pasa si se aprueba, antes del detalle. --}}
+            <template x-if="item.naturaleza === 'baja'">
+                <div class="px-6 py-3 bg-rose-50 border-b border-rose-100 text-sm text-rose-800">
+                    <p class="font-semibold">Si se aprueba, el elemento pasa a Eliminado.</p>
+                    <p x-show="item.junto_con" class="text-xs mt-0.5" x-text="'Se propuso junto con la baja del riesgo «' + item.junto_con + '».'"></p>
+                    <p class="text-xs mt-0.5">Rechazarla lo conserva como está.</p>
+                </div>
+            </template>
+
+            {{-- Cuerpo: propuesta de cambio o de baja --}}
             <template x-if="item.modo === 'propuesta'">
                 <div class="px-6 py-4 space-y-3">
                     <dl class="space-y-1.5" x-show="item.diff.campos.length">
@@ -170,14 +180,16 @@
                                             ? Livewire.dispatch('abrir-accion-actualizacion', { actualizacionId: item.id, accion: item.accion })
                                             : Livewire.dispatch('abrir-validacion-cascada', { tipo: item.tipo, id: item.id, accion: item.accion, sinRedireccion: true })"
                                         class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors"
-                                        :class="item.accion === 'validar' ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'bg-green-50 text-green-700 hover:bg-green-100'"
-                                        x-text="item.accion === 'validar' ? 'Validar' : 'Aprobar'"></button>
+                                        :class="item.naturaleza === 'baja' ? 'bg-rose-600 text-white hover:bg-rose-700'
+                                            : (item.accion === 'validar' ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'bg-green-50 text-green-700 hover:bg-green-100')"
+                                        x-text="(item.accion === 'validar' ? 'Validar' : 'Aprobar') + (item.naturaleza === 'baja' ? ' baja' : '')"></button>
                             </template>
 
                             <template x-if="item.puede_rechazar && item.modo === 'propuesta'">
                                 <button type="button"
                                         x-on:click="abierto = false; Livewire.dispatch('abrir-accion-actualizacion', { actualizacionId: item.id, accion: 'rechazar' })"
-                                        class="px-3 py-1.5 bg-red-50 text-red-700 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors">
+                                        class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors"
+                                        :class="item.naturaleza === 'baja' ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-red-50 text-red-700 hover:bg-red-100'">
                                     Rechazar
                                 </button>
                             </template>

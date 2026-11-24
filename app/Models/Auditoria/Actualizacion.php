@@ -675,6 +675,32 @@ class Actualizacion extends Model implements HasMedia
     }
 
     /**
+     * Una línea de texto por cambio, a partir de diffLegible(). La usan la fila de
+     * Pendientes y el modal de "Validar y firmar" de la revisión inicial.
+     *
+     * @return list<string>
+     */
+    public function lineasDeCambio(): array
+    {
+        $diff = $this->diffLegible();
+        $verbos = ['agrega' => 'agregar', 'quita' => 'quitar', 'cambia' => 'cambiar'];
+
+        return [
+            ...array_map(fn ($c) => "{$c['etiqueta']}: {$c['antes']} → {$c['despues']}", $diff['campos']),
+            ...collect($diff['relaciones'])->flatMap(fn ($r) => array_map(
+                fn ($i) => "{$r['etiqueta']}: ".($verbos[$i['op']] ?? $i['op'])." {$i['nombre']}".($i['detalle'] ? " ({$i['detalle']})" : ''),
+                $r['items'],
+            ))->all(),
+        ];
+    }
+
+    /** Si la propuesta es la eliminación del elemento (D-047, D-058). */
+    public function esEliminacion(): bool
+    {
+        return ! empty($this->data['eliminacion']);
+    }
+
+    /**
      * Valida la actualización y, si la entidad relacionada ya estaba en
      * "validado", aplica los cambios en el mismo paso (no espera una
      * aprobación aparte). Por acá pasa todo "validar" de una propuesta

@@ -111,11 +111,12 @@ class DetectorInconsistencias
 
     /**
      * Si el elemento tiene una propuesta de eliminación pendiente (validada, o en
-     * borrador en la vista previa de "Validar y firmar").
+     * borrador en la vista previa de "Validar y firmar"). También lo usa la
+     * pantalla de la revisión para decir con qué salida se firmó.
      * Tests: una_propuesta_de_eliminacion_deja_todo_en_curso_y_se_firma,
      * una_eliminacion_en_borrador_no_cuenta_hasta_validarla.
      */
-    private function tieneEliminacionPropuesta(Model $elemento): bool
+    public function tieneEliminacionPropuesta(Model $elemento): bool
     {
         $this->propuestas ??= $this->cargarPropuestas();
 

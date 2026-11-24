@@ -2077,3 +2077,33 @@ inconsistencias de algo que se va a borrar es trabajo perdido.
 Tests en `RevisionInicialEliminacionTest` y `EliminacionPorPropuestaTest`.
 
 Fuente: sesión 2026-11-20, con el usuario presente.
+
+## D-059 — Pendientes se ordena por naturaleza: altas, cambios y bajas (2026-11-24)
+
+**Decisión.** La pantalla de Pendientes deja de ser una lista larga por tipo de entidad y pasa a
+pestañas por **naturaleza** de lo que se decide:
+
+- **Altas**: un elemento nuevo, en borrador (para validar) o validado (para aprobar).
+- **Cambios**: una propuesta sobre algo ya aprobado.
+- **Bajas**: una propuesta de eliminación (D-047, D-058). Se ve en rojo, con la transición
+  `Aprobado → Eliminado` y el motivo a la vista, y el botón dice «Validar baja» / «Aprobar baja». Las
+  bajas de controles y planes que se propusieron junto con la de un riesgo se muestran debajo de ella.
+
+El tipo de entidad y el área quedan como filtros dentro de cada pestaña. Con doble rol (D-052), un
+selector arriba separa «Me toca validar» de «Me toca aprobar»; las dos colas no se mezclan. Las filas
+de elementos firmados en la revisión inicial apoyándose en propuestas que esperan (`arreglos_pendientes`)
+llevan la marca «Revisión inicial» y se pueden filtrar; la revisión inicial, a su vez, muestra con qué
+salida se firmó cada elemento y cuántas firmas esperan al comité, con un link a Pendientes.
+
+**Motivo.** Pedido del usuario: una baja se veía igual que cualquier cambio, en verde y con
+«Aprobar», y sólo abriendo el modal se entendía que se estaba eliminando. Para un comité que va a
+recibir mucho de la revisión inicial, alta, cambio y baja son decisiones distintas.
+
+**Descartado.** Pestañas por tipo de entidad (lo de antes, partido), por gerencia (útil para tratar
+gerencia por gerencia, queda como filtro) y por riesgo, como carpeta con todo lo que cuelga (más
+potente, pero hay elementos compartidos entre riesgos). Una sola cola mezclada para el doble rol.
+
+**Implementación.** Sin cambios de autorización ni de flujo: `PendienteController::colas()` y la
+`naturaleza` del payload; la vista filtra con Alpine. Tests en `PendienteControllerTest`.
+
+Fuente: sesión 2026-11-24, con el usuario presente.

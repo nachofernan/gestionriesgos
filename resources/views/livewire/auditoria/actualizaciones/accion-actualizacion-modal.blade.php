@@ -13,7 +13,7 @@
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <div>
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-                            Confirmar {{ match($accion) { 'validar' => 'validación', 'aprobar' => 'aprobación', default => 'rechazo' } }}
+                            Confirmar {{ match($accion) { 'validar' => 'validación', 'aprobar' => 'aprobación', default => 'rechazo' } }}{{ $esBaja ? ' de la baja' : '' }}
                         </p>
                         <h3 class="text-base font-extrabold text-gray-900 leading-tight">
                             {{ $entidadNombre }}
@@ -26,6 +26,12 @@
                         </svg>
                     </button>
                 </div>
+
+                @if($esBaja)
+                    <div class="px-6 py-3 bg-rose-50 border-b border-rose-100 text-sm text-rose-800">
+                        {{ $accion === 'rechazar' ? 'Rechazar la baja conserva el elemento como está.' : 'Es una propuesta de eliminación: el elemento pasa a Eliminado cuando la aprueba el comité.' }}
+                    </div>
+                @endif
 
                 {{-- Mensaje de la actualización --}}
                 <div class="px-6 py-4 border-b border-gray-100">
@@ -93,9 +99,9 @@
                             wire:loading.attr="disabled"
                             wire:target="confirmar"
                             class="px-5 py-2 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed
-                                {{ $accion === 'rechazar' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700' }}">
+                                {{ match (true) { $accion === 'rechazar' && $esBaja => 'bg-gray-700 hover:bg-gray-800', $accion === 'rechazar', $esBaja => 'bg-red-600 hover:bg-red-700', default => 'bg-blue-600 hover:bg-blue-700' } }}">
                         <span wire:loading.remove wire:target="confirmar">
-                            Confirmar {{ match($accion) { 'validar' => 'validación', 'aprobar' => 'aprobación', default => 'rechazo' } }}
+                            Confirmar {{ match($accion) { 'validar' => 'validación', 'aprobar' => 'aprobación', default => 'rechazo' } }}{{ $esBaja ? ' de la baja' : '' }}
                         </span>
                         <span wire:loading wire:target="confirmar">
                             Procesando...

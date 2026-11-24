@@ -128,21 +128,6 @@ class Index extends Component
         $this->dispatch('revision-registrada');
     }
 
-    /** Una línea de texto por cambio de la propuesta, a partir de Actualizacion::diffLegible(). */
-    private static function lineasDeCambio(Actualizacion $propuesta): array
-    {
-        $diff = $propuesta->diffLegible();
-        $verbos = ['agrega' => 'agregar', 'quita' => 'quitar', 'cambia' => 'cambiar'];
-
-        return [
-            ...array_map(fn ($c) => "{$c['etiqueta']}: {$c['antes']} → {$c['despues']}", $diff['campos']),
-            ...collect($diff['relaciones'])->flatMap(fn ($r) => array_map(
-                fn ($i) => "{$r['etiqueta']}: ".($verbos[$i['op']] ?? $i['op'])." {$i['nombre']}".($i['detalle'] ? " ({$i['detalle']})" : ''),
-                $r['items'],
-            ))->all(),
-        ];
-    }
-
     /** @return array{0: Model, 1: Area} */
     private function resolver(string $tipo, int $id, int $gerenciaId): array
     {
@@ -197,14 +182,24 @@ class Index extends Component
                 ]);
 
                 $firmadas = $gerencias->filter(fn ($g) => $g['revision']?->firmado_en)->count();
+                $hallazgos = $detector->detectar($elemento);
+                $bajaPropuesta = $detector->tieneEliminacionPropuesta($elemento);
 
                 return [
                     'elemento' => $elemento,
-                    'hallazgos' => $detector->detectar($elemento),
+                    'hallazgos' => $hallazgos,
+                    // Con qué salida quedó (o queda) la firma (D-058): proponiendo el
+                    // borrado, o con arreglos que todavía esperan al comité.
+                    'salida' => match (true) {
+                        $bajaPropuesta => 'baja',
+                        collect($hallazgos)->contains('severidad', DetectorInconsistencias::EN_CURSO) => 'arreglos',
+                        default => null,
+                    },
+                    'arreglosEnCurso' => collect($hallazgos)->where('severidad', DetectorInconsistencias::EN_CURSO)->count(),
                     'gerencias' => $gerencias,
                     // Propuestas en borrador (de empleados) y cómo quedaría validándolas.
                     'cambios' => $cambios,
-                    'lineasCambios' => $cambios->mapWithKeys(fn (Actualizacion $a) => [$a->id => self::lineasDeCambio($a)]),
+                    'lineasCambios' => $cambios->mapWithKeys(fn (Actualizacion $a) => [$a->id => $a->lineasDeCambio()]),
                     'hallazgosPrevios' => $cambios->isNotEmpty() ? $previa->detectar($elemento) : null,
                     'estado' => $gerencias->isNotEmpty() && $firmadas === $gerencias->count() ? 'firmado' : 'pendiente',
                 ];
@@ -228,8 +223,9 @@ class Index extends Component
 
     /**
      * Avance por gerencia sobre los cinco tipos: cuántas firmas lleva, cuántas
-     * están revisadas sin firmar, cuántas pendientes y cuántos elementos tienen
-     * errores. Cuenta pares elemento-gerencia.
+     * están revisadas sin firmar, cuántas pendientes, cuántas firmadas esperan
+     * todavía al comité (una baja o un arreglo propuestos) y cuántos elementos
+     * tienen errores. Cuenta pares elemento-gerencia.
      */
     private function resumen(array $filasPorTipo): Collection
     {
@@ -239,7 +235,8 @@ class Index extends Component
             foreach ($filas as $fila) {
                 $conErrores = DetectorInconsistencias::tieneErrores($fila['hallazgos']);
                 foreach ($fila['gerencias'] as ['gerencia' => $g, 'revision' => $r]) {
-                    $resumen[$g->id] ??= ['gerencia' => $g, 'total' => 0, 'firmados' => 0, 'revisados' => 0, 'pendientes' => 0, 'con_errores' => 0];
+                    $resumen[$g->id] ??= ['gerencia' => $g, 'total' => 0, 'firmados' => 0, 'revisados' => 0, 'pendientes' => 0, 'esperan_comite' => 0, 'con_errores' => 0];
+                    $resumen[$g->id]['esperan_comite'] += $r?->firmado_en && $fila['salida'] ? 1 : 0;
                     $resumen[$g->id]['total']++;
                     $resumen[$g->id][match (true) {
                         (bool) $r?->firmado_en => 'firmados',
@@ -279,6 +276,7 @@ class Index extends Component
             'conteoPorTipo' => $filasPorTipo->map->count(),
             'resumen' => $this->resumen($filasPorTipo->all()),
             'soloLectura' => $this->miraTodo($user),
+            'esComite' => $user->esComite(),
         ]);
     }
 }

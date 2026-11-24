@@ -14,6 +14,9 @@
         th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
         th { background-color: #f9f9f9; font-weight: bold; }
 
+        .subseccion { font-weight: bold; margin: 12px 0 0; }
+        .subseccion.baja { color: #be123c; }
+        .nota { color: #777; font-size: 9px; }
         .vacio { color: #777; font-style: italic; padding: 8px 0; }
         .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 9px; color: #777; border-top: 1px solid #eee; padding-top: 5px; }
     </style>
@@ -25,122 +28,65 @@
     <p class="subtitulo">Generado por {{ $user->name }} el {{ now()->format('d/m/Y H:i') }} hs</p>
 
     @php
-        $totalValidar = collect($paraValidar)->sum(fn($c) => $c->count()) + $actualizacionesParaValidar->count();
-        $totalAprobar = collect($paraAprobar)->sum(fn($c) => $c->count()) + $actualizacionesParaAprobar->count();
-
-        $labelTipo = fn($actualizacion) => match(get_class($actualizacion->actualizable)) {
-            \App\Models\Auditoria\Riesgo::class     => 'Riesgo',
-            \App\Models\Auditoria\Control::class    => 'Control',
-            \App\Models\Auditoria\Objetivo::class   => 'Objetivo',
-            \App\Models\Auditoria\PlanAccion::class => 'Plan de Acción',
-            \App\Models\Auditoria\Tarea::class      => 'Tarea',
-            default                                  => 'Elemento',
-        };
+        $naturalezas = ['alta' => 'Altas', 'cambio' => 'Cambios', 'baja' => 'Bajas'];
+        $total = collect($colas)->flatten()->count();
     @endphp
 
-    @if($totalValidar === 0 && $totalAprobar === 0)
+    @if($total === 0)
         <p class="vacio">No hay nada pendiente por ahora.</p>
     @endif
 
-    @if($totalValidar > 0)
-        <div class="section-title">Para validar ({{ $totalValidar }})</div>
+    @foreach($colas as $accion => $porNaturaleza)
+        @php $totalCola = collect($porNaturaleza)->flatten()->count(); @endphp
+        @if($totalCola > 0)
+            <div class="section-title {{ $accion }}">Para {{ $accion }} ({{ $totalCola }})</div>
 
-        @foreach($tipos as $tipo => $cfg)
-            @if(($paraValidar[$tipo] ?? collect())->isNotEmpty())
-                <strong>{{ $cfg['label'] }}</strong>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Área</th>
-                            <th>Registrado por</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($paraValidar[$tipo] as $item)
+            @foreach($porNaturaleza as $naturaleza => $claves)
+                @if(count($claves))
+                    <p class="subseccion {{ $naturaleza }}">{{ $naturalezas[$naturaleza] }} ({{ count($claves) }})</p>
+                    <table>
+                        <thead>
                             <tr>
-                                <td>{{ $item->nombre }}</td>
-                                <td>{{ $item->area?->nombre ?? 'Sin área' }}</td>
-                                <td>{{ $item->user?->name ?? '—' }}</td>
+                                <th style="width: 12%">Tipo</th>
+                                <th style="width: 28%">Elemento</th>
+                                <th style="width: 18%">Área</th>
+                                <th>{{ $naturaleza === 'alta' ? 'Registrado por' : ($naturaleza === 'baja' ? 'Motivo' : 'Cambios') }}</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
-        @endforeach
-
-        @if($actualizacionesParaValidar->isNotEmpty())
-            <strong>Cambios propuestos</strong>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tipo</th>
-                        <th>Elemento</th>
-                        <th>Mensaje</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($actualizacionesParaValidar as $actualizacion)
-                        <tr>
-                            <td>{{ $labelTipo($actualizacion) }}</td>
-                            <td>{{ $actualizacion->actualizable?->nombre ?? '(elemento eliminado)' }}</td>
-                            <td>{{ $actualizacion->mensaje }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                        </thead>
+                        <tbody>
+                            @foreach($claves as $clave)
+                                @php $d = $detalles[$clave]; @endphp
+                                <tr>
+                                    <td>{{ $d['tipo_label'] }}</td>
+                                    <td>
+                                        {{ $d['nombre'] }}
+                                        @if($d['junto_con'])
+                                            <br><span class="nota">Junto con la baja de «{{ $d['junto_con'] }}»</span>
+                                        @endif
+                                        @if($d['revision_inicial'])
+                                            <br><span class="nota">Revisión inicial</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $d['area'] }}</td>
+                                    <td>
+                                        @switch($naturaleza)
+                                            @case('alta') {{ $d['propietario'] ?? '—' }} @break
+                                            @case('baja') {{ $d['mensaje'] }} @break
+                                            @default
+                                                @foreach($d['lineas'] as $linea)
+                                                    {{ $linea }}<br>
+                                                @endforeach
+                                                @if($d['mensaje'])<span class="nota">“{{ $d['mensaje'] }}”</span>@endif
+                                        @endswitch
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            @endforeach
         @endif
-    @endif
-
-    @if($totalAprobar > 0)
-        <div class="section-title aprobar">Para aprobar ({{ $totalAprobar }})</div>
-
-        @foreach($tipos as $tipo => $cfg)
-            @if(($paraAprobar[$tipo] ?? collect())->isNotEmpty())
-                <strong>{{ $cfg['label'] }}</strong>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Área</th>
-                            <th>Registrado por</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($paraAprobar[$tipo] as $item)
-                            <tr>
-                                <td>{{ $item->nombre }}</td>
-                                <td>{{ $item->area?->nombre ?? 'Sin área' }}</td>
-                                <td>{{ $item->user?->name ?? '—' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
-        @endforeach
-
-        @if($actualizacionesParaAprobar->isNotEmpty())
-            <strong>Cambios propuestos</strong>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tipo</th>
-                        <th>Elemento</th>
-                        <th>Mensaje</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($actualizacionesParaAprobar as $actualizacion)
-                        <tr>
-                            <td>{{ $labelTipo($actualizacion) }}</td>
-                            <td>{{ $actualizacion->actualizable?->nombre ?? '(elemento eliminado)' }}</td>
-                            <td>{{ $actualizacion->mensaje }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
-    @endif
+    @endforeach
 
     <div class="footer">
         Sistema de Gestión de Auditoría

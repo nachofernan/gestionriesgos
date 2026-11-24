@@ -7,9 +7,11 @@ use App\Models\Auditoria\Actualizacion;
 use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Objetivo;
 use App\Models\Auditoria\PlanAccion;
+use App\Models\Auditoria\RevisionInicial;
 use App\Models\Auditoria\Riesgo;
 use App\Models\Auditoria\Tarea;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 /**
@@ -36,8 +38,46 @@ class PendienteController extends Controller
         abort_unless($user->esGerente() || $user->esComite(), 403);
 
         $datos = $this->datosPendientes($user);
+        $detalles = $this->detalles($user, $datos);
 
-        return view('auditoria.pendiente.index', $datos + ['detalles' => $this->detalles($user, $datos)]);
+        return view('auditoria.pendiente.index', $datos + [
+            'detalles' => $detalles,
+            'colas' => $this->colas($user, $detalles),
+        ]);
+    }
+
+    /**
+     * Las filas de la pantalla ordenadas en colas (validar con rol de gerente,
+     * aprobar con rol de comité: con doble rol no se mezclan, D-052) y, dentro de
+     * cada cola, por naturaleza: alta, cambio o baja (D-059). Cada fila es la clave
+     * de su payload en $detalles. Las bajas que acompañan la de un riesgo quedan
+     * justo debajo de ella.
+     * Test: una_propuesta_de_eliminacion_aparece_como_baja_y_no_como_cambio.
+     *
+     * @return array<'validar'|'aprobar', array<'alta'|'cambio'|'baja', list<string>>>
+     */
+    private function colas($user, array $detalles): array
+    {
+        $colas = [];
+        if ($user->esGerente()) {
+            $colas['validar'] = ['alta' => [], 'cambio' => [], 'baja' => []];
+        }
+        if ($user->esComite()) {
+            $colas['aprobar'] = ['alta' => [], 'cambio' => [], 'baja' => []];
+        }
+
+        foreach ($detalles as $clave => $detalle) {
+            $colas[$detalle['accion']][$detalle['naturaleza']][] = $clave;
+        }
+
+        foreach ($colas as $accion => $porNaturaleza) {
+            $colas[$accion]['baja'] = collect($porNaturaleza['baja'])
+                ->groupBy(fn ($clave) => $detalles[$clave]['grupo'], preserveKeys: false)
+                ->map(fn ($claves) => $claves->sortBy(fn ($clave) => $detalles[$clave]['junto_con'] ? 1 : 0))
+                ->flatten()->values()->all();
+        }
+
+        return $colas;
     }
 
     /**
@@ -49,7 +89,14 @@ class PendienteController extends Controller
         $user = $request->user();
         abort_unless($user->esGerente() || $user->esComite(), 403);
 
-        $pdf = Pdf::loadView('auditoria.pendiente.pdf', $this->datosPendientes($user) + ['user' => $user]);
+        $datos = $this->datosPendientes($user);
+        $detalles = $this->detalles($user, $datos);
+
+        $pdf = Pdf::loadView('auditoria.pendiente.pdf', [
+            'user' => $user,
+            'detalles' => $detalles,
+            'colas' => $this->colas($user, $detalles),
+        ]);
 
         return $pdf->download('pendientes-'.now()->format('Y-m-d').'.pdf');
     }
@@ -136,6 +183,7 @@ class PendienteController extends Controller
     private function detalles($user, array $datos): array
     {
         $detalles = [];
+        $this->firmasConArreglos = $this->firmasConArreglos();
 
         foreach (['validar' => $datos['paraValidar'], 'aprobar' => $datos['paraAprobar']] as $accion => $porTipo) {
             foreach ($porTipo as $tipo => $items) {
@@ -161,18 +209,49 @@ class PendienteController extends Controller
         return $detalles;
     }
 
+    /** @var array<string, true> "{morphClass}#{id}" de los elementos firmados en la revisión inicial con arreglos esperando. */
+    private array $firmasConArreglos = [];
+
+    /**
+     * Elementos firmados en la revisión inicial apoyándose en propuestas que
+     * todavía esperan (arreglos_pendientes, D-058): lo que el comité decide sobre
+     * ellos cierra o reabre esa firma. Una sola query para toda la pantalla.
+     */
+    private function firmasConArreglos(): array
+    {
+        if (! config('auditoria.revision_inicial.activa')) {
+            return [];
+        }
+
+        return RevisionInicial::whereNotNull('firmado_en')->whereNotNull('arreglos_pendientes')
+            ->get(['revisable_type', 'revisable_id'])
+            ->mapWithKeys(fn (RevisionInicial $r) => ["{$r->revisable_type}#{$r->revisable_id}" => true])
+            ->all();
+    }
+
+    private function deRevisionInicial(?Model $elemento): bool
+    {
+        return $elemento !== null && isset($this->firmasConArreglos[$elemento->getMorphClass().'#'.$elemento->id]);
+    }
+
     private function detalleEntidad($user, string $tipo, $item, string $accion): array
     {
         $cfg = self::TIPOS[$tipo];
 
         return [
             'modo' => 'entidad',
+            'naturaleza' => 'alta',
+            'grupo' => "{$tipo}-{$item->id}",
+            'junto_con' => null,
+            'revision_inicial' => $this->deRevisionInicial($item),
             'clave' => "{$tipo}-{$item->id}",
             'tipo' => $tipo,
             'id' => $item->id,
             'tipo_label' => $cfg['singular'],
             'nombre' => $item->nombre,
+            'peis' => $tipo === 'objetivo' && $item->es_peis,
             'descripcion' => $item->descripcion,
+            'area_id' => $item->area_id,
             'area' => $item->area?->nombre ?? 'Sin área',
             'propietario' => $item->user?->name,
             'estado_nombre' => $item->estado?->nombre ?? 'borrador',
@@ -230,13 +309,28 @@ class PendienteController extends Controller
         $entidad = $actualizacion->actualizable;
         $tipo = $entidad ? collect(self::TIPOS)->search(fn ($cfg) => $entidad instanceof $cfg['modelo']) : null;
         $tipo = $tipo ?: null;
+        $esBaja = $actualizacion->esEliminacion();
+        $juntoConId = $actualizacion->data['junto_con_riesgo_id'] ?? null;
 
         return [
             'modo' => 'propuesta',
+            'naturaleza' => $esBaja ? 'baja' : 'cambio',
+            // Las bajas de los controles y planes que se proponen junto con la de
+            // un riesgo se muestran agrupadas bajo la de ese riesgo.
+            'grupo' => match (true) {
+                $juntoConId !== null => "riesgo-{$juntoConId}",
+                $tipo !== null && $entidad !== null => "{$tipo}-{$entidad->id}",
+                default => "actualizacion-{$actualizacion->id}",
+            },
+            'junto_con' => $juntoConId ? (Riesgo::withTrashed()->find($juntoConId)?->nombre ?? 'un riesgo') : null,
+            'revision_inicial' => $this->deRevisionInicial($entidad),
+            'lineas' => $actualizacion->lineasDeCambio(),
             'clave' => "actualizacion-{$actualizacion->id}",
             'id' => $actualizacion->id,
+            'tipo' => $tipo,
             'tipo_label' => $tipo ? self::TIPOS[$tipo]['singular'] : 'Elemento',
             'nombre' => $entidad?->nombre ?? '(elemento eliminado)',
+            'area_id' => $entidad?->area_id,
             'area' => $entidad?->area?->nombre ?? 'Sin área',
             'propietario' => $actualizacion->user?->name,
             'fecha' => $actualizacion->created_at?->diffForHumans(),

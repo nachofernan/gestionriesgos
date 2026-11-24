@@ -3,8 +3,10 @@
 namespace Tests\Feature\Auditoria;
 
 use App\Models\Auditoria\Area;
+use App\Models\Auditoria\Control;
 use App\Models\Auditoria\Estado;
 use App\Models\Auditoria\Objetivo;
+use App\Models\Auditoria\RevisionInicial;
 use App\Models\Auditoria\Riesgo;
 use App\Models\User;
 use Database\Seeders\EstadoRiesgoSeeder;
@@ -193,6 +195,94 @@ class PendienteControllerTest extends TestCase
         $this->actingAs($this->lucia)->get(route('auditoria.pendientes.index'))
             ->assertViewHas('paraAprobar', fn ($p) => $p['riesgo']->pluck('id')->all() === [$riesgo->id])
             ->assertViewHas('actualizacionesParaAprobar', fn ($a) => $a->isEmpty());
+    }
+
+    /** Propuesta de eliminación validada (espera al comité), con la forma de Actualizacion::registrarEliminacion(). */
+    private function bajaValidada($entidad, string $motivo, ?int $juntoConRiesgoId = null)
+    {
+        return $entidad->actualizaciones()->create([
+            'user_id' => $this->canela->id,
+            'mensaje' => $motivo,
+            'estado_id' => Estado::validado()->id,
+            'data' => array_filter([
+                'tipo' => 'cambio',
+                'eliminacion' => true,
+                'junto_con_riesgo_id' => $juntoConRiesgoId,
+                'diff' => ['campos' => ['estado' => ['antes' => 'aprobado', 'despues' => 'borrado']]],
+            ]),
+        ]);
+    }
+
+    #[Test]
+    public function una_propuesta_de_eliminacion_aparece_como_baja_y_no_como_cambio(): void
+    {
+        $riesgo = Riesgo::factory()->aprobado()->create(['area_id' => $this->sectA->id]);
+        $control = Control::factory()->create(['area_id' => $this->sectA->id, 'estado_id' => Estado::aprobado()->id]);
+        $bajaRiesgo = $this->bajaValidada($riesgo, 'Ya no aplica');
+        $bajaControl = $this->bajaValidada($control, 'Ya no aplica', $riesgo->id);
+        $cambio = $riesgo->actualizaciones()->create([
+            'user_id' => $this->canela->id,
+            'mensaje' => 'Un cambio cualquiera',
+            'estado_id' => Estado::validado()->id,
+            'data' => ['tipo' => 'cambio', 'diff' => ['campos' => ['nombre' => ['antes' => 'A', 'despues' => 'B']]]],
+        ]);
+
+        $this->actingAs($this->lucia)->get(route('auditoria.pendientes.index'))
+            ->assertOk()
+            ->assertSee('Aprobar baja')
+            ->assertViewHas('colas', fn ($colas) => $colas['aprobar']['baja'] === ["actualizacion-{$bajaRiesgo->id}", "actualizacion-{$bajaControl->id}"]
+                && $colas['aprobar']['cambio'] === ["actualizacion-{$cambio->id}"])
+            ->assertViewHas('detalles', fn ($d) => $d["actualizacion-{$bajaControl->id}"]['naturaleza'] === 'baja'
+                && $d["actualizacion-{$bajaControl->id}"]['junto_con'] === $riesgo->nombre
+                && $d["actualizacion-{$cambio->id}"]['naturaleza'] === 'cambio');
+    }
+
+    #[Test]
+    public function un_elemento_en_borrador_aparece_como_alta(): void
+    {
+        $riesgo = Riesgo::factory()->borrador()->create(['area_id' => $this->sectA->id]);
+
+        $this->actingAs($this->canela)->get(route('auditoria.pendientes.index'))
+            ->assertViewHas('colas', fn ($colas) => array_keys($colas) === ['validar']
+                && $colas['validar']['alta'] === ["riesgo-{$riesgo->id}"]
+                && $colas['validar']['cambio'] === [] && $colas['validar']['baja'] === []);
+    }
+
+    #[Test]
+    public function con_doble_rol_las_colas_de_validar_y_aprobar_quedan_separadas(): void
+    {
+        $dobleRol = User::factory()->gerente()->comite()->create(['area_id' => $this->gerAdmin->id]);
+        $borrador = Riesgo::factory()->borrador()->create(['area_id' => $this->sectA->id]);
+        $validado = Riesgo::factory()->validado()->create(['area_id' => $this->gerProd->id]);
+
+        $this->actingAs($dobleRol)->get(route('auditoria.pendientes.index'))
+            ->assertSee('Me toca validar')
+            ->assertSee('Me toca aprobar')
+            ->assertViewHas('colas', fn ($colas) => $colas['validar']['alta'] === ["riesgo-{$borrador->id}"]
+                && $colas['aprobar']['alta'] === ["riesgo-{$validado->id}"]);
+    }
+
+    #[Test]
+    public function una_propuesta_sobre_un_elemento_firmado_con_arreglos_pendientes_se_marca_de_la_revision_inicial(): void
+    {
+        config(['auditoria.revision_inicial.activa' => true]);
+        $firmado = Riesgo::factory()->aprobado()->create(['area_id' => $this->sectA->id]);
+        $otro = Riesgo::factory()->aprobado()->create(['area_id' => $this->sectA->id]);
+        RevisionInicial::create([
+            'revisable_type' => $firmado->getMorphClass(),
+            'revisable_id' => $firmado->id,
+            'gerencia_id' => $this->gerAdmin->id,
+            'firmado_por_id' => $this->canela->id,
+            'firmado_en' => now(),
+            'arreglos_pendientes' => ['sin_controles'],
+        ]);
+        $deLaRevision = $this->bajaValidada($firmado, 'Se terminó');
+        $comun = $this->bajaValidada($otro, 'Duplicado');
+
+        $this->actingAs($this->lucia)->get(route('auditoria.pendientes.index'))
+            ->assertSee('De la revisión inicial')
+            ->assertViewHas('detalles', fn ($d) => $d["actualizacion-{$deLaRevision->id}"]['revision_inicial'] === true
+                && $d["actualizacion-{$comun->id}"]['revision_inicial'] === false);
     }
 
     #[Test]

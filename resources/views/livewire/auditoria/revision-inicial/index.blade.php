@@ -44,6 +44,7 @@
                         <th class="px-4 py-3 text-right">Firmados</th>
                         <th class="px-4 py-3 text-right">Revisados</th>
                         <th class="px-4 py-3 text-right">Pendientes</th>
+                        <th class="px-4 py-3 text-right" title="Firmados con una baja o un arreglo que todavía espera al comité">Esperan comité</th>
                         <th class="px-4 py-3 text-right">Con errores</th>
                     </tr>
                 </thead>
@@ -65,12 +66,22 @@
                             <td class="px-4 py-3 text-right text-green-700 font-semibold">{{ $r['firmados'] }}</td>
                             <td class="px-4 py-3 text-right text-indigo-700">{{ $r['revisados'] }}</td>
                             <td class="px-4 py-3 text-right text-gray-600">{{ $r['pendientes'] }}</td>
+                            <td class="px-4 py-3 text-right {{ $r['esperan_comite'] ? 'text-sky-700 font-semibold' : 'text-gray-400' }}">{{ $r['esperan_comite'] }}</td>
                             <td class="px-4 py-3 text-right {{ $r['con_errores'] ? 'text-red-700 font-semibold' : 'text-gray-400' }}">{{ $r['con_errores'] }}</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
+    @endif
+
+    @php $esperanComite = $resumen->sum('esperan_comite'); @endphp
+    @if ($esComite && $esperanComite > 0)
+        <a href="{{ route('auditoria.pendientes.index', ['cola' => 'aprobar', 'origen' => 'revision']) }}"
+           class="flex items-center justify-between gap-4 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900 hover:bg-violet-100 transition-colors">
+            <span><span class="font-bold">{{ $esperanComite }}</span> {{ $esperanComite === 1 ? 'firma de la revisión se apoya' : 'firmas de la revisión se apoyan' }} en propuestas que esperan la aprobación del comité.</span>
+            <span class="font-bold shrink-0">Ver en Pendientes →</span>
+        </a>
     @endif
 
     <!-- Pestañas por tipo -->
@@ -184,6 +195,13 @@
                                             @if ($r?->firmado_en)
                                                 <span class="text-xs text-green-700 font-semibold">✓ Firmado</span>
                                                 <span class="text-xs text-gray-400">{{ $r->firmadoPor?->name }} · {{ $r->firmado_en->format('d/m/Y') }}</span>
+                                                @if ($fila['salida'] === 'baja')
+                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700">Baja propuesta · espera al comité</span>
+                                                @elseif ($fila['salida'] === 'arreglos')
+                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-800">{{ $fila['arreglosEnCurso'] }} {{ $fila['arreglosEnCurso'] === 1 ? 'arreglo espera' : 'arreglos esperan' }} al comité</span>
+                                                @elseif (! empty($r->advertencias_aceptadas))
+                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800">Con {{ count($r->advertencias_aceptadas) }} {{ count($r->advertencias_aceptadas) === 1 ? 'advertencia aceptada' : 'advertencias aceptadas' }}</span>
+                                                @endif
                                             @else
                                                 @if ($r?->revisado_en)
                                                     <span class="text-xs text-indigo-700">Revisado por {{ $r->revisadoPor?->name }} · {{ $r->revisado_en->format('d/m/Y') }}</span>

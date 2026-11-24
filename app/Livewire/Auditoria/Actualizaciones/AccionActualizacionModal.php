@@ -34,6 +34,9 @@ class AccionActualizacionModal extends Component
 
     public ?string $error = null;
 
+    /** Propuesta de eliminación (D-047): sólo cambia cómo se nombra la acción. */
+    public bool $esBaja = false;
+
     /** Obligatorio al rechazar (D-031). */
     public string $motivo = '';
 
@@ -54,6 +57,7 @@ class AccionActualizacionModal extends Component
         $this->accion = $accion;
         $this->mensaje = $actualizacion->mensaje;
         $this->entidadNombre = $actualizacion->actualizable?->nombre ?? '';
+        $this->esBaja = $actualizacion->esEliminacion();
         // Filas ya formateadas (etiqueta, antes, después): mismo texto que el resto de las pantallas.
         $this->diff = $actualizacion->diffLegible()['campos'];
         $this->abierto = true;

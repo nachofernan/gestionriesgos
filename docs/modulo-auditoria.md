@@ -219,6 +219,20 @@ filtra el Responsable con Alpine al cambiar el Área. Tests: `AltaAreaResponsabl
 - **`store(Request, Tarea)`**: Crea una `Actualizacion` polimórfica sobre la tarea (`$tarea->actualizaciones()->create(...)`) y actualiza `porcentaje_avance` en la tarea.
 - Valida: `mensaje` (min 3 chars), `porcentaje` (0-100).
 
+### `PendienteController` (Pendientes, D-059)
+
+- **`index`**: lo que el usuario tiene que validar (gerente, su subárbol) o aprobar (comité, todas las
+  áreas). `detalles()` arma un payload por fila con los permisos resueltos contra las Policies y su
+  `naturaleza`: `alta` (elemento en borrador/validado), `cambio` (propuesta sobre algo aprobado) o
+  `baja` (propuesta con `data.eliminacion`). `colas()` las ordena en `validar`/`aprobar` y, adentro,
+  por naturaleza; las bajas propuestas junto con la de un riesgo quedan debajo de ella. La marca
+  `revision_inicial` sale de las firmas con `arreglos_pendientes` (D-058).
+- La vista (`pendiente/index` + `partials/fila`) pinta todas las filas y Alpine muestra la cola
+  (selector sólo con doble rol), la pestaña Altas/Cambios/Bajas y los filtros (tipo, área, «De la
+  revisión inicial»), sincronizados en la query string. Los botones disparan los mismos flujos de
+  siempre (`ValidacionCascadaModal`, `AccionActualizacionModal`, rechazar con motivo).
+- **`pdf`**: el mismo agrupamiento, sin acciones.
+
 ---
 
 ## Componentes Livewire
